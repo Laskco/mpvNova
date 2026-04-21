@@ -1,0 +1,329 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This file contains resource definitions for displayed strings, allowing
+     them to be changed based on the locale and options. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <!-- Simple strings. -->
+    <string name="mpv_activity">mpvNova</string>
+    <string name="label_share_intent">Play in mpvNova</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_save">Save</string>
+    <string name="dialog_yes">Yes</string>
+    <string name="dialog_no">No</string>
+    <string name="dialog_prev">Prev</string>
+    <string name="dialog_next">Next</string>
+    <string name="dialog_reset">Reset</string>
+    <string name="track_audio">Audio</string>
+    <string name="track_subs">Subs</string> <!-- short for "Subtitles" -->
+    <string name="track_off">Off</string>
+    <string name="status_on">On</string>
+    <string name="status_off">Off</string>
+    <string name="track_primary">Primary</string>
+    <string name="track_secondary">Secondary</string>
+    <string name="btn_play">Play</string>
+    <string name="btn_pause">Pause</string>
+    <string name="btn_plus" translatable="false">+</string>
+    <string name="btn_minus" translatable="false">-</string>
+    <string name="btn_voice_boost">Voice boost</string>
+    <string name="btn_volume_boost">Volume boost</string>
+    <string name="btn_dialogue_downmix">Dialogue downmix</string>
+    <string name="btn_decrease" translatable="false">-</string>
+    <string name="btn_increase" translatable="false">+</string>
+    <string name="btn_night_mode">Night mode</string>
+    <string name="btn_audio_norm">Audio normalization</string>
+    <string name="btn_voice_boost_summary">Push speech forward and trim muddy lows.</string>
+    <string name="btn_volume_boost_summary">Add clean loudness.</string>
+    <string name="btn_dialogue_downmix_summary">Pull the center channel forward on surround mixes.</string>
+    <string name="btn_night_mode_summary">Clamp peaks and pull down rumble.</string>
+    <string name="btn_audio_norm_summary">Keep dialogue steadier. On 5.1/7.1 tracks, Dialogue downmix may play smoother.</string>
+    <string name="btn_next_chapter">Next chapter</string>
+    <string name="dialog_title_chapter">Go to chapter</string>
+    <string name="toast_voice_boost_off">Voice boost off</string>
+    <string name="toast_voice_boost_level">Voice boost: %1$s</string>
+    <string name="toast_volume_boost_off">Volume boost off</string>
+    <string name="toast_volume_boost_level">Volume boost: %1$s</string>
+    <string name="toast_dialogue_downmix_level">Dialogue downmix: %1$s</string>
+    <string name="toast_night_mode_on">Night mode on</string>
+    <string name="toast_night_mode_off">Night mode off</string>
+    <string name="toast_audio_norm_on">Audio normalization on</string>
+    <string name="toast_audio_norm_off">Audio normalization off</string>
+    <string name="toast_audio_norm_surround_hint">Surround track is heavy to process. Try Dialogue downmix for smoother playback.</string>
+    <string name="player_ends_at">Ends at %1$s</string>
+    <string name="dialog_delay_label">Delay</string>
+    <string name="dialog_title_subs">Subtitles</string>
+    <string name="dialog_title_audio">Audio</string>
+    <string name="dialog_title_decoder">Decoder mode</string>
+    <string name="dialog_picker_subtitle_subs">Pick the subtitle track you want on screen.</string>
+    <string name="dialog_picker_subtitle_audio">Choose an audio track and shape the sound for your room.</string>
+    <string name="dialog_picker_subtitle_decoder">Select the decoder path that fits this device.</string>
+    <string name="dialog_picker_list_summary">The current choice stays visible while you move through the full list.</string>
+    <string name="dialog_picker_remote_summary">Built for couch viewing with clear lanes for browsing, timing, and sound tweaks.</string>
+    <string name="dialog_section_tracks">Available tracks</string>
+    <string name="dialog_section_modes">Available modes</string>
+    <string name="dialog_section_sound">Sound shaping</string>
+    <string name="dialog_section_sound_summary">Dialogue-first presets tuned for clearer speech and quieter background chaos.</string>
+    <string name="dialog_section_timing">Timing</string>
+    <string name="dialog_section_timing_summary">Adjust subtitle sync without leaving playback.</string>
+    <string name="dialog_subtitle_section_label">Available subtitles</string>
+    <string name="dialog_subtitle_mode_label">Listening mode</string>
+    <string name="dialog_subtitle_primary_summary">Choose the main subtitle track or keep a second one ready.</string>
+    <string name="dialog_subtitle_secondary_summary">Pick a backup subtitle track that can stay separate from the primary one.</string>
+    <string name="dialog_subtitle_focus_title">Primary or backup</string>
+    <string name="dialog_subtitle_focus_summary">Use Primary for your main subtitle lane, or Secondary when you want a second track ready without replacing the first.</string>
+    <string name="dialog_subtitle_tip_title">Better for TV viewing</string>
+    <string name="dialog_subtitle_tip_summary">This layout keeps subtitle choices on one side and mode switching on the other, so it is easier to scan from the couch.</string>
+    <string name="dialog_persist_filters_summary">Keep your current filter setup for the next file.</string>
+    <string name="decoder_mode_hw_plus">HW+ (mediacodec)</string>
+    <string name="decoder_mode_hw">HW (mediacodec-copy)</string>
+    <string name="decoder_mode_sw">SW</string>
+    <string name="decoder_mode_gnext">G-NEXT</string>
+    <string name="decoder_mode_shield_h10p">Shield Anime (Hi10P x264)</string>
+    <string name="ui_volume">Volume: %d%%</string>
+    <string name="ui_brightness">Brightness: %d%%</string>
+    <string name="ui_seek_distance">%1$s\n[%2$s]</string>
+    <string name="ui_fps">%.3f FPS</string>
+    <string name="ui_speed">%.2fx</string>
+    <string name="ui_chapter_fallback">Chapter %1$d (%2$s)</string>
+    <string name="ui_chapter">%1$s (%2$s)</string>
+    <string name="ui_track">#%d</string>
+    <string name="ui_track_text">#%1$d: %2$s</string>
+    <string name="ui_track_title_lang">#%1$d: %2$s (%3$s)</string>
+    <string name="format_fixed_number" translatable="false">%.0f</string>
+    <string name="format_seconds">%.1f s</string>
+    <string name="format_db">+%1$d dB</string>
+    <string name="format_downmix_active">%1$s · Active (%2$dch)</string>
+    <string name="format_downmix_waiting">%1$s · Waiting for surround</string>
+    <string name="format_downmix_stereo">%1$s · Already stereo</string>
+    <string name="format_downmix_multichannel">%1$s · %2$dch source</string>
+    <string name="filter_value_off">Off</string>
+    <string name="voice_boost_preset_soft">EQ +3.0 dB</string>
+    <string name="voice_boost_preset_light">EQ +4.5 dB</string>
+    <string name="voice_boost_preset_clear">EQ +5.8 dB</string>
+    <string name="dialogue_downmix_preset_soft">Center 72%</string>
+    <string name="dialogue_downmix_preset_strong">Center 84%</string>
+    <string name="dialogue_downmix_preset_tv">Center 96%</string>
+    <string name="dialogue_downmix_preset_focus">Center 104%</string>
+    <string name="dialogue_downmix_preset_anchor">Center 110%</string>
+    <string name="voice_boost_preset_speech">EQ +7.0 dB</string>
+    <string name="voice_boost_preset_anime">EQ +8.0 dB</string>
+    <string name="voice_boost_preset_loud">EQ +8.0 dB+</string>
+    <string name="voice_boost_preset_max">Maximum</string>
+    <string name="night_mode_preset_soft">DRC 5:1</string>
+    <string name="night_mode_preset_late">DRC 8:1</string>
+    <string name="night_mode_preset_balanced">DRC 12:1</string>
+    <string name="night_mode_preset_strong">DRC 16:1</string>
+    <string name="night_mode_preset_cinema">DRC 20:1</string>
+    <string name="night_mode_preset_max">Maximum</string>
+    <string name="audio_norm_preset_light">-18 LUFS</string>
+    <string name="audio_norm_preset_smooth">-17 LUFS</string>
+    <string name="audio_norm_preset_speech">-16 LUFS</string>
+    <string name="audio_norm_preset_balanced">-15 LUFS</string>
+    <string name="audio_norm_preset_strong">-14 LUFS</string>
+    <string name="audio_norm_preset_boost">Boost</string>
+    <string name="audio_norm_preset_max">Maximum</string>
+    <string name="toast_night_mode_level">Night mode: %1$s</string>
+    <string name="toast_audio_norm_level">Audio normalization: %1$s</string>
+
+    <!-- Less simple strings -->
+    <string name="title_speed_dialog">Playback speed</string>
+    <string name="error_no_file">No file given, exiting</string>
+    <string name="notice_file_appended">File(s) appended to playlist</string>
+    <string name="notice_file_play">Starting playback of file(s)</string>
+    <string name="exit_warning_playlist">%d playlist items remaining.\nDo you really want to exit?</string>
+    <string name="contrast">Contrast</string>
+    <string name="video_brightness">Video brightness</string>
+    <string name="gamma">Gamma</string>
+    <string name="saturation">Saturation</string>
+    <string name="aspect_ratio">Aspect ratio</string>
+    <string name="audio_delay">Audio delay</string>
+    <string name="sub_delay">Subtitle delay</string>
+    <string name="notice_show_all_files">Showing all files</string>
+    <string name="notice_show_media_files">Showing media files only</string>
+    <string name="option_remember_choice">Remember choice on next startup</string>
+    <string name="uri_invalid_protocol">Invalid protocol</string>
+
+    <!-- Action buttons -->
+    <string name="switch_orientation">Switch orientation</string>
+    <string name="open_external_audio">Open external audio…</string>
+    <string name="open_external_sub">Open external subtitle…</string>
+    <string name="advanced_menu">Advanced…</string>
+    <string name="resume_bg_playback">Play in background</string>
+    <string name="toggle_stats">Toggle stats</string>
+    <string name="chapter_button">Chapter</string>
+    <string name="sub_seek_button">Seek by subtitle</string>
+    <string name="file_picker_old">File picker\n(legacy)</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_playlist">Playlist</string>
+    <string name="action_open_url">Open URL</string>
+    <string name="action_open_doc">Open document</string>
+    <string name="action_open_doc_tree">Open document tree</string>
+    <string name="action_pick_file">Pick file</string>
+    <string name="action_pick_file_old">Pick file (legacy)</string>
+    <string name="action_external_storage">External storage</string>
+    <string name="action_toggle_filter">Toggle filter</string>
+    <string name="pref_persist_filters_title">Persist filters</string>
+
+    <!-- App chrome -->
+    <string name="tv_brand">mpvNova</string>
+    <string name="tv_launcher_tagline">Fast, focused playback</string>
+    <string name="tv_launcher_subtitle" translatable="false">LOCAL FILES · STREAMS · CUSTOM CONTROLS</string>
+    <string name="tv_hint_press_ok">Choose a source</string>
+    <string name="home_hero_body">Open local media, paste a stream, or jump straight into the controls that make playback yours.</string>
+    <string name="home_remember_hint">Launch the same source automatically next time so you can jump back in faster.</string>
+    <string name="launcher_footer">Built for dark rooms, long sessions, and quick navigation.</string>
+    <string name="file_picker_title">Media library</string>
+    <string name="file_picker_subtitle">Browse folders, pick files, or switch to document access without leaving the dark theme.</string>
+    <string name="file_picker_choice_subtitle">Choose the source that fits this file. Everything here keeps the same playback features and flow.</string>
+    <string name="settings_hero_title">Tune playback your way</string>
+    <string name="settings_root_subtitle">Adjust playback defaults, video rendering, gestures, interface behavior, and advanced playback controls.</string>
+    <string name="about_hero_title">Version and capability info</string>
+    <string name="about_hero_subtitle">Inspect the bundled playback core, enabled features, and runtime details.</string>
+    <string name="tv_tile_open_folder">Open Folder</string>
+    <string name="tv_tile_open_folder_sub">Grant access to a document tree</string>
+    <string name="tv_tile_open_url">Open URL</string>
+    <string name="tv_tile_open_url_sub">Paste a stream or media link</string>
+    <string name="tv_tile_storage">Storage</string>
+    <string name="tv_tile_storage_sub">Browse local storage directly</string>
+    <string name="tv_tile_settings">Settings</string>
+    <string name="tv_tile_settings_sub">Playback, video, and gestures</string>
+
+    <!-- Strings related to Settings -->
+    <string name="pref_header_general">General</string>
+    <string name="pref_header_general_summary">Languages, defaults, background playback, and startup behavior.</string>
+
+    <string name="pref_header_video">Video</string>
+    <string name="pref_header_video_summary">Scaling, interpolation, debanding, and decode quality.</string>
+
+    <string name="pref_header_ui">User interface</string>
+    <string name="pref_header_ui_summary">Orientation, titles, popups, and playlist confirmations.</string>
+
+    <string name="pref_header_gestures">Touch gestures</string>
+    <string name="pref_header_gestures_summary">Horizontal and vertical drags, plus double-tap actions.</string>
+
+    <string name="pref_header_developer">Developer</string>
+    <string name="pref_header_developer_summary">Stats overlays, audio focus handling, and debugging tools.</string>
+
+    <string name="pref_header_advanced">Advanced</string>
+    <string name="pref_header_advanced_summary">Renderer switches and direct access to config files.</string>
+
+    <string name="pref_header_about_mpv">About mpvNova</string>
+    <string name="pref_header_about_mpv_summary">See build details and bundled playback-core features.</string>
+
+    <string name="pref_default_file_manager_path_title">Default file manager path</string>
+    <string name="pref_default_file_manager_path_summary" translatable="false">%s</string>
+
+    <string name="pref_material_you_theming_title">Material You</string>
+    <string name="pref_material_you_theming_summary">Use dynamic colors</string>
+
+    <string name="pref_default_audio_language_title">Default audio language</string>
+    <string name="pref_default_audio_language_message">Audio language(s) to be selected by default when playing a video with multiple audio streams.\nTwo- or three-letter languages codes work. Multiple values can be delimited by comma.</string>
+    <string name="pref_default_audio_language_summary" translatable="false">%s</string>
+
+    <string name="pref_default_subtitle_language_title">Default subtitle language</string>
+    <string name="pref_default_subtitle_language_message">Subtitle language(s) to be selected by default when playing a video with multiple subtitles.\nTwo- or three-letter languages codes work. Multiple values can be delimited by comma.</string>
+    <string name="pref_default_subtitle_language_summary" translatable="false">%s</string>
+
+    <string name="pref_hardware_decoding_title">Hardware decoding</string>
+    <string name="pref_hardware_decoding_summary">Attempt hardware decoding before falling back to software. This is generally more efficient.</string>
+    <string name="pref_decoder_auto_fallback_title">Automatic decoder fallback</string>
+    <string name="pref_decoder_auto_fallback_summary">Automatically switch to a safer decoder mode for known problem cases like Hi10P H.264 on NVIDIA Shield. Turn this off to keep your chosen decoder mode locked in.</string>
+    <string name="pref_preferred_decoder_mode_title">Preferred decoder mode</string>
+    <string name="pref_preferred_decoder_mode_summary">Choose the decoder mode to use by default when automatic decoder fallback is off.</string>
+
+    <string name="pref_background_play_title">Background playback</string>
+    <string name="pref_background_play_summary">Decide when playback should be automatically resumed background.</string>
+    <string name="pref_background_play_default" translatable="false">never</string>
+
+    <string name="pref_save_position_title">Save position on quit</string>
+    <string name="pref_save_position_summary">Remember current playback position on exit. When the same file is played again, the player will seek to the previous position.</string>
+
+    <string name="pref_new_intent_replace_title">Play new files immediately</string>
+    <string name="pref_new_intent_replace_summary">When opening new files while the player is in background, replace the current playlist instead of adding at end.</string>
+
+    <string name="pref_auto_rotation_title">Screen orientation</string>
+    <string name="pref_auto_rotation_summary">Decide which orientation the player will use for landscape or portrait videos.</string>
+    <string name="pref_auto_rotation_default" translatable="false">auto</string>
+
+    <string name="pref_display_media_title_title">Display media title (videos)</string>
+    <string name="pref_display_media_title_summary">Display the title or filename of videos above the controls. Audio files will always display their metadata.</string>
+
+    <string name="pref_bottom_controls_title">Show controls at bottom of screen</string>
+
+    <string name="pref_no_ui_pause_title">Continue playback during UI popups</string>
+    <string name="pref_no_ui_pause_summary">Continue playback while popups are open. (e.g. during the playlist dialog)</string>
+    <string name="pref_no_ui_pause_default" translatable="false">audio-only</string>
+
+    <string name="pref_playlist_exit_warning_title">Playlist exit confirmation</string>
+    <string name="pref_playlist_exit_warning_summary">Show a confirmation dialog before exiting when a playlist is loaded.</string>
+
+    <string name="pref_seek_gesture_smooth_title">Smoother seeking</string>
+
+    <string name="pref_gesture_horiz_title">Horizontal drag</string>
+    <string name="pref_gesture_horiz_default" translatable="false">seek</string>
+
+    <string name="pref_gesture_vert_left_title">Vertical drag (left side)</string>
+    <string name="pref_gesture_vert_left_default" translatable="false">bright</string>
+
+    <string name="pref_gesture_vert_right_title">Vertical drag (right side)</string>
+    <string name="pref_gesture_vert_right_default" translatable="false">volume</string>
+
+    <string name="pref_gesture_tap_left_title">Double tap (left)</string>
+    <string name="pref_gesture_tap_left_default" translatable="false">none</string>
+
+    <string name="pref_gesture_tap_center_title">Double tap (center)</string>
+    <string name="pref_gesture_tap_center_default" translatable="false">none</string>
+
+    <string name="pref_gesture_tap_right_title">Double tap (right)</string>
+    <string name="pref_gesture_tap_right_default" translatable="false">none</string>
+
+    <string name="pref_gesture_custom_helptext">When a tap gesture is set to \"Custom\" it can be bound to any command by editing input.conf. The key codes are <b>0x10001</b> (left), <b>0x10002</b> (center), <b>0x10003</b> (right).\nFor example you could bind to seeking by 6s:\n\t\t0x10003 no-osd seek 6</string>
+
+    <string name="pref_video_upscale_title">Upscaling filter</string>
+
+    <string name="pref_video_downscale_title">Downscaling filter</string>
+
+    <string name="pref_video_debanding_title">Debanding</string>
+    <string name="pref_video_debanding_summary">Select video debanding mode.</string>
+
+    <string name="pref_video_interpolation_title">Interpolation</string>
+    <string name="pref_video_interpolation_message">Reduce judder caused by mismatched video FPS and display refresh rate.</string>
+    <string name="pref_video_interpolation_sync_default" translatable="false">audio</string>
+
+    <string name="pref_video_tscale_title">Temporal interpolation filter</string>
+    <string name="pref_video_tscale_summary">Select the filter used for interpolating the temporal axis (frames).</string>
+    <string name="pref_video_tscale_message">These settings only take effect if interpolation is enabled above.</string>
+
+    <string name="pref_video_fastdecode_title">Low-quality video decoding</string>
+    <string name="pref_video_fastdecode_summary">Trades quality for performance and thus fluent playback.\n<b>REDUCES QUALITY A LOT</b></string>
+
+    <string name="pref_ignore_audio_focus_title">Ignore audio focus</string>
+    <string name="pref_ignore_audio_focus_summary">Do not pause playback or reduce volume when other applications play audio at the same time.</string>
+
+    <string name="pref_stats_mode_title">Show stats</string>
+    <string name="pref_stats_mode_summary">Choose which statistics are displayed</string>
+
+    <string name="pref_gpu_debug_title">Enable OpenGL debugging</string>
+
+    <string name="pref_gpu_next_title">Use gpu-next</string>
+    <string name="pref_gpu_next_summary">Use new video rendering backend, based on libplacebo.</string>
+
+    <string name="pref_version_info">Version information</string>
+
+    <string name="pref_edit_mpv_conf">Edit mpv.conf</string>
+    <string name="pref_edit_mpv_conf_message">You can directly edit the advanced playback configuration here.</string>
+
+    <string name="pref_edit_input_conf">Edit input.conf</string>
+    <string name="pref_edit_input_conf_message">You can edit input.conf here, which is mainly useful for TV remotes and keyboards.\n\nImportant: this player still has a few hardcoded keys which can\'t be redefined here, for example \'j\' to cycle subtitles.</string>
+
+    <!-- Strings used in Settings dialog preferences -->
+    <string name="scaler_filter">Filter function</string>
+    <string name="scaler_param1">Param 1</string>
+    <string name="scaler_param2">Param 2</string>
+    <string name="interpolation_switch">Enable interpolation</string>
+    <string name="interpolation_video_sync">Video sync</string>
+
+    <!-- File picker -->
+    <string name="nnf_name">Name</string>
+    <string name="nnf_permission_external_write_denied">Permission to access file system denied</string>
+</resources>

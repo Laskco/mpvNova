@@ -1,0 +1,728 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tv_dialog_shell"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingTop="24dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="24dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                style="@style/MpvTv.TextSmallCaps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/mpv_activity"
+                android:textColor="@color/tv_purple_hot" />
+
+            <TextView
+                android:id="@+id/pickerTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:letterSpacing="-0.01"
+                android:textColor="@color/tv_text"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                tools:text="Audio" />
+
+            <TextView
+                android:id="@+id/pickerSubtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:maxWidth="620dp"
+                android:textColor="@color/tv_text_dim"
+                android:textSize="14sp"
+                tools:text="Choose an audio track and shape the sound for your room." />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/persistFiltersRow"
+            android:layout_width="460dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="40dp"
+            android:background="@drawable/bg_tv_track_row"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="15dp"
+            android:paddingTop="14dp"
+            android:paddingEnd="15dp"
+            android:paddingBottom="14dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <FrameLayout
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_tv_icon_chip">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_filter_alt_24dp"
+                    android:tint="@color/tv_text" />
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/pref_persist_filters_title"
+                    android:textColor="@color/tv_text"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:maxLines="2"
+                    android:ellipsize="end"
+                    android:text="@string/dialog_persist_filters_summary"
+                    android:textColor="@color/tv_text_dim"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/persistFiltersCheck"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_marginStart="12dp"
+                android:src="@drawable/ic_tv_check"
+                android:visibility="invisible" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/contentRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="top"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/trackPanel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tv_panel_card"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="18dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="18dp">
+
+            <LinearLayout
+                android:id="@+id/listHeaderRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/listSectionTitle"
+                    style="@style/MpvTv.TextSmallCaps"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/dialog_section_tracks" />
+
+                <TextView
+                    android:id="@+id/listSectionSummary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_picker_list_summary"
+                    android:textColor="@color/tv_text_mute"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/list"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:minHeight="380dp"
+                android:paddingTop="10dp"
+                android:paddingBottom="2dp"
+                app:layoutManager="LinearLayoutManager"
+                tools:listitem="@layout/dialog_track_item" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/sidePanel"
+            android:layout_width="460dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <LinearLayout
+                android:id="@+id/delayRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_tv_accent_panel"
+                android:clickable="true"
+                android:focusable="true"
+                android:orientation="vertical"
+                android:paddingStart="18dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="18dp"
+                android:visibility="gone">
+
+                <TextView
+                    style="@style/MpvTv.TextSmallCaps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_delay_label"
+                    android:textColor="@color/tv_text" />
+
+                <TextView
+                    android:id="@+id/delayValue"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:textColor="@color/tv_text"
+                    android:textSize="28sp"
+                    android:textStyle="bold"
+                    tools:text="0.00 s" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/dialog_section_timing_summary"
+                    android:textColor="#DDECF7FF"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/filterGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="10dp"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/voiceBoostRow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_panel_card"
+                        android:minHeight="132dp"
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <FrameLayout
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:background="@drawable/bg_tv_icon_chip">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_voice_boost_24dp"
+                                    android:tint="@color/tv_text" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:text="@string/btn_voice_boost"
+                                android:textColor="@color/tv_text"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:text="@string/btn_voice_boost_summary"
+                            android:textColor="@color/tv_text_dim"
+                            android:textSize="11sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageButton
+                                android:id="@+id/voiceBoostMinusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_decrease"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_remove_24dp"
+                                app:tint="@color/tv_text" />
+
+                            <TextView
+                                android:id="@+id/voiceBoostValue"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:textColor="@color/tv_text"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="Clear" />
+
+                            <ImageButton
+                                android:id="@+id/voiceBoostPlusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_increase"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_add_24dp"
+                                app:tint="@color/tv_text" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/volumeBoostRow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_panel_card"
+                        android:minHeight="132dp"
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <FrameLayout
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:background="@drawable/bg_tv_icon_chip">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_volume_boost_24dp"
+                                    android:tint="@color/tv_text" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:text="@string/btn_volume_boost"
+                                android:textColor="@color/tv_text"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:text="@string/btn_volume_boost_summary"
+                            android:textColor="@color/tv_text_dim"
+                            android:textSize="11sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageButton
+                                android:id="@+id/volumeBoostMinusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_decrease"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_remove_24dp"
+                                app:tint="@color/tv_text" />
+
+                            <TextView
+                                android:id="@+id/volumeBoostValue"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:textColor="@color/tv_text"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="+6 dB" />
+
+                            <ImageButton
+                                android:id="@+id/volumeBoostPlusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_increase"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_add_24dp"
+                                app:tint="@color/tv_text" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:id="@+id/nightModeRow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_panel_card"
+                        android:minHeight="132dp"
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <FrameLayout
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:background="@drawable/bg_tv_icon_chip">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_night_mode_24dp"
+                                    android:tint="@color/tv_text" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:text="@string/btn_night_mode"
+                                android:textColor="@color/tv_text"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:maxLines="2"
+                            android:ellipsize="end"
+                            android:text="@string/btn_night_mode_summary"
+                            android:textColor="@color/tv_text_dim"
+                            android:textSize="11sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageButton
+                                android:id="@+id/nightModeMinusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_decrease"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_remove_24dp"
+                                app:tint="@color/tv_text" />
+
+                            <TextView
+                                android:id="@+id/nightModeValue"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:textColor="@color/tv_text"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="Balanced" />
+
+                            <ImageButton
+                                android:id="@+id/nightModePlusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_increase"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_add_24dp"
+                                app:tint="@color/tv_text" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/audioNormRow"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_panel_card"
+                        android:minHeight="144dp"
+                        android:orientation="vertical"
+                        android:paddingStart="12dp"
+                        android:paddingTop="12dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <FrameLayout
+                                android:layout_width="38dp"
+                                android:layout_height="38dp"
+                                android:background="@drawable/bg_tv_icon_chip">
+
+                                <ImageView
+                                    android:layout_width="20dp"
+                                    android:layout_height="20dp"
+                                    android:layout_gravity="center"
+                                    android:src="@drawable/ic_audio_norm_24dp"
+                                    android:tint="@color/tv_text" />
+                            </FrameLayout>
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:text="@string/btn_audio_norm"
+                                android:textColor="@color/tv_text"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:maxLines="3"
+                            android:ellipsize="end"
+                            android:text="@string/btn_audio_norm_summary"
+                            android:textColor="@color/tv_text_dim"
+                            android:textSize="11sp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="10dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageButton
+                                android:id="@+id/audioNormMinusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_decrease"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_remove_24dp"
+                                app:tint="@color/tv_text" />
+
+                            <TextView
+                                android:id="@+id/audioNormValue"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="center"
+                                android:textColor="@color/tv_text"
+                                android:textSize="13sp"
+                                android:textStyle="bold"
+                                tools:text="Balanced" />
+
+                            <ImageButton
+                                android:id="@+id/audioNormPlusBtn"
+                                style="@style/MpvPlayer.ButtonBarIconButton"
+                                android:layout_width="36dp"
+                                android:layout_height="36dp"
+                                android:contentDescription="@string/btn_increase"
+                                android:minWidth="36dp"
+                                android:minHeight="36dp"
+                                app:srcCompat="@drawable/ic_add_24dp"
+                                app:tint="@color/tv_text" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/downmixRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_tv_panel_card"
+                    android:minHeight="118dp"
+                    android:orientation="vertical"
+                    android:paddingStart="12dp"
+                    android:paddingTop="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="12dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <FrameLayout
+                            android:layout_width="38dp"
+                            android:layout_height="38dp"
+                            android:background="@drawable/bg_tv_icon_chip">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:layout_gravity="center"
+                                android:src="@drawable/ic_audiotrack_black_24dp"
+                                android:tint="@color/tv_text" />
+                        </FrameLayout>
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:text="@string/btn_dialogue_downmix"
+                            android:textColor="@color/tv_text"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:text="@string/btn_dialogue_downmix_summary"
+                        android:textColor="@color/tv_text_dim"
+                        android:textSize="11sp" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="10dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <ImageButton
+                            android:id="@+id/downmixMinusBtn"
+                            style="@style/MpvPlayer.ButtonBarIconButton"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/btn_decrease"
+                            android:minWidth="36dp"
+                            android:minHeight="36dp"
+                            app:srcCompat="@drawable/ic_remove_24dp"
+                            app:tint="@color/tv_text" />
+
+                        <TextView
+                            android:id="@+id/downmixValue"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center"
+                            android:textColor="@color/tv_text"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            tools:text="Balanced" />
+
+                        <ImageButton
+                            android:id="@+id/downmixPlusBtn"
+                            style="@style/MpvPlayer.ButtonBarIconButton"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:contentDescription="@string/btn_increase"
+                            android:minWidth="36dp"
+                            android:minHeight="36dp"
+                            app:srcCompat="@drawable/ic_add_24dp"
+                            app:tint="@color/tv_text" />
+                    </LinearLayout>
+                </LinearLayout>
+
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

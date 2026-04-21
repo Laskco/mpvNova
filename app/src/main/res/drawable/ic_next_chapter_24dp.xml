@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Next Chapter: two forward triangles (chapter-skip) + vertical end bar -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="?attr/colorControlNormal">
+    <!-- First triangle -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M3,18l7,-6L3,6v12Z"/>
+    <!-- Second triangle -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10,18l7,-6-7,-6v12Z"/>
+    <!-- End bar -->
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M18,6h2v12h-2Z"/>
+</vector>

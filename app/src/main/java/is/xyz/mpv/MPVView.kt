@@ -1,0 +1,566 @@
+package app.mpvnova.player
+
+import android.content.Context
+import android.os.Build
+import android.os.Environment
+import android.util.AttributeSet
+import android.util.Log
+import android.view.*
+import androidx.core.content.ContextCompat
+import androidx.preference.PreferenceManager
+import app.mpvnova.player.MPVLib.MpvFormat.MPV_FORMAT_DOUBLE
+import app.mpvnova.player.MPVLib.MpvFormat.MPV_FORMAT_FLAG
+import app.mpvnova.player.MPVLib.MpvFormat.MPV_FORMAT_INT64
+import app.mpvnova.player.MPVLib.MpvFormat.MPV_FORMAT_NONE
+import app.mpvnova.player.MPVLib.MpvFormat.MPV_FORMAT_STRING
+import kotlin.reflect.KProperty
+
+internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
+    override fun initOptions() {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+
+        // apply phone-optimized defaults
+        MPVLib.setOptionString("profile", "fast")
+
+        // vo
+        setVo(defaultVo(sharedPreferences))
+
+        // hwdec
+        val hwdec = defaultHwdec(sharedPreferences)
+
+        // vo: set display fps as reported by android
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val disp = ContextCompat.getDisplayOrDefault(context)
+            val refreshRate = disp.mode.refreshRate
+
+            Log.v(TAG, "Display ${disp.displayId} reports FPS of $refreshRate")
+            MPVLib.setOptionString("display-fps-override", refreshRate.toString())
+        } else {
+            Log.v(TAG, "Android version too old, disabling refresh rate functionality " +
+                       "(${Build.VERSION.SDK_INT} < ${Build.VERSION_CODES.M})")
+        }
+
+        // set non-complex options
+        data class Property(val preferenceName: String, val mpvOption: String, val default: String = "")
+        val opts = arrayOf(
+                Property("default_audio_language", "alang", "eng"),
+                Property("default_subtitle_language", "slang", "eng"),
+
+                // vo-related
+                Property("video_scale", "scale"),
+                Property("video_scale_param1", "scale-param1"),
+                Property("video_scale_param2", "scale-param2"),
+
+                Property("video_downscale", "dscale"),
+                Property("video_downscale_param1", "dscale-param1"),
+                Property("video_downscale_param2", "dscale-param2"),
+
+                Property("video_tscale", "tscale"),
+                Property("video_tscale_param1", "tscale-param1"),
+                Property("video_tscale_param2", "tscale-param2")
+        )
+
+        for ((preferenceName, mpvOption, default) in opts) {
+            val preference = sharedPreferences.getString(preferenceName, default)
+            if (!preference.isNullOrBlank())
+                MPVLib.setOptionString(mpvOption, preference)
+        }
+
+        val debandMode = sharedPreferences.getString("video_debanding", "")
+        if (debandMode == "gradfun") {
+            // lower the default radius (16) to improve performance
+            MPVLib.setOptionString("vf", "gradfun=radius=12")
+        } else if (debandMode == "gpu") {
+            MPVLib.setOptionString("deband", "yes")
+        }
+
+        MPVLib.setOptionString("video-sync", defaultVideoSync(sharedPreferences))
+
+        if (sharedPreferences.getBoolean("video_interpolation", false))
+            MPVLib.setOptionString("interpolation", "yes")
+
+        if (sharedPreferences.getBoolean("gpudebug", false))
+            MPVLib.setOptionString("gpu-debug", "yes")
+
+        if (sharedPreferences.getBoolean("video_fastdecode", false)) {
+            MPVLib.setOptionString("vd-lavc-fast", "yes")
+            MPVLib.setOptionString("vd-lavc-skiploopfilter", "nonkey")
+        }
+
+        MPVLib.setOptionString("gpu-context", "android")
+        MPVLib.setOptionString("opengl-es", "yes")
+        MPVLib.setOptionString("hwdec", hwdec)
+        MPVLib.setOptionString("hwdec-codecs", "h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1")
+        MPVLib.setOptionString("ao", "audiotrack,opensles")
+        MPVLib.setOptionString("audio-set-media-role", "yes")
+        MPVLib.setOptionString("tls-verify", "yes")
+        MPVLib.setOptionString("tls-ca-file", "${this.context.filesDir.path}/cacert.pem")
+        MPVLib.setOptionString("input-default-bindings", "yes")
+        // Never let libmpv draw its legacy seek/progress OSD. The app provides
+        // its own timeline UI and routes supported seek inputs through it.
+        MPVLib.setOptionString("osd-on-seek", "no")
+        MPVLib.setOptionString("osd-bar", "no")
+        // Limit demuxer cache since the defaults are too high for mobile devices
+        val cacheBytes = defaultDemuxerCacheBytes()
+        MPVLib.setOptionString("demuxer-max-bytes", cacheBytes.toString())
+        MPVLib.setOptionString("demuxer-max-back-bytes", cacheBytes.toString())
+        //
+        val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
+        screenshotDir.mkdirs()
+        MPVLib.setOptionString("screenshot-directory", screenshotDir.path)
+        // workaround for <https://github.com/mpv-player/mpv/issues/14651>
+        MPVLib.setOptionString("vd-lavc-film-grain", "cpu")
+    }
+
+    override fun postInitOptions() {
+        // we need to call write-watch-later manually
+        MPVLib.setOptionString("save-position-on-quit", "no")
+    }
+
+    fun onPointerEvent(event: MotionEvent): Boolean {
+        assert (event.isFromSource(InputDevice.SOURCE_CLASS_POINTER))
+        if (event.actionMasked == MotionEvent.ACTION_SCROLL) {
+            // Scroll-wheel seeking is handled in MPVActivity so it can drive the
+            // app's custom seekbar instead of libmpv's default input path.
+            return false
+        }
+        return false
+    }
+
+    @Suppress("DEPRECATION")
+    fun onKey(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_MULTIPLE)
+            return false
+        if (KeyEvent.isModifierKey(event.keyCode))
+            return false
+
+        var mapped = KeyMapping.map.get(event.keyCode)
+        if (mapped == null) {
+            // Fallback to produced glyph
+            if (!event.isPrintingKey) {
+                if (event.repeatCount == 0)
+                    Log.d(TAG, "Unmapped non-printable key ${event.keyCode}")
+                return false
+            }
+
+            val ch = event.unicodeChar
+            if (ch.and(KeyCharacterMap.COMBINING_ACCENT) != 0)
+                return false // dead key
+            mapped = ch.toChar().toString()
+        }
+
+        if (event.repeatCount > 0)
+            return true // eat event but ignore it, mpv has its own key repeat
+
+        val mod: MutableList<String> = mutableListOf()
+        event.isShiftPressed && mod.add("shift")
+        event.isCtrlPressed && mod.add("ctrl")
+        event.isAltPressed && mod.add("alt")
+        event.isMetaPressed && mod.add("meta")
+
+        val action = if (event.action == KeyEvent.ACTION_DOWN) "keydown" else "keyup"
+        mod.add(mapped)
+        MPVLib.command(arrayOf(action, mod.joinToString("+")))
+
+        return true
+    }
+
+    override fun observeProperties() {
+        // This observes all properties needed by MPVView, MPVActivity or other classes
+        data class Property(val name: String, val format: Int = MPV_FORMAT_NONE)
+        val p = arrayOf(
+            Property("time-pos/full", MPV_FORMAT_DOUBLE),
+            Property("duration/full", MPV_FORMAT_DOUBLE),
+            Property("pause", MPV_FORMAT_FLAG),
+            Property("paused-for-cache", MPV_FORMAT_FLAG),
+            Property("speed", MPV_FORMAT_STRING),
+            Property("track-list"),
+            Property("video-params/aspect", MPV_FORMAT_DOUBLE),
+            Property("video-params/rotate", MPV_FORMAT_DOUBLE),
+            Property("playlist-pos", MPV_FORMAT_INT64),
+            Property("playlist-count", MPV_FORMAT_INT64),
+            Property("current-tracks/video/image"),
+            Property("media-title", MPV_FORMAT_STRING),
+            Property("metadata"),
+            Property("loop-playlist"),
+            Property("loop-file"),
+            Property("shuffle", MPV_FORMAT_FLAG),
+            Property("hwdec-current"),
+            Property("current-vo", MPV_FORMAT_STRING),
+            Property("mute", MPV_FORMAT_FLAG),
+            Property("current-tracks/audio/selected")
+        )
+
+        for ((name, format) in p)
+            MPVLib.observeProperty(name, format)
+    }
+
+    fun addObserver(o: MPVLib.EventObserver) {
+        MPVLib.addObserver(o)
+    }
+    fun removeObserver(o: MPVLib.EventObserver) {
+        MPVLib.removeObserver(o)
+    }
+
+    data class Track(val mpvId: Int, val name: String)
+    var tracks = mapOf<String, MutableList<Track>>(
+            "audio" to arrayListOf(),
+            "video" to arrayListOf(),
+            "sub" to arrayListOf())
+
+    fun loadTracks() {
+        for (list in tracks.values) {
+            list.clear()
+            // pseudo-track to allow disabling audio/subs
+            list.add(Track(-1, context.getString(R.string.track_off)))
+        }
+        val count = MPVLib.getPropertyInt("track-list/count")!!
+        // Note that because events are async, properties might disappear at any moment
+        // so use ?: continue instead of !!
+        for (i in 0 until count) {
+            val type = MPVLib.getPropertyString("track-list/$i/type") ?: continue
+            if (!tracks.containsKey(type)) {
+                Log.w(TAG, "Got unknown track type: $type")
+                continue
+            }
+            val mpvId = MPVLib.getPropertyInt("track-list/$i/id") ?: continue
+            val lang = MPVLib.getPropertyString("track-list/$i/lang")
+            val title = MPVLib.getPropertyString("track-list/$i/title")
+
+            val trackName = if (!lang.isNullOrEmpty() && !title.isNullOrEmpty())
+                context.getString(R.string.ui_track_title_lang, mpvId, title, lang)
+            else if (!lang.isNullOrEmpty() || !title.isNullOrEmpty())
+                context.getString(R.string.ui_track_text, mpvId, (lang ?: "") + (title ?: ""))
+            else
+                context.getString(R.string.ui_track, mpvId)
+            tracks.getValue(type).add(Track(
+                    mpvId=mpvId,
+                    name=trackName
+            ))
+        }
+    }
+
+    data class PlaylistItem(val index: Int, val filename: String, val title: String?)
+
+    fun loadPlaylist(): MutableList<PlaylistItem> {
+        val playlist = mutableListOf<PlaylistItem>()
+        val count = MPVLib.getPropertyInt("playlist-count")!!
+        for (i in 0 until count) {
+            val filename = MPVLib.getPropertyString("playlist/$i/filename")!!
+            val title = MPVLib.getPropertyString("playlist/$i/title")
+            playlist.add(PlaylistItem(index=i, filename=filename, title=title))
+        }
+        return playlist
+    }
+
+    data class Chapter(val index: Int, val title: String?, val time: Double)
+
+    fun loadChapters(): MutableList<Chapter> {
+        val chapters = mutableListOf<Chapter>()
+        val count = MPVLib.getPropertyInt("chapter-list/count")!!
+        for (i in 0 until count) {
+            val title = MPVLib.getPropertyString("chapter-list/$i/title")
+            val time = MPVLib.getPropertyDouble("chapter-list/$i/time")!!
+            chapters.add(Chapter(
+                    index=i,
+                    title=title,
+                    time=time
+            ))
+        }
+        return chapters
+    }
+
+    // Property getters/setters
+
+    var paused: Boolean?
+        get() = MPVLib.getPropertyBoolean("pause")
+        set(paused) = MPVLib.setPropertyBoolean("pause", paused!!)
+
+    var timePos: Double?
+        get() = MPVLib.getPropertyDouble("time-pos/full")
+        set(progress) = MPVLib.setPropertyDouble("time-pos", progress!!)
+
+    /** name of currently active hardware decoder or "no" */
+    val hwdecActive: String
+        get() = MPVLib.getPropertyString("hwdec-current") ?: "no"
+
+    /** name of the active video output backend, if available */
+    val activeVideoOutput: String
+        get() = MPVLib.getPropertyString("current-vo")
+            ?: MPVLib.getPropertyString("options/vo")
+            ?: ""
+
+    /** name of the requested video output backend */
+    val requestedVideoOutput: String
+        get() = getOptionString("vo")
+
+    val currentDecoderMode: String
+        get() {
+            val requestedHwdec = getOptionString("hwdec").trim().lowercase()
+            val requestedVo = requestedVideoOutput.trim().lowercase()
+            return when {
+                isShieldH10pModeActive() -> DECODER_MODE_SHIELD_H10P
+                requestedVo.startsWith("gpu-next") && requestedHwdec == "mediacodec-copy" -> DECODER_MODE_GNEXT
+                requestedHwdec == "mediacodec" -> DECODER_MODE_HW_PLUS
+                requestedHwdec == "mediacodec-copy" -> DECODER_MODE_HW
+                requestedHwdec == HWDECS -> if (hwdecActive == "mediacodec") DECODER_MODE_HW_PLUS else DECODER_MODE_HW
+                requestedHwdec == "no" && requestedVo.startsWith("gpu-next") -> DECODER_MODE_GNEXT
+                requestedHwdec == "no" -> DECODER_MODE_SW
+                hwdecActive == "mediacodec" -> DECODER_MODE_HW_PLUS
+                hwdecActive == "mediacodec-copy" -> DECODER_MODE_HW
+                else -> DECODER_MODE_SW
+            }
+        }
+
+    fun isHi10pH264Video(): Boolean {
+        val codec = selectedVideoTrackString("codec").ifBlank {
+            MPVLib.getPropertyString("video-codec") ?: ""
+        }.trim().lowercase()
+        val profile = selectedVideoTrackString("codec-profile").trim().lowercase()
+        val pixelFormat = getOptionString("video-params/pixelformat").trim().lowercase()
+        return codec == "h264" && (
+                profile.contains("10") ||
+                profile.contains("hi10") ||
+                pixelFormat.contains("p10") ||
+                pixelFormat.contains("10le")
+        )
+    }
+
+    fun applyDecoderMode(mode: String) {
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        when (mode) {
+            DECODER_MODE_HW_PLUS -> {
+                applyStandardDecoderTuning(sharedPreferences, "gpu")
+                setRuntimeOption("hwdec", "mediacodec")
+            }
+            DECODER_MODE_HW -> {
+                applyStandardDecoderTuning(sharedPreferences, "gpu")
+                setRuntimeOption("hwdec", "mediacodec-copy")
+            }
+            DECODER_MODE_SW -> {
+                applyStandardDecoderTuning(sharedPreferences, "gpu")
+                setRuntimeOption("hwdec", "no")
+            }
+            DECODER_MODE_GNEXT -> {
+                applyStandardDecoderTuning(sharedPreferences, "gpu-next")
+                setRuntimeVo("gpu-next")
+                setRuntimeOption("hwdec", "mediacodec-copy")
+            }
+            DECODER_MODE_SHIELD_H10P -> {
+                setRuntimeVo("gpu-next")
+                setRuntimeOption("hwdec", "no")
+                setRuntimeOption("vd-lavc-threads", "6")
+                setRuntimeOption("vd-lavc-fast", "yes")
+                setRuntimeOption("vd-lavc-skiploopfilter", "nonref")
+                setRuntimeOption("framedrop", "vo")
+                setRuntimeOption("gpu-api", "opengl")
+                setRuntimeOption("video-sync", "display-resample")
+                setRuntimeOption("cache", "no")
+                setRuntimeOption("demuxer-max-bytes", SHIELD_H10P_DEMUXER_BYTES.toString())
+                setRuntimeOption("demuxer-max-back-bytes", SHIELD_H10P_DEMUXER_BYTES.toString())
+            }
+        }
+    }
+
+    var playbackSpeed: Double?
+        get() = MPVLib.getPropertyDouble("speed")
+        set(speed) = MPVLib.setPropertyDouble("speed", speed!!)
+
+    var subDelay: Double?
+        get() = MPVLib.getPropertyDouble("sub-delay")
+        set(speed) = MPVLib.setPropertyDouble("sub-delay", speed!!)
+
+    var secondarySubDelay: Double?
+        get() = MPVLib.getPropertyDouble("secondary-sub-delay")
+        set(speed) = MPVLib.setPropertyDouble("secondary-sub-delay", speed!!)
+
+    val estimatedVfFps: Double?
+        get() = MPVLib.getPropertyDouble("estimated-vf-fps")
+
+    /**
+     * Returns the video aspect ratio. Rotation is taken into account.
+     */
+    fun getVideoAspect(): Double? {
+        return MPVLib.getPropertyDouble("video-params/aspect")?.let {
+            if (it < 0.001)
+                return 0.0
+            val rot = MPVLib.getPropertyInt("video-params/rotate") ?: 0
+            if (rot % 180 == 90)
+                1.0 / it
+            else
+                it
+        }
+    }
+
+    fun setAudioSessionId(id: Int) {
+        MPVLib.setPropertyInt("audiotrack-session-id", id)
+        MPVLib.setPropertyInt("aaudio-session-id", id)
+    }
+
+    class TrackDelegate(private val name: String) {
+        operator fun getValue(thisRef: Any?, property: KProperty<*>): Int {
+            val v = MPVLib.getPropertyString(name)
+            // we can get null here for "no" or other invalid value
+            return v?.toIntOrNull() ?: -1
+        }
+        operator fun setValue(thisRef: Any?, property: KProperty<*>, value: Int) {
+            if (value == -1)
+                MPVLib.setPropertyString(name, "no")
+            else
+                MPVLib.setPropertyInt(name, value)
+        }
+    }
+
+    var vid: Int by TrackDelegate("vid")
+    var sid: Int by TrackDelegate("sid")
+    var secondarySid: Int by TrackDelegate("secondary-sid")
+    var aid: Int by TrackDelegate("aid")
+
+    // Commands
+
+    fun cyclePause() = MPVLib.command(arrayOf("cycle", "pause"))
+    fun cycleAudio() = MPVLib.command(arrayOf("cycle", "audio"))
+    fun cycleSub() = MPVLib.command(arrayOf("cycle", "sub"))
+    fun cycleHwdec() = MPVLib.command(arrayOf("cycle-values", "hwdec", HWDECS, "no"))
+
+    fun cycleSpeed() {
+        val speeds = arrayOf(0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0)
+        val currentSpeed = playbackSpeed ?: 1.0
+        val index = speeds.indexOfFirst { it > currentSpeed }
+        playbackSpeed = speeds[if (index == -1) 0 else index]
+    }
+
+    fun getRepeat(): Int {
+        return when (MPVLib.getPropertyString("loop-playlist") +
+                MPVLib.getPropertyString("loop-file")) {
+            "noinf" -> 2
+            "infno" -> 1
+            else -> 0
+        }
+    }
+
+    fun cycleRepeat() {
+        when (val state = getRepeat()) {
+            0, 1 -> {
+                MPVLib.setPropertyString("loop-playlist", if (state == 1) "no" else "inf")
+                MPVLib.setPropertyString("loop-file", if (state == 1) "inf" else "no")
+            }
+            2 -> MPVLib.setPropertyString("loop-file", "no")
+        }
+    }
+
+    fun getShuffle(): Boolean {
+        return MPVLib.getPropertyBoolean("shuffle") == true
+    }
+
+    fun changeShuffle(cycle: Boolean, value: Boolean = true) {
+        // Use the 'shuffle' property to store the shuffled state, since changing
+        // it at runtime doesn't do anything.
+        val state = getShuffle()
+        val newState = if (cycle) state.xor(value) else value
+        if (state == newState)
+            return
+        MPVLib.command(arrayOf(if (newState) "playlist-shuffle" else "playlist-unshuffle"))
+        MPVLib.setPropertyBoolean("shuffle", newState)
+    }
+
+    private fun applyStandardDecoderTuning(
+        sharedPreferences: android.content.SharedPreferences,
+        vo: String
+    ) {
+        setRuntimeVo(vo)
+        setRuntimeOption("video-sync", defaultVideoSync(sharedPreferences))
+        if (sharedPreferences.getBoolean("video_fastdecode", false)) {
+            setRuntimeOption("vd-lavc-fast", "yes")
+            setRuntimeOption("vd-lavc-skiploopfilter", "nonkey")
+        } else {
+            setRuntimeOption("vd-lavc-fast", "no")
+            setRuntimeOption("vd-lavc-skiploopfilter", "default")
+        }
+        setRuntimeOption("vd-lavc-threads", "0")
+        setRuntimeOption("framedrop", "no")
+        setRuntimeOption("gpu-api", "auto")
+        setRuntimeOption("cache", "auto")
+        val cacheBytes = defaultDemuxerCacheBytes().toString()
+        setRuntimeOption("demuxer-max-bytes", cacheBytes)
+        setRuntimeOption("demuxer-max-back-bytes", cacheBytes)
+    }
+
+    private fun setRuntimeVo(vo: String) {
+        setVo(vo)
+        MPVLib.setPropertyString("vo", vo)
+    }
+
+    private fun setRuntimeOption(name: String, value: String) {
+        MPVLib.setOptionString(name, value)
+        MPVLib.setPropertyString(name, value)
+    }
+
+    private fun defaultVo(sharedPreferences: android.content.SharedPreferences): String {
+        return if (sharedPreferences.getBoolean("gpu_next", false)) "gpu-next" else "gpu"
+    }
+
+    private fun defaultHwdec(sharedPreferences: android.content.SharedPreferences): String {
+        return if (sharedPreferences.getBoolean("hardware_decoding", true)) HWDECS else "no"
+    }
+
+    private fun defaultVideoSync(sharedPreferences: android.content.SharedPreferences): String {
+        return sharedPreferences.getString(
+            "video_sync",
+            resources.getString(R.string.pref_video_interpolation_sync_default)
+        ) ?: resources.getString(R.string.pref_video_interpolation_sync_default)
+    }
+
+    private fun defaultDemuxerCacheBytes(): Int {
+        val cacheMegs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) 64 else 32
+        return cacheMegs * 1024 * 1024
+    }
+
+    private fun getOptionString(name: String): String {
+        return MPVLib.getPropertyString(name)
+            ?: MPVLib.getPropertyString("options/$name")
+            ?: ""
+    }
+
+    private fun selectedVideoTrackString(name: String): String {
+        val count = MPVLib.getPropertyInt("track-list/count") ?: return ""
+        for (i in 0 until count) {
+            if (MPVLib.getPropertyString("track-list/$i/type") != "video")
+                continue
+            if (MPVLib.getPropertyBoolean("track-list/$i/selected") != true)
+                continue
+            return MPVLib.getPropertyString("track-list/$i/$name") ?: ""
+        }
+        return ""
+    }
+
+    private fun isShieldH10pModeActive(): Boolean {
+        fun matches(name: String, vararg expected: String): Boolean {
+            val value = getOptionString(name).trim().lowercase()
+            return expected.any { value == it.lowercase() }
+        }
+
+        return matches("vd-lavc-threads", "6") &&
+                matches("vd-lavc-fast", "yes") &&
+                matches("vd-lavc-skiploopfilter", "nonref") &&
+                matches("framedrop", "vo") &&
+                matches("gpu-api", "opengl") &&
+                matches("video-sync", "display-resample") &&
+                matches("cache", "no") &&
+                matches("demuxer-max-bytes", SHIELD_H10P_DEMUXER_BYTES.toString(), "50mib")
+    }
+
+    companion object {
+        private const val TAG = "mpv"
+
+        const val DECODER_MODE_HW_PLUS = "hw_plus"
+        const val DECODER_MODE_HW = "hw"
+        const val DECODER_MODE_SW = "sw"
+        const val DECODER_MODE_GNEXT = "g_next"
+        const val DECODER_MODE_SHIELD_H10P = "shield_h10p"
+
+        // mpv option `hwdec` is set to this
+        private const val HWDECS = "mediacodec,mediacodec-copy"
+        private const val SHIELD_H10P_DEMUXER_BYTES = 50 * 1024 * 1024
+    }
+}

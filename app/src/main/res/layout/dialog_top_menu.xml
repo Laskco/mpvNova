@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/audioBtn"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/open_external_audio"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/subBtn"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/open_external_sub"
+            android:textAllCaps="false" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/playlistBtn"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/action_playlist"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/backgroundBtn"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/resume_bg_playback"
+        android:textAllCaps="false" />
+
+    <LinearLayout
+        android:id="@+id/rowChapter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/chapterBtn"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="4"
+            android:text="@string/chapter_button"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/chapterPrev"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/dialog_prev"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/chapterNext"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_weight="1"
+            android:text="@string/dialog_next"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/advancedBtn"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/advanced_menu"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/orientationBtn"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:text="@string/switch_orientation"
+        android:textAllCaps="false" />
+
+</LinearLayout>

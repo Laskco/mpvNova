@@ -1,0 +1,17 @@
+<svg width="244" height="188" xmlns="http://www.w3.org/2000/svg">
+    <foreignObject x="0" y="0" width="244" height="188">
+    <div xmlns="http://www.w3.org/1999/xhtml"><link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&amp;display=swap" rel="stylesheet" />
+<div style="padding:1.5rem 2rem;display:flex;justify-content:center;">
+  <svg width="180" height="140" viewBox="0 0 180 140" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="ng" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#62D7FF"/>
+        <stop offset="100%" stop-color="#3ab8b0"/>
+      </linearGradient>
+    </defs>
+    <text x="90" y="58" font-family="'Nunito',sans-serif" font-weight="900" font-size="62" fill="#e8edf2" text-anchor="middle">mpv</text>
+    <text x="90" y="122" font-family="'Nunito',sans-serif" font-weight="900" font-size="62" fill="url(#ng)" text-anchor="middle">Nova</text>
+  </svg>
+</div></div>
+    </foreignObject>
+    </svg>

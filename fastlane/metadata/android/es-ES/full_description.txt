@@ -1,0 +1,10 @@
+mpvNova es un reproductor de vídeo para Android basado en <a href="https://github.com/mpv-player/mpv">libmpv</a>.
+
+Características:
+* Descodificación de vídeo por hardware y software
+* Desplazamiento basado en gestos, control de volumen/brillo y más
+* Soporte de libass para subtítulos con estilo
+* Soporte de subtítulos secundarios (o duales)
+* Ajustes de vídeo avanzados (interpolación, desbandeado, escaladores, ...)
+* Reproducción de transmisiones de red con la función "Abrir URL"
+* Reproducción en segundo plano, imagen en imagen y entrada de teclado

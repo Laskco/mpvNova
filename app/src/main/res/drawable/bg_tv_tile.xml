@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- State selector for launcher tiles: purple-glowing when focused
+     or pressed via D-pad, subtle glass panel otherwise. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/bg_tv_tile_focused" />
+    <item android:state_pressed="true"  android:drawable="@drawable/bg_tv_tile_focused" />
+    <item android:state_selected="true" android:drawable="@drawable/bg_tv_tile_focused" />
+    <item android:drawable="@drawable/bg_tv_tile_default" />
+</selector>

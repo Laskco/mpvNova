@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true">
+        <vector
+            android:width="20dp"
+            android:height="20dp"
+            android:viewportWidth="24"
+            android:viewportHeight="24">
+            <path
+                android:fillColor="@color/tv_purple_deep"
+                android:pathData="M9,16.17L4.83,12l-1.42,1.41L9,19 21,7l-1.41,-1.41z"/>
+        </vector>
+    </item>
+    <item>
+        <!-- invisible placeholder so layout width is preserved -->
+        <shape android:shape="rectangle">
+            <size android:width="20dp" android:height="20dp" />
+            <solid android:color="@android:color/transparent" />
+        </shape>
+    </item>
+</selector>

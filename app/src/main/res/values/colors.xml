@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Shared dark palette used across player, home, file picker, and settings. -->
+
+    <!-- Accent colors -->
+    <color name="tv_purple">#FFD6D6D6</color>
+    <color name="tv_purple_hot">#FFFFFFFF</color>
+    <color name="tv_purple_deep">#FF9A9A9A</color>
+    <color name="tv_purple_ink">#FF202020</color>
+
+    <!-- Surfaces -->
+    <color name="tv_charcoal">#FF0A0B0D</color>
+    <color name="tv_midnight">#FF050607</color>
+    <color name="tv_surface">#B30E1115</color>
+    <color name="tv_surface_alt">#7A111419</color>
+    <color name="tv_surface_soft">#12FFFFFF</color>
+    <color name="tv_surface_strong">#B0111418</color>
+    <color name="tv_surface_input">#CC111317</color>
+
+    <!-- Text -->
+    <color name="tv_text">#FFF7F7F7</color>
+    <color name="tv_text_dim">#FFBCBCBC</color>
+    <color name="tv_text_mute">#FF858585</color>
+    <color name="tv_text_on_accent">#FF111418</color>
+    <color name="tv_filter_active_icon">#FFC08CFF</color>
+
+    <!-- Borders and focus -->
+    <color name="tv_stroke">#1FFFFFFF</color>
+    <color name="tv_stroke_strong">#33FFFFFF</color>
+    <color name="tv_stroke_focus">#FFF1F1F1</color>
+    <color name="tv_focus_wash">#26FFFFFF</color>
+    <color name="tv_focus_wash_soft">#14FFFFFF</color>
+
+    <!-- Legacy aliases -->
+    <item name="primary" type="color">@color/tv_purple</item>
+    <item name="primary_dark" type="color">@color/tv_purple_deep</item>
+    <item name="accent" type="color">@color/tv_purple_hot</item>
+
+    <color name="tint_normal">@color/tv_text</color>
+    <color name="tint_disabled">#FF47505D</color>
+
+    <color name="alpha_disabled">#80000000</color>
+    <color name="alpha24pct">#3D0A1017</color>
+    <color name="alpha12pct">#260A1017</color>
+
+    <color name="tint_btn_bg_nofocus">#00000000</color>
+    <color name="tint_btn_bg_focused">@color/tv_focus_wash</color>
+    <color name="tint_seekbar_bg">#47FFFFFF</color>
+
+    <color name="nnf_light_separator_color">#1e000000</color>
+    <color name="nnf_dark_separator_color">#24ffffff</color>
+</resources>

@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    MPV Player overlay - Android TV 10-foot UI
+    ==========================================
+    One-row left-aligned control bar at the bottom, thin purple seekbar, title
+    aligned left, time on the far right. Top-right pill for lock/PiP/menu.
+
+    All @+id values that existed in the legacy layout are preserved so
+    MPVActivity.kt binds unchanged; new buttons (controlsScrim,
+    voiceBoostBtn, nightModeBtn, audioNormBtn) are wired in MPVActivity.kt.
+-->
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <app.mpvnova.player.MPVView
+        android:id="@+id/player"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <RelativeLayout
+        android:id="@+id/outside"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Dark scrim behind control bar for legibility.
+             Bound in MPVActivity so visibility follows the controls. -->
+        <View
+            android:id="@+id/controlsScrim"
+            android:layout_width="match_parent"
+            android:layout_height="260dp"
+            android:layout_alignParentBottom="true"
+            android:background="@drawable/bg_scrim_bottom" />
+
+        <!-- =============== BOTTOM CONTROLS PANEL =============== -->
+        <LinearLayout
+            android:id="@+id/controls"
+            style="?buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="48dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_player_controls"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="12dp">
+
+            <!-- Title row (left-aligned) -->
+            <LinearLayout
+                android:id="@+id/controls_title_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="10dp"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/titleTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="start"
+                    android:singleLine="true"
+                    android:textColor="@color/tv_text"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="-0.01"
+                    android:visibility="gone"
+                    tools:text="Song Title" />
+
+                <TextView
+                    android:id="@+id/minorTitleTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="start"
+                    android:singleLine="true"
+                    android:textColor="@color/tv_text_dim"
+                    android:textSize="13sp"
+                    android:letterSpacing="0.06"
+                    android:visibility="gone"
+                    tools:text="Artist / Album" />
+
+                <TextView
+                    android:id="@+id/fullTitleTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="start"
+                    android:paddingStart="2dp"
+                    android:paddingBottom="4dp"
+                    android:singleLine="true"
+                    android:textColor="@color/tv_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.01"
+                    tools:ignore="RtlSymmetry"
+                    tools:text="Wistoria: Wand and Sword – S01E08 – Shall we date?" />
+            </LinearLayout>
+
+            <!-- Seekbar row: thin progress line, no inline time -->
+            <LinearLayout
+                android:id="@+id/controls_seekbar_group"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal"
+                android:weightSum="100">
+
+                <app.mpvnova.player.ChapterSeekBar
+                    android:id="@+id/playbackSeekbar"
+                    android:layout_width="0dp"
+                    android:layout_height="42dp"
+                    android:layout_gravity="center_vertical"
+                    android:layout_weight="100"
+                    android:layout_marginStart="2dp"
+                    android:layout_marginEnd="2dp"
+                    android:focusable="true"
+                    android:focusableInTouchMode="false"
+                    android:maxHeight="8dp"
+                    android:minHeight="8dp"
+                    android:progressDrawable="@drawable/seekbar_progress_tv"
+                    android:splitTrack="false"
+                    android:thumb="@drawable/seekbar_thumb_tv"
+                    android:thumbOffset="12dp" />
+            </LinearLayout>
+
+            <!-- Button row wrapper: reorderable icons on LEFT, time on RIGHT -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center_vertical"
+                android:layoutDirection="ltr"
+                android:orientation="horizontal">
+
+                <!-- Reorderable action buttons (MPVActivity.updateAudioUI re-orders
+                     children of this group, so only views WITH stable ids belong here). -->
+                <LinearLayout
+                    android:id="@+id/controls_button_group"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="12dp"
+                    android:gravity="center_vertical|start"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:id="@+id/playBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_play"
+                        app:tint="@color/tv_text"
+                        tools:src="@drawable/ic_play_arrow_black_24dp">
+                        <requestFocus />
+                    </ImageButton>
+
+                    <!-- Next Chapter: tap = skip to next chapter, hold = chapter picker -->
+                    <ImageButton
+                        android:id="@+id/nextChapterBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_next_chapter"
+                        android:visibility="gone"
+                        app:srcCompat="@drawable/ic_next_chapter_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/prevBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/dialog_prev"
+                        app:srcCompat="@drawable/ic_skip_previous_black_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/nextBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/dialog_next"
+                        app:srcCompat="@drawable/ic_skip_next_black_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/cycleSubsBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/track_subs"
+                        app:srcCompat="@drawable/ic_subtitles_black_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/cycleAudioBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/track_audio"
+                        app:srcCompat="@drawable/ic_audiotrack_black_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <Button
+                        android:id="@+id/cycleSpeedBtn"
+                        style="?buttonBarButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="56dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/tv_text"
+                        tools:text="1.00X" />
+
+                    <Button
+                        android:id="@+id/cycleDecoderBtn"
+                        style="?buttonBarButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:minWidth="56dp"
+                        android:minHeight="48dp"
+                        android:textColor="@color/tv_text"
+                        tools:text="HW+" />
+
+                    <ImageButton
+                        android:id="@+id/statsToggleBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/toggle_stats"
+                        app:srcCompat="@drawable/round_code_24"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/voiceBoostBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_voice_boost"
+                        app:srcCompat="@drawable/ic_voice_boost_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/volumeBoostBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_volume_boost"
+                        app:srcCompat="@drawable/ic_volume_boost_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/nightModeBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_night_mode"
+                        app:srcCompat="@drawable/ic_night_mode_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <ImageButton
+                        android:id="@+id/audioNormBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/btn_audio_norm"
+                        app:srcCompat="@drawable/ic_audio_norm_24dp"
+                        app:tint="@color/tv_text" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_pill_purple"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingStart="12dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="12dp"
+                    android:paddingBottom="8dp">
+
+                    <TextView
+                        android:id="@+id/playbackPositionTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:gravity="center"
+                        android:textColor="@color/tv_text"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:ignore="RtlSymmetry"
+                        tools:text="03:29" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:paddingStart="4dp"
+                        android:paddingEnd="4dp"
+                        android:text=" / "
+                        android:textColor="@color/tv_text_mute"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/playbackDurationTxt"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="monospace"
+                        android:gravity="center"
+                        android:textColor="@color/tv_text_dim"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        tools:ignore="RtlSymmetry"
+                        tools:text="23:48" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/timeInfoPanel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_glass_panel"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="16dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="16dp"
+            android:paddingBottom="12dp">
+
+            <TextView
+                android:id="@+id/clockTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textColor="@color/tv_text"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="01:02 AM" />
+
+            <TextView
+                android:id="@+id/endsAtTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:fontFamily="monospace"
+                android:textColor="@color/tv_text_dim"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                tools:text="Ends at 01:22 AM" />
+        </LinearLayout>
+
+        <!-- =============== TOP-LEFT: STATS FOR NERDS =============== -->
+        <TextView
+            android:id="@+id/statsTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:layout_below="@id/timeInfoPanel"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/bg_glass_panel"
+            android:fontFamily="monospace"
+            android:paddingStart="14dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="10dp"
+            android:shadowColor="#000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2"
+            android:textColor="@color/tv_purple_hot"
+            android:textSize="11sp"
+            android:visibility="gone"
+            tools:text="60 FPS"
+            tools:visibility="visible" />
+
+        <!-- =============== GESTURE TOAST =============== -->
+        <TextView
+            android:id="@+id/gestureTextView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:shadowColor="#FF000000"
+            android:shadowDx="0"
+            android:shadowDy="0"
+            android:shadowRadius="16"
+            android:textAlignment="center"
+            android:textColor="@color/tv_text"
+            android:textSize="38sp"
+            android:textStyle="bold"
+            android:letterSpacing="-0.01"
+            android:visibility="gone"
+            tools:text="[gesture]" />
+
+        <LinearLayout
+            android:id="@+id/playerToast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="22dp"
+            android:alpha="0"
+            android:background="@drawable/bg_player_toast"
+            android:elevation="10dp"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/playerToastTitle"
+                style="@style/MpvTv.TextSmallCaps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/tv_purple_hot"
+                android:visibility="gone"
+                tools:text="Voice boost"
+                tools:visibility="visible" />
+
+            <TextView
+                android:id="@+id/playerToastMessage"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center"
+                android:maxWidth="420dp"
+                android:textColor="@color/tv_text"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                tools:text="Clear" />
+        </LinearLayout>
+
+        <!-- =============== TOP-RIGHT: LOCK/PIP/MENU PILL =============== -->
+        <LinearLayout
+            android:id="@+id/top_controls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:background="@drawable/bg_player_top"
+            android:orientation="horizontal"
+            android:padding="6dp">
+
+            <ImageButton
+                android:id="@+id/topLockBtn"
+                style="@style/MpvPlayer.ButtonBarIconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                app:srcCompat="@drawable/ic_lock_24dp"
+                app:tint="@color/tv_text" />
+
+            <ImageButton
+                android:id="@+id/topPiPBtn"
+                style="@style/MpvPlayer.ButtonBarIconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                app:srcCompat="@drawable/ic_picture_in_picture_24dp"
+                app:tint="@color/tv_text" />
+
+            <ImageButton
+                android:id="@+id/topMenuBtn"
+                style="@style/MpvPlayer.ButtonBarIconButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:contentDescription="@string/action_settings"
+                android:padding="8dp"
+                app:srcCompat="@drawable/ic_settings_black_24dp"
+                app:tint="@color/tv_text" />
+        </LinearLayout>
+
+        <!-- =============== UNLOCK BUTTON =============== -->
+        <ImageButton
+            android:id="@+id/unlockBtn"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="20dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginEnd="20dp"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_tv_player_icon_button"
+            android:padding="12dp"
+            android:visibility="gone"
+            app:srcCompat="@drawable/ic_lock_open_24dp"
+            app:tint="@color/tv_purple_hot" />
+
+    </RelativeLayout>
+</RelativeLayout>

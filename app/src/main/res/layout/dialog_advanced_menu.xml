@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:id="@+id/rowVideo1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/contrastBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/contrast"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/brightnessBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/video_brightness"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowVideo2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/gammaBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/gamma"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/saturationBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/saturation"
+                android:textAllCaps="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowSubSeek"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/subSeekBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:text="@string/sub_seek_button"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/subSeekPrev"
+                style="@style/Mpv.SurfaceButton.Compact"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/dialog_prev"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/subSeekNext"
+                style="@style/Mpv.SurfaceButton.Compact"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/dialog_next"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/statsBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="4"
+                android:text="@string/toggle_stats"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/statsBtn1"
+                style="@style/Mpv.SurfaceButton.Compact"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="1"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/statsBtn2"
+                style="@style/Mpv.SurfaceButton.Compact"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="2"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/statsBtn3"
+                style="@style/Mpv.SurfaceButton.Compact"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="3"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/audioDelayBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1"
+                android:text="@string/audio_delay"
+                android:textAllCaps="false" />
+
+            <Button
+                android:id="@+id/subDelayBtn"
+                style="@style/Mpv.SurfaceButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:layout_weight="1"
+                android:text="@string/sub_delay"
+                android:textAllCaps="false" />
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/aspectBtn"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:text="@string/aspect_ratio"
+            android:textAllCaps="false" />
+
+    </LinearLayout>
+
+</ScrollView>

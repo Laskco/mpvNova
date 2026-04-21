@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_tv_dialog_shell"
+    android:elevation="24dp"
+    android:orientation="vertical"
+    android:paddingStart="34dp"
+    android:paddingTop="32dp"
+    android:paddingEnd="34dp"
+    android:paddingBottom="30dp">
+
+    <TextView
+        style="@style/MpvTv.TextSmallCaps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/mpv_activity"
+        android:textColor="@color/tv_purple_hot" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/dialog_title_subs"
+        android:textColor="@color/tv_text"
+        android:textSize="34sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/dialogSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:maxWidth="920dp"
+        android:text="@string/dialog_subtitle_primary_summary"
+        android:textColor="@color/tv_text_dim"
+        android:textSize="15sp"
+        tools:text="Choose the main subtitle track or keep a second one ready." />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:gravity="top"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tv_panel_card"
+            android:orientation="vertical"
+            android:paddingStart="24dp"
+            android:paddingTop="22dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="22dp">
+
+            <TextView
+                style="@style/MpvTv.TextSmallCaps"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/dialog_subtitle_section_label" />
+
+            <View
+                android:id="@+id/divider"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="16dp"
+                android:background="@color/tv_stroke" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/list"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clipToPadding="false"
+                android:minHeight="460dp"
+                android:paddingTop="2dp"
+                android:paddingBottom="4dp"
+                app:layoutManager="LinearLayoutManager"
+                tools:listitem="@layout/dialog_track_item" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="468dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="22dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:id="@+id/buttonRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_tv_panel_card"
+                android:orientation="vertical"
+                android:paddingStart="18dp"
+                android:paddingTop="18dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="18dp">
+
+                <TextView
+                    style="@style/MpvTv.TextSmallCaps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_subtitle_mode_label" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:orientation="horizontal">
+
+                    <Button
+                        android:id="@+id/primaryBtn"
+                        style="@style/Mpv.SurfaceButton.Compact"
+                        android:layout_width="0dp"
+                        android:layout_height="60dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_toggle_active"
+                        android:gravity="center"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:text="@string/track_primary"
+                        android:textColor="@color/tv_text"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/secondaryBtn"
+                        style="@style/Mpv.SurfaceButton.Compact"
+                        android:layout_width="0dp"
+                        android:layout_height="60dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_tv_toggle_inactive"
+                        android:gravity="center"
+                        android:paddingStart="18dp"
+                        android:paddingEnd="18dp"
+                        android:text="@string/track_secondary"
+                        android:textColor="@color/tv_text_dim"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_tv_accent_panel"
+                android:orientation="vertical"
+                android:paddingStart="22dp"
+                android:paddingTop="22dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="22dp">
+
+                <TextView
+                    style="@style/MpvTv.TextSmallCaps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_subtitle_focus_title"
+                    android:textColor="@color/tv_text" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/dialog_subtitle_focus_summary"
+                    android:textColor="#EEF5FDFF"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:background="@drawable/bg_tv_track_row"
+                android:orientation="vertical"
+                android:paddingStart="22dp"
+                android:paddingTop="20dp"
+                android:paddingEnd="22dp"
+                android:paddingBottom="20dp">
+
+                <TextView
+                    style="@style/MpvTv.TextSmallCaps"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dialog_subtitle_tip_title"
+                    android:textColor="@color/tv_purple_hot" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/dialog_subtitle_tip_summary"
+                    android:textColor="@color/tv_text_dim"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

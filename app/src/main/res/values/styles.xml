@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="FilePickerTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="nnf_separator_color">@color/tv_stroke_strong</item>
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorPrimaryDark">@color/tv_purple_deep</item>
+        <item name="colorAccent">@color/tv_purple_hot</item>
+        <item name="colorSurface">@color/tv_charcoal</item>
+        <item name="colorSurfaceVariant">@color/tv_surface_alt</item>
+        <item name="colorOnSurface">@color/tv_text</item>
+        <item name="colorOnSurfaceVariant">@color/tv_text_dim</item>
+        <item name="colorOutline">@color/tv_stroke_strong</item>
+        <item name="android:textColorPrimary">@color/tv_text</item>
+        <item name="android:textColorSecondary">@color/tv_text_dim</item>
+        <item name="android:textColorLink">@color/tv_purple_hot</item>
+        <item name="android:windowBackground">@drawable/bg_tv_launcher</item>
+        <item name="alertDialogTheme">@style/FilePickerTheme.AlertDialog</item>
+        <item name="android:alertDialogTheme">@style/FilePickerTheme.AlertDialog</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.Preference.AlertDialog</item>
+        <item name="materialToolbarStyle">@style/AppTheme.Toolbar.Style</item>
+    </style>
+
+    <style name="FilePickerThemeSpecial" parent="FilePickerTheme">
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <style name="FilePickerTheme.AlertDialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorPrimaryDark">@color/tv_purple_deep</item>
+        <item name="colorAccent">@color/tv_purple_hot</item>
+        <item name="android:windowBackground">@drawable/bg_tv_dialog</item>
+        <item name="android:textColorPrimary">@color/tv_text</item>
+        <item name="android:textColorSecondary">@color/tv_text_dim</item>
+        <item name="android:colorBackground">@color/tv_charcoal</item>
+    </style>
+
+    <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorPrimaryDark">@color/tv_purple_deep</item>
+        <item name="colorAccent">@color/tv_purple_hot</item>
+        <item name="colorSurface">@color/tv_charcoal</item>
+        <item name="colorSurfaceVariant">@color/tv_surface_alt</item>
+        <item name="colorOnSurface">@color/tv_text</item>
+        <item name="colorOnSurfaceVariant">@color/tv_text_dim</item>
+        <item name="buttonBarStyle">@style/MpvPlayer.ButtonBar</item>
+        <item name="buttonBarButtonStyle">@style/MpvPlayer.ButtonBarButton</item>
+        <item name="alertDialogTheme">@style/TvAlertDialog</item>
+        <item name="android:alertDialogTheme">@style/TvAlertDialog</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.Preference.AlertDialog</item>
+    </style>
+
+    <style name="TvAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorAccent">@color/tv_purple_hot</item>
+        <item name="android:windowBackground">@drawable/bg_tv_dialog</item>
+        <item name="android:textColorPrimary">@color/tv_text</item>
+        <item name="android:textColorSecondary">@color/tv_text_dim</item>
+        <item name="android:colorBackground">@color/tv_charcoal</item>
+        <item name="android:listChoiceIndicatorSingle">@drawable/tv_check_indicator</item>
+        <item name="textColorAlertDialogListItem">@color/tv_text</item>
+    </style>
+
+    <style name="AppTheme.Preference" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowBackground">@drawable/bg_tv_launcher</item>
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorPrimaryInverse">@color/tv_purple_hot</item>
+        <item name="colorOnPrimary">@color/tv_text_on_accent</item>
+        <item name="colorSecondary">@color/tv_purple_hot</item>
+        <item name="colorSurface">@color/tv_charcoal</item>
+        <item name="colorSurfaceContainer">@color/tv_surface_strong</item>
+        <item name="colorSurfaceVariant">@color/tv_surface_alt</item>
+        <item name="colorOnSurface">@color/tv_text</item>
+        <item name="colorOnSurfaceVariant">@color/tv_text_dim</item>
+        <item name="colorOutline">@color/tv_stroke_strong</item>
+        <item name="toolbarStyle">@style/AppTheme.Toolbar.Style</item>
+        <item name="materialToolbarStyle">@style/AppTheme.Toolbar.Style</item>
+        <item name="alertDialogTheme">@style/AppTheme.Preference.AlertDialog</item>
+        <item name="materialAlertDialogTheme">@style/AppTheme.Preference.AlertDialog</item>
+    </style>
+
+    <style name="AppTheme.Toolbar.Style" parent="Widget.Material3.Toolbar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="titleTextColor">@color/tv_text</item>
+        <item name="subtitleTextColor">@color/tv_text_dim</item>
+        <item name="navigationIconTint">@color/tv_text</item>
+    </style>
+
+    <style name="AppTheme.Preference.AlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="dialogCornerRadius">28dp</item>
+        <item name="cornerFamily">rounded</item>
+        <item name="colorPrimary">@color/tv_purple</item>
+        <item name="colorOnSurface">@color/tv_text</item>
+        <item name="android:colorBackground">@color/tv_surface_strong</item>
+    </style>
+
+    <style name="Preference.SwitchPreferenceCompat" parent="Preference.SwitchPreferenceCompat.Material" tools:override="true">
+        <item name="android:widgetLayout">@layout/material_preferences_switch</item>
+    </style>
+
+    <style name="MpvPlayer.ButtonBar" parent="Widget.AppCompat.ButtonBar">
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+    </style>
+
+    <style name="MpvPlayer.ButtonBarButton" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:background">@drawable/bg_tv_player_button</item>
+        <item name="android:minWidth">56dp</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">false</item>
+        <item name="android:textColor">@color/tv_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.03</item>
+        <item name="android:padding">8dp</item>
+        <item name="android:layout_marginStart">2dp</item>
+        <item name="android:layout_marginEnd">2dp</item>
+    </style>
+
+    <style name="MpvPlayer.ButtonBarIconButton" parent="MpvPlayer.ButtonBarButton">
+        <item name="android:background">@drawable/bg_tv_player_icon_button</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:padding">8dp</item>
+    </style>
+
+    <style name="MpvTv.Tile" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/bg_tv_tile</item>
+        <item name="android:focusable">true</item>
+        <item name="android:focusableInTouchMode">false</item>
+        <item name="android:clickable">true</item>
+        <item name="android:textColor">@color/tv_text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.01</item>
+        <item name="android:gravity">center</item>
+        <item name="android:drawablePadding">12dp</item>
+        <item name="android:padding">20dp</item>
+        <item name="android:drawableTint">@color/tv_text</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="Mpv.SurfaceButton" parent="Widget.AppCompat.Button">
+        <item name="android:background">@drawable/bg_dialog_action</item>
+        <item name="android:minHeight">54dp</item>
+        <item name="android:paddingStart">18dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:textColor">@color/tv_text</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:stateListAnimator">@null</item>
+    </style>
+
+    <style name="Mpv.SurfaceButton.Compact" parent="Mpv.SurfaceButton">
+        <item name="android:minHeight">48dp</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">14dp</item>
+        <item name="android:background">@drawable/alpha_darken</item>
+    </style>
+
+    <style name="MpvTv" />
+
+    <style name="MpvTv.TextSmallCaps">
+        <item name="android:textColor">@color/tv_text_mute</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:letterSpacing">0.22</item>
+    </style>
+
+    <style name="MpvTv.HeroTitle">
+        <item name="android:textColor">@color/tv_text</item>
+        <item name="android:textSize">38sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:shadowColor">#CC000000</item>
+        <item name="android:shadowDx">0</item>
+        <item name="android:shadowDy">2</item>
+        <item name="android:shadowRadius">12</item>
+    </style>
+</resources>

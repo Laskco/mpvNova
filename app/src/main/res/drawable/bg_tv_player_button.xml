@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- State selector for player control-bar buttons: transparent at rest so the
+     underlying glass panel shows through, rounded purple tile when focused. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/bg_tv_player_button_focused" />
+    <item android:state_pressed="true"  android:drawable="@drawable/bg_tv_player_button_focused" />
+    <item android:state_selected="true" android:drawable="@drawable/bg_tv_player_button_focused" />
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent" />
+            <corners android:radius="14dp" />
+        </shape>
+    </item>
+</selector>

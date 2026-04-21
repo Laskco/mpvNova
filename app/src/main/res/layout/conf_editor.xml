@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <EditText
+        android:id="@+id/editText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:autofillHints=""
+        android:background="@drawable/bg_text_field_surface"
+        android:fontFamily="monospace"
+        android:gravity="top"
+        android:inputType="textMultiLine|textNoSuggestions"
+        android:maxLines="16"
+        android:minLines="4"
+        android:padding="16dp"
+        android:scrollbars="vertical"
+        android:textColor="@color/tv_text"
+        android:textSize="16sp" />
+
+</LinearLayout>
