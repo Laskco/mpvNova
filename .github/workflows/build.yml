@@ -14,8 +14,11 @@ jobs:
           java-version: '17'
           distribution: temurin
 
+      - name: Fix script permissions
+        run: chmod +x buildscripts/*.sh buildscripts/include/*.sh buildscripts/scripts/*.sh
+
       - name: Export env vars
-        run: buildscripts/include/ci.sh export >>$GITHUB_ENV
+        run: bash buildscripts/include/ci.sh export >>"$GITHUB_ENV"
 
       - uses: actions/cache@v5
         with:
@@ -32,14 +35,14 @@ jobs:
       - name: Download deps
         run: |
           mkdir -p "$CACHE_FOLDER"
-          buildscripts/include/ci.sh install
+          bash buildscripts/include/ci.sh install
         env:
           CACHE_MODE: "folder"
           CACHE_FOLDER: "${{ github.workspace }}/gh-cache"
 
       - name: Build
         run: |
-          buildscripts/include/ci.sh build
+          bash buildscripts/include/ci.sh build
 
       - uses: actions/upload-artifact@v7
         with:
