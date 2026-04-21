@@ -212,6 +212,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var autoDecoderFallback = true
     private var preferredDecoderMode = ""
     private var audioNormUnderrunHintShown = false
+    private var gpuNextRenderFallbackStage = 0
+    private var gpuNextCopyRetryConfirmed = false
+    private var gpuNextCopyRetryDisplayedFrame = false
     /* * */
 
     @SuppressLint("ClickableViewAccessibility")
@@ -1310,15 +1313,25 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private fun playlistPrev() = MPVLib.command(arrayOf("playlist-prev"))
     private fun playlistNext() = MPVLib.command(arrayOf("playlist-next"))
 
-    private fun showToast(msg: String, cancel: Boolean = false) {
-        showToastInternal(null, msg, cancel)
+    private fun showToast(msg: String, cancel: Boolean = false, durationMs: Long = 1800L) {
+        showToastInternal(null, msg, cancel, durationMs)
     }
 
-    private fun showToast(title: String, detail: String, cancel: Boolean = true) {
-        showToastInternal(title, detail, cancel)
+    private fun showToast(
+        title: String,
+        detail: String,
+        cancel: Boolean = true,
+        durationMs: Long = 1800L
+    ) {
+        showToastInternal(title, detail, cancel, durationMs)
     }
 
-    private fun showToastInternal(title: String?, detail: String, cancel: Boolean) {
+    private fun showToastInternal(
+        title: String?,
+        detail: String,
+        cancel: Boolean,
+        durationMs: Long
+    ) {
         fadeHandler.removeCallbacks(playerToastHideRunnable)
         binding.playerToast.animate().cancel()
         if (cancel) {
@@ -1337,7 +1350,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.playerToast.alpha = 1f
         }
 
-        fadeHandler.postDelayed(playerToastHideRunnable, 1800L)
+        fadeHandler.postDelayed(playerToastHideRunnable, durationMs)
     }
 
     // Intent/Uri parsing
@@ -2935,7 +2948,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 updateAudioUI()
                 maybeApplyShieldHi10pFallback()
             }
-            "hwdec-current" -> updateDecoderButton()
+            "hwdec-current" -> {
+                updateDecoderButton()
+                updateGpuNextRetryConfirmation()
+            }
         }
         if (metaUpdated)
             updateMetadataDisplay()
@@ -2974,7 +2990,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (!activityIsForeground) return
         when (property) {
             "speed" -> updateSpeedButton()
-            "current-vo" -> updateDecoderButton()
+            "current-vo" -> {
+                updateDecoderButton()
+                updateGpuNextRetryConfirmation()
+            }
         }
         if (metaUpdated)
             updateMetadataDisplay()
@@ -3066,6 +3085,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
             audioNormUnderrunHintShown = false
+            gpuNextRenderFallbackStage = 0
+            gpuNextCopyRetryConfirmed = false
+            gpuNextCopyRetryDisplayedFrame = false
             applySessionDecoderModeIfNeeded()
             val cmds = onloadCommands.toTypedArray()
             onloadCommands.clear()
@@ -3096,6 +3118,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     override fun logMessage(prefix: String, level: Int, text: String) {
+        updateGpuNextRetryFrameConfirmation(prefix, text)
+        maybeApplyGpuNextRenderFallback(prefix, level, text)
+
         if (audioNormUnderrunHintShown)
             return
         if (!activityIsForeground)
@@ -3111,6 +3136,135 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 getString(R.string.btn_audio_norm),
                 getString(R.string.toast_audio_norm_surround_hint)
             )
+        }
+    }
+
+    private fun maybeApplyGpuNextRenderFallback(prefix: String, level: Int, text: String) {
+        if (!autoDecoderFallback)
+            return
+        if (level > MPVLib.MpvLogLevel.MPV_LOG_LEVEL_ERROR)
+            return
+
+        val requestedVo = player.requestedVideoOutput.trim().lowercase(Locale.US)
+        if (!requestedVo.startsWith("gpu-next"))
+            return
+
+        val normalizedPrefix = prefix.trim().lowercase(Locale.US)
+        val normalizedText = text.trim().lowercase(Locale.US)
+        val isGpuNextFailure =
+            normalizedPrefix.contains("gpu-next") &&
+                (normalizedText.contains("failed rendering image") ||
+                    normalizedText.contains("failed rendering frame") ||
+                    normalizedText.contains("failed creating pass") ||
+                    normalizedText.contains("shader link log")) ||
+            normalizedText.contains("struct type mismatch between shaders") ||
+            normalizedText.contains("acquirelatestimage failed")
+
+        if (!isGpuNextFailure)
+            return
+
+        val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
+        val requestedHwdec = run {
+            val option = MPVLib.getPropertyString("hwdec")
+                ?: MPVLib.getPropertyString("options/hwdec")
+                ?: ""
+            option.trim().lowercase(Locale.US)
+        }
+
+        val shouldRetryWithCopyHwdec = gpuNextRenderFallbackStage == 0 &&
+                activeHwdec != "mediacodec-copy" &&
+                requestedHwdec != "mediacodec-copy"
+
+        if (shouldRetryWithCopyHwdec) {
+            gpuNextRenderFallbackStage = 1
+            gpuNextCopyRetryConfirmed = false
+            gpuNextCopyRetryDisplayedFrame = false
+            Log.w(
+                TAG,
+                "gpu-next render failure detected, retrying with mediacodec-copy ($prefix: $text)"
+            )
+            player.fallbackGpuNextToCopyHwdec()
+            eventUiHandler.post {
+                updateDecoderButton()
+                if (activityIsForeground) {
+                    showToast(
+                        getString(R.string.pref_gpu_next_title),
+                        getString(R.string.toast_gpu_next_copy_fallback),
+                        durationMs = 3200L
+                    )
+                }
+            }
+            return
+        }
+
+        if (gpuNextRenderFallbackStage == 1 &&
+            (!gpuNextCopyRetryConfirmed || !gpuNextCopyRetryDisplayedFrame)
+        ) {
+            Log.w(
+                TAG,
+                "Ignoring gpu-next failure log while mediacodec-copy retry is still stabilizing ($prefix: $text)"
+            )
+            return
+        }
+
+        if ((gpuNextRenderFallbackStage == 1 || gpuNextRenderFallbackStage == 2) &&
+            gpuNextCopyRetryConfirmed &&
+            gpuNextCopyRetryDisplayedFrame
+        ) {
+            gpuNextRenderFallbackStage = 2
+            Log.w(
+                TAG,
+                "gpu-next still reports render errors after the HW retry, but keeping gpu-next to match stock mpv behavior ($prefix: $text)"
+            )
+            return
+        }
+
+        gpuNextRenderFallbackStage = 2
+        Log.w(TAG, "gpu-next render failure detected before HW retry, falling back to gpu ($prefix: $text)")
+        player.fallbackGpuNextToGpu()
+        eventUiHandler.post {
+            updateDecoderButton()
+            if (activityIsForeground) {
+                showToast(
+                    getString(R.string.pref_gpu_next_title),
+                    getString(R.string.toast_gpu_next_fallback),
+                    durationMs = 3200L
+                )
+            }
+        }
+    }
+
+    private fun updateGpuNextRetryConfirmation() {
+        if (gpuNextRenderFallbackStage != 1 || gpuNextCopyRetryConfirmed)
+            return
+
+        val activeVo = player.activeVideoOutput.trim().lowercase(Locale.US)
+        val requestedVo = player.requestedVideoOutput.trim().lowercase(Locale.US)
+        val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
+
+        if (requestedVo.startsWith("gpu-next") &&
+            activeVo.startsWith("gpu-next") &&
+            activeHwdec == "mediacodec-copy"
+        ) {
+            gpuNextCopyRetryConfirmed = true
+            Log.w(TAG, "Confirmed gpu-next retry is running with mediacodec-copy")
+        }
+    }
+
+    private fun updateGpuNextRetryFrameConfirmation(prefix: String, text: String) {
+        if (gpuNextRenderFallbackStage != 1 || gpuNextCopyRetryDisplayedFrame)
+            return
+
+        val normalizedPrefix = prefix.trim().lowercase(Locale.US)
+        val normalizedText = text.trim().lowercase(Locale.US)
+        val frameShown =
+            normalizedPrefix == "cplayer" &&
+                (normalizedText.contains("first video frame after restart shown") ||
+                    normalizedText.contains("playback restart complete"))
+
+        if (frameShown) {
+            gpuNextCopyRetryDisplayedFrame = true
+            Log.w(TAG, "Confirmed gpu-next retry produced video output")
         }
     }
 

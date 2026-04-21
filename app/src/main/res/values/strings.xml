@@ -307,6 +307,8 @@
 
     <string name="pref_gpu_next_title">Use gpu-next</string>
     <string name="pref_gpu_next_summary">Use new video rendering backend, based on libplacebo.</string>
+    <string name="toast_gpu_next_copy_fallback">gpu-next failed. Retrying with HW.</string>
+    <string name="toast_gpu_next_fallback">gpu-next failed on this video. Switched to gpu.</string>
 
     <string name="pref_version_info">Version information</string>
 

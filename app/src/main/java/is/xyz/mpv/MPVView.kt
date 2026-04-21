@@ -362,6 +362,19 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         }
     }
 
+    fun fallbackGpuNextToGpu() {
+        if (!requestedVideoOutput.trim().lowercase().startsWith("gpu-next"))
+            return
+        setRuntimeVo("gpu")
+    }
+
+    fun fallbackGpuNextToCopyHwdec() {
+        if (!requestedVideoOutput.trim().lowercase().startsWith("gpu-next"))
+            return
+        setRuntimeVo("gpu-next")
+        setRuntimeOption("hwdec", "mediacodec-copy")
+    }
+
     var playbackSpeed: Double?
         get() = MPVLib.getPropertyDouble("speed")
         set(speed) = MPVLib.setPropertyDouble("speed", speed!!)
