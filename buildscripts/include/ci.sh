@@ -33,10 +33,10 @@ build_prefix() {
 	msg "Fetching deps"
 	IN_CI=1 ./include/download-deps.sh
 
-	msg "Compiling"
+	msg "Compiling full mpv prefixes"
 	for arch in "${ci_arches[@]}"; do
-		msg "Building dependency prefix for $arch"
-		./buildall.sh --arch "$arch" --only-deps mpv
+		msg "Building mpv for $arch"
+		./buildall.sh --arch "$arch" mpv
 	done
 
 	if [[ "$CACHE_MODE" == folder && -w "$CACHE_FOLDER" ]]; then
@@ -79,16 +79,6 @@ elif [ "$1" = "build" ]; then
 else
 	exit 1
 fi
-
-msg "Building mpv"
-for arch in "${ci_arches[@]}"; do
-	msg "Building mpv for $arch"
-	./buildall.sh --arch "$arch" -n mpv || {
-		# show logfile if configure failed for the default build tree
-		[ ! -f deps/mpv/_build/config.h ] && cat deps/mpv/_build/meson-logs/meson-log.txt
-		exit 1
-	}
-done
 
 msg "Building mpvNova"
 ./buildall.sh -n
