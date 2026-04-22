@@ -19,8 +19,7 @@ fi
 
 # ffmpeg
 if [ ! -d ffmpeg ]; then
-	args=()
-	[ $IN_CI -eq 1 ] && args+=(--depth=1 -b "$v_ci_ffmpeg")
+	args=(--depth=1 -b "$v_ci_ffmpeg")
 	git clone https://github.com/FFmpeg/FFmpeg ffmpeg "${args[@]}"
 fi
 
