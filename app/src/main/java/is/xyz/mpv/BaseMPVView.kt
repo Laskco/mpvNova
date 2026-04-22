@@ -5,6 +5,7 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import java.io.File
 
 // Contains only the essential code needed to get a picture on the screen
 
@@ -16,6 +17,7 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
      */
     fun initialize(configDir: String, cacheDir: String) {
         MPVLib.create(context)
+        logBundledFfmpegVersion()
 
         /* set normal options (user-supplied config can override) */
         MPVLib.setOptionString("config", "yes")
@@ -104,6 +106,27 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         // FIXME: There could be a race condition here, because I don't think
         // setting a property will wait for VO deinit.
         MPVLib.detachSurface()
+    }
+
+    private fun logBundledFfmpegVersion() {
+        val nativeLibDir = context.applicationInfo.nativeLibraryDir ?: return
+        val libavcodec = File(nativeLibDir, "libavcodec.so")
+        if (!libavcodec.isFile) {
+            Log.w(TAG, "Bundled FFmpeg check skipped: libavcodec.so not found in $nativeLibDir")
+            return
+        }
+
+        try {
+            val text = libavcodec.readBytes().toString(Charsets.ISO_8859_1)
+            val match = Regex("""FFmpeg version [^\u0000\r\n]+""").find(text)?.value
+            if (match != null) {
+                Log.i(TAG, "Bundled $match")
+            } else {
+                Log.w(TAG, "Bundled FFmpeg version string not found in libavcodec.so")
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Bundled FFmpeg check failed", e)
+        }
     }
 
     companion object {
