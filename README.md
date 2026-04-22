@@ -21,39 +21,39 @@
 
 ## Showcase
 <div align="center">
-  <img src="docs/screenshots/home-screen.png" alt="mpvNova home screen" width="72%" />
+  <img src="docs/screenshots/home-screen.png" alt="mpvNova home screen" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/media-library.png" alt="Media library" width="72%" />
+  <img src="docs/screenshots/media-library.png" alt="Media library" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-controls.png" alt="Player controls overlay" width="72%" />
+  <img src="docs/screenshots/player-controls.png" alt="Player controls overlay" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-audio.png" alt="Audio panel" width="72%" />
+  <img src="docs/screenshots/player-audio.png" alt="Audio panel" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-subtitles.png" alt="Subtitle panel" width="72%" />
+  <img src="docs/screenshots/player-subtitles.png" alt="Subtitle panel" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-decoder-mode.png" alt="Decoder picker" width="72%" />
+  <img src="docs/screenshots/player-decoder-mode.png" alt="Decoder picker" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/settings-overview.png" alt="Settings overview" width="72%" />
+  <img src="docs/screenshots/settings-overview.png" alt="Settings overview" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/settings-decoder-mode-dialog.png" alt="Decoder settings dialog" width="72%" />
+  <img src="docs/screenshots/settings-decoder-mode-dialog.png" alt="Decoder settings dialog" width="92%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-stats-overlay.png" alt="Playback stats overlay" width="72%" />
+  <img src="docs/screenshots/player-stats-overlay.png" alt="Playback stats overlay" width="92%" />
 </div>
 
 ---
