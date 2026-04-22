@@ -9,6 +9,8 @@ msg() {
 	printf '==> %s\n' "$1"
 }
 
+ci_arches=(armv7l arm64 x86 x86_64)
+
 fetch_prefix() {
 	if [[ "$CACHE_MODE" == folder ]]; then
 		local text=
@@ -32,7 +34,10 @@ build_prefix() {
 	IN_CI=1 ./include/download-deps.sh
 
 	msg "Compiling"
-	./buildall.sh --only-deps mpv
+	for arch in "${ci_arches[@]}"; do
+		msg "Building dependency prefix for $arch"
+		./buildall.sh --arch "$arch" --only-deps mpv
+	done
 
 	if [[ "$CACHE_MODE" == folder && -w "$CACHE_FOLDER" ]]; then
 		msg "Compressing the prefix"
@@ -76,11 +81,14 @@ else
 fi
 
 msg "Building mpv"
-./buildall.sh -n mpv || {
-	# show logfile if configure failed
-	[ ! -f deps/mpv/_build/config.h ] && cat deps/mpv/_build/meson-logs/meson-log.txt
-	exit 1
-}
+for arch in "${ci_arches[@]}"; do
+	msg "Building mpv for $arch"
+	./buildall.sh --arch "$arch" -n mpv || {
+		# show logfile if configure failed for the default build tree
+		[ ! -f deps/mpv/_build/config.h ] && cat deps/mpv/_build/meson-logs/meson-log.txt
+		exit 1
+	}
+done
 
 msg "Building mpvNova"
 ./buildall.sh -n
