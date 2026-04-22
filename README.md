@@ -86,7 +86,7 @@ Download the latest release from the [GitHub releases page](https://github.com/L
 
 ### Prerequisites
 
-- JDK 17
+- JDK 21
 - Android SDK with current build tools
 - Git for version information in builds
 
