@@ -369,7 +369,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun finishWithResult(code: Int, includeTimePos: Boolean = false) {
-        // Refer to docs/intent.html
         // FIXME: should track end-file events to accurately report OK vs CANCELED
         if (isFinishing) // only count first call
             return
@@ -1452,7 +1451,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             onloadCommands.add(arrayOf("set", "file-local-options/${key}", value))
         }
 
-        // Refer to docs/intent.html
         // Note: these only apply to the first file, it's not clear what the semantics for a
         // playlist should be.
 
