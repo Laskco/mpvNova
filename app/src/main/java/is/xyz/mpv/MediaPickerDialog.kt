@@ -10,6 +10,7 @@ import android.widget.ImageButton
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 /**
  * Unified TV-styled picker dialog for subtitle / audio / decoder selection.
@@ -30,8 +31,16 @@ internal class MediaPickerDialog {
     data class ValueState(
         val label: String,
         val active: Boolean,
+        val enabled: Boolean = true,
         val canDecrease: Boolean = true,
         val canIncrease: Boolean = true,
+    )
+    data class FilterStates(
+        val voiceBoost: ValueState,
+        val volumeBoost: ValueState,
+        val nightMode: ValueState,
+        val audioNorm: ValueState,
+        val downmix: ValueState,
     )
 
     private lateinit var binding: DialogMediaPickerBinding
@@ -57,6 +66,7 @@ internal class MediaPickerDialog {
     var onAudioNormAdjust: ((Int) -> ValueState)? = null
     var onDownmixAdjust: ((Int) -> ValueState)? = null
     var onPersistClick: (() -> Unit)? = null
+    var onFilterStatesRefresh: (() -> FilterStates)? = null
 
     fun buildView(
         layoutInflater: LayoutInflater,
@@ -143,43 +153,43 @@ internal class MediaPickerDialog {
 
             binding.voiceBoostMinusBtn.setOnClickListener {
                 voiceBoostState = onVoiceBoostAdjust?.invoke(-1) ?: voiceBoostState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.voiceBoostPlusBtn.setOnClickListener {
                 voiceBoostState = onVoiceBoostAdjust?.invoke(1) ?: voiceBoostState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.volumeBoostMinusBtn.setOnClickListener {
                 volumeBoostState = onVolumeBoostAdjust?.invoke(-1) ?: volumeBoostState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.volumeBoostPlusBtn.setOnClickListener {
                 volumeBoostState = onVolumeBoostAdjust?.invoke(1) ?: volumeBoostState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.nightModeMinusBtn.setOnClickListener {
                 nightModeState = onNightModeAdjust?.invoke(-1) ?: nightModeState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.nightModePlusBtn.setOnClickListener {
                 nightModeState = onNightModeAdjust?.invoke(1) ?: nightModeState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.audioNormMinusBtn.setOnClickListener {
                 audioNormState = onAudioNormAdjust?.invoke(-1) ?: audioNormState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.audioNormPlusBtn.setOnClickListener {
                 audioNormState = onAudioNormAdjust?.invoke(1) ?: audioNormState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.downmixMinusBtn.setOnClickListener {
                 downmixState = onDownmixAdjust?.invoke(-1) ?: downmixState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.downmixPlusBtn.setOnClickListener {
                 downmixState = onDownmixAdjust?.invoke(1) ?: downmixState
-                syncFilterChecks()
+                refreshFilterStates()
             }
             binding.persistFiltersRow.setOnClickListener {
                 onPersistClick?.invoke()
@@ -188,34 +198,110 @@ internal class MediaPickerDialog {
             }
         }
 
-        // Scroll to current selection so the user lands on it when D-padding.
+        // Force focus onto the selected row on open so Android TV does not
+        // make the user "wake up" the hover state with extra D-pad presses.
         val selectedIdx = items.indexOfFirst { it.selected }
-        if (selectedIdx >= 0)
-            binding.list.scrollToPosition(selectedIdx)
+        if (selectedIdx >= 0) {
+            focusListItem(selectedIdx)
+        } else if (showDelay) {
+            binding.delayRow.post { binding.delayRow.requestFocus() }
+        }
 
         Utils.handleInsetsAsPadding(binding.root)
         return binding.root
     }
 
+    private fun focusListItem(position: Int) {
+        if (position < 0) return
+        (binding.list.layoutManager as? LinearLayoutManager)
+            ?.scrollToPositionWithOffset(position, 0)
+        binding.list.post {
+            val holder = binding.list.findViewHolderForAdapterPosition(position)
+            if (holder != null) {
+                holder.itemView.requestFocus()
+            } else {
+                binding.list.postDelayed({
+                    binding.list.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+                }, 40L)
+            }
+        }
+    }
+
+    private fun refreshFilterStates() {
+        onFilterStatesRefresh?.invoke()?.let { states ->
+            voiceBoostState = states.voiceBoost
+            volumeBoostState = states.volumeBoost
+            nightModeState = states.nightMode
+            audioNormState = states.audioNorm
+            downmixState = states.downmix
+        }
+        syncFilterChecks()
+    }
+
     private fun syncFilterChecks() {
         binding.voiceBoostValue.text = voiceBoostState.label
-        binding.voiceBoostValue.alpha = if (voiceBoostState.active) 1f else 0.72f
+        binding.voiceBoostRow.alpha = when {
+            !voiceBoostState.enabled -> 0.58f
+            voiceBoostState.active -> 1f
+            else -> 0.92f
+        }
+        binding.voiceBoostValue.alpha = when {
+            !voiceBoostState.enabled -> 0.55f
+            voiceBoostState.active -> 1f
+            else -> 0.72f
+        }
         syncAdjustButton(binding.voiceBoostMinusBtn, voiceBoostState.canDecrease)
         syncAdjustButton(binding.voiceBoostPlusBtn, voiceBoostState.canIncrease)
         binding.volumeBoostValue.text = volumeBoostState.label
-        binding.volumeBoostValue.alpha = if (volumeBoostState.active) 1f else 0.72f
+        binding.volumeBoostRow.alpha = when {
+            !volumeBoostState.enabled -> 0.58f
+            volumeBoostState.active -> 1f
+            else -> 0.92f
+        }
+        binding.volumeBoostValue.alpha = when {
+            !volumeBoostState.enabled -> 0.55f
+            volumeBoostState.active -> 1f
+            else -> 0.72f
+        }
         syncAdjustButton(binding.volumeBoostMinusBtn, volumeBoostState.canDecrease)
         syncAdjustButton(binding.volumeBoostPlusBtn, volumeBoostState.canIncrease)
         binding.nightModeValue.text = nightModeState.label
-        binding.nightModeValue.alpha = if (nightModeState.active) 1f else 0.72f
+        binding.nightModeRow.alpha = when {
+            !nightModeState.enabled -> 0.58f
+            nightModeState.active -> 1f
+            else -> 0.92f
+        }
+        binding.nightModeValue.alpha = when {
+            !nightModeState.enabled -> 0.55f
+            nightModeState.active -> 1f
+            else -> 0.72f
+        }
         syncAdjustButton(binding.nightModeMinusBtn, nightModeState.canDecrease)
         syncAdjustButton(binding.nightModePlusBtn, nightModeState.canIncrease)
         binding.audioNormValue.text = audioNormState.label
-        binding.audioNormValue.alpha = if (audioNormState.active) 1f else 0.72f
+        binding.audioNormRow.alpha = when {
+            !audioNormState.enabled -> 0.58f
+            audioNormState.active -> 1f
+            else -> 0.92f
+        }
+        binding.audioNormValue.alpha = when {
+            !audioNormState.enabled -> 0.55f
+            audioNormState.active -> 1f
+            else -> 0.72f
+        }
         syncAdjustButton(binding.audioNormMinusBtn, audioNormState.canDecrease)
         syncAdjustButton(binding.audioNormPlusBtn, audioNormState.canIncrease)
         binding.downmixValue.text = downmixState.label
-        binding.downmixValue.alpha = if (downmixState.active) 1f else 0.72f
+        binding.downmixRow.alpha = when {
+            !downmixState.enabled -> 0.58f
+            downmixState.active -> 1f
+            else -> 0.92f
+        }
+        binding.downmixValue.alpha = when {
+            !downmixState.enabled -> 0.55f
+            downmixState.active -> 1f
+            else -> 0.72f
+        }
         syncAdjustButton(binding.downmixMinusBtn, downmixState.canDecrease)
         syncAdjustButton(binding.downmixPlusBtn, downmixState.canIncrease)
         binding.persistFiltersCheck.visibility = if (persistFiltersEnabled) View.VISIBLE else View.INVISIBLE

@@ -30,12 +30,12 @@
     <string name="btn_dialogue_downmix">Dialogue downmix</string>
     <string name="btn_decrease" translatable="false">-</string>
     <string name="btn_increase" translatable="false">+</string>
-    <string name="btn_night_mode">Night mode</string>
+    <string name="btn_night_mode">DRC</string>
     <string name="btn_audio_norm">Audio normalization</string>
-    <string name="btn_voice_boost_summary">Add speech presence without piling on extra compression.</string>
+    <string name="btn_voice_boost_summary">Lift speech with gentler low-mid cleanup and a restrained presence boost.</string>
     <string name="btn_volume_boost_summary">Add headroom-managed loudness after the main dynamics stage.</string>
     <string name="btn_dialogue_downmix_summary">Use a steadier stereo fold-down that keeps the center channel anchored.</string>
-    <string name="btn_night_mode_summary">Clamp peaks and trim rumble without fighting Audio normalization.</string>
+    <string name="btn_night_mode_summary">Use the dedicated DRC path with matched gain and center-focused downmix.</string>
     <string name="btn_audio_norm_summary">Even out quiet and loud passages in real time. On 5.1/7.1 tracks, Dialogue downmix may still play smoother.</string>
     <string name="btn_next_chapter">Next chapter</string>
     <string name="dialog_title_chapter">Go to chapter</string>
@@ -44,8 +44,8 @@
     <string name="toast_volume_boost_off">Volume boost off</string>
     <string name="toast_volume_boost_level">Volume boost: %1$s</string>
     <string name="toast_dialogue_downmix_level">Dialogue downmix: %1$s</string>
-    <string name="toast_night_mode_on">Night mode on</string>
-    <string name="toast_night_mode_off">Night mode off</string>
+    <string name="toast_night_mode_on">DRC on</string>
+    <string name="toast_night_mode_off">DRC off</string>
     <string name="toast_audio_norm_on">Audio normalization on</string>
     <string name="toast_audio_norm_off">Audio normalization off</string>
     <string name="toast_audio_norm_surround_hint">Surround track is heavy to process. Try Dialogue downmix for smoother playback.</string>
@@ -125,12 +125,9 @@
     <string name="voice_boost_preset_anime">EQ +8.0 dB</string>
     <string name="voice_boost_preset_loud">EQ +8.0 dB+</string>
     <string name="voice_boost_preset_max">Maximum</string>
-    <string name="night_mode_preset_soft">DRC 5:1</string>
-    <string name="night_mode_preset_late">DRC 8:1</string>
-    <string name="night_mode_preset_balanced">DRC 12:1</string>
-    <string name="night_mode_preset_strong">DRC 16:1</string>
-    <string name="night_mode_preset_cinema">DRC 20:1</string>
-    <string name="night_mode_preset_max">Maximum</string>
+    <string name="night_mode_preset_drc">DRC</string>
+    <string name="filter_blocked_by_drc">Blocked by DRC</string>
+    <string name="filter_blocked_by_audio_norm">Blocked by Audio normalization</string>
     <string name="audio_norm_preset_light">-18 LUFS</string>
     <string name="audio_norm_preset_smooth">-17 LUFS</string>
     <string name="audio_norm_preset_speech">-16 LUFS</string>
@@ -138,7 +135,7 @@
     <string name="audio_norm_preset_strong">-14 LUFS</string>
     <string name="audio_norm_preset_boost">Boost</string>
     <string name="audio_norm_preset_max">Maximum</string>
-    <string name="toast_night_mode_level">Night mode: %1$s</string>
+    <string name="toast_night_mode_level">DRC: %1$s</string>
     <string name="toast_audio_norm_level">Audio normalization: %1$s</string>
 
     <!-- Less simple strings -->

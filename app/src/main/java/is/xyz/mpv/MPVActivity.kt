@@ -612,6 +612,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         voiceBoostLevel = voiceBoostLevel.coerceIn(0, voiceBoostPresets.lastIndex)
         nightModeLevel = nightModeLevel.coerceIn(0, nightModePresets.lastIndex)
         audioNormLevel = audioNormLevel.coerceIn(0, audioNormPresets.lastIndex)
+        if (nightModeLevel > 0 && audioNormLevel > 0)
+            audioNormLevel = 0
         downmixLevel = downmixLevel.coerceIn(0, downmixPresetLabelIds.lastIndex)
         val volumeIndex = volumeBoostStepsDb.indexOf(volumeBoostDb)
         volumeBoostDb = if (volumeIndex >= 0) {
@@ -1595,6 +1597,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         impl.onNightModeAdjust = { delta -> adjustNightMode(delta) }
         impl.onAudioNormAdjust = { delta -> adjustAudioNorm(delta) }
         impl.onDownmixAdjust = { delta -> adjustDownmix(delta) }
+        impl.onFilterStatesRefresh = { currentFilterStates() }
         impl.onPersistClick    = {
             persistAudioFilters = !persistAudioFilters
             writeSettings()
@@ -1869,10 +1872,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     // ========================================================================
-    // Audio filter toggles (Voice Boost / Night Mode / Audio Normalization)
+    // Audio filter toggles (Voice Boost / DRC / Audio Normalization)
     //
-    // We keep a small named filter set and rebuild it deterministically so the
-    // UI state survives file switches cleanly.
+    // DRC mirrors the recovered native dynaudnorm stage as closely as we can in
+    // mpv. It is treated as a primary dynamics stage and kept mutually
+    // exclusive with Audio Normalization so the UI matches the active filter
+    // chain instead of silently suppressing one stage behind the scenes.
     // ========================================================================
     private var voiceBoostLevel = 0
     private var volumeBoostDb = 0
@@ -1885,6 +1890,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val nightModeFilterLabel = "@nightmode"
     private val audioNormFilterLabel = "@dynaudnorm"
     private val downmixFilterLabel = "@dialoguedownmix"
+    private val drcAudioStageFilterLabel = "@drcaudio"
+    private val drcFilterBody = "dynaudnorm=f=100:p=1/sqrt(2):m=100:s=12:g=11"
 
     private val voiceBoostPresetLabelIds = intArrayOf(
         R.string.filter_value_off,
@@ -1904,11 +1911,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     )
     private val nightModePresetLabelIds = intArrayOf(
         R.string.filter_value_off,
-        R.string.night_mode_preset_soft,
-        R.string.night_mode_preset_late,
-        R.string.night_mode_preset_balanced,
-        R.string.night_mode_preset_strong,
-        R.string.night_mode_preset_cinema
+        R.string.night_mode_preset_drc
     )
     private val audioNormPresetLabelIds = intArrayOf(
         R.string.filter_value_off,
@@ -1921,31 +1924,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private val nightModePresets = listOf(
         "",
-        "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-21dB:ratio=2.4:attack=10:release=180:knee=4:link=average:detection=rms:makeup=1.04," +
-            "treble=g=-0.6:f=7600:w=1.2:t=o," +
-            "bass=g=-1.0:f=120:w=1.5:t=o," +
-            "alimiter=limit=0.95:attack=2:release=24]",
-        "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-22dB:ratio=3.2:attack=9:release=190:knee=4.5:link=average:detection=rms:makeup=1.07," +
-            "treble=g=-0.9:f=7500:w=1.3:t=o," +
-            "bass=g=-1.3:f=115:w=1.6:t=o," +
-            "alimiter=limit=0.93:attack=2:release=22]",
-        "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-23dB:ratio=4.0:attack=8:release=210:knee=5:link=average:detection=rms:makeup=1.10," +
-            "treble=g=-1.2:f=7400:w=1.3:t=o," +
-            "bass=g=-1.6:f=110:w=1.7:t=o," +
-            "alimiter=limit=0.91:attack=2:release=20]",
-        "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-24dB:ratio=5.0:attack=8:release=220:knee=5.5:link=average:detection=rms:makeup=1.13," +
-            "treble=g=-1.5:f=7300:w=1.4:t=o," +
-            "bass=g=-1.9:f=105:w=1.8:t=o," +
-            "alimiter=limit=0.89:attack=1:release=18]",
-        "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-25dB:ratio=6.0:attack=7:release=230:knee=6:link=average:detection=rms:makeup=1.16," +
-            "treble=g=-1.8:f=7200:w=1.4:t=o," +
-            "bass=g=-2.2:f=100:w=1.9:t=o," +
-            "alimiter=limit=0.87:attack=1:release=16]"
+        "$nightModeFilterLabel:lavfi=[$drcFilterBody]"
     )
     private val audioNormPresets = listOf(
         "",
@@ -1983,40 +1962,40 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val voiceBoostPresets = listOf(
         "",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=65:p=2," +
-            "equalizer=f=180:t=q:w=0.9:g=-0.8," +
-            "equalizer=f=320:t=q:w=1.0:g=-1.6," +
-            "equalizer=f=2200:t=q:w=0.9:g=1.6," +
-            "equalizer=f=3400:t=q:w=0.8:g=1.9," +
-            "equalizer=f=5600:t=q:w=1.0:g=-0.3]",
+            "highpass=f=78:p=2," +
+            "equalizer=f=240:t=q:w=0.9:g=-0.8," +
+            "equalizer=f=520:t=q:w=1.0:g=-0.4," +
+            "equalizer=f=2300:t=q:w=0.9:g=1.1," +
+            "equalizer=f=3500:t=q:w=0.85:g=1.5," +
+            "treble=g=0.4:f=5600:w=0.9:t=o]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=70:p=2," +
-            "equalizer=f=180:t=q:w=0.9:g=-1.2," +
-            "equalizer=f=320:t=q:w=1.0:g=-2.2," +
-            "equalizer=f=2200:t=q:w=0.9:g=2.0," +
-            "equalizer=f=3400:t=q:w=0.8:g=2.4," +
-            "equalizer=f=5600:t=q:w=1.0:g=-0.4]",
+            "highpass=f=82:p=2," +
+            "equalizer=f=235:t=q:w=0.9:g=-1.1," +
+            "equalizer=f=500:t=q:w=1.0:g=-0.6," +
+            "equalizer=f=2400:t=q:w=0.9:g=1.5," +
+            "equalizer=f=3600:t=q:w=0.85:g=2.0," +
+            "treble=g=0.6:f=5700:w=0.9:t=o]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=75:p=2," +
-            "equalizer=f=170:t=q:w=0.9:g=-1.6," +
-            "equalizer=f=320:t=q:w=1.0:g=-2.8," +
-            "equalizer=f=2100:t=q:w=0.9:g=2.4," +
-            "equalizer=f=3400:t=q:w=0.8:g=2.9," +
-            "equalizer=f=6000:t=q:w=1.0:g=-0.5]",
+            "highpass=f=86:p=2," +
+            "equalizer=f=230:t=q:w=0.9:g=-1.4," +
+            "equalizer=f=470:t=q:w=1.0:g=-0.8," +
+            "equalizer=f=2500:t=q:w=0.9:g=1.9," +
+            "equalizer=f=3700:t=q:w=0.85:g=2.5," +
+            "treble=g=0.8:f=5900:w=0.9:t=o]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=80:p=2," +
-            "equalizer=f=160:t=q:w=0.9:g=-2.0," +
-            "equalizer=f=320:t=q:w=1.0:g=-3.4," +
-            "equalizer=f=2100:t=q:w=0.9:g=2.8," +
-            "equalizer=f=3400:t=q:w=0.8:g=3.4," +
-            "equalizer=f=5800:t=q:w=1.0:g=-0.6]",
+            "highpass=f=90:p=2," +
+            "equalizer=f=225:t=q:w=0.9:g=-1.7," +
+            "equalizer=f=450:t=q:w=1.0:g=-1.0," +
+            "equalizer=f=2600:t=q:w=0.9:g=2.3," +
+            "equalizer=f=3850:t=q:w=0.85:g=3.0," +
+            "treble=g=1.0:f=6100:w=0.9:t=o]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=85:p=2," +
-            "equalizer=f=150:t=q:w=0.9:g=-2.4," +
-            "equalizer=f=320:t=q:w=1.0:g=-4.0," +
-            "equalizer=f=2000:t=q:w=0.9:g=3.2," +
-            "equalizer=f=3400:t=q:w=0.8:g=3.8," +
-            "equalizer=f=5600:t=q:w=1.0:g=-0.8]"
+            "highpass=f=96:p=2," +
+            "equalizer=f=220:t=q:w=0.9:g=-2.0," +
+            "equalizer=f=430:t=q:w=1.0:g=-1.2," +
+            "equalizer=f=2700:t=q:w=0.9:g=2.7," +
+            "equalizer=f=4000:t=q:w=0.85:g=3.4," +
+            "treble=g=1.2:f=6300:w=0.9:t=o]"
     )
     private val volumeBoostStepsDb = intArrayOf(0, 2, 4, 6, 8, 10, 12, 15, 18, 21)
 
@@ -2082,10 +2061,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         return channelCountFromLayout(layout)
     }
 
-    private fun surroundDialogueDownmixFilter(): String? {
+    private fun surroundDialogueDownmixBody(): String? {
         if (currentAudioChannelCount() < 6)
             return null
-        val body = when (downmixLevel) {
+        return when (downmixLevel) {
             1 -> "FL=0.88*FL+0.78*FC+0.24*BL+0.24*SL+0.08*BR+0.08*SR+0.18*LFE|" +
                 "FR=0.88*FR+0.78*FC+0.24*BR+0.24*SR+0.08*BL+0.08*SL+0.18*LFE"
             2 -> "FL=0.84*FL+0.86*FC+0.20*BL+0.20*SL+0.06*BR+0.06*SR+0.16*LFE|" +
@@ -2098,7 +2077,72 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 "FR=0.72*FR+1.10*FC+0.12*BR+0.12*SR+0.03*BL+0.03*SL+0.10*LFE"
             else -> return null
         }
+    }
+
+    private fun surroundDialogueDownmixFilter(): String? {
+        val body = surroundDialogueDownmixBody() ?: return null
         return "$downmixFilterLabel:lavfi=[pan=stereo|$body]"
+    }
+
+    private fun mapMpvAudioFormatToFfmpeg(format: String?): String? {
+        return when (format?.trim()?.lowercase(Locale.US)) {
+            null, "" -> null
+            "u8" -> "u8"
+            "s16" -> "s16"
+            "s32" -> "s32"
+            "s64" -> "s64"
+            "float", "flt", "floatle", "floatbe" -> "flt"
+            "double", "dbl", "doublele", "doublebe" -> "dbl"
+            else -> null
+        }
+    }
+
+    private fun buildDrcAresampleFilter(): String {
+        // Ghidra shows the native player building this exact stage shape:
+        //   aresample=<out_rate>:in_chlayout=<in>:out_chlayout=<out>:out_sample_fmt=<fmt>
+        // and only then appending :center_mix_level=3.0 when center boost is enabled.
+        val outRate = MPVLib.getPropertyInt("audio-out-params/samplerate")
+            ?.takeIf { it > 0 }
+            ?: MPVLib.getPropertyInt("audio-params/samplerate")
+                ?.takeIf { it > 0 }
+            ?: 48000
+        val inputLayout = MPVLib.getPropertyString("audio-params/channels")
+            ?.takeIf { it.isNotBlank() }
+        val useCenterBoost = isDownmixOn() && currentAudioChannelCount() >= 6
+        val outputLayout = when {
+            useCenterBoost -> "stereo"
+            else -> MPVLib.getPropertyString("audio-out-params/channels")
+                ?.takeIf { it.isNotBlank() }
+                ?: inputLayout
+                ?: "stereo"
+        }
+        val outputFormat = mapMpvAudioFormatToFfmpeg(
+            MPVLib.getPropertyString("audio-out-params/format")
+                ?: MPVLib.getPropertyString("audio-params/format")
+        ) ?: "flt"
+
+        val options = mutableListOf("$outRate")
+        inputLayout?.let { options += "in_chlayout=$it" }
+        options += "out_chlayout=$outputLayout"
+        options += "out_sample_fmt=$outputFormat"
+        if (useCenterBoost) {
+            options += "center_mix_level=3.0"
+        }
+        return "aresample=${options.joinToString(":")}"
+    }
+
+    private fun drcVolumeMultiplier(): String {
+        // The native player stores integer gain percentages and its transcoder converts
+        // them to a linear multiplier via percent/100.
+        val percent = (Math.pow(10.0, volumeBoostDb / 20.0) * 100.0).roundToInt()
+        val rounded = percent / 100.0
+        return if (rounded == rounded.toInt().toDouble()) {
+            rounded.toInt().toString()
+        } else {
+            String.format(Locale.US, "%.3f", rounded)
+                .trimEnd('0')
+                .trimEnd('.')
+        }
     }
 
     private fun volumeBoostFilter(): String {
@@ -2130,37 +2174,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun nightModeFilter(): String {
-        if (!isAudioNormOn()) {
-            return nightModePresets[nightModeLevel]
-        }
-        return when (nightModeLevel) {
-            1 -> "$nightModeFilterLabel:lavfi=[" +
-                "bass=g=-0.8:f=120:w=1.5:t=o," +
-                "treble=g=-0.4:f=7600:w=1.2:t=o," +
-                "acompressor=threshold=-16dB:ratio=1.20:attack=18:release=220:knee=2.5:link=average:detection=rms," +
-                "alimiter=limit=0.94:attack=2:release=24]"
-            2 -> "$nightModeFilterLabel:lavfi=[" +
-                "bass=g=-1.0:f=115:w=1.6:t=o," +
-                "treble=g=-0.6:f=7500:w=1.2:t=o," +
-                "acompressor=threshold=-17dB:ratio=1.35:attack=16:release=230:knee=2.8:link=average:detection=rms," +
-                "alimiter=limit=0.92:attack=2:release=22]"
-            3 -> "$nightModeFilterLabel:lavfi=[" +
-                "bass=g=-1.2:f=110:w=1.7:t=o," +
-                "treble=g=-0.8:f=7400:w=1.3:t=o," +
-                "acompressor=threshold=-18dB:ratio=1.55:attack=15:release=240:knee=3.0:link=average:detection=rms," +
-                "alimiter=limit=0.90:attack=2:release=20]"
-            4 -> "$nightModeFilterLabel:lavfi=[" +
-                "bass=g=-1.5:f=105:w=1.8:t=o," +
-                "treble=g=-1.0:f=7300:w=1.3:t=o," +
-                "acompressor=threshold=-19dB:ratio=1.75:attack=14:release=250:knee=3.2:link=average:detection=rms," +
-                "alimiter=limit=0.88:attack=1:release=18]"
-            5 -> "$nightModeFilterLabel:lavfi=[" +
-                "bass=g=-1.8:f=100:w=1.9:t=o," +
-                "treble=g=-1.2:f=7200:w=1.4:t=o," +
-                "acompressor=threshold=-20dB:ratio=2.00:attack=13:release=260:knee=3.4:link=average:detection=rms," +
-                "alimiter=limit=0.86:attack=1:release=16]"
-            else -> ""
-        }
+        return nightModePresets[nightModeLevel]
+    }
+
+    private fun buildDrcAudioStageFilter(): String {
+        val stageFilters = mutableListOf<String>()
+        if (isVolumeBoostOn())
+            stageFilters += "volume=${drcVolumeMultiplier()}"
+        stageFilters += drcFilterBody.trimEnd(',')
+        stageFilters += buildDrcAresampleFilter()
+        return "$drcAudioStageFilterLabel:lavfi=[${stageFilters.joinToString(",")}]"
     }
 
     private fun getVoiceBoostLabel(): String = getString(voiceBoostPresetLabelIds[voiceBoostLevel])
@@ -2226,22 +2249,52 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun currentNightModeState(): MediaPickerDialog.ValueState {
+        if (isAudioNormOn()) {
+            return MediaPickerDialog.ValueState(
+                label = getString(R.string.filter_blocked_by_audio_norm),
+                active = false,
+                enabled = false,
+                canDecrease = false,
+                canIncrease = false
+            )
+        }
         val maxLevel = nightModePresets.lastIndex
         return MediaPickerDialog.ValueState(
             label = getNightModeLabel(),
             active = isNightModeOn(),
+            enabled = true,
             canDecrease = nightModeLevel > 0,
             canIncrease = nightModeLevel < maxLevel
         )
     }
 
     private fun currentAudioNormState(): MediaPickerDialog.ValueState {
+        if (isNightModeOn()) {
+            return MediaPickerDialog.ValueState(
+                label = getString(R.string.filter_blocked_by_drc),
+                active = false,
+                enabled = false,
+                canDecrease = false,
+                canIncrease = false
+            )
+        }
         val maxLevel = audioNormPresets.lastIndex
         return MediaPickerDialog.ValueState(
             label = getAudioNormLabel(),
             active = isAudioNormOn(),
+            enabled = true,
             canDecrease = audioNormLevel > 0,
             canIncrease = audioNormLevel < maxLevel
+        )
+    }
+
+    private fun currentFilterStates(): MediaPickerDialog.FilterStates {
+        return MediaPickerDialog.FilterStates(
+            voiceBoost = currentVoiceBoostState(),
+            volumeBoost = currentVolumeBoostState(),
+            nightMode = currentNightModeState(),
+            audioNorm = currentAudioNormState(),
+            downmix = currentDownmixState()
         )
     }
 
@@ -2254,16 +2307,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun buildAudioFilterChain(): String {
         val filters = mutableListOf<String>()
-        if (isDownmixOn())
-            surroundDialogueDownmixFilter()?.let { filters += it }
-        if (isAudioNormOn())
-            filters += audioNormPresets[audioNormLevel]
-        if (isVoiceBoostOn())
-            filters += voiceBoostPresets[voiceBoostLevel]
-        if (isNightModeOn())
-            filters += nightModeFilter()
-        if (isVolumeBoostOn())
-            filters += volumeBoostFilter()
+        if (isNightModeOn()) {
+            filters += buildDrcAudioStageFilter()
+            if (isVoiceBoostOn())
+                filters += voiceBoostPresets[voiceBoostLevel]
+        } else {
+            if (isDownmixOn())
+                surroundDialogueDownmixFilter()?.let { filters += it }
+            if (isAudioNormOn())
+                filters += audioNormPresets[audioNormLevel]
+            if (isVoiceBoostOn())
+                filters += voiceBoostPresets[voiceBoostLevel]
+            if (isVolumeBoostOn())
+                filters += volumeBoostFilter()
+        }
         return filters.joinToString(",")
     }
 
@@ -2362,6 +2419,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             else -> (nightModeLevel + delta).coerceIn(0, maxLevel)
         }
         nightModeLevel = nextLevel
+        if (nightModeLevel > 0 && audioNormLevel > 0)
+            audioNormLevel = 0
         rebuildAudioFilters()
         refreshAllFilterTints()
         writeSettings()
@@ -2385,6 +2444,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             else -> (audioNormLevel + delta).coerceIn(0, maxLevel)
         }
         audioNormLevel = nextLevel
+        if (audioNormLevel > 0 && nightModeLevel > 0)
+            nightModeLevel = 0
         rebuildAudioFilters()
         refreshAllFilterTints()
         writeSettings()
