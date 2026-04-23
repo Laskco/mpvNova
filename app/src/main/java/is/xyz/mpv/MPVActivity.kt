@@ -18,6 +18,9 @@ import android.content.pm.PackageManager
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.drawable.Icon
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.Log
 import android.media.AudioManager
 import android.net.Uri
@@ -1331,6 +1334,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         cancel: Boolean,
         durationMs: Long
     ) {
+        val effectiveDurationMs = resolvedToastDuration(title, detail, durationMs)
         fadeHandler.removeCallbacks(playerToastHideRunnable)
         binding.playerToast.animate().cancel()
         if (cancel) {
@@ -1349,7 +1353,22 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.playerToast.alpha = 1f
         }
 
-        fadeHandler.postDelayed(playerToastHideRunnable, durationMs)
+        fadeHandler.postDelayed(playerToastHideRunnable, effectiveDurationMs)
+    }
+
+    private fun resolvedToastDuration(
+        title: String?,
+        detail: String,
+        requestedDurationMs: Long
+    ): Long {
+        val textLength = (title?.length ?: 0) + detail.length
+        return if (!title.isNullOrBlank()) {
+            val adaptiveDuration = 3200L + (textLength.coerceAtMost(180) * 14L)
+            maxOf(requestedDurationMs, adaptiveDuration.coerceAtMost(5600L))
+        } else {
+            val adaptiveDuration = 1800L + (textLength.coerceAtMost(120) * 8L)
+            maxOf(requestedDurationMs, adaptiveDuration.coerceAtMost(3000L))
+        }
     }
 
     // Intent/Uri parsing
@@ -1713,16 +1732,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun pickDecoder() {
         val restore = keepPlaybackForDialog()
+        val currentMode = player.currentDecoderMode
 
         val rawItems = mutableListOf(
-            Pair(getString(R.string.decoder_mode_hw), MPVView.DECODER_MODE_HW),
-            Pair(getString(R.string.decoder_mode_sw), MPVView.DECODER_MODE_SW),
-            Pair(getString(R.string.decoder_mode_gnext), MPVView.DECODER_MODE_GNEXT),
-            Pair(getString(R.string.decoder_mode_shield_h10p), MPVView.DECODER_MODE_SHIELD_H10P)
+            Pair(decoderMenuLabel(MPVView.DECODER_MODE_HW, currentMode == MPVView.DECODER_MODE_HW), MPVView.DECODER_MODE_HW),
+            Pair(decoderMenuLabel(MPVView.DECODER_MODE_SW, currentMode == MPVView.DECODER_MODE_SW), MPVView.DECODER_MODE_SW),
+            Pair(decoderMenuLabel(MPVView.DECODER_MODE_GNEXT, currentMode == MPVView.DECODER_MODE_GNEXT), MPVView.DECODER_MODE_GNEXT),
+            Pair(decoderMenuLabel(MPVView.DECODER_MODE_SHIELD_H10P, currentMode == MPVView.DECODER_MODE_SHIELD_H10P), MPVView.DECODER_MODE_SHIELD_H10P)
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            rawItems.add(0, Pair(getString(R.string.decoder_mode_hw_plus), MPVView.DECODER_MODE_HW_PLUS))
-        val currentMode = player.currentDecoderMode
+            rawItems.add(0, Pair(decoderMenuLabel(MPVView.DECODER_MODE_HW_PLUS, currentMode == MPVView.DECODER_MODE_HW_PLUS), MPVView.DECODER_MODE_HW_PLUS))
         val items = rawItems.map {
             MediaPickerDialog.Item(it.first, it.second, it.second == currentMode)
         }
@@ -1769,6 +1788,84 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun cycleSpeed() {
         player.cycleSpeed()
+    }
+
+    private fun currentGpuNextPathLabel(useActivePath: Boolean): String {
+        val requestedHwdec = (
+            MPVLib.getPropertyString("hwdec")
+                ?: MPVLib.getPropertyString("options/hwdec")
+                ?: ""
+            ).trim().lowercase(Locale.US)
+        val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
+        val effectiveHwdec = when {
+            useActivePath && activeHwdec.isNotBlank() && activeHwdec != "no" -> activeHwdec
+            useActivePath && requestedHwdec == "no" -> "no"
+            requestedHwdec.isNotBlank() -> requestedHwdec
+            else -> activeHwdec
+        }
+
+        return when {
+            effectiveHwdec == "mediacodec-copy" -> "copy"
+            effectiveHwdec == "mediacodec" -> "direct"
+            effectiveHwdec == "no" || player.currentDecoderMode == MPVView.DECODER_MODE_SHIELD_H10P -> "software"
+            else -> "copy"
+        }
+    }
+
+    private fun currentGpuNextBadge(): String {
+        val requestedHwdec = (
+            MPVLib.getPropertyString("hwdec")
+                ?: MPVLib.getPropertyString("options/hwdec")
+                ?: ""
+            ).trim().lowercase(Locale.US)
+        val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
+        val effectiveHwdec = when {
+            activeHwdec == "mediacodec-copy" -> "mediacodec-copy"
+            activeHwdec == "mediacodec" -> "mediacodec"
+            requestedHwdec == "no" || player.currentDecoderMode == MPVView.DECODER_MODE_SHIELD_H10P -> "no"
+            requestedHwdec.isNotBlank() -> requestedHwdec
+            else -> activeHwdec
+        }
+
+        return when (effectiveHwdec) {
+            "mediacodec-copy" -> "G+CPY"
+            "mediacodec" -> "G+HW"
+            "no" -> "G+SW"
+            else -> "G-NXT"
+        }
+    }
+
+    private fun highlightDecoderLabel(label: String, activeWord: String?, isCurrentMode: Boolean): CharSequence {
+        if (!isCurrentMode || activeWord.isNullOrBlank())
+            return label
+        val start = label.indexOf(activeWord, ignoreCase = true)
+        if (start < 0)
+            return label
+        val end = start + activeWord.length
+        return SpannableString(label).apply {
+            setSpan(
+                ForegroundColorSpan(ContextCompat.getColor(this@MPVActivity, R.color.tv_filter_active_icon)),
+                start,
+                end,
+                Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
+            )
+        }
+    }
+
+    private fun decoderMenuLabel(mode: String, isCurrentMode: Boolean): CharSequence {
+        return when (mode) {
+            MPVView.DECODER_MODE_HW_PLUS ->
+                highlightDecoderLabel(getString(R.string.decoder_mode_hw_plus), "direct", isCurrentMode)
+            MPVView.DECODER_MODE_HW ->
+                highlightDecoderLabel(getString(R.string.decoder_mode_hw), "copy", isCurrentMode)
+            MPVView.DECODER_MODE_SW ->
+                highlightDecoderLabel(getString(R.string.decoder_mode_sw), "software", isCurrentMode)
+            MPVView.DECODER_MODE_GNEXT ->
+                highlightDecoderLabel(getString(R.string.decoder_mode_gnext_paths), currentGpuNextPathLabel(useActivePath = true), isCurrentMode)
+            MPVView.DECODER_MODE_SHIELD_H10P ->
+                highlightDecoderLabel(getString(R.string.decoder_mode_shield_h10p), "Hi10P", isCurrentMode)
+            else -> mode
+        }
     }
 
     // ========================================================================
@@ -1825,91 +1922,101 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val nightModePresets = listOf(
         "",
         "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-24dB:ratio=5:attack=5:release=180:knee=4," +
-            "treble=g=-1.0:f=8000:w=1.2:t=o," +
-            "bass=g=-1.5:f=110:w=1.6:t=o," +
-            "volume=1.5dB," +
-            "alimiter=limit=0.92:attack=2:release=24]",
+            "acompressor=threshold=-21dB:ratio=2.4:attack=10:release=180:knee=4:link=average:detection=rms:makeup=1.04," +
+            "treble=g=-0.6:f=7600:w=1.2:t=o," +
+            "bass=g=-1.0:f=120:w=1.5:t=o," +
+            "alimiter=limit=0.95:attack=2:release=24]",
         "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-28dB:ratio=8:attack=5:release=190:knee=5," +
-            "acompressor=threshold=-13dB:ratio=2.0:attack=18:release=260:knee=3," +
-            "treble=g=-2.0:f=8000:w=1.4:t=o," +
-            "bass=g=-2.3:f=105:w=1.8:t=o," +
-            "volume=3dB," +
-            "alimiter=limit=0.86:attack=2:release=22]",
+            "acompressor=threshold=-22dB:ratio=3.2:attack=9:release=190:knee=4.5:link=average:detection=rms:makeup=1.07," +
+            "treble=g=-0.9:f=7500:w=1.3:t=o," +
+            "bass=g=-1.3:f=115:w=1.6:t=o," +
+            "alimiter=limit=0.93:attack=2:release=22]",
         "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-31dB:ratio=12:attack=5:release=200:knee=5," +
-            "acompressor=threshold=-12dB:ratio=2.4:attack=18:release=320:knee=4," +
-            "treble=g=-2.8:f=7800:w=1.4:t=o," +
-            "bass=g=-2.8:f=100:w=1.9:t=o," +
-            "volume=4dB," +
-            "alimiter=limit=0.80:attack=1:release=20]",
+            "acompressor=threshold=-23dB:ratio=4.0:attack=8:release=210:knee=5:link=average:detection=rms:makeup=1.10," +
+            "treble=g=-1.2:f=7400:w=1.3:t=o," +
+            "bass=g=-1.6:f=110:w=1.7:t=o," +
+            "alimiter=limit=0.91:attack=2:release=20]",
         "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-33dB:ratio=16:attack=4:release=210:knee=6," +
-            "acompressor=threshold=-12dB:ratio=2.8:attack=20:release=360:knee=4," +
-            "treble=g=-3.4:f=7600:w=1.5:t=o," +
-            "bass=g=-3.2:f=100:w=2.0:t=o," +
-            "volume=5dB," +
-            "alimiter=limit=0.72:attack=1:release=18]",
+            "acompressor=threshold=-24dB:ratio=5.0:attack=8:release=220:knee=5.5:link=average:detection=rms:makeup=1.13," +
+            "treble=g=-1.5:f=7300:w=1.4:t=o," +
+            "bass=g=-1.9:f=105:w=1.8:t=o," +
+            "alimiter=limit=0.89:attack=1:release=18]",
         "$nightModeFilterLabel:lavfi=[" +
-            "acompressor=threshold=-33dB:ratio=20:attack=5:release=200:knee=6," +
-            "acompressor=threshold=-12dB:ratio=3:attack=20:release=400:knee=4," +
-            "treble=g=-4:f=8000:w=1.5:t=o," +
-            "bass=g=-3:f=100:w=2:t=o," +
-            "volume=6dB," +
-            "alimiter=limit=0.65:attack=1:release=15]"
+            "acompressor=threshold=-25dB:ratio=6.0:attack=7:release=230:knee=6:link=average:detection=rms:makeup=1.16," +
+            "treble=g=-1.8:f=7200:w=1.4:t=o," +
+            "bass=g=-2.2:f=100:w=1.9:t=o," +
+            "alimiter=limit=0.87:attack=1:release=16]"
     )
     private val audioNormPresets = listOf(
         "",
         "$audioNormFilterLabel:lavfi=[" +
-            "loudnorm=I=-18:TP=-1.8:LRA=12:linear=true:print_format=none]",
+            "dynaudnorm=framelen=500:gausssize=9:peak=0.94:maxgain=3.0:coupling=1," +
+            "equalizer=f=240:t=q:w=1.0:g=-0.5," +
+            "equalizer=f=2600:t=q:w=0.9:g=0.5," +
+            "acompressor=threshold=-20dB:ratio=1.35:attack=22:release=280:knee=2.5:link=average:detection=rms:makeup=1.02," +
+            "alimiter=limit=0.98:attack=2:release=24]",
         "$audioNormFilterLabel:lavfi=[" +
-            "loudnorm=I=-17:TP=-1.7:LRA=10:linear=true:print_format=none]",
+            "dynaudnorm=framelen=460:gausssize=9:peak=0.94:maxgain=4.5:coupling=1," +
+            "equalizer=f=235:t=q:w=1.0:g=-0.7," +
+            "equalizer=f=2700:t=q:w=0.9:g=0.7," +
+            "acompressor=threshold=-21dB:ratio=1.55:attack=20:release=300:knee=2.8:link=average:detection=rms:makeup=1.05," +
+            "alimiter=limit=0.97:attack=2:release=22]",
         "$audioNormFilterLabel:lavfi=[" +
-            "loudnorm=I=-16:TP=-1.5:LRA=8:linear=false:print_format=none]",
+            "dynaudnorm=framelen=420:gausssize=7:peak=0.93:maxgain=6.0:coupling=1," +
+            "equalizer=f=230:t=q:w=1.0:g=-0.9," +
+            "equalizer=f=2800:t=q:w=0.9:g=0.9," +
+            "acompressor=threshold=-22dB:ratio=1.75:attack=18:release=320:knee=3.0:link=average:detection=rms:makeup=1.08," +
+            "alimiter=limit=0.96:attack=2:release=20]",
         "$audioNormFilterLabel:lavfi=[" +
-            "loudnorm=I=-15:TP=-1.4:LRA=6:linear=false:print_format=none," +
-            "alimiter=limit=0.94:attack=2:release=24]",
+            "dynaudnorm=framelen=380:gausssize=7:peak=0.93:maxgain=7.5:coupling=1," +
+            "equalizer=f=225:t=q:w=1.0:g=-1.1," +
+            "equalizer=f=2900:t=q:w=0.9:g=1.1," +
+            "acompressor=threshold=-23dB:ratio=1.95:attack=16:release=340:knee=3.2:link=average:detection=rms:makeup=1.10," +
+            "alimiter=limit=0.95:attack=2:release=18]",
         "$audioNormFilterLabel:lavfi=[" +
-            "loudnorm=I=-14:TP=-1.2:LRA=4:linear=false:print_format=none," +
-            "alimiter=limit=0.92:attack=2:release=22]"
+            "dynaudnorm=framelen=340:gausssize=5:peak=0.92:maxgain=9.0:coupling=1," +
+            "equalizer=f=220:t=q:w=1.0:g=-1.3," +
+            "equalizer=f=3000:t=q:w=0.9:g=1.3," +
+            "acompressor=threshold=-24dB:ratio=2.15:attack=14:release=360:knee=3.5:link=average:detection=rms:makeup=1.12," +
+            "alimiter=limit=0.94:attack=2:release=18]"
     )
     private val voiceBoostPresets = listOf(
         "",
         "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=65:p=2," +
+            "equalizer=f=180:t=q:w=0.9:g=-0.8," +
+            "equalizer=f=320:t=q:w=1.0:g=-1.6," +
+            "equalizer=f=2200:t=q:w=0.9:g=1.6," +
+            "equalizer=f=3400:t=q:w=0.8:g=1.9," +
+            "equalizer=f=5600:t=q:w=1.0:g=-0.3]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=70:p=2," +
+            "equalizer=f=180:t=q:w=0.9:g=-1.2," +
+            "equalizer=f=320:t=q:w=1.0:g=-2.2," +
+            "equalizer=f=2200:t=q:w=0.9:g=2.0," +
+            "equalizer=f=3400:t=q:w=0.8:g=2.4," +
+            "equalizer=f=5600:t=q:w=1.0:g=-0.4]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=75:p=2," +
+            "equalizer=f=170:t=q:w=0.9:g=-1.6," +
+            "equalizer=f=320:t=q:w=1.0:g=-2.8," +
+            "equalizer=f=2100:t=q:w=0.9:g=2.4," +
+            "equalizer=f=3400:t=q:w=0.8:g=2.9," +
+            "equalizer=f=6000:t=q:w=1.0:g=-0.5]",
+        "$voiceBoostFilterLabel:lavfi=[" +
             "highpass=f=80:p=2," +
-            "equalizer=f=300:t=q:w=1.0:g=-2.0," +
-            "equalizer=f=2800:t=q:w=0.8:g=3.0," +
-            "equalizer=f=10000:t=q:w=1.0:g=1.0," +
-            "acompressor=threshold=-28dB:ratio=2.0:attack=8:release=90:makeup=1.1]",
+            "equalizer=f=160:t=q:w=0.9:g=-2.0," +
+            "equalizer=f=320:t=q:w=1.0:g=-3.4," +
+            "equalizer=f=2100:t=q:w=0.9:g=2.8," +
+            "equalizer=f=3400:t=q:w=0.8:g=3.4," +
+            "equalizer=f=5800:t=q:w=1.0:g=-0.6]",
         "$voiceBoostFilterLabel:lavfi=[" +
             "highpass=f=85:p=2," +
-            "equalizer=f=300:t=q:w=1.0:g=-3.0," +
-            "equalizer=f=2800:t=q:w=0.8:g=4.5," +
-            "equalizer=f=10000:t=q:w=1.0:g=1.4," +
-            "acompressor=threshold=-30dB:ratio=2.6:attack=8:release=85:makeup=1.2," +
-            "alimiter=limit=0.96:attack=2:release=24]",
-        "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=90:p=2," +
-            "equalizer=f=300:t=q:w=1.0:g=-3.6," +
-            "equalizer=f=2800:t=q:w=0.8:g=5.8," +
-            "equalizer=f=10000:t=q:w=1.0:g=1.8," +
-            "acompressor=threshold=-31dB:ratio=3.0:attack=7:release=82:makeup=1.4," +
-            "alimiter=limit=0.95:attack=2:release=22]",
-        "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=95:p=2," +
-            "equalizer=f=300:t=q:w=1.0:g=-4.2," +
-            "equalizer=f=2800:t=q:w=0.8:g=7.0," +
-            "equalizer=f=10000:t=q:w=1.0:g=2.0," +
-            "acompressor=threshold=-32dB:ratio=3.3:attack=7:release=80:makeup=1.5," +
-            "alimiter=limit=0.94:attack=2:release=20]",
-        "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=100:p=2," +
-            "equalizer=f=300:t=q:w=1.0:g=-5.0," +
-            "equalizer=f=2800:t=q:w=0.8:g=8.0," +
-            "equalizer=f=10000:t=q:w=1.0:g=2.2," +
-            "acompressor=threshold=-33dB:ratio=3.8:attack=6:release=78:makeup=1.6," +
-            "alimiter=limit=0.93:attack=1:release=18]"
+            "equalizer=f=150:t=q:w=0.9:g=-2.4," +
+            "equalizer=f=320:t=q:w=1.0:g=-4.0," +
+            "equalizer=f=2000:t=q:w=0.9:g=3.2," +
+            "equalizer=f=3400:t=q:w=0.8:g=3.8," +
+            "equalizer=f=5600:t=q:w=1.0:g=-0.8]"
     )
     private val volumeBoostStepsDb = intArrayOf(0, 2, 4, 6, 8, 10, 12, 15, 18, 21)
 
@@ -1979,36 +2086,82 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (currentAudioChannelCount() < 6)
             return null
         val body = when (downmixLevel) {
-            1 -> "FL=0.72*FC+0.28*FL+0.10*BL+0.10*SL+0.04*BR+0.04*SR+0.02*LFE|" +
-                "FR=0.72*FC+0.28*FR+0.10*BR+0.10*SR+0.04*BL+0.04*SL+0.02*LFE"
-            2 -> "FL=0.84*FC+0.24*FL+0.08*BL+0.08*SL+0.03*BR+0.03*SR+0.02*LFE|" +
-                "FR=0.84*FC+0.24*FR+0.08*BR+0.08*SR+0.03*BL+0.03*SL+0.02*LFE"
-            3 -> "FL=0.96*FC+0.20*FL+0.07*BL+0.07*SL+0.03*BR+0.03*SR+0.015*LFE|" +
-                "FR=0.96*FC+0.20*FR+0.07*BR+0.07*SR+0.03*BL+0.03*SL+0.015*LFE"
-            4 -> "FL=1.04*FC+0.16*FL+0.05*BL+0.05*SL+0.02*BR+0.02*SR+0.01*LFE|" +
-                "FR=1.04*FC+0.16*FR+0.05*BR+0.05*SR+0.02*BL+0.02*SL+0.01*LFE"
-            5 -> "FL=1.10*FC+0.12*FL+0.04*BL+0.04*SL+0.015*BR+0.015*SR+0.01*LFE|" +
-                "FR=1.10*FC+0.12*FR+0.04*BR+0.04*SR+0.015*BL+0.015*SL+0.01*LFE"
+            1 -> "FL=0.88*FL+0.78*FC+0.24*BL+0.24*SL+0.08*BR+0.08*SR+0.18*LFE|" +
+                "FR=0.88*FR+0.78*FC+0.24*BR+0.24*SR+0.08*BL+0.08*SL+0.18*LFE"
+            2 -> "FL=0.84*FL+0.86*FC+0.20*BL+0.20*SL+0.06*BR+0.06*SR+0.16*LFE|" +
+                "FR=0.84*FR+0.86*FC+0.20*BR+0.20*SR+0.06*BL+0.06*SL+0.16*LFE"
+            3 -> "FL=0.80*FL+0.94*FC+0.17*BL+0.17*SL+0.05*BR+0.05*SR+0.14*LFE|" +
+                "FR=0.80*FR+0.94*FC+0.17*BR+0.17*SR+0.05*BL+0.05*SL+0.14*LFE"
+            4 -> "FL=0.76*FL+1.02*FC+0.14*BL+0.14*SL+0.04*BR+0.04*SR+0.12*LFE|" +
+                "FR=0.76*FR+1.02*FC+0.14*BR+0.14*SR+0.04*BL+0.04*SL+0.12*LFE"
+            5 -> "FL=0.72*FL+1.10*FC+0.12*BL+0.12*SL+0.03*BR+0.03*SR+0.10*LFE|" +
+                "FR=0.72*FR+1.10*FC+0.12*BR+0.12*SR+0.03*BL+0.03*SL+0.10*LFE"
             else -> return null
         }
         return "$downmixFilterLabel:lavfi=[pan=stereo|$body]"
     }
 
     private fun volumeBoostFilter(): String {
+        val dynamicsAlreadyManaged = isAudioNormOn() || isNightModeOn()
+        if (dynamicsAlreadyManaged) {
+            val limit = when {
+                volumeBoostDb <= 4 -> "0.97"
+                volumeBoostDb <= 8 -> "0.95"
+                volumeBoostDb <= 12 -> "0.93"
+                volumeBoostDb <= 15 -> "0.91"
+                else -> "0.89"
+            }
+            return "$volumeBoostFilterLabel:lavfi=[" +
+                "volume=${volumeBoostDb}dB," +
+                "alimiter=limit=$limit:attack=2:release=20]"
+        }
+
         val settings = when {
-            volumeBoostDb <= 4 -> Triple("-20dB", "3.0", "0.92")
-            volumeBoostDb <= 8 -> Triple("-21dB", "4.0", "0.90")
-            volumeBoostDb <= 12 -> Triple("-22dB", "5.0", "0.88")
-            volumeBoostDb <= 15 -> Triple("-23dB", "6.0", "0.86")
-            else -> Triple("-24dB", "7.0", "0.84")
+            volumeBoostDb <= 4 -> Triple("-19dB", "1.6", "0.95")
+            volumeBoostDb <= 8 -> Triple("-20dB", "1.9", "0.93")
+            volumeBoostDb <= 12 -> Triple("-21dB", "2.2", "0.91")
+            volumeBoostDb <= 15 -> Triple("-22dB", "2.5", "0.89")
+            else -> Triple("-23dB", "2.8", "0.87")
         }
         return "$volumeBoostFilterLabel:lavfi=[" +
-            "acompressor=threshold=${settings.first}:ratio=${settings.second}:attack=3:release=60:knee=2.5," +
+            "acompressor=threshold=${settings.first}:ratio=${settings.second}:attack=6:release=90:knee=3.0:link=average:detection=rms:makeup=1.02," +
             "volume=${volumeBoostDb}dB," +
             "alimiter=limit=${settings.third}:attack=2:release=20]"
     }
 
-    private fun nightModeFilter(): String = nightModePresets[nightModeLevel]
+    private fun nightModeFilter(): String {
+        if (!isAudioNormOn()) {
+            return nightModePresets[nightModeLevel]
+        }
+        return when (nightModeLevel) {
+            1 -> "$nightModeFilterLabel:lavfi=[" +
+                "bass=g=-0.8:f=120:w=1.5:t=o," +
+                "treble=g=-0.4:f=7600:w=1.2:t=o," +
+                "acompressor=threshold=-16dB:ratio=1.20:attack=18:release=220:knee=2.5:link=average:detection=rms," +
+                "alimiter=limit=0.94:attack=2:release=24]"
+            2 -> "$nightModeFilterLabel:lavfi=[" +
+                "bass=g=-1.0:f=115:w=1.6:t=o," +
+                "treble=g=-0.6:f=7500:w=1.2:t=o," +
+                "acompressor=threshold=-17dB:ratio=1.35:attack=16:release=230:knee=2.8:link=average:detection=rms," +
+                "alimiter=limit=0.92:attack=2:release=22]"
+            3 -> "$nightModeFilterLabel:lavfi=[" +
+                "bass=g=-1.2:f=110:w=1.7:t=o," +
+                "treble=g=-0.8:f=7400:w=1.3:t=o," +
+                "acompressor=threshold=-18dB:ratio=1.55:attack=15:release=240:knee=3.0:link=average:detection=rms," +
+                "alimiter=limit=0.90:attack=2:release=20]"
+            4 -> "$nightModeFilterLabel:lavfi=[" +
+                "bass=g=-1.5:f=105:w=1.8:t=o," +
+                "treble=g=-1.0:f=7300:w=1.3:t=o," +
+                "acompressor=threshold=-19dB:ratio=1.75:attack=14:release=250:knee=3.2:link=average:detection=rms," +
+                "alimiter=limit=0.88:attack=1:release=18]"
+            5 -> "$nightModeFilterLabel:lavfi=[" +
+                "bass=g=-1.8:f=100:w=1.9:t=o," +
+                "treble=g=-1.2:f=7200:w=1.4:t=o," +
+                "acompressor=threshold=-20dB:ratio=2.00:attack=13:release=260:knee=3.4:link=average:detection=rms," +
+                "alimiter=limit=0.86:attack=1:release=16]"
+            else -> ""
+        }
+    }
 
     private fun getVoiceBoostLabel(): String = getString(voiceBoostPresetLabelIds[voiceBoostLevel])
 
@@ -2103,10 +2256,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val filters = mutableListOf<String>()
         if (isDownmixOn())
             surroundDialogueDownmixFilter()?.let { filters += it }
-        if (isVoiceBoostOn())
-            filters += voiceBoostPresets[voiceBoostLevel]
         if (isAudioNormOn())
             filters += audioNormPresets[audioNormLevel]
+        if (isVoiceBoostOn())
+            filters += voiceBoostPresets[voiceBoostLevel]
         if (isNightModeOn())
             filters += nightModeFilter()
         if (isVolumeBoostOn())
@@ -2700,7 +2853,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding.cycleDecoderBtn.text = when (player.currentDecoderMode) {
             MPVView.DECODER_MODE_HW_PLUS -> "HW+"
             MPVView.DECODER_MODE_HW -> "HW"
-            MPVView.DECODER_MODE_GNEXT, MPVView.DECODER_MODE_SHIELD_H10P -> "G-NEXT"
+            MPVView.DECODER_MODE_GNEXT, MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
             MPVView.DECODER_MODE_SW -> "SW"
             else -> "HW"
         }
@@ -3188,7 +3341,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                     showToast(
                         getString(R.string.pref_gpu_next_title),
                         getString(R.string.toast_gpu_next_copy_fallback),
-                        durationMs = 3200L
+                        durationMs = 5200L
                     )
                 }
             }
@@ -3226,7 +3379,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 showToast(
                     getString(R.string.pref_gpu_next_title),
                     getString(R.string.toast_gpu_next_fallback),
-                    durationMs = 3200L
+                    durationMs = 5200L
                 )
             }
         }

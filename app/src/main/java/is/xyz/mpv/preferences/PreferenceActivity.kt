@@ -22,6 +22,7 @@ import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.ListPreference
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
+import androidx.preference.Preference.SummaryProvider
 import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -217,6 +218,15 @@ class PreferenceActivity : AppCompatActivity(),
                 preferredDecoderPref.entryValues = values
                 if (preferredDecoderPref.value.isNullOrBlank())
                     preferredDecoderPref.value = defaultPreferredDecoderMode()
+                preferredDecoderPref.summaryProvider = SummaryProvider<ListPreference> { pref ->
+                    val entry = pref.entry?.toString()
+                        ?: getString(R.string.pref_preferred_decoder_mode_summary)
+                    getString(
+                        R.string.pref_preferred_decoder_mode_summary_format,
+                        entry,
+                        decoderModeDescription(pref.value)
+                    )
+                }
             }
             fun syncDecoderPreferenceVisibility() {
                 preferredDecoderPref?.isVisible = autoFallbackPref?.isChecked == false
@@ -232,18 +242,34 @@ class PreferenceActivity : AppCompatActivity(),
             val entries = mutableListOf<CharSequence>()
             val values = mutableListOf<CharSequence>()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                entries.add(getString(R.string.decoder_mode_hw_plus))
+                entries.add(getString(R.string.decoder_mode_hw_plus_settings))
                 values.add(app.mpvnova.player.MPVView.DECODER_MODE_HW_PLUS)
             }
-            entries.add(getString(R.string.decoder_mode_hw))
+            entries.add(getString(R.string.decoder_mode_hw_settings))
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_HW)
-            entries.add(getString(R.string.decoder_mode_sw))
+            entries.add(getString(R.string.decoder_mode_sw_settings))
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_SW)
-            entries.add(getString(R.string.decoder_mode_gnext))
+            entries.add(getString(R.string.decoder_mode_gnext_settings))
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_GNEXT)
-            entries.add(getString(R.string.decoder_mode_shield_h10p))
+            entries.add(getString(R.string.decoder_mode_shield_h10p_settings))
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_SHIELD_H10P)
             return Pair(entries.toTypedArray(), values.toTypedArray())
+        }
+
+        private fun decoderModeDescription(mode: String?): String {
+            return when (mode) {
+                app.mpvnova.player.MPVView.DECODER_MODE_HW_PLUS ->
+                    getString(R.string.decoder_mode_hw_plus_description)
+                app.mpvnova.player.MPVView.DECODER_MODE_HW ->
+                    getString(R.string.decoder_mode_hw_description)
+                app.mpvnova.player.MPVView.DECODER_MODE_SW ->
+                    getString(R.string.decoder_mode_sw_description)
+                app.mpvnova.player.MPVView.DECODER_MODE_GNEXT ->
+                    getString(R.string.decoder_mode_gnext_description)
+                app.mpvnova.player.MPVView.DECODER_MODE_SHIELD_H10P ->
+                    getString(R.string.decoder_mode_shield_h10p_description)
+                else -> getString(R.string.pref_preferred_decoder_mode_summary)
+            }
         }
 
         private fun defaultPreferredDecoderMode(): String {

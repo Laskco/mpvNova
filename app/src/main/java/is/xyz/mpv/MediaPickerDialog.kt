@@ -26,7 +26,7 @@ import androidx.recyclerview.widget.RecyclerView
  */
 internal class MediaPickerDialog {
 
-    data class Item(val label: String, val tag: Any?, val selected: Boolean)
+    data class Item(val label: CharSequence, val tag: Any?, val selected: Boolean)
     data class ValueState(
         val label: String,
         val active: Boolean,
@@ -251,6 +251,12 @@ internal class MediaPickerDialog {
             fun bind(item: Item) {
                 textView.text = item.label
                 textView.isChecked = item.selected
+                textView.setTextColor(
+                    ContextCompat.getColor(
+                        textView.context,
+                        R.color.tv_text
+                    )
+                )
             }
         }
 

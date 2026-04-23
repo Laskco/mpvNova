@@ -32,11 +32,11 @@
     <string name="btn_increase" translatable="false">+</string>
     <string name="btn_night_mode">Night mode</string>
     <string name="btn_audio_norm">Audio normalization</string>
-    <string name="btn_voice_boost_summary">Push speech forward and trim muddy lows.</string>
-    <string name="btn_volume_boost_summary">Add clean loudness.</string>
-    <string name="btn_dialogue_downmix_summary">Pull the center channel forward on surround mixes.</string>
-    <string name="btn_night_mode_summary">Clamp peaks and pull down rumble.</string>
-    <string name="btn_audio_norm_summary">Keep dialogue steadier. On 5.1/7.1 tracks, Dialogue downmix may play smoother.</string>
+    <string name="btn_voice_boost_summary">Add speech presence without piling on extra compression.</string>
+    <string name="btn_volume_boost_summary">Add headroom-managed loudness after the main dynamics stage.</string>
+    <string name="btn_dialogue_downmix_summary">Use a steadier stereo fold-down that keeps the center channel anchored.</string>
+    <string name="btn_night_mode_summary">Clamp peaks and trim rumble without fighting Audio normalization.</string>
+    <string name="btn_audio_norm_summary">Even out quiet and loud passages in real time. On 5.1/7.1 tracks, Dialogue downmix may still play smoother.</string>
     <string name="btn_next_chapter">Next chapter</string>
     <string name="dialog_title_chapter">Go to chapter</string>
     <string name="toast_voice_boost_off">Voice boost off</string>
@@ -74,11 +74,27 @@
     <string name="dialog_subtitle_tip_title">Better for TV viewing</string>
     <string name="dialog_subtitle_tip_summary">This layout keeps subtitle choices on one side and mode switching on the other, so it is easier to scan from the couch.</string>
     <string name="dialog_persist_filters_summary">Keep your current filter setup for the next file.</string>
-    <string name="decoder_mode_hw_plus">HW+ (mediacodec)</string>
-    <string name="decoder_mode_hw">HW (mediacodec-copy)</string>
-    <string name="decoder_mode_sw">SW</string>
+    <string name="decoder_mode_hw_plus">HW+ (direct)</string>
+    <string name="decoder_mode_hw">HW (copy)</string>
+    <string name="decoder_mode_sw">SW (software)</string>
     <string name="decoder_mode_gnext">G-NEXT</string>
-    <string name="decoder_mode_shield_h10p">Shield Anime (Hi10P x264)</string>
+    <string name="decoder_mode_gnext_paths">G-NEXT (direct/copy/software)</string>
+    <string name="decoder_mode_gnext_copy">G-NEXT (copy)</string>
+    <string name="decoder_mode_gnext_direct">G-NEXT (direct)</string>
+    <string name="decoder_mode_gnext_sw">G-NEXT (software)</string>
+    <string name="decoder_mode_shield_h10p">Shield Anime (Hi10P)</string>
+    <string name="decoder_mode_hw_plus_settings">HW+ - direct MediaCodec path</string>
+    <string name="decoder_mode_hw_settings">HW - MediaCodec copy path</string>
+    <string name="decoder_mode_sw_settings">SW - software decode</string>
+    <string name="decoder_mode_gnext_settings">G-NEXT - gpu-next + MediaCodec copy</string>
+    <string name="decoder_mode_shield_h10p_settings">Shield Anime - gpu-next + software decode for Hi10P x264</string>
+    <string name="decoder_mode_hw_plus_description">Uses the direct mediacodec path. Fastest when it works, but it can be pickier on some files and devices.</string>
+    <string name="decoder_mode_hw_description">Uses mediacodec-copy, copying decoded frames back before rendering. Usually the safest hardware path.</string>
+    <string name="decoder_mode_sw_description">Turns hardware decode off and uses ffmpeg software decoding. Most compatible, but much heavier on the CPU.</string>
+    <string name="decoder_mode_gnext_description">Uses the gpu-next renderer with mediacodec-copy. This keeps libplacebo rendering while avoiding the fragile direct hardware path.</string>
+    <string name="decoder_mode_shield_h10p_description">Shield-specific fallback for anime and other Hi10P x264 files: gpu-next plus software decode, 6 lavc threads, faster skiploopfilter tuning, display-resample sync, and a smaller cache.</string>
+    <string name="pref_preferred_decoder_mode_message">Pick the default video decode path used when Automatic decoder fallback is off. This controls both how frames are decoded and which renderer path mpvNova starts with.</string>
+    <string name="pref_preferred_decoder_mode_summary_format">Current: %1$s\n%2$s</string>
     <string name="ui_volume">Volume: %d%%</string>
     <string name="ui_brightness">Brightness: %d%%</string>
     <string name="ui_seek_distance">%1$s\n[%2$s]</string>
@@ -227,7 +243,7 @@
     <string name="pref_hardware_decoding_title">Hardware decoding</string>
     <string name="pref_hardware_decoding_summary">Attempt hardware decoding before falling back to software. This is generally more efficient.</string>
     <string name="pref_decoder_auto_fallback_title">Automatic decoder fallback</string>
-    <string name="pref_decoder_auto_fallback_summary">Automatically switch to a safer decoder mode for known problem cases like Hi10P H.264 on NVIDIA Shield. Turn this off to keep your chosen decoder mode locked in.</string>
+    <string name="pref_decoder_auto_fallback_summary">Let mpvNova temporarily override your preferred decoder for known trouble cases. On NVIDIA Shield, anime and other Hi10P H.264 files may be moved to the Shield Anime path: gpu-next + software decode with extra lavc tuning.</string>
     <string name="pref_preferred_decoder_mode_title">Preferred decoder mode</string>
     <string name="pref_preferred_decoder_mode_summary">Choose the decoder mode to use by default when automatic decoder fallback is off.</string>
 
@@ -307,8 +323,8 @@
 
     <string name="pref_gpu_next_title">Use gpu-next</string>
     <string name="pref_gpu_next_summary">Use new video rendering backend, based on libplacebo.</string>
-    <string name="toast_gpu_next_copy_fallback">gpu-next failed. Retrying with HW.</string>
-    <string name="toast_gpu_next_fallback">gpu-next failed on this video. Switched to gpu.</string>
+    <string name="toast_gpu_next_copy_fallback">gpu-next render path failed. Retrying with gpu-next + mediacodec-copy.</string>
+    <string name="toast_gpu_next_fallback">gpu-next render path failed on this video. Switched to classic gpu renderer.</string>
 
     <string name="pref_version_info">Version information</string>
 
