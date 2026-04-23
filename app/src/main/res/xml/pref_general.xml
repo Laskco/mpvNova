@@ -48,7 +48,6 @@
 
     <ListPreference
         android:defaultValue=""
-        android:dialogMessage="@string/pref_preferred_decoder_mode_message"
         android:key="preferred_decoder_mode"
         android:summary="@string/pref_preferred_decoder_mode_summary"
         android:title="@string/pref_preferred_decoder_mode_title"

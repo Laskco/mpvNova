@@ -21,39 +21,39 @@
 
 ## Showcase
 <div align="center">
-  <img src="docs/screenshots/home-screen.png" alt="mpvNova home screen" width="92%" />
+  <img src="docs/screenshots/home-screen.png" alt="mpvNova home screen" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/media-library.png" alt="Media library" width="92%" />
+  <img src="docs/screenshots/media-library.png" alt="Media library" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-controls.png" alt="Player controls overlay" width="92%" />
+  <img src="docs/screenshots/player-controls.png" alt="Player UI with updated decoder badge and audio controls" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-audio.png" alt="Audio panel" width="92%" />
+  <img src="docs/screenshots/player-audio.png" alt="Audio panel" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-subtitles.png" alt="Subtitle panel" width="92%" />
+  <img src="docs/screenshots/player-subtitles.png" alt="Subtitle panel" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-decoder-mode.png" alt="Decoder picker" width="92%" />
+  <img src="docs/screenshots/player-decoder-mode.png" alt="Decoder picker with live gpu-next path highlight" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/settings-overview.png" alt="Settings overview" width="92%" />
+  <img src="docs/screenshots/settings-overview.png" alt="Settings overview" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/settings-decoder-mode-dialog.png" alt="Decoder settings dialog" width="92%" />
+  <img src="docs/screenshots/settings-decoder-mode-dialog.png" alt="Preferred decoder mode settings dialog" width="96%" />
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-stats-overlay.png" alt="Playback stats overlay" width="92%" />
+  <img src="docs/screenshots/player-stats-overlay.png" alt="Playback stats overlay" width="96%" />
 </div>
 
 ---
