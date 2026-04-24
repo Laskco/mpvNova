@@ -297,6 +297,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private var playbackHasStarted = false
     private var onloadCommands = mutableListOf<Array<String>>()
+    private var streamOpenLoading = false
+    private var streamCacheLoading = false
 
     // Activity lifetime
 
@@ -355,6 +357,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         MPVLib.addLogObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
         applySavedAudioFilterDefaults()
+        prepareStreamLoading(filepath)
         player.playFile(filepath)
 
         mediaSession = initMediaSession()
@@ -425,6 +428,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             applySavedAudioFilterDefaults()
+            prepareStreamLoading(filepath)
             if (this.newIntentReplace) {
                 MPVLib.command(arrayOf("loadfile", filepath, "replace"))
                 showToast(getString(R.string.notice_file_play))
@@ -435,7 +439,49 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             moveTaskToBack(true)
         } else {
             applySavedAudioFilterDefaults()
+            prepareStreamLoading(filepath)
             MPVLib.command(arrayOf("loadfile", filepath))
+        }
+    }
+
+    private fun isNetworkStreamPath(path: String?): Boolean {
+        val normalized = path?.trim()?.lowercase(Locale.US) ?: return false
+        return normalized.startsWith("http://") || normalized.startsWith("https://")
+    }
+
+    private fun currentMpvPath(): String? {
+        return MPVLib.getPropertyString("stream-open-filename")
+            ?: MPVLib.getPropertyString("path")
+            ?: MPVLib.getPropertyString("filename")
+    }
+
+    private fun prepareStreamLoading(path: String?) {
+        streamOpenLoading = isNetworkStreamPath(path)
+        streamCacheLoading = false
+        refreshLoadingOverlay()
+    }
+
+    private fun refreshLoadingOverlay() {
+        val visible = streamOpenLoading || streamCacheLoading
+        binding.loadingText.setText(
+            if (streamCacheLoading) R.string.player_buffering_stream
+            else R.string.player_loading_stream
+        )
+        binding.loadingOverlay.animate().cancel()
+        if (visible) {
+            if (binding.loadingOverlay.visibility != View.VISIBLE) {
+                binding.loadingOverlay.alpha = 0f
+                binding.loadingOverlay.visibility = View.VISIBLE
+            }
+            binding.loadingOverlay.animate()
+                .alpha(1f)
+                .setDuration(180L)
+                .setListener(null)
+        } else if (binding.loadingOverlay.visibility == View.VISIBLE) {
+            binding.loadingOverlay.animate()
+                .alpha(0f)
+                .setDuration(180L)
+                .withEndAction { binding.loadingOverlay.visibility = View.GONE }
         }
     }
 
@@ -1552,6 +1598,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         maxWidthDp: Float = 1180f,
         gravity: Int = Gravity.CENTER,
         verticalOffsetDp: Float = 0f,
+        heightFraction: Float? = null,
+        maxHeightDp: Float? = null,
     ) {
         dialog.show()
         dialog.window?.apply {
@@ -1568,7 +1616,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             }
             val maxWidthPx = Utils.convertDp(this@MPVActivity, maxWidthDp)
             val desiredWidth = (screenWidth * widthFraction).roundToInt()
-            setLayout(minOf(desiredWidth, maxWidthPx), WindowManager.LayoutParams.WRAP_CONTENT)
+            val desiredHeight = heightFraction?.let {
+                val screenHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    windowManager.currentWindowMetrics.bounds.height()
+                } else @Suppress("DEPRECATION") {
+                    val dm = DisplayMetrics()
+                    windowManager.defaultDisplay.getRealMetrics(dm)
+                    dm.heightPixels
+                }
+                val fractionalHeight = (screenHeight * it).roundToInt()
+                val maxHeightPx = maxHeightDp?.let { dp -> Utils.convertDp(this@MPVActivity, dp) }
+                    ?: Int.MAX_VALUE
+                minOf(fractionalHeight, maxHeightPx)
+            } ?: WindowManager.LayoutParams.WRAP_CONTENT
+            setLayout(minOf(desiredWidth, maxWidthPx), desiredHeight)
             if (verticalOffsetDp != 0f) {
                 attributes = attributes.apply {
                     y = Utils.convertDp(this@MPVActivity, verticalOffsetDp)
@@ -1627,8 +1688,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         showWidePlayerDialog(
             dialog,
-            widthFraction = 0.84f,
-            maxWidthDp = 1160f,
+            widthFraction = 0.78f,
+            maxWidthDp = 1080f,
         )
     }
 
@@ -1667,7 +1728,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setOnDismissListener { restore() }
             create()
         }
-        showWidePlayerDialog(dialog, widthFraction = 0.84f, maxWidthDp = 1100f)
+        showWidePlayerDialog(
+            dialog,
+            widthFraction = 0.72f,
+            maxWidthDp = 940f,
+        )
     }
 
     private fun openSubDelayDialog() {
@@ -1687,7 +1752,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         picker.delay1 = player.subDelay ?: 0.0
         picker.delay2 = if (player.secondarySid != -1) player.secondarySubDelay else null
-        dialog.show()
+        showWidePlayerDialog(
+            dialog,
+            widthFraction = 0.82f,
+            maxWidthDp = 980f,
+            heightFraction = 0.82f,
+            maxHeightDp = 760f,
+        )
     }
 
     private fun openPlaylistMenu(restore: StateRestoreCallback) {
@@ -1730,7 +1801,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setOnDismissListener { restore() }
             create()
         }
-        dialog.show()
+        showWidePlayerDialog(
+            dialog,
+            widthFraction = 0.62f,
+            maxWidthDp = 720f,
+            heightFraction = 0.82f,
+            maxHeightDp = 760f,
+        )
     }
 
     private fun pickDecoder() {
@@ -1769,7 +1846,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setOnDismissListener { restore() }
             create()
         }
-        showWidePlayerDialog(dialog, widthFraction = 0.7f, maxWidthDp = 860f)
+        showWidePlayerDialog(
+            dialog,
+            widthFraction = 0.62f,
+            maxWidthDp = 760f,
+        )
     }
 
     private fun cycleDecoderMode() {
@@ -2517,7 +2598,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setOnCancelListener { restoreState() }
             dialog = create()
         }
-        dialog.show()
+        showWidePlayerDialog(
+            dialog,
+            widthFraction = 0.56f,
+            maxWidthDp = 620f,
+            heightFraction = 0.72f,
+            maxHeightDp = 520f,
+        )
     }
 
     private fun openTopMenu() {
@@ -2704,7 +2791,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
             picker.delay1 = player.subDelay ?: 0.0
             picker.delay2 = if (player.secondarySid != -1) player.secondarySubDelay else null
-            dialog.show()
+            showWidePlayerDialog(
+                dialog,
+                widthFraction = 0.56f,
+                maxWidthDp = 620f,
+                heightFraction = 0.72f,
+                maxHeightDp = 520f,
+            )
             false
         })
 
@@ -3173,6 +3266,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (!activityIsForeground) return
         when (property) {
             "pause" -> updatePlaybackStatus(value)
+            "paused-for-cache" -> {
+                streamCacheLoading = value
+                refreshLoadingOverlay()
+            }
             "mute" -> { // indirectly from updateAudioPresence()
                 updateAudioUI()
             }
@@ -3300,6 +3397,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextRenderFallbackStage = 0
             gpuNextCopyRetryConfirmed = false
             gpuNextCopyRetryDisplayedFrame = false
+            streamOpenLoading = isNetworkStreamPath(currentMpvPath())
+            streamCacheLoading = false
+            eventUiHandler.post { refreshLoadingOverlay() }
             applySessionDecoderModeIfNeeded()
             val cmds = onloadCommands.toTypedArray()
             onloadCommands.clear()
@@ -3323,6 +3423,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 rebuildAudioFilters()
                 eventUiHandler.post { refreshAllFilterTints() }
             }
+        }
+
+        if (eventId == MpvEvent.MPV_EVENT_PLAYBACK_RESTART ||
+            eventId == MpvEvent.MPV_EVENT_END_FILE ||
+            eventId == MpvEvent.MPV_EVENT_SHUTDOWN) {
+            streamOpenLoading = false
+            streamCacheLoading = false
+            eventUiHandler.post { refreshLoadingOverlay() }
         }
 
         if (!activityIsForeground) return

@@ -12,6 +12,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import kotlin.math.roundToInt
 /**
  * Unified TV-styled picker dialog for subtitle / audio / decoder selection.
  *
@@ -100,7 +101,7 @@ internal class MediaPickerDialog {
         } else {
             binding.root.context.getString(R.string.dialog_section_modes)
         }
-        val listMinHeight = Utils.convertDp(binding.root.context, 380f)
+        val listMinHeight = Utils.convertDp(binding.root.context, 280f)
         binding.list.layoutParams = binding.list.layoutParams.apply {
             height = if (showFilters) 0 else listMinHeight
             if (this is ViewGroup.LayoutParams) {
@@ -111,16 +112,15 @@ internal class MediaPickerDialog {
             }
         }
         binding.list.minimumHeight = if (showFilters) 0 else listMinHeight
+        binding.listSectionSummary.isVisible = !showFilters && !showDelay
         if (showDelay && !showFilters) {
-            binding.listSectionSummary.isVisible = true
             binding.trackPanel.layoutParams = binding.trackPanel.layoutParams.apply {
-                height = Utils.convertDp(binding.root.context, 420f)
+                height = Utils.convertDp(binding.root.context, 340f)
             }
             binding.sidePanel.layoutParams = binding.sidePanel.layoutParams.apply {
-                width = Utils.convertDp(binding.root.context, 460f)
+                width = Utils.convertDp(binding.root.context, 360f)
             }
         } else {
-            binding.listSectionSummary.isVisible = true
             binding.trackPanel.layoutParams = binding.trackPanel.layoutParams.apply {
                 height = ViewGroup.LayoutParams.MATCH_PARENT
             }
@@ -132,6 +132,8 @@ internal class MediaPickerDialog {
         // Side panel — only visible if either subsection is requested.
         binding.sidePanel.isVisible = showDelay || showFilters
         binding.persistFiltersRow.isVisible = showFilters
+        binding.filterScroll.isVisible = showFilters
+        configureResponsiveSizing(showDelay, showFilters)
 
         // Delay row (subs).
         binding.delayRow.isVisible = showDelay
@@ -209,6 +211,39 @@ internal class MediaPickerDialog {
 
         Utils.handleInsetsAsPadding(binding.root)
         return binding.root
+    }
+
+    private fun configureResponsiveSizing(showDelay: Boolean, showFilters: Boolean) {
+        val context = binding.root.context
+        val metrics = context.resources.displayMetrics
+        if (showFilters) {
+            val contentHeight = (metrics.heightPixels * 0.48f).roundToInt()
+                .coerceAtMost(Utils.convertDp(context, 520f))
+                .coerceAtLeast(Utils.convertDp(context, 360f))
+            val sideWidth = if (metrics.widthPixels < Utils.convertDp(context, 1500f)) {
+                Utils.convertDp(context, 420f)
+            } else {
+                Utils.convertDp(context, 430f)
+            }
+
+            binding.contentRow.layoutParams = binding.contentRow.layoutParams.apply {
+                height = contentHeight
+            }
+            binding.trackPanel.layoutParams = binding.trackPanel.layoutParams.apply {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+            binding.sidePanel.layoutParams = binding.sidePanel.layoutParams.apply {
+                width = sideWidth
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+            binding.filterScroll.layoutParams = binding.filterScroll.layoutParams.apply {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
+        } else if (showDelay) {
+            binding.contentRow.layoutParams = binding.contentRow.layoutParams.apply {
+                height = Utils.convertDp(context, 340f)
+            }
+        }
     }
 
     private fun focusListItem(position: Int) {
