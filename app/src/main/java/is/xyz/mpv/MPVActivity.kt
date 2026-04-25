@@ -211,6 +211,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var smoothSeekGesture = false
 
     private var persistAudioFilters = false
+    private var persistSubFilters = false
+    // subScaleSteps index; default=1.0 at index 3
+    private var subScaleLevel = 3
+    // subPosSteps index; default=100% at index 25 (the array spans -25%..125%)
+    private var subPosLevel = 25
+    // secondaryPosSteps index; default=0% at index 5
+    private var secondaryPosLevel = 5
     private var sessionDecoderMode: String? = null
     private var autoDecoderFallback = true
     private var preferredDecoderMode = ""
@@ -357,6 +364,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         MPVLib.addLogObserver(this)
         player.initialize(filesDir.path, cacheDir.path)
         applySavedAudioFilterDefaults()
+        applySavedSubFilterDefaults()
         prepareStreamLoading(filepath)
         player.playFile(filepath)
 
@@ -428,6 +436,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             applySavedAudioFilterDefaults()
+        applySavedSubFilterDefaults()
             prepareStreamLoading(filepath)
             if (this.newIntentReplace) {
                 MPVLib.command(arrayOf("loadfile", filepath, "replace"))
@@ -439,6 +448,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             moveTaskToBack(true)
         } else {
             applySavedAudioFilterDefaults()
+        applySavedSubFilterDefaults()
             prepareStreamLoading(filepath)
             MPVLib.command(arrayOf("loadfile", filepath))
         }
@@ -633,6 +643,29 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         this.autoDecoderFallback = prefs.getBoolean("decoder_auto_fallback", true)
         this.preferredDecoderMode = prefs.getString("preferred_decoder_mode", "") ?: ""
         clampAudioFilterState()
+
+        this.persistSubFilters = prefs.getBoolean("persist_sub_filters", false)
+        if (persistSubFilters) {
+            this.subScaleLevel = prefs.getInt("sub_scale_level", 3)
+            // Persisted as raw percentages (0-100) so future step-array changes
+            // don't corrupt user settings. The legacy `sub_pos_level` key from
+            // older builds is intentionally ignored — defaults are sane.
+            val subPosPct = prefs.getInt("sub_pos_pct", 100)
+            val secondaryPosPct = prefs.getInt("secondary_sub_pos_pct", 0)
+            this.subPosLevel = subPosSteps.indices.minBy {
+                kotlin.math.abs(subPosSteps[it] - subPosPct)
+            }
+            this.secondaryPosLevel = secondaryPosSteps.indices.minBy {
+                kotlin.math.abs(secondaryPosSteps[it] - secondaryPosPct)
+            }
+        } else {
+            this.subScaleLevel = 3
+            // Find the index of the natural defaults dynamically so the array
+            // bounds aren't hard-coded.
+            this.subPosLevel = subPosSteps.indexOf(100).coerceAtLeast(0)
+            this.secondaryPosLevel = secondaryPosSteps.indexOf(0).coerceAtLeast(0)
+        }
+        clampSubFilterState()
     }
 
     private fun writeSettings() {
@@ -650,6 +683,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             putInt("audio_norm_level", if (persistAudioFilters) audioNormLevel else 0)
             putBoolean("downmix_on", if (persistAudioFilters) isDownmixOn() else false)
             putInt("downmix_level", if (persistAudioFilters) downmixLevel else 0)
+
+            putBoolean("persist_sub_filters", persistSubFilters)
+            putInt("sub_scale_level", if (persistSubFilters) subScaleLevel else 3)
+            putInt(
+                "sub_pos_pct",
+                if (persistSubFilters) subPosSteps[subPosLevel] else 100
+            )
+            putInt(
+                "secondary_sub_pos_pct",
+                if (persistSubFilters) secondaryPosSteps[secondaryPosLevel] else 0
+            )
             commit()
         }
     }
@@ -1693,17 +1737,58 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         )
     }
 
+    /**
+     * Build the current subtitle picker row list. Order, from top:
+     *   1. "None" (always pinned so deselecting is always one click away)
+     *   2. Primary track (with "BOTTOM" badge, only when secondary is also on)
+     *   3. Secondary track (with "TOP" badge)
+     *   4. Every other track in its natural order
+     * Both active tracks get a checkmark so the user can see at a glance which
+     * two languages are currently rendering.
+     */
+    private fun buildSubItems(): List<MediaPickerDialog.Item> {
+        val rawTracks = player.tracks.getValue("sub")
+        val primaryId = player.sid
+        val secondaryId = player.secondarySid
+
+        val noneTrack = rawTracks.firstOrNull { it.mpvId == -1 }
+        val primaryTrack = rawTracks.firstOrNull { it.mpvId != -1 && it.mpvId == primaryId }
+        val secondaryTrack = rawTracks.firstOrNull { it.mpvId != -1 && it.mpvId == secondaryId }
+        val pinnedIds = setOfNotNull(primaryTrack?.mpvId, secondaryTrack?.mpvId)
+
+        val orderedTracks = buildList {
+            noneTrack?.let { add(it) }
+            primaryTrack?.let { add(it) }
+            secondaryTrack?.let { add(it) }
+            addAll(rawTracks.filter { it.mpvId != -1 && it.mpvId !in pinnedIds })
+        }
+
+        val hasSecondary = secondaryTrack != null
+        return orderedTracks.map { t ->
+            val label: CharSequence = when {
+                t.mpvId == -1 -> t.name
+                t.mpvId == primaryId && hasSecondary -> "▾  BOTTOM  ·  ${t.name}"
+                t.mpvId == secondaryId -> "▴  TOP  ·  ${t.name}"
+                else -> t.name
+            }
+            val checked = t.mpvId == primaryId ||
+                    (t.mpvId != -1 && t.mpvId == secondaryId)
+            MediaPickerDialog.Item(label, t.mpvId, checked)
+        }
+    }
+
     private fun pickSub() {
         val restore = keepPlaybackForDialog()
-        val tracks = player.tracks.getValue("sub")
-        val selectedId = player.sid
-        val items = tracks.map {
-            MediaPickerDialog.Item(it.name, it.mpvId, it.mpvId == selectedId)
-        }
         val impl = MediaPickerDialog()
         lateinit var dialog: AlertDialog
         impl.onItemClick = { idx ->
-            val trackId = tracks[idx].mpvId
+            // Read the track id from the dialog's live items so a rebuild
+            // (swap / secondary toggle) doesn't invalidate our index mapping.
+            val trackId = impl.items[idx].tag as Int
+            // Tapping a row sets it as primary. Tapping "None" (trackId == -1)
+            // disables subs. Swapping the primary / secondary pair happens via
+            // the dedicated swap button in the Secondary track row so the
+            // select / deselect behavior stays predictable.
             player.sid = trackId
             dialog.dismiss()
             trackSwitchNotification { TrackData(trackId, SubTrackDialog.TRACK_TYPE) }
@@ -1711,6 +1796,29 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         impl.onDelayClick = {
             dialog.dismiss()
             openSubDelayDialog()
+        }
+        impl.onSubScaleAdjust = { delta -> adjustSubScale(delta) }
+        impl.onSubPosAdjust = { delta -> adjustSubPos(delta) }
+        impl.onSecondaryPosAdjust = { delta -> adjustSecondaryPos(delta) }
+        impl.onSecondarySubAdjust = { delta ->
+            val state = adjustSecondarySub(delta)
+            // Secondary turned on/off means the list pinning changes \u2014 rebuild
+            // the rows so the UI matches reality without reopening the dialog.
+            impl.updateItems(buildSubItems())
+            state
+        }
+        impl.onSecondarySubSwap = {
+            swapPrimaryAndSecondarySub()
+            impl.updateItems(buildSubItems())
+        }
+        impl.onSubFilterStatesRefresh = { currentSubFilterStates() }
+        impl.onPersistSubClick = {
+            persistSubFilters = !persistSubFilters
+            writeSettings()
+            showToast(
+                getString(R.string.pref_persist_sub_filters_title),
+                getString(if (persistSubFilters) R.string.status_on else R.string.status_off)
+            )
         }
 
         val delayValue = String.format("%.2f s", player.subDelay ?: 0.0)
@@ -1721,17 +1829,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setView(impl.buildView(
                 inflater,
                 title = getString(R.string.dialog_title_subs),
-                items = items,
+                items = buildSubItems(),
                 showDelay = true,
                 delayText = delayValue,
+                showSubFilters = true,
+                initialSubScaleState = currentSubScaleState(),
+                initialSubPosState = currentSubPosState(),
+                initialSecondaryPosState = currentSecondaryPosState(),
+                initialSecondarySubState = currentSecondarySubState(),
+                persistSubFiltersOn = persistSubFilters,
             ), 0, 0, 0, 0)
             setOnDismissListener { restore() }
             create()
         }
         showWidePlayerDialog(
             dialog,
-            widthFraction = 0.72f,
-            maxWidthDp = 940f,
+            widthFraction = 0.78f,
+            maxWidthDp = 1080f,
         )
     }
 
@@ -2535,6 +2649,214 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (isAudioNormOn()) getAudioNormLabel() else getString(R.string.status_off)
         )
         return currentAudioNormState()
+    }
+
+    // ===== Subtitle filter presets & state =====
+
+    // Default (1.0x) is at index 3.
+    private val subScaleSteps = doubleArrayOf(0.5, 0.65, 0.8, 1.0, 1.15, 1.3, 1.5, 1.75, 2.0)
+
+    // -25..125 range in 5% steps. The on-screen range is 0..100% but we let
+    // the user keep clicking past those edges (mpv soft-clamps `sub-pos` to the
+    // visible range) so they can dial in extreme values without the buttons
+    // bouncing focus on them. Index 5 = 0% (top edge), index 25 = 100% (bottom
+    // edge). Same array drives both primary and secondary positions.
+    private val subPosSteps = (-25..125 step 5).toList().toIntArray()
+    private val secondaryPosSteps = subPosSteps
+
+    private fun isSubScaleOn() = subScaleSteps[subScaleLevel] != 1.0
+    private fun isSubPosOn()   = subPosSteps[subPosLevel] != 100
+    private fun isSecondaryPosOn() = secondaryPosSteps[secondaryPosLevel] != 0
+
+    private fun getSubScaleLabel(): String =
+        if (isSubScaleOn()) String.format("%.2fx", subScaleSteps[subScaleLevel])
+        else getString(R.string.sub_scale_default)
+
+    private fun getSubPosLabel(): String =
+        if (isSubPosOn()) "${subPosSteps[subPosLevel]}%"
+        else getString(R.string.sub_pos_default)
+
+    private fun getSecondaryPosLabel(): String =
+        if (isSecondaryPosOn()) "${secondaryPosSteps[secondaryPosLevel]}%"
+        else getString(R.string.sub_pos_default)
+
+    private fun availableSecondarySubTracks(): List<MPVView.Track> {
+        val subs = player.tracks["sub"] ?: return emptyList()
+        val primarySid = player.sid
+        return subs.filter { it.mpvId >= 1 && it.mpvId != primarySid }
+    }
+
+    private fun currentSubScaleState(): MediaPickerDialog.ValueState {
+        val maxLevel = subScaleSteps.lastIndex
+        return MediaPickerDialog.ValueState(
+            label = getSubScaleLabel(),
+            active = isSubScaleOn(),
+            canDecrease = subScaleLevel > 0,
+            canIncrease = subScaleLevel < maxLevel,
+        )
+    }
+
+    private fun currentSubPosState(): MediaPickerDialog.ValueState {
+        val maxLevel = subPosSteps.lastIndex
+        return MediaPickerDialog.ValueState(
+            label = getSubPosLabel(),
+            active = isSubPosOn(),
+            canDecrease = subPosLevel > 0,
+            canIncrease = subPosLevel < maxLevel,
+        )
+    }
+
+    private fun currentSecondaryPosState(): MediaPickerDialog.ValueState {
+        val maxLevel = secondaryPosSteps.lastIndex
+        // Secondary subs only render when a secondary track is on, so the
+        // position controls are useless otherwise — dim and disable them
+        // until the user actually enables a secondary track.
+        val secondaryOn = player.secondarySid != -1
+        return MediaPickerDialog.ValueState(
+            label = getSecondaryPosLabel(),
+            active = isSecondaryPosOn() && secondaryOn,
+            enabled = secondaryOn,
+            canDecrease = secondaryOn && secondaryPosLevel > 0,
+            canIncrease = secondaryOn && secondaryPosLevel < maxLevel,
+        )
+    }
+
+    private fun currentSecondarySubState(): MediaPickerDialog.ValueState {
+        val available = availableSecondarySubTracks()
+        if (available.isEmpty()) {
+            return MediaPickerDialog.ValueState(
+                label = getString(R.string.sub_secondary_unavailable),
+                active = false,
+                enabled = false,
+                canDecrease = false,
+                canIncrease = false,
+            )
+        }
+        val currentSid = player.secondarySid
+        val on = currentSid != -1 && available.any { it.mpvId == currentSid }
+        return MediaPickerDialog.ValueState(
+            label = if (on) "#$currentSid" else getString(R.string.status_off),
+            active = on,
+            // +/- now cycles through Off → every available track → back to Off,
+            // so both directions are always available when there's at least
+            // one alternate track to choose from.
+            canDecrease = true,
+            canIncrease = true,
+        )
+    }
+
+    private fun currentSubFilterStates(): MediaPickerDialog.SubFilterStates {
+        return MediaPickerDialog.SubFilterStates(
+            subScale = currentSubScaleState(),
+            subPos = currentSubPosState(),
+            secondaryPos = currentSecondaryPosState(),
+            secondarySub = currentSecondarySubState(),
+        )
+    }
+
+    private fun applySubScaleProperty() {
+        MPVLib.setPropertyDouble("sub-scale", subScaleSteps[subScaleLevel])
+    }
+
+    private fun applySubPosProperty() {
+        MPVLib.setPropertyInt("sub-pos", subPosSteps[subPosLevel])
+    }
+
+    private fun applySecondaryPosProperty() {
+        MPVLib.setPropertyInt("secondary-sub-pos", secondaryPosSteps[secondaryPosLevel])
+    }
+
+    private fun adjustSubScale(delta: Int): MediaPickerDialog.ValueState {
+        val maxLevel = subScaleSteps.lastIndex
+        subScaleLevel = (subScaleLevel + delta).coerceIn(0, maxLevel)
+        applySubScaleProperty()
+        writeSettings()
+        showToast(
+            getString(R.string.btn_sub_scale),
+            getSubScaleLabel()
+        )
+        return currentSubScaleState()
+    }
+
+    private fun adjustSubPos(delta: Int): MediaPickerDialog.ValueState {
+        val maxLevel = subPosSteps.lastIndex
+        subPosLevel = (subPosLevel + delta).coerceIn(0, maxLevel)
+        applySubPosProperty()
+        writeSettings()
+        showToast(getString(R.string.btn_sub_pos), getSubPosLabel())
+        return currentSubPosState()
+    }
+
+    private fun adjustSecondaryPos(delta: Int): MediaPickerDialog.ValueState {
+        // Defensive: should be greyed out by canDecrease/canIncrease but the
+        // value would be meaningless without a secondary track on screen.
+        if (player.secondarySid == -1) return currentSecondaryPosState()
+        val maxLevel = secondaryPosSteps.lastIndex
+        secondaryPosLevel = (secondaryPosLevel + delta).coerceIn(0, maxLevel)
+        applySecondaryPosProperty()
+        writeSettings()
+        showToast(getString(R.string.btn_secondary_pos), getSecondaryPosLabel())
+        return currentSecondaryPosState()
+    }
+
+    private fun adjustSecondarySub(delta: Int): MediaPickerDialog.ValueState {
+        val available = availableSecondarySubTracks()
+        if (available.isEmpty()) {
+            return currentSecondarySubState()
+        }
+        // Cycle through: Off → track1 → track2 → ... → trackN → Off → ...
+        // -1 represents the Off slot in this cycle. This lets the user step
+        // forward/backward through every non-primary track instead of being
+        // stuck with whatever mpv auto-picked when secondary first turned on.
+        val cycle = listOf(-1) + available.map { it.mpvId }
+        val current = player.secondarySid
+        val currentIdx = cycle.indexOf(current).let { if (it < 0) 0 else it }
+        // Modular arithmetic that handles negative deltas correctly.
+        val step = if (delta == 0) 0 else delta
+        val nextIdx = ((currentIdx + step) % cycle.size + cycle.size) % cycle.size
+        val nextSid = cycle[nextIdx]
+        player.secondarySid = nextSid
+
+        val toastValue = if (nextSid == -1) {
+            getString(R.string.status_off)
+        } else {
+            // Use the friendly track name in the toast so the user can tell
+            // which language they just landed on, rather than just an id.
+            available.firstOrNull { it.mpvId == nextSid }?.name ?: "#$nextSid"
+        }
+        showToast(getString(R.string.btn_secondary_sub), toastValue)
+        return currentSecondarySubState()
+    }
+
+    private fun swapPrimaryAndSecondarySub() {
+        val primary = player.sid
+        val secondary = player.secondarySid
+        // Nothing meaningful to swap if there's no secondary track active.
+        if (secondary == -1) return
+        // Clear secondary first so mpv doesn't briefly see the same track set
+        // as both primary and secondary (it auto-rejects that state).
+        player.secondarySid = -1
+        player.sid = secondary
+        if (primary != -1) {
+            player.secondarySid = primary
+        }
+        showToast(
+            getString(R.string.btn_secondary_sub),
+            getString(R.string.status_swapped)
+        )
+    }
+
+    private fun applySavedSubFilterDefaults() {
+        if (!persistSubFilters) return
+        MPVLib.setOptionString("sub-scale", subScaleSteps[subScaleLevel].toString())
+        MPVLib.setOptionString("sub-pos", subPosSteps[subPosLevel].toString())
+        MPVLib.setOptionString("secondary-sub-pos", secondaryPosSteps[secondaryPosLevel].toString())
+    }
+
+    private fun clampSubFilterState() {
+        subScaleLevel = subScaleLevel.coerceIn(0, subScaleSteps.lastIndex)
+        subPosLevel = subPosLevel.coerceIn(0, subPosSteps.lastIndex)
+        secondaryPosLevel = secondaryPosLevel.coerceIn(0, secondaryPosSteps.lastIndex)
     }
 
     private fun pickSpeed() {

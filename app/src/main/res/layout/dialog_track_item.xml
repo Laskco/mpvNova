@@ -5,6 +5,7 @@
     android:layout_height="wrap_content"
     android:layout_marginTop="4dp"
     android:layout_marginBottom="4dp"
+    android:layout_marginEnd="10dp"
     android:background="@drawable/bg_tv_selection_row"
     android:checkMark="@drawable/tv_check_indicator"
     android:ellipsize="end"

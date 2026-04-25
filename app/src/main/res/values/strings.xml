@@ -128,8 +128,8 @@
     <string name="voice_boost_preset_loud">EQ +8.0 dB+</string>
     <string name="voice_boost_preset_max">Maximum</string>
     <string name="night_mode_preset_drc">DRC</string>
-    <string name="filter_blocked_by_drc">Blocked by DRC</string>
-    <string name="filter_blocked_by_audio_norm">Blocked by Audio normalization</string>
+    <string name="filter_blocked_by_drc">Blocked by\nDRC</string>
+    <string name="filter_blocked_by_audio_norm">Blocked by\nAudio\nNormalization</string>
     <string name="audio_norm_preset_light">-18 LUFS</string>
     <string name="audio_norm_preset_smooth">-17 LUFS</string>
     <string name="audio_norm_preset_speech">-16 LUFS</string>
@@ -178,6 +178,35 @@
     <string name="action_external_storage">External storage</string>
     <string name="action_toggle_filter">Toggle filter</string>
     <string name="pref_persist_filters_title">Persist filters</string>
+    <string name="pref_persist_sub_filters_title">Persist subtitle settings</string>
+    <string name="dialog_persist_sub_filters_summary">Keep your current subtitle tweaks for the next file.</string>
+
+    <!-- Subtitle picker controls -->
+    <string name="btn_sub_scale">Subtitle size</string>
+    <string name="btn_sub_scale_summary">Scale rendered subtitles up or down.</string>
+    <string name="btn_sub_pos">Vertical position</string>
+    <string name="btn_sub_pos_summary">Place the bottom subs anywhere from top (0%) to bottom (100%).</string>
+    <string name="btn_secondary_pos">Top sub position</string>
+    <string name="btn_secondary_pos_summary">Place the top subs anywhere from top (0%) to bottom (100%).</string>
+    <string name="btn_secondary_sub">Secondary track</string>
+    <string name="btn_secondary_sub_summary">Show a second subtitle track above the primary one.</string>
+    <string name="btn_secondary_sub_swap">Swap primary / secondary</string>
+    <string name="status_swapped">Swapped</string>
+    <string name="btn_sub_override">Style override</string>
+    <string name="btn_sub_override_summary">Required to restyle ASS/SSA subtitles.</string>
+    <string name="btn_sub_color">Font color</string>
+    <string name="btn_sub_color_summary">Pick a font and outline combination.</string>
+
+    <!-- Subtitle preset labels -->
+    <string name="sub_scale_default">Default</string>
+    <string name="sub_pos_default">Default</string>
+    <string name="sub_secondary_unavailable">Unavailable</string>
+    <string name="sub_color_default">Default</string>
+    <string name="sub_color_white">White / Black outline</string>
+    <string name="sub_color_yellow">Yellow / Black outline</string>
+    <string name="sub_color_green">Green / Black outline</string>
+    <string name="sub_color_cyan">Cyan / Black outline</string>
+    <string name="sub_color_pink">Pink / Black outline</string>
 
     <!-- App chrome -->
     <string name="tv_brand">mpvNova</string>
