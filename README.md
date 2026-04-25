@@ -78,6 +78,7 @@ Download the latest release from the [GitHub releases page](https://github.com/L
 - In-player decoder picker, including the dedicated `NVIDIA Shield Pro 2019 / Hi10P x264 anime` mode
 - Custom TV subtitle and audio panels designed for couch use
 - Built-in audio controls for voice boost, volume boost, night mode, audio normalization, dialogue downmix, surround-state feedback, and filter persistence
+- Built-in subtitle controls for dual-track display with one-tap swap between the top and bottom streams, independent vertical positioning for each stream, scale, delay, and filter persistence
 - Better visibility into playback state with decoder and stats overlays that are easier to read from a TV
 
 ---
