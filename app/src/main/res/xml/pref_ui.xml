@@ -12,7 +12,7 @@
 
     <SwitchPreferenceCompat
         app:iconSpaceReserved="false"
-        android:defaultValue="false"
+        android:defaultValue="true"
         android:key="display_media_title"
         android:summary="@string/pref_display_media_title_summary"
         android:title="@string/pref_display_media_title_title" />

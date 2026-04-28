@@ -156,6 +156,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         override fun run() {
             binding.topControls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
+            binding.playerTitleOverlay.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
             binding.controlsScrim.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
             binding.controls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).setListener(listener)
         }
@@ -362,9 +363,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.topPiPBtn.visibility = View.GONE
         if (!packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN))
             binding.topLockBtn.visibility = View.GONE
-
-        if (showMediaTitle)
-            binding.controlsTitleGroup.visibility = View.VISIBLE
 
         updateOrientation(true)
 
@@ -650,7 +648,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (this.autoRotationMode != "manual") // don't reset
             this.autoRotationMode = getString("auto_rotation", R.string.pref_auto_rotation_default)
         this.controlsAtBottom = prefs.getBoolean("bottom_controls", true)
-        this.showMediaTitle = prefs.getBoolean("display_media_title", false)
+        this.showMediaTitle = prefs.getBoolean("display_media_title", true)
         this.useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
         this.ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
         this.playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)
@@ -1077,11 +1075,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         fadeHandler.removeCallbacks(fadeRunnable)
         binding.controls.animate().cancel()
         binding.topControls.animate().cancel()
+        binding.playerTitleOverlay.animate().cancel()
         binding.controlsScrim.animate().cancel()
 
         // reset controls alpha to be visible
         binding.controls.alpha = 1f
         binding.topControls.alpha = 1f
+        binding.playerTitleOverlay.alpha = 1f
         binding.controlsScrim.alpha = 1f
 
         if (binding.controls.visibility != View.VISIBLE) {
@@ -1089,6 +1089,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.topControls.visibility = View.VISIBLE
             binding.controlsScrim.visibility = View.VISIBLE
             binding.timeInfoPanel.visibility = View.VISIBLE
+            updatePlayerTitleOverlay()
 
             if (this.statsFPS) {
                 updateStats()
@@ -1100,6 +1101,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
 
         updateClockInfo()
+        updatePlayerToastPlacement()
         clockHandler.removeCallbacks(clockRunnable)
         clockHandler.post(clockRunnable)
 
@@ -1129,9 +1131,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         // see http://stackoverflow.com/a/12655713/2606891
         binding.controls.visibility = View.GONE
         binding.topControls.visibility = View.GONE
+        binding.playerTitleOverlay.visibility = View.GONE
         binding.controlsScrim.visibility = View.GONE
         binding.timeInfoPanel.visibility = View.GONE
         binding.statsTextView.visibility = View.GONE
+        updatePlayerToastPlacement()
         clockHandler.removeCallbacks(clockRunnable)
 
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -1586,6 +1590,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding.playerToastTitle.isVisible = !title.isNullOrBlank()
         binding.playerToastTitle.text = title
         binding.playerToastMessage.text = detail
+        updatePlayerToastPlacement()
         binding.playerToast.visibility = View.VISIBLE
 
         if (binding.playerToast.alpha < 1f) {
@@ -1610,6 +1615,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         } else {
             val adaptiveDuration = 1800L + (textLength.coerceAtMost(120) * 8L)
             maxOf(requestedDurationMs, adaptiveDuration.coerceAtMost(3000L))
+        }
+    }
+
+    private fun updatePlayerToastPlacement() {
+        val topMarginDp = if (binding.playerTitleOverlay.visibility == View.VISIBLE) 96f else 22f
+        binding.playerToast.updateLayoutParams<MarginLayoutParams> {
+            topMargin = Utils.convertDp(this@MPVActivity, topMarginDp)
         }
     }
 
@@ -3532,15 +3544,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             showControls()
         } else {
             Utils.viewGroupReorder(buttonGroup, videoButtons)
-
-            // Show title only depending on settings
-            if (showMediaTitle) {
-                binding.controlsTitleGroup.visibility = View.VISIBLE
-                Utils.viewGroupReorder(binding.controlsTitleGroup, arrayOf(R.id.fullTitleTextView))
-                updateMetadataDisplay()
-            } else {
-                binding.controlsTitleGroup.visibility = View.GONE
-            }
+            // Video titles now live in the top-center overlay so they do not
+            // compete with the seekbar and player buttons.
+            binding.controlsTitleGroup.visibility = View.GONE
+            updateMetadataDisplay()
 
             hideControls() // do NOT use fade runnable
         }
@@ -3550,6 +3557,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updateMetadataDisplay() {
+        updatePlayerTitleOverlay()
         if (!useAudioUI) {
             if (showMediaTitle)
                 binding.fullTitleTextView.text = psc.meta.formatTitle()
@@ -3557,6 +3565,160 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.titleTextView.text = psc.meta.formatTitle()
             binding.minorTitleTextView.text = psc.meta.formatArtistAlbum()
         }
+    }
+
+    private data class PlayerTitleLines(val primary: String, val secondary: String?)
+
+    private fun formatPlayerTitleOverlay(rawTitle: String): PlayerTitleLines {
+        val mediaExtensions = setOf("mkv", "mp4", "m4v", "webm", "avi", "mov", "ts", "m2ts", "flv")
+        val technicalWords = setOf(
+            "aac", "ac3", "atmos", "av1", "avc", "bd", "bdrip", "bluray", "blu", "dts",
+            "dual", "dv", "dvd", "flac", "h264", "h265", "hdr", "hevc", "multi", "opus",
+            "proper", "repack", "remux", "truehd", "uhd", "web", "webdl", "webrip", "x264",
+            "x265", "hi10p", "bit", "bits", "audio", "sub", "subs", "dub", "dubbed"
+        )
+        val technicalTokenRegex = Regex(
+            """(?i)^(?:(?:360|480|540|720|1080|1440|2160|4320)p?|\d+(?:bit|kb|mb|gb|kib|mib|gib|s|min|fps)|x26[45]|h\.?26[45]|hevc|avc|aac|flac|opus|dts|ac3|eac3|ddp|truehd|atmos|hdr10?\+?|dv|remux|web[- ]?dl|webrip|b[dr]rip|blu[- ]?ray|dual|multi|pmr)$"""
+        )
+
+        fun stripFileExtension(value: String): String {
+            var out = value.trim()
+            for (extension in mediaExtensions) {
+                out = out.replace(Regex("""(?i)\.$extension$"""), "")
+                out = out.replace(Regex("""(?i)\s+$extension$"""), "")
+            }
+            return out
+        }
+
+        fun stripLeadingReleaseGroup(value: String): String {
+            return value.replace(Regex("""^\s*\[[^\]]{1,40}]\s*"""), "")
+        }
+
+        fun cleanTitlePart(value: String): String {
+            return stripFileExtension(value)
+                .replace(Regex("[._]+"), " ")
+                .replace(Regex("""\s+[+]\s*"""), " ")
+                .replace(Regex("\\s+"), " ")
+                .trim(' ', '-', '–', '—', ':', '|')
+        }
+
+        fun isTechnicalToken(token: String): Boolean {
+            val compact = token.trim('.', '-', '_', '+')
+            val normalized = token.lowercase(Locale.US)
+                .trim('.', '-', '_', '+')
+            return normalized in technicalWords ||
+                normalized in mediaExtensions ||
+                technicalTokenRegex.matches(normalized) ||
+                (compact.length in 2..8 &&
+                    compact.all { it.isDigit() || it.isUpperCase() })
+        }
+
+        fun isMostlyTechnical(value: String): Boolean {
+            val tokens = cleanTitlePart(value)
+                .split(Regex("\\s+"))
+                .filter { it.isNotBlank() }
+            if (tokens.isEmpty())
+                return true
+            val technicalCount = tokens.count { isTechnicalToken(it) }
+            return technicalCount >= (tokens.size * 0.65f).roundToInt().coerceAtLeast(1)
+        }
+
+        fun stripTrailingTechnicalTokens(value: String): String {
+            val tokens = cleanTitlePart(value)
+                .split(Regex("\\s+"))
+                .filter { it.isNotBlank() }
+            if (tokens.size <= 1)
+                return tokens.joinToString(" ")
+
+            var end = tokens.size
+            var suffixCount = 0
+            while (end > 1 && isTechnicalToken(tokens[end - 1])) {
+                end--
+                suffixCount++
+            }
+            return if (suffixCount >= 2) tokens.take(end).joinToString(" ") else tokens.joinToString(" ")
+        }
+
+        fun cleanEpisodeTitle(value: String): String? {
+            val withoutTechnicalGroups = value.replace(
+                Regex("""[\[(]([^)\]]{1,90})[\])]""")
+            ) { match ->
+                val groupText = match.groupValues[1]
+                if (isMostlyTechnical(groupText)) " " else " ${cleanTitlePart(groupText)} "
+            }
+            val cleaned = cleanTitlePart(withoutTechnicalGroups)
+            if (cleaned.isBlank() || isMostlyTechnical(cleaned))
+                return null
+            return cleaned
+        }
+
+        fun buildEpisodeLine(label: String, episodeTitle: String?): String {
+            return if (!episodeTitle.isNullOrBlank()) "$label • $episodeTitle" else label
+        }
+
+        val title = cleanTitlePart(stripLeadingReleaseGroup(rawTitle))
+        val seasonEpisodeRegexes = listOf(
+            Regex(
+                """(?i)^(.*?)\s*(?:[-–—:|]|\s)+S(\d{1,2})\s*E(\d{1,3})\s*(?:[-–—:|]|\s)*(.*)$"""
+            ),
+            Regex(
+                """(?i)^(.*?)\s*(?:[-–—:|]|\s)+(\d{1,2})x(\d{1,3})\s*(?:[-–—:|]|\s)*(.*)$"""
+            )
+        )
+
+        for (regex in seasonEpisodeRegexes) {
+            val match = regex.matchEntire(title) ?: continue
+            val show = cleanTitlePart(match.groupValues[1]).ifBlank { title }
+            val season = match.groupValues[2].toIntOrNull()
+            val episode = match.groupValues[3].toIntOrNull()
+            val episodeTitle = cleanEpisodeTitle(match.groupValues[4])
+            if (season != null && episode != null) {
+                val episodeLabel = "S$season E$episode"
+                return PlayerTitleLines(show, buildEpisodeLine(episodeLabel, episodeTitle))
+            }
+        }
+
+        val episodeOnlyRegexes = listOf(
+            Regex(
+                """(?i)^(.*?)\s*(?:[-–—:|]|\s)+E(?:P(?:ISODE)?)?\s*(\d{1,3})\s*(?:[-–—:|]|\s)+(.*)$"""
+            ),
+            Regex(
+                """(?i)^(.*?)\s*(?:[-–—:|]|\s)+E(?:P(?:ISODE)?)?\s*(\d{1,3})\b\s*(.*)$"""
+            )
+        )
+
+        for (regex in episodeOnlyRegexes) {
+            val match = regex.matchEntire(title) ?: continue
+            val show = cleanTitlePart(match.groupValues[1]).ifBlank { title }
+            val episode = match.groupValues[2].toIntOrNull() ?: continue
+            val episodeTitle = cleanEpisodeTitle(match.groupValues[3])
+            val episodeLabel = "E$episode"
+            return PlayerTitleLines(show, buildEpisodeLine(episodeLabel, episodeTitle))
+        }
+
+        return PlayerTitleLines(stripTrailingTechnicalTokens(title).ifBlank { title }, null)
+    }
+
+    private fun updatePlayerTitleOverlay() {
+        val rawTitle = psc.meta.formatTitle()?.trim()
+        val shouldShow = !useAudioUI &&
+            showMediaTitle &&
+            !rawTitle.isNullOrBlank() &&
+            binding.controls.visibility == View.VISIBLE
+
+        if (!shouldShow) {
+            binding.playerTitleOverlay.visibility = View.GONE
+            updatePlayerToastPlacement()
+            return
+        }
+
+        val lines = formatPlayerTitleOverlay(rawTitle!!)
+        binding.playerTitlePrimary.text = lines.primary
+        binding.playerTitleSecondary.text = lines.secondary
+        binding.playerTitleSecondary.isVisible = !lines.secondary.isNullOrBlank()
+        binding.playerTitleOverlay.alpha = 1f
+        binding.playerTitleOverlay.visibility = View.VISIBLE
+        updatePlayerToastPlacement()
     }
 
     private fun seekbarProgressFromMillis(positionMs: Long): Int {
