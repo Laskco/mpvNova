@@ -103,6 +103,11 @@ internal object Utils {
 
         // we used to ship this, but it's no longer needed
         File("$configDir/subfont.ttf").delete()
+        // Earlier builds copied a `scripts/auto_subs.lua` here; track-memory
+        // is now handled in MPVActivity directly so the script (and a stale
+        // empty scripts/ dir) can go.
+        File("$configDir/scripts/auto_subs.lua").delete()
+        File("$configDir/scripts").delete()
 
         writeFontsConf(context, File("$configDir/fonts.conf"))
     }

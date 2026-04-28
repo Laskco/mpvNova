@@ -19,6 +19,8 @@
     <string name="track_off">Off</string>
     <string name="status_on">On</string>
     <string name="status_off">Off</string>
+    <string name="resume_toast_title">Resumed playback</string>
+    <string name="resume_toast_detail">From %1$s</string>
     <string name="track_primary">Primary</string>
     <string name="track_secondary">Secondary</string>
     <string name="btn_play">Play</string>

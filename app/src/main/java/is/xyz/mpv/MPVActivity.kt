@@ -73,6 +73,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val stopServiceHandler = Handler(Looper.getMainLooper())
     // for use with clock updates while controls are visible
     private val clockHandler = Handler(Looper.getMainLooper())
+    // for periodic position-save ticks during playback (every 30s)
+    private val periodicSaveHandler = Handler(Looper.getMainLooper())
+    private val periodicSaveRunnable = object : Runnable {
+        override fun run() {
+            // Both writes are no-ops when there's nothing to save (no file
+            // loaded yet, paused at 0, EOF reached, etc.).
+            savePosition()
+            saveResumePosition()
+            periodicSaveHandler.postDelayed(this, PERIODIC_SAVE_INTERVAL_MS)
+        }
+    }
+    // ms to seek to on file-load if we restored from our resume table; 0 = no
+    // restore happened. Drives the "Resumed from X:XX" toast.
+    private var pendingResumeToastMs = 0L
 
     /**
      * DO NOT USE THIS
@@ -303,6 +317,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private var playbackHasStarted = false
+    // Set true once mpv reports MPV_EVENT_END_FILE for the current file. The
+    // PlaybackStateCache wipes its position/duration as soon as that event
+    // fires, so we cache the duration here to report `position == duration`
+    // back to the launching app (Stremio / Nuvio / MX-Player-style launchers
+    // use that as the "episode finished, advance to next" signal).
+    private var eofWasReached = false
+    private var lastDurationMs = 0L
     private var onloadCommands = mutableListOf<Array<String>>()
     private var streamOpenLoading = false
     private var streamCacheLoading = false
@@ -347,6 +368,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         updateOrientation(true)
 
+        // Best-effort cleanup: drop stale resume entries before we add a new
+        // one for this session. Runs in O(table size) which is bounded.
+        pruneResumeTable()
+        // Periodic position save during playback. Both savePosition() and
+        // saveResumePosition() are no-ops when there's nothing meaningful to
+        // persist, so it's safe to start the timer right away.
+        periodicSaveHandler.postDelayed(periodicSaveRunnable, PERIODIC_SAVE_INTERVAL_MS)
+
         // Parse the intent
         val filepath = parsePathFromIntent(intent)
         if (intent.action == Intent.ACTION_VIEW) {
@@ -383,14 +412,25 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun finishWithResult(code: Int, includeTimePos: Boolean = false) {
-        // FIXME: should track end-file events to accurately report OK vs CANCELED
         if (isFinishing) // only count first call
             return
         val result = Intent(RESULT_INTENT)
         result.data = if (intent.data?.scheme == "file") null else intent.data
         if (includeTimePos) {
-            result.putExtra("position", psc.position.toInt())
-            result.putExtra("duration", psc.duration.toInt())
+            // When playback ended naturally we want to report position ==
+            // duration so launching apps treat the item as fully watched and
+            // advance to the next one (Stremio's auto-advance, MX Player's
+            // end_by="playback_completion" convention, etc.). psc.eof() has
+            // already wiped its own position/duration by this point, so fall
+            // back to the snapshot we took in MPV_EVENT_END_FILE.
+            val duration = if (eofWasReached) lastDurationMs else psc.duration
+            val position = if (eofWasReached) duration else psc.position
+            result.putExtra("position", position.coerceAtLeast(0L).toInt())
+            result.putExtra("duration", duration.coerceAtLeast(0L).toInt())
+            result.putExtra(
+                "end_by",
+                if (eofWasReached) "playback_completion" else "user",
+            )
         }
         setResult(code, result)
         finish()
@@ -401,6 +441,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         // Suppress any further callbacks
         activityIsForeground = false
+        // Stop periodic resume saves; one final save runs from onPause()
+        // already so no need to flush again here.
+        periodicSaveHandler.removeCallbacks(periodicSaveRunnable)
 
         BackgroundPlaybackService.mediaToken = null
         mediaSession?.let {
@@ -562,6 +605,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         eventUiHandler.removeCallbacksAndMessages(null)
         if (isFinishing) {
             savePosition()
+            saveResumePosition()
             // tell mpv to shut down so that any other property changes or such are ignored,
             // preventing useless busywork
             MPVLib.command(arrayOf("stop"))
@@ -600,7 +644,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             0
         this.backgroundPlayMode = getString("background_play", R.string.pref_background_play_default)
         this.noUIPauseMode = getString("no_ui_pause", R.string.pref_no_ui_pause_default)
-        this.shouldSavePosition = prefs.getBoolean("save_position", false)
+        // Resume defaults on now: most users expect "remember where I left off"
+        // out of the box. Anyone who explicitly disabled it keeps their setting.
+        this.shouldSavePosition = prefs.getBoolean("save_position", true)
         if (this.autoRotationMode != "manual") // don't reset
             this.autoRotationMode = getString("auto_rotation", R.string.pref_auto_rotation_default)
         this.controlsAtBottom = prefs.getBoolean("bottom_controls", true)
@@ -758,6 +804,110 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         MPVLib.command(arrayOf("write-watch-later-config"))
     }
+
+    // ===== Custom resume table for HTTPS streams =====
+    //
+    // mpv's built-in watch-later keys positions by URL hash, which breaks for
+    // Stremio / Nuvio debrid streams (the auth token in the URL rotates between
+    // sessions, so the "same episode" hashes differently every launch and no
+    // resume entry ever matches). Fix: pull a stable hex hash out of the path
+    // (Stremio addons embed the file's torrent / content hash there) and key
+    // resume entries by that in our own SharedPreferences.
+
+    private fun stableIdFromUri(uri: Uri?): String? {
+        val path = uri?.path ?: return null
+        // 40-char = SHA-1 (BT v1 infohash), 64-char = SHA-256 (BT v2 / file
+        // content hash). Either works as a stable identifier for the file.
+        val match = Regex("/([a-fA-F0-9]{40,64})(?=/|$)").find(path) ?: return null
+        return match.groupValues[1].lowercase()
+    }
+
+    private fun resumeKey(stableId: String) = "resume:$stableId"
+
+    /**
+     * Persist the current position to our resume table. Called from the
+     * 30-second periodic timer and from onPause(). No-op if the URL doesn't
+     * contain a stable hex id, or if we're at the very start / very end of
+     * the file (treated as "not really started" / "effectively done").
+     */
+    private fun saveResumePosition() {
+        if (!shouldSavePosition) return
+        val stableId = stableIdFromUri(intent?.data) ?: return
+        val pos = psc.position
+        val dur = psc.duration
+        if (pos <= 0L || dur <= 0L) return
+        val prefs = getDefaultSharedPreferences(applicationContext)
+        if (pos >= dur - RESUME_NEAR_END_MS) {
+            // User effectively finished — don't preserve a "stuck at 99%"
+            // position that'll resume to nothing on next launch.
+            prefs.edit().remove(resumeKey(stableId)).apply()
+            return
+        }
+        val entry = "$pos|$dur|${System.currentTimeMillis()}"
+        prefs.edit().putString(resumeKey(stableId), entry).apply()
+    }
+
+    /**
+     * Look up a previously-saved resume position for the current URL.
+     * Returns ms to seek to, or null if there's no entry / it's stale /
+     * the stored position is within 30s of the duration.
+     */
+    private fun loadResumePosition(): Long? {
+        if (!shouldSavePosition) return null
+        val stableId = stableIdFromUri(intent?.data) ?: return null
+        val prefs = getDefaultSharedPreferences(applicationContext)
+        val raw = prefs.getString(resumeKey(stableId), null) ?: return null
+        val parts = raw.split("|")
+        if (parts.size < 2) return null
+        val pos = parts[0].toLongOrNull() ?: return null
+        val dur = parts[1].toLongOrNull() ?: 0L
+        if (pos <= 0L) return null
+        if (dur > 0L && pos >= dur - RESUME_NEAR_END_MS) return null
+        return pos
+    }
+
+    /**
+     * Drop resume-table entries older than 30 days, and if we still have
+     * more than 500 of them, drop the oldest until we're under the cap.
+     * Cheap to run on startup; just a single SharedPreferences scan.
+     */
+    private fun pruneResumeTable() {
+        val prefs = getDefaultSharedPreferences(applicationContext)
+        val now = System.currentTimeMillis()
+        val maxAgeMs = 30L * 24L * 60L * 60L * 1000L
+
+        val entries = prefs.all.asSequence()
+            .filter { it.key.startsWith("resume:") }
+            .mapNotNull { e ->
+                val v = e.value as? String ?: return@mapNotNull null
+                val parts = v.split("|")
+                if (parts.size < 3) return@mapNotNull null
+                val ts = parts[2].toLongOrNull() ?: return@mapNotNull null
+                e.key to ts
+            }
+            .toList()
+
+        val toDelete = mutableListOf<String>()
+        val recent = mutableListOf<Pair<String, Long>>()
+        for (e in entries) {
+            if (now - e.second > maxAgeMs) toDelete.add(e.first) else recent.add(e)
+        }
+        if (recent.size > RESUME_TABLE_MAX_ENTRIES) {
+            val sorted = recent.sortedBy { it.second }
+            val excess = sorted.size - RESUME_TABLE_MAX_ENTRIES
+            for (i in 0 until excess) toDelete.add(sorted[i].first)
+        }
+        if (toDelete.isNotEmpty()) {
+            val editor = prefs.edit()
+            for (k in toDelete) editor.remove(k)
+            editor.apply()
+            Log.v(TAG, "resume: pruned ${toDelete.size} stale entries " +
+                    "(${entries.size - toDelete.size} remain)")
+        }
+    }
+
+    private fun formatResumeTime(ms: Long): String =
+        Utils.prettyTime((ms / 1000L).toInt())
 
     /**
      * Requests or abandons audio focus and noisy receiver depending on the playback state.
@@ -1579,9 +1729,26 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 onloadCommands.add(arrayOf("sub-add", subfile, flag))
             }
         }
-        extras.getInt("position", 0).let {
-            if (it > 0)
-                pushOption("start", "${it / 1000f}")
+        // Honor a position passed by the launching app first; fall back to our
+        // own resume table for HTTPS streams whose URL hash mpv can't track.
+        val intentPositionMs = extras.getInt("position", 0).toLong()
+        val effectivePositionMs = if (intentPositionMs > 0L)
+            intentPositionMs
+        else
+            loadResumePosition() ?: 0L
+        if (effectivePositionMs > 0L) {
+            pushOption("start", "${effectivePositionMs / 1000f}")
+            // Surface a toast for any non-trivial resume (>=60s) regardless of
+            // whether the position came from the launching app's intent or our
+            // own table — confirms to the user that the feature actually ran.
+            if (effectivePositionMs >= 60_000L) {
+                pendingResumeToastMs = effectivePositionMs
+                Log.v(
+                    TAG,
+                    "resume: queued toast for ${effectivePositionMs}ms " +
+                            "(source=${if (intentPositionMs > 0L) "intent" else "table"})"
+                )
+            }
         }
         extras.getString("title", "").let {
             if (!it.isNullOrEmpty())
@@ -1694,6 +1861,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         impl.onItemClick = { idx ->
             val trackId = tracks[idx].mpvId
             player.aid = trackId
+            saveUserTrackPick("audio", trackId)
             dialog.dismiss()
             trackSwitchNotification { TrackData(trackId, "audio") }
         }
@@ -1790,6 +1958,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             // the dedicated swap button in the Secondary track row so the
             // select / deselect behavior stays predictable.
             player.sid = trackId
+            saveUserTrackPick("sub", trackId)
             dialog.dismiss()
             trackSwitchNotification { TrackData(trackId, SubTrackDialog.TRACK_TYPE) }
         }
@@ -2684,6 +2853,157 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val subs = player.tracks["sub"] ?: return emptyList()
         val primarySid = player.sid
         return subs.filter { it.mpvId >= 1 && it.mpvId != primarySid }
+    }
+
+    // ===== Track memory =====
+    //
+    // When the user manually picks an audio or subtitle track, we stash its
+    // language and title in SharedPreferences. On the next file load we look
+    // at the new file's track list and try to find a track that "looks like"
+    // the same thing — same language, lots of overlapping title tokens. This
+    // is what makes binge-watching a series feel right: pick "Signs & Songs"
+    // on episode 1 and the same kind of track gets picked on episode 2 even
+    // when the track IDs and exact title strings differ between releases.
+
+    private data class TrackMeta(val mpvId: Int, val title: String, val lang: String)
+
+    /** Read every track of the given type ("sub" or "audio") with title & lang. */
+    private fun listTrackMeta(type: String): List<TrackMeta> {
+        val count = MPVLib.getPropertyInt("track-list/count") ?: return emptyList()
+        val out = mutableListOf<TrackMeta>()
+        for (i in 0 until count) {
+            if (MPVLib.getPropertyString("track-list/$i/type") != type)
+                continue
+            val id = MPVLib.getPropertyInt("track-list/$i/id") ?: continue
+            val title = MPVLib.getPropertyString("track-list/$i/title") ?: ""
+            val lang = MPVLib.getPropertyString("track-list/$i/lang") ?: ""
+            out.add(TrackMeta(id, title, lang))
+        }
+        return out
+    }
+
+    private val trackTitleStopwords = setOf(
+        "the", "and", "of", "a", "an", "or", "to", "for"
+    )
+
+    /**
+     * Lowercase, normalize punctuation (including brackets) to spaces, drop
+     * tiny / stopword tokens. We deliberately keep bracket *contents* — for
+     * anime sub tracks, the bracket usually carries the release group name
+     * (`[USBD]`, `[Rasetsu]`, `[GotWoot+Final8]`) and that's exactly the bit
+     * the user wants to stick across episodes. Stripping it loses the signal.
+     */
+    private fun normalizeTitleTokens(title: String): Set<String> {
+        if (title.isEmpty()) return emptySet()
+        return title
+            .lowercase()
+            .replace(Regex("[^a-z0-9 ]"), " ")
+            .split(Regex("\\s+"))
+            .filter { it.length > 2 && it !in trackTitleStopwords }
+            .toSet()
+    }
+
+    /** Compare two track titles by Jaccard-like recall over normalized tokens. */
+    private fun titleSimilarity(saved: String, candidate: String): Double {
+        val savedTokens = normalizeTitleTokens(saved)
+        val candidateTokens = normalizeTitleTokens(candidate)
+        if (savedTokens.isEmpty() || candidateTokens.isEmpty()) return 0.0
+        val common = savedTokens.intersect(candidateTokens).size
+        return common.toDouble() / savedTokens.size.toDouble()
+    }
+
+    /** Match languages by their first 2 letters so "en"/"eng"/"english" align. */
+    private fun langPrefixMatch(a: String, b: String): Boolean {
+        if (a.isEmpty() || b.isEmpty()) return false
+        return a.lowercase().take(2) == b.lowercase().take(2)
+    }
+
+    /**
+     * Persist the user's manual pick so we can try to re-apply it on the next
+     * file. We never persist "None" (mpvId == -1) — that's a one-off action,
+     * not a preference.
+     */
+    private fun saveUserTrackPick(type: String, mpvId: Int) {
+        if (mpvId == -1) return
+        val meta = listTrackMeta(type).firstOrNull { it.mpvId == mpvId } ?: return
+        val prefs = getDefaultSharedPreferences(applicationContext)
+        val (titleKey, langKey) = trackMemoryKeys(type)
+        prefs.edit().apply {
+            putString(titleKey, meta.title)
+            putString(langKey, meta.lang)
+            apply()
+        }
+    }
+
+    /**
+     * On file-load, look at the current track list and try to find the best
+     * match for the user's last manual pick.
+     *
+     *  1. **Exact title match** (case-insensitive, after lang filter) wins
+     *     instantly — that's the same release group/labeling, no need to score.
+     *  2. Otherwise, fall back to token-overlap scoring. We require a
+     *     language match (or the saved language to be empty) and at least
+     *     50% of the saved title's tokens to overlap with the candidate.
+     */
+    private fun applyRememberedTrack(type: String) {
+        val prefs = getDefaultSharedPreferences(applicationContext)
+        val (titleKey, langKey) = trackMemoryKeys(type)
+        val savedTitle = prefs.getString(titleKey, null) ?: return
+        val savedLang = prefs.getString(langKey, "") ?: ""
+
+        val tracks = listTrackMeta(type)
+        if (tracks.isEmpty()) return
+
+        val compatible = tracks.filter {
+            savedLang.isEmpty() || langPrefixMatch(it.lang, savedLang)
+        }
+        if (compatible.isEmpty()) return
+
+        // Step 1: exact title match short-circuit.
+        compatible.firstOrNull { it.title.equals(savedTitle, ignoreCase = true) }
+            ?.let {
+                setTrackForMemory(type, it.mpvId, it.title, score = 1.0, exact = true)
+                return
+            }
+
+        // Step 2: best fuzzy match by token overlap.
+        var bestMatch: TrackMeta? = null
+        var bestScore = 0.0
+        for (track in compatible) {
+            val score = titleSimilarity(savedTitle, track.title)
+            if (score > bestScore) {
+                bestScore = score
+                bestMatch = track
+            }
+        }
+
+        // Threshold: at least half of the saved tokens have to appear in the
+        // candidate's title. Anything lower starts misfiring on unrelated
+        // tracks (e.g. a "Forced English" track scoring on the word "English"
+        // alone when the user actually wanted "Signs & Songs").
+        if (bestMatch != null && bestScore >= 0.5) {
+            setTrackForMemory(type, bestMatch.mpvId, bestMatch.title, bestScore, exact = false)
+        }
+    }
+
+    private fun setTrackForMemory(
+        type: String, mpvId: Int, title: String, score: Double, exact: Boolean
+    ) {
+        when (type) {
+            "sub"   -> player.sid = mpvId
+            "audio" -> player.aid = mpvId
+        }
+        Log.v(
+            TAG,
+            "track-memory: restored $type track #$mpvId " +
+                    "(title='$title', exact=$exact, score=$score)"
+        )
+    }
+
+    private fun trackMemoryKeys(type: String): Pair<String, String> = when (type) {
+        "sub"   -> "last_user_sub_title" to "last_user_sub_lang"
+        "audio" -> "last_user_audio_title" to "last_user_audio_lang"
+        else    -> throw IllegalArgumentException("unknown track type: $type")
     }
 
     private fun currentSubScaleState(): MediaPickerDialog.ValueState {
@@ -3707,12 +4027,21 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_END_FILE) {
+            // Snapshot duration before psc.eof() resets it so finishWithResult
+            // can later report `position == duration` for completion-aware
+            // launchers like Stremio.
+            if (psc.duration > 0L)
+                lastDurationMs = psc.duration
+            eofWasReached = true
             psc.eof()
             updateMediaSession()
         }
 
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN)
-            finishWithResult(if (playbackHasStarted) RESULT_OK else RESULT_CANCELED)
+            finishWithResult(
+                if (playbackHasStarted) RESULT_OK else RESULT_CANCELED,
+                includeTimePos = true,
+            )
 
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
             audioNormUnderrunHintShown = false
@@ -3734,6 +4063,32 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
 
         if (eventId == MpvEvent.MPV_EVENT_FILE_LOADED) {
+            // Track-memory: try to re-apply the last manually-chosen sub /
+            // audio track for this user. Has to fire here (not on START_FILE)
+            // because mpv doesn't populate `track-list` until the demuxer has
+            // run and the file is loaded.
+            applyRememberedTrack("sub")
+            applyRememberedTrack("audio")
+
+            // Surface a "Resumed from X:XX" toast if we asked for a non-zero
+            // start position during intent parsing. Delay the toast until
+            // file-loaded so it lines up with playback actually starting, and
+            // give it a longer-than-default duration so the user has time to
+            // notice it under the loading overlay flicker.
+            if (pendingResumeToastMs > 0L) {
+                val resumedFrom = formatResumeTime(pendingResumeToastMs)
+                Log.v(TAG, "resume: showing toast for $resumedFrom")
+                pendingResumeToastMs = 0L
+                eventUiHandler.post {
+                    showToast(
+                        getString(R.string.resume_toast_title),
+                        getString(R.string.resume_toast_detail, resumedFrom),
+                        cancel = true,
+                        durationMs = 3000L,
+                    )
+                }
+            }
+
             if (persistAudioFilters) {
                 rebuildAudioFilters()
                 eventUiHandler.post { refreshAllFilterTints() }
@@ -4042,5 +4397,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val SEEK_BAR_PRECISION = 1000L
         // step used when the seekbar is the active TV dpad target
         private const val SEEK_BAR_DPAD_STEP_MS = 1000L
+        // how often to re-save resume position during playback (ms)
+        private const val PERIODIC_SAVE_INTERVAL_MS = 30_000L
+        // window from end of file where saved positions are treated as "done"
+        // and not restored (avoids resuming at 99% straight into credits)
+        private const val RESUME_NEAR_END_MS = 30_000L
+        // hard cap on the resume table — oldest entries get evicted past this
+        private const val RESUME_TABLE_MAX_ENTRIES = 500
     }
 }
