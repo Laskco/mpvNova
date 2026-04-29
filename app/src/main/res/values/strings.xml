@@ -29,14 +29,14 @@
     <string name="btn_minus" translatable="false">-</string>
     <string name="btn_voice_boost">Voice boost</string>
     <string name="btn_volume_boost">Volume boost</string>
-    <string name="btn_dialogue_downmix">Dialogue downmix</string>
+    <string name="btn_dialogue_downmix">Channel Downmix</string>
     <string name="btn_decrease" translatable="false">-</string>
     <string name="btn_increase" translatable="false">+</string>
     <string name="btn_night_mode">DRC</string>
     <string name="btn_audio_norm">Audio normalization</string>
     <string name="btn_voice_boost_summary">Pull speech forward with cleanup, presence, and light compression.</string>
     <string name="btn_volume_boost_summary">Add loudness after dynamics processing.</string>
-    <string name="btn_dialogue_downmix_summary">Fold surround to stereo with center focus.</string>
+    <string name="btn_dialogue_downmix_summary">Fold surround channels to stereo with center focus.</string>
     <string name="btn_night_mode_summary">Compress peaks with matched gain and center focus.</string>
     <string name="btn_audio_norm_summary">Even quiet and loud passages in real time.</string>
     <string name="btn_next_chapter">Next chapter</string>
@@ -45,12 +45,12 @@
     <string name="toast_voice_boost_level">Voice boost: %1$s</string>
     <string name="toast_volume_boost_off">Volume boost off</string>
     <string name="toast_volume_boost_level">Volume boost: %1$s</string>
-    <string name="toast_dialogue_downmix_level">Dialogue downmix: %1$s</string>
+    <string name="toast_dialogue_downmix_level">Channel Downmix: %1$s</string>
     <string name="toast_night_mode_on">DRC on</string>
     <string name="toast_night_mode_off">DRC off</string>
     <string name="toast_audio_norm_on">Audio normalization on</string>
     <string name="toast_audio_norm_off">Audio normalization off</string>
-    <string name="toast_audio_norm_surround_hint">Surround track is heavy to process. Try Dialogue downmix for smoother playback.</string>
+    <string name="toast_audio_norm_surround_hint">Surround track is heavy to process. Try Channel Downmix for smoother playback.</string>
     <string name="player_ends_at">Ends at %1$s</string>
     <string name="player_loading_stream">Opening stream...</string>
     <string name="player_buffering_stream">Buffering stream...</string>
