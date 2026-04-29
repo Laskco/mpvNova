@@ -34,7 +34,7 @@
     <string name="btn_increase" translatable="false">+</string>
     <string name="btn_night_mode">DRC</string>
     <string name="btn_audio_norm">Audio normalization</string>
-    <string name="btn_voice_boost_summary">Lift speech with light cleanup and presence.</string>
+    <string name="btn_voice_boost_summary">Pull speech forward with cleanup, presence, and light compression.</string>
     <string name="btn_volume_boost_summary">Add loudness after dynamics processing.</string>
     <string name="btn_dialogue_downmix_summary">Fold surround to stereo with center focus.</string>
     <string name="btn_night_mode_summary">Compress peaks with matched gain and center focus.</string>
@@ -117,17 +117,17 @@
     <string name="format_downmix_stereo">%1$s · Already stereo</string>
     <string name="format_downmix_multichannel">%1$s · %2$dch source</string>
     <string name="filter_value_off">Off</string>
-    <string name="voice_boost_preset_soft">EQ +3.0 dB</string>
-    <string name="voice_boost_preset_light">EQ +4.5 dB</string>
-    <string name="voice_boost_preset_clear">EQ +5.8 dB</string>
+    <string name="voice_boost_preset_soft">Speech +4</string>
+    <string name="voice_boost_preset_light">Speech +6</string>
+    <string name="voice_boost_preset_clear">Speech +8</string>
     <string name="dialogue_downmix_preset_soft">Center 72%</string>
     <string name="dialogue_downmix_preset_strong">Center 84%</string>
     <string name="dialogue_downmix_preset_tv">Center 96%</string>
     <string name="dialogue_downmix_preset_focus">Center 104%</string>
     <string name="dialogue_downmix_preset_anchor">Center 110%</string>
-    <string name="voice_boost_preset_speech">EQ +7.0 dB</string>
+    <string name="voice_boost_preset_speech">Speech +10</string>
     <string name="voice_boost_preset_anime">EQ +8.0 dB</string>
-    <string name="voice_boost_preset_loud">EQ +8.0 dB+</string>
+    <string name="voice_boost_preset_loud">Speech max</string>
     <string name="voice_boost_preset_max">Maximum</string>
     <string name="night_mode_preset_drc">DRC</string>
     <string name="filter_blocked_by_drc">Blocked by\nDRC</string>

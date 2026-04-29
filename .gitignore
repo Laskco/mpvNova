@@ -4,10 +4,18 @@
 .vscode/
 .kotlin/
 .android-home/
+.externalNativeBuild/
+.cxx/
 **/*.iml
 **/build/
 backups/
 app/default/release/
+
+# Local agent/tool scratch
+.claude/
+.codex/
+.codex_tmp/
+
 keystore.properties
 keystore/
 local.properties

@@ -87,6 +87,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // ms to seek to on file-load if we restored from our resume table; 0 = no
     // restore happened. Drives the "Resumed from X:XX" toast.
     private var pendingResumeToastMs = 0L
+    // Source URL/path for the currently loaded file. Do not read Activity.intent
+    // directly for resume saves because onNewIntent() can load another episode
+    // while the Activity instance stays alive.
+    private var currentResumeSource: String? = null
 
     /**
      * DO NOT USE THIS
@@ -376,6 +380,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         // Parse the intent
         val filepath = parsePathFromIntent(intent)
+        currentResumeSource = resumeSourceFromIntent(intent, filepath)
         if (intent.action == Intent.ACTION_VIEW) {
             parseIntentExtras(intent.extras)
         }
@@ -467,12 +472,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     override fun onNewIntent(intent: Intent?) {
         Log.v(TAG, "onNewIntent($intent)")
         super.onNewIntent(intent)
+        if (intent != null)
+            setIntent(intent)
+        pendingResumeToastMs = 0L
 
         // Happens when mpv is still running (not necessarily playing) and the user selects a new
         // file to be played from another app
         val filepath = intent?.let { parsePathFromIntent(it) }
         if (filepath == null) {
             return
+        }
+        val nextResumeSource = resumeSourceFromIntent(intent, filepath)
+        val willReplaceCurrentFile = activityIsForeground || !didResumeBackgroundPlayback || this.newIntentReplace
+        if (willReplaceCurrentFile) {
+            currentResumeSource = nextResumeSource
+            parseIntentExtras(intent.extras)
+        } else {
+            onloadCommands.clear()
         }
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
@@ -808,19 +824,51 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // mpv's built-in watch-later keys positions by URL hash, which breaks for
     // Stremio / Nuvio debrid streams (the auth token in the URL rotates between
     // sessions, so the "same episode" hashes differently every launch and no
-    // resume entry ever matches). Fix: pull a stable hex hash out of the path
-    // (Stremio addons embed the file's torrent / content hash there) and key
-    // resume entries by that in our own SharedPreferences.
+    // resume entry ever matches). Fix: pull a stable hex hash plus a normalized
+    // filename token out of the path and key resume entries by both. The filename
+    // token matters for season packs where every episode shares the same torrent
+    // hash.
 
-    private fun stableIdFromUri(uri: Uri?): String? {
-        val path = uri?.path ?: return null
-        // 40-char = SHA-1 (BT v1 infohash), 64-char = SHA-256 (BT v2 / file
-        // content hash). Either works as a stable identifier for the file.
-        val match = Regex("/([a-fA-F0-9]{40,64})(?=/|$)").find(path) ?: return null
-        return match.groupValues[1].lowercase()
+    private data class ResumeIdentity(val hash: String, val fileToken: String?)
+
+    private fun resumeSourceFromIntent(intent: Intent?, filepath: String?): String? {
+        return intent?.data?.toString() ?: filepath
     }
 
-    private fun resumeKey(stableId: String) = "resume:$stableId"
+    private fun resumeIdentityFromSource(source: String?): ResumeIdentity? {
+        if (source.isNullOrBlank())
+            return null
+        val path = try {
+            Uri.parse(source).path ?: source
+        } catch (_: Exception) {
+            source
+        }
+        // 40-char = SHA-1 (BT v1 infohash), 64-char = SHA-256 (BT v2 / file
+        // content hash). It is stable across rotating auth tokens, but not always
+        // unique per episode when the stream comes from a season pack.
+        val match = Regex("/([a-fA-F0-9]{40,64})(?=/|$)").find(path) ?: return null
+        val hash = match.groupValues[1].lowercase(Locale.US)
+        val lastSegment = path
+            .split('/')
+            .lastOrNull { it.isNotBlank() && !it.equals(hash, ignoreCase = true) }
+        val fileToken = lastSegment
+            ?.lowercase(Locale.US)
+            ?.replace(Regex("""\.[a-z0-9]{2,5}$"""), "")
+            ?.replace(Regex("""[^a-z0-9]+"""), "-")
+            ?.trim('-')
+            ?.take(120)
+            ?.takeIf { it.length >= 3 }
+        return ResumeIdentity(hash, fileToken)
+    }
+
+    private fun resumeKey(identity: ResumeIdentity): String {
+        return if (identity.fileToken != null)
+            "resume:${identity.hash}:${identity.fileToken}"
+        else
+            "resume:${identity.hash}"
+    }
+
+    private fun legacyResumeKey(identity: ResumeIdentity) = "resume:${identity.hash}"
 
     /**
      * Persist the current position to our resume table. Called from the
@@ -830,19 +878,24 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
      */
     private fun saveResumePosition() {
         if (!shouldSavePosition) return
-        val stableId = stableIdFromUri(intent?.data) ?: return
+        val identity = resumeIdentityFromSource(currentResumeSource) ?: return
         val pos = psc.position
         val dur = psc.duration
         if (pos <= 0L || dur <= 0L) return
         val prefs = getDefaultSharedPreferences(applicationContext)
+        val key = resumeKey(identity)
+        val legacyKey = legacyResumeKey(identity)
         if (pos >= dur - RESUME_NEAR_END_MS) {
             // User effectively finished — don't preserve a "stuck at 99%"
             // position that'll resume to nothing on next launch.
-            prefs.edit().remove(resumeKey(stableId)).apply()
+            prefs.edit().remove(key).remove(legacyKey).apply()
             return
         }
         val entry = "$pos|$dur|${System.currentTimeMillis()}"
-        prefs.edit().putString(resumeKey(stableId), entry).apply()
+        val editor = prefs.edit().putString(key, entry)
+        if (legacyKey != key)
+            editor.remove(legacyKey)
+        editor.apply()
     }
 
     /**
@@ -852,9 +905,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
      */
     private fun loadResumePosition(): Long? {
         if (!shouldSavePosition) return null
-        val stableId = stableIdFromUri(intent?.data) ?: return null
+        val identity = resumeIdentityFromSource(currentResumeSource) ?: return null
         val prefs = getDefaultSharedPreferences(applicationContext)
-        val raw = prefs.getString(resumeKey(stableId), null) ?: return null
+        val raw = prefs.getString(resumeKey(identity), null) ?: return null
         val parts = raw.split("|")
         if (parts.size < 2) return null
         val pos = parts[0].toLongOrNull() ?: return null
@@ -1717,8 +1770,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun parseIntentExtras(extras: Bundle?) {
         onloadCommands.clear()
-        if (extras == null)
-            return
+        val launchExtras = extras ?: Bundle.EMPTY
 
         fun pushOption(key: String, value: String) {
             onloadCommands.add(arrayOf("set", "file-local-options/${key}", value))
@@ -1727,11 +1779,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         // Note: these only apply to the first file, it's not clear what the semantics for a
         // playlist should be.
 
-        if (extras.getByte("decode_mode") == 2.toByte())
+        if (launchExtras.getByte("decode_mode") == 2.toByte())
             pushOption("hwdec", "no")
-        if (extras.containsKey("subs")) {
-            val subList = Utils.getParcelableArray<Uri>(extras, "subs")
-            val subsToEnable = Utils.getParcelableArray<Uri>(extras, "subs.enable")
+        if (launchExtras.containsKey("subs")) {
+            val subList = Utils.getParcelableArray<Uri>(launchExtras, "subs")
+            val subsToEnable = Utils.getParcelableArray<Uri>(launchExtras, "subs.enable")
 
             for (suburi in subList) {
                 val subfile = resolveUri(suburi) ?: continue
@@ -1743,7 +1795,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         // Honor a position passed by the launching app first; fall back to our
         // own resume table for HTTPS streams whose URL hash mpv can't track.
-        val intentPositionMs = extras.getInt("position", 0).toLong()
+        val intentPositionMs = launchExtras.getInt("position", 0).toLong()
         val effectivePositionMs = if (intentPositionMs > 0L)
             intentPositionMs
         else
@@ -1762,7 +1814,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 )
             }
         }
-        extras.getString("title", "").let {
+        launchExtras.getString("title", "").let {
             if (!it.isNullOrEmpty())
                 pushOption("force-media-title", it)
         }
@@ -2338,40 +2390,55 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val voiceBoostPresets = listOf(
         "",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=78:p=2," +
-            "equalizer=f=240:t=q:w=0.9:g=-0.8," +
-            "equalizer=f=520:t=q:w=1.0:g=-0.4," +
-            "equalizer=f=2300:t=q:w=0.9:g=1.1," +
-            "equalizer=f=3500:t=q:w=0.85:g=1.5," +
-            "treble=g=0.4:f=5600:w=0.9:t=o]",
-        "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=82:p=2," +
-            "equalizer=f=235:t=q:w=0.9:g=-1.1," +
-            "equalizer=f=500:t=q:w=1.0:g=-0.6," +
-            "equalizer=f=2400:t=q:w=0.9:g=1.5," +
-            "equalizer=f=3600:t=q:w=0.85:g=2.0," +
-            "treble=g=0.6:f=5700:w=0.9:t=o]",
-        "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=86:p=2," +
-            "equalizer=f=230:t=q:w=0.9:g=-1.4," +
-            "equalizer=f=470:t=q:w=1.0:g=-0.8," +
-            "equalizer=f=2500:t=q:w=0.9:g=1.9," +
-            "equalizer=f=3700:t=q:w=0.85:g=2.5," +
-            "treble=g=0.8:f=5900:w=0.9:t=o]",
+            "highpass=f=85:p=2," +
+            "equalizer=f=180:t=q:w=0.8:g=-1.0," +
+            "equalizer=f=320:t=q:w=1.0:g=-1.2," +
+            "equalizer=f=1350:t=q:w=1.0:g=1.2," +
+            "equalizer=f=2400:t=q:w=0.85:g=2.2," +
+            "equalizer=f=3600:t=q:w=0.8:g=2.6," +
+            "equalizer=f=6200:t=q:w=1.0:g=0.8," +
+            "acompressor=threshold=-28dB:ratio=1.35:attack=8:release=110:knee=2.5:link=average:detection=rms:makeup=1.04," +
+            "alimiter=limit=0.97:attack=2:release=20]",
         "$voiceBoostFilterLabel:lavfi=[" +
             "highpass=f=90:p=2," +
-            "equalizer=f=225:t=q:w=0.9:g=-1.7," +
-            "equalizer=f=450:t=q:w=1.0:g=-1.0," +
-            "equalizer=f=2600:t=q:w=0.9:g=2.3," +
-            "equalizer=f=3850:t=q:w=0.85:g=3.0," +
-            "treble=g=1.0:f=6100:w=0.9:t=o]",
+            "equalizer=f=180:t=q:w=0.8:g=-1.4," +
+            "equalizer=f=330:t=q:w=1.0:g=-1.8," +
+            "equalizer=f=1450:t=q:w=1.0:g=1.8," +
+            "equalizer=f=2550:t=q:w=0.85:g=3.0," +
+            "equalizer=f=3800:t=q:w=0.8:g=3.4," +
+            "equalizer=f=6500:t=q:w=1.0:g=1.0," +
+            "acompressor=threshold=-29dB:ratio=1.50:attack=8:release=115:knee=2.6:link=average:detection=rms:makeup=1.07," +
+            "alimiter=limit=0.965:attack=2:release=20]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=96:p=2," +
-            "equalizer=f=220:t=q:w=0.9:g=-2.0," +
-            "equalizer=f=430:t=q:w=1.0:g=-1.2," +
-            "equalizer=f=2700:t=q:w=0.9:g=2.7," +
-            "equalizer=f=4000:t=q:w=0.85:g=3.4," +
-            "treble=g=1.2:f=6300:w=0.9:t=o]"
+            "highpass=f=95:p=2," +
+            "equalizer=f=175:t=q:w=0.8:g=-1.8," +
+            "equalizer=f=340:t=q:w=1.0:g=-2.3," +
+            "equalizer=f=1500:t=q:w=1.0:g=2.4," +
+            "equalizer=f=2700:t=q:w=0.85:g=3.8," +
+            "equalizer=f=4100:t=q:w=0.8:g=4.2," +
+            "equalizer=f=6800:t=q:w=1.0:g=1.1," +
+            "acompressor=threshold=-30dB:ratio=1.70:attack=7:release=120:knee=2.8:link=average:detection=rms:makeup=1.10," +
+            "alimiter=limit=0.955:attack=2:release=20]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=100:p=2," +
+            "equalizer=f=170:t=q:w=0.8:g=-2.2," +
+            "equalizer=f=350:t=q:w=1.0:g=-2.8," +
+            "equalizer=f=1550:t=q:w=1.0:g=3.0," +
+            "equalizer=f=2900:t=q:w=0.85:g=4.7," +
+            "equalizer=f=4400:t=q:w=0.8:g=4.9," +
+            "equalizer=f=7000:t=q:w=1.0:g=1.0," +
+            "acompressor=threshold=-31dB:ratio=1.90:attack=7:release=125:knee=3.0:link=average:detection=rms:makeup=1.14," +
+            "alimiter=limit=0.945:attack=2:release=20]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=105:p=2," +
+            "equalizer=f=165:t=q:w=0.8:g=-2.6," +
+            "equalizer=f=360:t=q:w=1.0:g=-3.2," +
+            "equalizer=f=1650:t=q:w=1.0:g=3.6," +
+            "equalizer=f=3100:t=q:w=0.85:g=5.5," +
+            "equalizer=f=4700:t=q:w=0.8:g=5.4," +
+            "equalizer=f=7200:t=q:w=1.0:g=0.8," +
+            "acompressor=threshold=-32dB:ratio=2.10:attack=6:release=130:knee=3.2:link=average:detection=rms:makeup=1.18," +
+            "alimiter=limit=0.935:attack=2:release=20]"
     )
     private val volumeBoostStepsDb = intArrayOf(0, 2, 4, 6, 8, 10, 12, 15, 18, 21)
 
@@ -3575,10 +3642,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             "aac", "ac3", "atmos", "av1", "avc", "bd", "bdrip", "bluray", "blu", "dts",
             "dual", "dv", "dvd", "flac", "h264", "h265", "hdr", "hevc", "multi", "opus",
             "proper", "repack", "remux", "truehd", "uhd", "web", "webdl", "webrip", "x264",
-            "x265", "hi10p", "bit", "bits", "audio", "sub", "subs", "dub", "dubbed"
+            "x265", "hi10p", "bit", "bits", "audio", "sub", "subs", "dub", "dubbed",
+            "amzn", "amazon", "nf", "netflix", "dsnp", "disney", "hulu", "cr", "hidive"
         )
         val technicalTokenRegex = Regex(
-            """(?i)^(?:(?:360|480|540|720|1080|1440|2160|4320)p?|\d+(?:bit|kb|mb|gb|kib|mib|gib|s|min|fps)|x26[45]|h\.?26[45]|hevc|avc|aac|flac|opus|dts|ac3|eac3|ddp|truehd|atmos|hdr10?\+?|dv|remux|web[- ]?dl|webrip|b[dr]rip|blu[- ]?ray|dual|multi|pmr)$"""
+            """(?i)^(?:(?:360|480|540|720|1080|1440|2160|4320)p?|\d+(?:bit|kb|mb|gb|kib|mib|gib|s|min|fps)|x26[45]|h\.?26[45]|hevc|avc|aac|flac|opus|dts|ac3|eac3|ddp\d*|truehd|atmos|hdr10?\+?|dv|remux|web[- ]?dl|webrip|b[dr]rip|blu[- ]?ray|dual|multi|pmr|amzn|nf|dsnp|hulu|cr|hidive)$"""
         )
 
         fun stripFileExtension(value: String): String {
@@ -3639,6 +3707,25 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return if (suffixCount >= 2) tokens.take(end).joinToString(" ") else tokens.joinToString(" ")
         }
 
+        fun stripReleaseTail(value: String): String {
+            val tokens = cleanTitlePart(value)
+                .split(Regex("\\s+"))
+                .filter { it.isNotBlank() }
+            if (tokens.size <= 2)
+                return tokens.joinToString(" ")
+
+            for (i in 1 until tokens.size - 1) {
+                if (!isTechnicalToken(tokens[i]))
+                    continue
+                val suffix = tokens.drop(i)
+                val technicalCount = suffix.count { isTechnicalToken(it) }
+                val required = (suffix.size * 0.60f).roundToInt().coerceAtLeast(2)
+                if (technicalCount >= required)
+                    return tokens.take(i).joinToString(" ")
+            }
+            return stripTrailingTechnicalTokens(tokens.joinToString(" "))
+        }
+
         fun cleanEpisodeTitle(value: String): String? {
             val withoutTechnicalGroups = value.replace(
                 Regex("""[\[(]([^)\]]{1,90})[\])]""")
@@ -3646,7 +3733,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 val groupText = match.groupValues[1]
                 if (isMostlyTechnical(groupText)) " " else " ${cleanTitlePart(groupText)} "
             }
-            val cleaned = cleanTitlePart(withoutTechnicalGroups)
+            val cleaned = stripReleaseTail(withoutTechnicalGroups)
             if (cleaned.isBlank() || isMostlyTechnical(cleaned))
                 return null
             return cleaned
@@ -3696,7 +3783,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return PlayerTitleLines(show, buildEpisodeLine(episodeLabel, episodeTitle))
         }
 
-        return PlayerTitleLines(stripTrailingTechnicalTokens(title).ifBlank { title }, null)
+        return PlayerTitleLines(stripReleaseTail(title).ifBlank { title }, null)
     }
 
     private fun updatePlayerTitleOverlay() {
