@@ -2390,55 +2390,93 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private val voiceBoostPresets = listOf(
         "",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=85:p=2," +
-            "equalizer=f=180:t=q:w=0.8:g=-1.0," +
-            "equalizer=f=320:t=q:w=1.0:g=-1.2," +
-            "equalizer=f=1350:t=q:w=1.0:g=1.2," +
-            "equalizer=f=2400:t=q:w=0.85:g=2.2," +
-            "equalizer=f=3600:t=q:w=0.8:g=2.6," +
-            "equalizer=f=6200:t=q:w=1.0:g=0.8," +
-            "acompressor=threshold=-28dB:ratio=1.35:attack=8:release=110:knee=2.5:link=average:detection=rms:makeup=1.04," +
-            "alimiter=limit=0.97:attack=2:release=20]",
+            "highpass=f=72:p=2," +
+            "equalizer=f=180:t=q:w=0.8:g=-0.5," +
+            "equalizer=f=360:t=q:w=1.0:g=-0.6," +
+            "equalizer=f=1250:t=q:w=1.1:g=0.8," +
+            "equalizer=f=2300:t=q:w=0.9:g=1.3," +
+            "equalizer=f=3400:t=q:w=0.9:g=1.0," +
+            "equalizer=f=6500:t=q:w=1.0:g=-0.2]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=90:p=2," +
-            "equalizer=f=180:t=q:w=0.8:g=-1.4," +
-            "equalizer=f=330:t=q:w=1.0:g=-1.8," +
-            "equalizer=f=1450:t=q:w=1.0:g=1.8," +
-            "equalizer=f=2550:t=q:w=0.85:g=3.0," +
-            "equalizer=f=3800:t=q:w=0.8:g=3.4," +
-            "equalizer=f=6500:t=q:w=1.0:g=1.0," +
-            "acompressor=threshold=-29dB:ratio=1.50:attack=8:release=115:knee=2.6:link=average:detection=rms:makeup=1.07," +
-            "alimiter=limit=0.965:attack=2:release=20]",
+            "highpass=f=76:p=2," +
+            "equalizer=f=180:t=q:w=0.8:g=-0.8," +
+            "equalizer=f=360:t=q:w=1.0:g=-0.9," +
+            "equalizer=f=1300:t=q:w=1.1:g=1.2," +
+            "equalizer=f=2400:t=q:w=0.9:g=1.8," +
+            "equalizer=f=3500:t=q:w=0.9:g=1.4," +
+            "equalizer=f=6600:t=q:w=1.0:g=-0.3]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=95:p=2," +
-            "equalizer=f=175:t=q:w=0.8:g=-1.8," +
-            "equalizer=f=340:t=q:w=1.0:g=-2.3," +
-            "equalizer=f=1500:t=q:w=1.0:g=2.4," +
-            "equalizer=f=2700:t=q:w=0.85:g=3.8," +
-            "equalizer=f=4100:t=q:w=0.8:g=4.2," +
-            "equalizer=f=6800:t=q:w=1.0:g=1.1," +
-            "acompressor=threshold=-30dB:ratio=1.70:attack=7:release=120:knee=2.8:link=average:detection=rms:makeup=1.10," +
-            "alimiter=limit=0.955:attack=2:release=20]",
+            "highpass=f=80:p=2," +
+            "equalizer=f=175:t=q:w=0.8:g=-1.1," +
+            "equalizer=f=360:t=q:w=1.0:g=-1.2," +
+            "equalizer=f=1400:t=q:w=1.1:g=1.6," +
+            "equalizer=f=2550:t=q:w=0.9:g=2.4," +
+            "equalizer=f=3650:t=q:w=0.9:g=1.8," +
+            "equalizer=f=6800:t=q:w=1.0:g=-0.4]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=100:p=2," +
-            "equalizer=f=170:t=q:w=0.8:g=-2.2," +
-            "equalizer=f=350:t=q:w=1.0:g=-2.8," +
-            "equalizer=f=1550:t=q:w=1.0:g=3.0," +
-            "equalizer=f=2900:t=q:w=0.85:g=4.7," +
-            "equalizer=f=4400:t=q:w=0.8:g=4.9," +
-            "equalizer=f=7000:t=q:w=1.0:g=1.0," +
-            "acompressor=threshold=-31dB:ratio=1.90:attack=7:release=125:knee=3.0:link=average:detection=rms:makeup=1.14," +
-            "alimiter=limit=0.945:attack=2:release=20]",
+            "highpass=f=84:p=2," +
+            "equalizer=f=170:t=q:w=0.8:g=-1.4," +
+            "equalizer=f=360:t=q:w=1.0:g=-1.5," +
+            "equalizer=f=1500:t=q:w=1.1:g=2.0," +
+            "equalizer=f=2700:t=q:w=0.9:g=3.0," +
+            "equalizer=f=3800:t=q:w=0.9:g=2.2," +
+            "equalizer=f=7000:t=q:w=1.0:g=-0.5]",
         "$voiceBoostFilterLabel:lavfi=[" +
-            "highpass=f=105:p=2," +
-            "equalizer=f=165:t=q:w=0.8:g=-2.6," +
-            "equalizer=f=360:t=q:w=1.0:g=-3.2," +
-            "equalizer=f=1650:t=q:w=1.0:g=3.6," +
-            "equalizer=f=3100:t=q:w=0.85:g=5.5," +
-            "equalizer=f=4700:t=q:w=0.8:g=5.4," +
-            "equalizer=f=7200:t=q:w=1.0:g=0.8," +
-            "acompressor=threshold=-32dB:ratio=2.10:attack=6:release=130:knee=3.2:link=average:detection=rms:makeup=1.18," +
-            "alimiter=limit=0.935:attack=2:release=20]"
+            "highpass=f=88:p=2," +
+            "equalizer=f=165:t=q:w=0.8:g=-1.8," +
+            "equalizer=f=360:t=q:w=1.0:g=-1.9," +
+            "equalizer=f=1600:t=q:w=1.1:g=2.4," +
+            "equalizer=f=2900:t=q:w=0.9:g=3.6," +
+            "equalizer=f=4000:t=q:w=0.9:g=2.6," +
+            "equalizer=f=7200:t=q:w=1.0:g=-0.6]"
+    )
+    private val drcVoiceBoostPresets = listOf(
+        "",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=68:p=2," +
+            "equalizer=f=220:t=q:w=0.9:g=-0.4," +
+            "equalizer=f=520:t=q:w=1.0:g=-0.5," +
+            "equalizer=f=1050:t=q:w=1.1:g=0.8," +
+            "equalizer=f=1550:t=q:w=1.0:g=1.6," +
+            "equalizer=f=2400:t=q:w=0.95:g=1.8," +
+            "equalizer=f=3600:t=q:w=1.0:g=0.6," +
+            "equalizer=f=6200:t=q:w=1.0:g=-0.8]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=70:p=2," +
+            "equalizer=f=220:t=q:w=0.9:g=-0.7," +
+            "equalizer=f=520:t=q:w=1.0:g=-0.8," +
+            "equalizer=f=1100:t=q:w=1.1:g=1.2," +
+            "equalizer=f=1650:t=q:w=1.0:g=2.2," +
+            "equalizer=f=2500:t=q:w=0.95:g=2.4," +
+            "equalizer=f=3600:t=q:w=1.0:g=0.8," +
+            "equalizer=f=6400:t=q:w=1.0:g=-1.0]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=72:p=2," +
+            "equalizer=f=210:t=q:w=0.9:g=-1.0," +
+            "equalizer=f=500:t=q:w=1.0:g=-1.1," +
+            "equalizer=f=1150:t=q:w=1.1:g=1.6," +
+            "equalizer=f=1750:t=q:w=1.0:g=2.8," +
+            "equalizer=f=2600:t=q:w=0.95:g=3.0," +
+            "equalizer=f=3650:t=q:w=1.0:g=1.0," +
+            "equalizer=f=6600:t=q:w=1.0:g=-1.2]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=74:p=2," +
+            "equalizer=f=200:t=q:w=0.9:g=-1.3," +
+            "equalizer=f=480:t=q:w=1.0:g=-1.4," +
+            "equalizer=f=1200:t=q:w=1.1:g=2.0," +
+            "equalizer=f=1850:t=q:w=1.0:g=3.4," +
+            "equalizer=f=2750:t=q:w=0.95:g=3.6," +
+            "equalizer=f=3700:t=q:w=1.0:g=1.1," +
+            "equalizer=f=6800:t=q:w=1.0:g=-1.4]",
+        "$voiceBoostFilterLabel:lavfi=[" +
+            "highpass=f=76:p=2," +
+            "equalizer=f=190:t=q:w=0.9:g=-1.6," +
+            "equalizer=f=460:t=q:w=1.0:g=-1.7," +
+            "equalizer=f=1250:t=q:w=1.1:g=2.4," +
+            "equalizer=f=1950:t=q:w=1.0:g=4.0," +
+            "equalizer=f=2900:t=q:w=0.95:g=4.2," +
+            "equalizer=f=3800:t=q:w=1.0:g=1.2," +
+            "equalizer=f=7000:t=q:w=1.0:g=-1.6]"
     )
     private val volumeBoostStepsDb = intArrayOf(0, 2, 4, 6, 8, 10, 12, 15, 18, 21)
 
@@ -2549,11 +2587,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             ?: MPVLib.getPropertyInt("audio-params/samplerate")
                 ?.takeIf { it > 0 }
             ?: 48000
-        val inputLayout = MPVLib.getPropertyString("audio-params/channels")
-            ?.takeIf { it.isNotBlank() }
-        val useCenterBoost = isDownmixOn() && currentAudioChannelCount() >= 6
+        val sourceChannels = currentAudioChannelCount()
+        val controlledDownmixActive = isDownmixOn() && sourceChannels >= 6
+        val inputLayout = if (controlledDownmixActive) {
+            "stereo"
+        } else {
+            MPVLib.getPropertyString("audio-params/channels")
+                ?.takeIf { it.isNotBlank() }
+        }
         val outputLayout = when {
-            useCenterBoost -> "stereo"
+            controlledDownmixActive -> "stereo"
             else -> MPVLib.getPropertyString("audio-out-params/channels")
                 ?.takeIf { it.isNotBlank() }
                 ?: inputLayout
@@ -2568,9 +2611,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         inputLayout?.let { options += "in_chlayout=$it" }
         options += "out_chlayout=$outputLayout"
         options += "out_sample_fmt=$outputFormat"
-        if (useCenterBoost) {
-            options += "center_mix_level=3.0"
-        }
+        Log.i(
+            TAG,
+            if (controlledDownmixActive)
+                "DRC using controlled Channel Downmix output: ${sourceChannels}ch -> stereo"
+            else
+                "DRC active without forced center downmix: ${sourceChannels}ch source"
+        )
         return "aresample=${options.joinToString(":")}"
     }
 
@@ -2751,9 +2798,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private fun buildAudioFilterChain(): String {
         val filters = mutableListOf<String>()
         if (isNightModeOn()) {
+            if (isDownmixOn())
+                surroundDialogueDownmixFilter()?.let { filters += it }
             filters += buildDrcAudioStageFilter()
             if (isVoiceBoostOn())
-                filters += voiceBoostPresets[voiceBoostLevel]
+                filters += drcVoiceBoostPresets[voiceBoostLevel]
         } else {
             if (isDownmixOn())
                 surroundDialogueDownmixFilter()?.let { filters += it }
