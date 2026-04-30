@@ -100,6 +100,10 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         // its own timeline UI and routes supported seek inputs through it.
         MPVLib.setOptionString("osd-on-seek", "no")
         MPVLib.setOptionString("osd-bar", "no")
+        // Give libass more room for complex ASS/SSA subtitle effects before it
+        // has to evict cached glyphs/bitmaps and re-rasterize them mid-scene.
+        MPVLib.setOptionString("sub-bitmap-max-size", "256")
+        MPVLib.setOptionString("sub-glyph-limit", "200000")
         // Limit demuxer cache since the defaults are too high for mobile devices
         val cacheBytes = defaultDemuxerCacheBytes()
         MPVLib.setOptionString("demuxer-max-bytes", cacheBytes.toString())

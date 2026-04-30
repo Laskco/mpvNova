@@ -101,6 +101,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var didResumeBackgroundPlayback = false
     private var userIsOperatingSeekbar = false
     private var lastDisplayedPlaybackSecond = Int.MIN_VALUE
+    private var lastSeekbarProgress = Int.MIN_VALUE
+    private var lastSeekbarUiUpdateMs = 0L
+    private var lastClockInfoTick = Long.MIN_VALUE
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequestCompat? = null
@@ -160,8 +163,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         override fun run() {
             binding.topControls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
-            binding.playerTitleOverlay.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
-            binding.controlsScrim.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
             binding.controls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).setListener(listener)
         }
     }
@@ -1088,24 +1089,35 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private fun updateStats() {
         if (!statsFPS)
             return
-        binding.statsTextView.text = getString(R.string.ui_fps, player.estimatedVfFps)
+        val statsText = getString(R.string.ui_fps, player.estimatedVfFps)
+        if (binding.statsTextView.text.toString() != statsText)
+            binding.statsTextView.text = statsText
     }
 
-    private fun updateClockInfo() {
+    private fun updateClockInfo(force: Boolean = false) {
+        val now = System.currentTimeMillis()
+        val tick = now / 1000L
+        if (!force && lastClockInfoTick == tick)
+            return
+        lastClockInfoTick = tick
+
         val is24Hour = android.text.format.DateFormat.is24HourFormat(this)
         val pattern = if (is24Hour) "HH:mm" else "hh:mm a"
         val formatter = SimpleDateFormat(pattern, Locale.getDefault())
-        val now = System.currentTimeMillis()
-        binding.clockTextView.text = formatter.format(Date(now))
+        val clockText = formatter.format(Date(now))
+        if (binding.clockTextView.text.toString() != clockText)
+            binding.clockTextView.text = clockText
 
         val remainingSeconds = (psc.durationSec - psc.positionSec).coerceAtLeast(0)
         if (psc.durationSec > 0 && remainingSeconds > 0) {
             val endTimeMillis = now + (remainingSeconds * 1000L)
-            binding.endsAtTextView.visibility = View.VISIBLE
-            binding.endsAtTextView.text = getString(
+            val endsAtText = getString(
                 R.string.player_ends_at,
                 formatter.format(Date(endTimeMillis))
             )
+            binding.endsAtTextView.visibility = View.VISIBLE
+            if (binding.endsAtTextView.text.toString() != endsAtText)
+                binding.endsAtTextView.text = endsAtText
         } else {
             binding.endsAtTextView.visibility = View.GONE
         }
@@ -1124,20 +1136,29 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return
         }
 
+        val controlsWereVisible = binding.controls.visibility == View.VISIBLE
+        val controlsNeedAlphaReset = !controlsWereVisible ||
+                fadeRunnable.hasStarted ||
+                binding.controls.alpha < 1f ||
+                binding.topControls.alpha < 1f ||
+                binding.playerTitleOverlay.alpha < 1f ||
+                binding.controlsScrim.alpha < 1f
+
         // remove all callbacks that were to be run for fading
         fadeHandler.removeCallbacks(fadeRunnable)
-        binding.controls.animate().cancel()
-        binding.topControls.animate().cancel()
-        binding.playerTitleOverlay.animate().cancel()
-        binding.controlsScrim.animate().cancel()
+        if (controlsNeedAlphaReset) {
+            binding.controls.animate().setListener(null).cancel()
+            binding.topControls.animate().setListener(null).cancel()
 
-        // reset controls alpha to be visible
-        binding.controls.alpha = 1f
-        binding.topControls.alpha = 1f
-        binding.playerTitleOverlay.alpha = 1f
-        binding.controlsScrim.alpha = 1f
+            // reset controls alpha to be visible
+            binding.controls.alpha = 1f
+            binding.topControls.alpha = 1f
+            binding.playerTitleOverlay.alpha = 1f
+            binding.controlsScrim.alpha = 1f
+            fadeRunnable.hasStarted = false
+        }
 
-        if (binding.controls.visibility != View.VISIBLE) {
+        if (!controlsWereVisible) {
             binding.controls.visibility = View.VISIBLE
             binding.topControls.visibility = View.VISIBLE
             binding.controlsScrim.visibility = View.VISIBLE
@@ -1151,12 +1172,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
             insetsController.show(WindowInsetsCompat.Type.navigationBars())
+
+            updatePlaybackTimeline(psc.position, forceTextUpdate = true)
+            updatePlayerToastPlacement()
+            clockHandler.removeCallbacks(clockRunnable)
+            clockHandler.post(clockRunnable)
         }
 
-        updateClockInfo()
-        updatePlayerToastPlacement()
-        clockHandler.removeCallbacks(clockRunnable)
-        clockHandler.post(clockRunnable)
+        updateClockInfo(force = !controlsWereVisible)
 
         if (btnSelected != -1) {
             binding.controls.post {
@@ -3873,7 +3896,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val currentPositionMs = psc.position.coerceAtLeast(0L)
         val newPositionMs = (currentPositionMs + deltaMs).coerceIn(0L, durationMs)
         player.timePos = newPositionMs / 1000.0
-        binding.playbackSeekbar.progress = seekbarProgressFromMillis(newPositionMs)
+        setPlaybackSeekbarProgress(seekbarProgressFromMillis(newPositionMs))
         updatePlaybackTimeline(newPositionMs, forceTextUpdate = true)
     }
 
@@ -3888,9 +3911,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         return direction * magnitudeMs
     }
 
+    private fun setPlaybackSeekbarProgress(progress: Int) {
+        if (binding.playbackSeekbar.progress != progress)
+            binding.playbackSeekbar.progress = progress
+        lastSeekbarProgress = progress
+        lastSeekbarUiUpdateMs = SystemClock.uptimeMillis()
+    }
+
     private fun updatePlaybackTimeline(positionMs: Long, forceTextUpdate: Boolean = false) {
         if (!userIsOperatingSeekbar) {
-            binding.playbackSeekbar.progress = seekbarProgressFromMillis(positionMs)
+            val progress = seekbarProgressFromMillis(positionMs)
+            val now = SystemClock.uptimeMillis()
+            val shouldUpdateSeekbar = forceTextUpdate ||
+                    progress == 0 ||
+                    progress == binding.playbackSeekbar.max ||
+                    now - lastSeekbarUiUpdateMs >= PLAYER_SEEKBAR_UI_INTERVAL_MS
+            if (shouldUpdateSeekbar && progress != lastSeekbarProgress)
+                setPlaybackSeekbarProgress(progress)
         }
         updatePlaybackText((positionMs / 1000L).toInt().coerceAtLeast(0), force = forceTextUpdate)
     }
@@ -3917,11 +3954,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun updatePlaybackDuration(durationMs: Long) {
         val duration = (durationMs / 1000f).roundToInt()
-        if (!useTimeRemaining)
-            binding.playbackDurationTxt.text = Utils.prettyTime(duration)
-        if (!userIsOperatingSeekbar)
-            binding.playbackSeekbar.max = seekbarProgressFromMillis(durationMs)
-        if (duration > 0)
+        if (!useTimeRemaining) {
+            val durationText = Utils.prettyTime(duration)
+            if (binding.playbackDurationTxt.text.toString() != durationText)
+                binding.playbackDurationTxt.text = durationText
+        }
+
+        val seekbarMax = seekbarProgressFromMillis(durationMs)
+        val seekbarMaxChanged = !userIsOperatingSeekbar && binding.playbackSeekbar.max != seekbarMax
+        if (seekbarMaxChanged)
+            binding.playbackSeekbar.max = seekbarMax
+        if (duration > 0 && seekbarMaxChanged)
             updateChapterMarkers()
         if (binding.timeInfoPanel.visibility == View.VISIBLE)
             updateClockInfo()
@@ -4693,6 +4736,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val STREAM_TYPE = AudioManager.STREAM_MUSIC
         // precision used by seekbar (1/s)
         private const val SEEK_BAR_PRECISION = 1000L
+        // minimum interval between automatic seekbar repaints while playback is running
+        private const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L
         // step used when the seekbar is the active TV dpad target
         private const val SEEK_BAR_DPAD_STEP_MS = 1000L
         // how often to re-save resume position during playback (ms)
