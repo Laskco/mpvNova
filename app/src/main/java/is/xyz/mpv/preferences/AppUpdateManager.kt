@@ -26,6 +26,10 @@ class AppUpdateManager(private val activity: Activity) {
     private var busyDialog: AlertDialog? = null
     private var pendingInstallApk: File? = null
 
+    init {
+        cleanupInstalledUpdateIfNeeded()
+    }
+
     fun checkForUpdates(
         showIfCurrent: Boolean = true,
         respectIgnored: Boolean = false,
@@ -52,7 +56,9 @@ class AppUpdateManager(private val activity: Activity) {
         val apk = pendingInstallApk ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || activity.packageManager.canRequestPackageInstalls()) {
             pendingInstallApk = null
-            installDownloadedApk(apk)
+            val tagName = PreferenceManager.getDefaultSharedPreferences(activity)
+                .getString(PENDING_UPDATE_TAG_KEY, null)
+            installDownloadedApk(tagName, apk)
         }
     }
 
@@ -131,12 +137,12 @@ class AppUpdateManager(private val activity: Activity) {
             ),
             primaryText = activity.getString(R.string.update_install),
             onPrimary = {
-                installDownloadedApk(apkFile)
+                installDownloadedApk(release.tagName, apkFile)
             }
         )
     }
 
-    private fun installDownloadedApk(apkFile: File) {
+    private fun installDownloadedApk(tagName: String?, apkFile: File) {
         if (!apkFile.exists()) {
             showError(activity.getString(R.string.update_download_missing))
             return
@@ -144,6 +150,7 @@ class AppUpdateManager(private val activity: Activity) {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
             pendingInstallApk = apkFile
+            rememberPendingUpdate(tagName, apkFile)
             MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.update_install_permission_title)
                 .setMessage(R.string.update_install_permission_message)
@@ -167,6 +174,7 @@ class AppUpdateManager(private val activity: Activity) {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         try {
+            rememberPendingUpdate(tagName, apkFile)
             activity.startActivity(installIntent)
         } catch (error: ActivityNotFoundException) {
             showError(activity.getString(R.string.update_installer_missing, error.cleanMessage()))
@@ -258,6 +266,34 @@ class AppUpdateManager(private val activity: Activity) {
             if (file.extension.equals("apk", ignoreCase = true))
                 file.delete()
         }
+    }
+
+    private fun rememberPendingUpdate(tagName: String?, apkFile: File) {
+        if (tagName.isNullOrBlank())
+            return
+        PreferenceManager.getDefaultSharedPreferences(activity)
+            .edit()
+            .putString(PENDING_UPDATE_TAG_KEY, tagName)
+            .putString(PENDING_UPDATE_APK_PATH_KEY, apkFile.absolutePath)
+            .apply()
+    }
+
+    private fun cleanupInstalledUpdateIfNeeded() {
+        val preferences = PreferenceManager.getDefaultSharedPreferences(activity)
+        val pendingTag = preferences.getString(PENDING_UPDATE_TAG_KEY, null)?.takeIf { it.isNotBlank() }
+            ?: return
+        val currentVersion = normalizedVersion(BuildConfig.VERSION_NAME)
+        if (!versionsMatch(pendingTag, currentVersion))
+            return
+
+        preferences.getString(PENDING_UPDATE_APK_PATH_KEY, null)
+            ?.takeIf { it.isNotBlank() }
+            ?.let { path -> File(path).delete() }
+        cleanupUpdateCache()
+        preferences.edit()
+            .remove(PENDING_UPDATE_TAG_KEY)
+            .remove(PENDING_UPDATE_APK_PATH_KEY)
+            .apply()
     }
 
     private fun chooseBestApkAsset(assets: List<JSONObject>): JSONObject? {
@@ -397,6 +433,12 @@ class AppUpdateManager(private val activity: Activity) {
         return versionName.removeSuffix("-oldapi")
     }
 
+    private fun versionsMatch(first: String?, second: String?): Boolean {
+        val normalizedFirst = first?.trim()?.removePrefix("v")?.removePrefix("V").orEmpty()
+        val normalizedSecond = second?.trim()?.removePrefix("v")?.removePrefix("V").orEmpty()
+        return normalizedFirst.isNotBlank() && normalizedFirst == normalizedSecond
+    }
+
     private fun isRemoteNewer(remote: String?, local: String?): Boolean {
         val remoteParts = remote.versionParts()
         val localParts = local.versionParts()
@@ -463,6 +505,8 @@ class AppUpdateManager(private val activity: Activity) {
         private const val UPDATE_CACHE_DIR = "updates"
         private const val APK_MIME_TYPE = "application/vnd.android.package-archive"
         private const val IGNORED_UPDATE_TAG_KEY = "ignored_update_tag"
+        private const val PENDING_UPDATE_TAG_KEY = "pending_update_tag"
+        private const val PENDING_UPDATE_APK_PATH_KEY = "pending_update_apk_path"
         private val KNOWN_ABIS = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
     }
 }
