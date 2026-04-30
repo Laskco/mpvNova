@@ -63,7 +63,7 @@
         android:title="@string/pref_background_play_title" />
 
     <SwitchPreferenceCompat
-        android:defaultValue="false"
+        android:defaultValue="true"
         app:iconSpaceReserved="false"
         android:key="save_position"
         android:summary="@string/pref_save_position_summary"

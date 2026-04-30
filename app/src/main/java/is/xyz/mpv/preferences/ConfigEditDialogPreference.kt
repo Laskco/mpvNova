@@ -40,6 +40,7 @@ class ConfigEditDialogPreference(
         dialog.setMessage(dialogMessage)
         setupViews()
         dialog.setNegativeButton(R.string.dialog_cancel) { _, _ -> }
+        dialog.setNeutralButton(R.string.dialog_clear_all) { _, _ -> clearAll() }
         dialog.setPositiveButton(R.string.dialog_save) { _, _ -> save() }
         dialog.create().show()
     }
@@ -56,5 +57,9 @@ class ConfigEditDialogPreference(
             configFile.delete()
         else
             configFile.writeText(content)
+    }
+
+    private fun clearAll() {
+        configFile.delete()
     }
 }

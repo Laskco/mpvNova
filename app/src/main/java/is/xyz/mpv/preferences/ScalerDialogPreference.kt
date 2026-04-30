@@ -40,6 +40,7 @@ class ScalerDialogPreference(
         dialog.setTitle(title)
         setupViews()
         dialog.setNegativeButton(R.string.dialog_cancel) { _, _ -> }
+        dialog.setNeutralButton(R.string.dialog_clear) { _, _ -> clear() }
         dialog.setPositiveButton(R.string.dialog_ok) { _, _ -> save() }
         dialog.create().show()
     }
@@ -66,5 +67,13 @@ class ScalerDialogPreference(
         e?.putString("${key}_param1", e1.text.toString())
         e?.putString("${key}_param2", e2.text.toString())
         e?.apply()
+    }
+
+    private fun clear() {
+        sharedPreferences?.edit()
+            ?.remove(key)
+            ?.remove("${key}_param1")
+            ?.remove("${key}_param2")
+            ?.apply()
     }
 }
