@@ -35,6 +35,7 @@ class PreferenceActivity : AppCompatActivity(),
     SharedPreferences.OnSharedPreferenceChangeListener, FragmentManager.OnBackStackChangedListener {
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var preferences: SharedPreferences
+    private val updateManager by lazy { AppUpdateManager(this) }
     private var currentSubtitle: CharSequence? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,6 +88,11 @@ class PreferenceActivity : AppCompatActivity(),
         supportFragmentManager.removeOnBackStackChangedListener(this)
     }
 
+    override fun onResume() {
+        super.onResume()
+        updateManager.resumePendingInstallIfAllowed()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         preferences.unregisterOnSharedPreferenceChangeListener(this)
@@ -127,6 +133,10 @@ class PreferenceActivity : AppCompatActivity(),
     private fun updateChrome() {
         binding.heroSubtitle.text = currentSubtitle ?: getString(R.string.settings_root_subtitle)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+    }
+
+    private fun checkForAppUpdates() {
+        updateManager.checkForUpdates()
     }
 
     abstract class StyledPreferenceFragment(
@@ -202,7 +212,14 @@ class PreferenceActivity : AppCompatActivity(),
      * The root preference fragment that displays preferences that link to the other preference
      * fragments below.
      */
-    class SettingsFragment : StyledPreferenceFragment(R.xml.preferences_root)
+    class SettingsFragment : StyledPreferenceFragment(R.xml.preferences_root) {
+        override fun onPreferencesLoaded() {
+            findPreference<Preference>("check_for_updates")?.setOnPreferenceClickListener {
+                (activity as? PreferenceActivity)?.checkForAppUpdates()
+                true
+            }
+        }
+    }
 
     class GeneralPreference : StyledPreferenceFragment(R.xml.pref_general) {
         override fun onPreferencesLoaded() {

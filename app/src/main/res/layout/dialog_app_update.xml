@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="560dp"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_app_update_dialog"
+    android:orientation="vertical"
+    android:paddingStart="30dp"
+    android:paddingTop="28dp"
+    android:paddingEnd="30dp"
+    android:paddingBottom="24dp">
+
+    <TextView
+        style="@style/MpvTv.TextSmallCaps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/tv_brand" />
+
+    <TextView
+        android:id="@+id/updateTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/update_available_title"
+        android:textColor="@color/tv_text"
+        android:textSize="30sp"
+        android:textStyle="bold"
+        tools:text="App Update" />
+
+    <TextView
+        android:id="@+id/updateVersion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:textColor="@color/tv_text"
+        android:textSize="17sp"
+        android:textStyle="bold"
+        tools:text="New version: 2026-04-29-hotfix1" />
+
+    <TextView
+        android:id="@+id/updateReleaseTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:textColor="@color/tv_text"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        tools:text="mpvNova 2026-04-29 hotfix1" />
+
+    <TextView
+        android:id="@+id/updateNotesHeading"
+        style="@style/MpvTv.TextSmallCaps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="@string/update_notes_heading" />
+
+    <ScrollView
+        android:id="@+id/updateNotesScroll"
+        android:layout_width="match_parent"
+        android:layout_height="210dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_app_update_notes"
+        android:fadingEdge="vertical"
+        android:fadingEdgeLength="18dp"
+        android:overScrollMode="never"
+        android:paddingStart="16dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="14dp"
+        android:requiresFadingEdge="vertical">
+
+        <TextView
+            android:id="@+id/updateNotes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:lineSpacingExtra="4dp"
+            android:textColor="@color/tv_text_dim"
+            android:textSize="15sp"
+            tools:text="- Fixed a thing\n- Polished another thing" />
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/updateActions"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="22dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/updateCloseButton"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="116dp"
+            android:text="@string/update_close" />
+
+        <Button
+            android:id="@+id/updatePrimaryButton"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:minWidth="142dp"
+            android:text="@string/update_download" />
+
+        <Button
+            android:id="@+id/updateIgnoreButton"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="14dp"
+            android:minWidth="116dp"
+            android:text="@string/update_ignore" />
+    </LinearLayout>
+</LinearLayout>

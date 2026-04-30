@@ -4,9 +4,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.WindowCompat
+import app.mpvnova.player.preferences.AppUpdateManager
 import java.io.File
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
+    private val updateManager by lazy { AppUpdateManager(this) }
+    private var checkedForUpdatesThisSession = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -21,6 +25,22 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
                 commit()
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateManager.resumePendingInstallIfAllowed()
+    }
+
+    fun checkForHomeUpdatesOnce() {
+        if (checkedForUpdatesThisSession)
+            return
+        checkedForUpdatesThisSession = true
+        updateManager.checkForUpdates(
+            showIfCurrent = false,
+            respectIgnored = true,
+            showProgress = false
+        )
     }
 
     private fun logBundledFfmpegVersion() {

@@ -256,6 +256,31 @@
     <string name="pref_header_about_mpv">About mpvNova</string>
     <string name="pref_header_about_mpv_summary">See build details and bundled playback-core features.</string>
 
+    <string name="pref_check_updates_title">App updates</string>
+    <string name="pref_check_updates_summary">Check GitHub releases, download the latest APK, and hand it to Android\'s installer.</string>
+    <string name="update_available_title">App Update</string>
+    <string name="update_checking">Checking for the latest release...</string>
+    <string name="update_new_version">New version: %1$s</string>
+    <string name="update_notes_heading">Fixes and improvements</string>
+    <string name="update_notes_empty">No release notes were provided.</string>
+    <string name="update_close">Close</string>
+    <string name="update_download">Download</string>
+    <string name="update_ignore">Ignore</string>
+    <string name="update_current_title">mpvNova is up to date</string>
+    <string name="update_current_message">You are already running %1$s.</string>
+    <string name="update_error_title">Update check failed</string>
+    <string name="update_check_failed">Couldn\'t check for updates.\n\n%1$s</string>
+    <string name="update_downloading">Downloading %1$s...</string>
+    <string name="update_download_complete_title">Update downloaded</string>
+    <string name="update_download_complete">Download complete. Ready to install %1$s.\n\nFile: %2$s</string>
+    <string name="update_install">Install</string>
+    <string name="update_download_failed">Couldn\'t download the update.\n\n%1$s</string>
+    <string name="update_download_missing">The downloaded APK could not be found.</string>
+    <string name="update_installer_missing">Android could not open the package installer.\n\n%1$s</string>
+    <string name="update_install_permission_title">Allow app installs</string>
+    <string name="update_install_permission_message">Android needs permission before mpvNova can open a downloaded APK. Turn on \"Allow from this source\", then return here and the installer will open.</string>
+    <string name="update_open_permission_settings">Open settings</string>
+
     <string name="pref_default_file_manager_path_title">Default file manager path</string>
     <string name="pref_default_file_manager_path_summary" translatable="false">%s</string>
 

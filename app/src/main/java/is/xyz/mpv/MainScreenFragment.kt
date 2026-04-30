@@ -34,6 +34,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
     private var prev = ""
     private var prevData: String? = null
     private var lastPath = ""
+    private var homeUpdateRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -143,13 +144,38 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
 
     override fun onResume() {
         super.onResume()
-        if (firstRun) {
+        val launchedFlow = if (firstRun) {
             restoreChoice()
         } else if (returningFromPlayer) {
             restoreChoice(prev, prevData)
+        } else {
+            false
         }
         firstRun = false
         returningFromPlayer = false
+        if (!launchedFlow)
+            scheduleHomeUpdateCheck()
+    }
+
+    override fun onPause() {
+        homeUpdateRunnable?.let { runnable ->
+            if (::binding.isInitialized)
+                binding.root.removeCallbacks(runnable)
+        }
+        homeUpdateRunnable = null
+        super.onPause()
+    }
+
+    private fun scheduleHomeUpdateCheck() {
+        if (!::binding.isInitialized)
+            return
+        homeUpdateRunnable?.let(binding.root::removeCallbacks)
+        val runnable = Runnable {
+            if (isResumed)
+                (activity as? MainActivity)?.checkForHomeUpdatesOnce()
+        }
+        homeUpdateRunnable = runnable
+        binding.root.postDelayed(runnable, HOME_UPDATE_CHECK_DELAY_MS)
     }
 
     private fun saveChoice(type: String, data: String? = null) {
@@ -171,8 +197,8 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
         }
     }
 
-    private fun restoreChoice() {
-        with (PreferenceManager.getDefaultSharedPreferences(requireContext())) {
+    private fun restoreChoice(): Boolean {
+        return with (PreferenceManager.getDefaultSharedPreferences(requireContext())) {
             restoreChoice(
                 getString("MainScreenFragment_remember", "") ?: "",
                 getString("MainScreenFragment_remember_data", "")
@@ -180,13 +206,13 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
         }
     }
 
-    private fun restoreChoice(type: String, data: String?) {
+    private fun restoreChoice(type: String, data: String?): Boolean {
         when (type) {
             "doc" -> {
                 val uri = Uri.parse(data)
                 // check that we can still access the folder
                 if (!DocumentPickerFragment.isTreeUsable(requireContext(), uri))
-                    return
+                    return false
 
                 val i = Intent(context, FilePickerActivity::class.java)
                 i.putExtra("skip", FilePickerActivity.DOC_PICKER)
@@ -194,10 +220,12 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
                 if (lastPath != "")
                     i.putExtra("default_path", lastPath)
                 filePickerLauncher.launch(i)
+                return true
             }
-            "url" -> binding.urlBtn.callOnClick()
-            "file" -> binding.filepickerBtn.callOnClick()
+            "url" -> return binding.urlBtn.callOnClick()
+            "file" -> return binding.filepickerBtn.callOnClick()
         }
+        return false
     }
 
     private fun playFile(filepath: String) {
@@ -214,6 +242,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
 
     companion object {
         private const val TAG = "mpv"
+        private const val HOME_UPDATE_CHECK_DELAY_MS = 900L
 
         // list of debug or testing activities that can be launched
         private val DEBUG_ACTIVITIES = arrayOf(
