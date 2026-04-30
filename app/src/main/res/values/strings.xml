@@ -187,9 +187,9 @@
     <string name="btn_sub_scale">Subtitle size</string>
     <string name="btn_sub_scale_summary">Scale rendered subtitles up or down.</string>
     <string name="btn_sub_pos">Vertical position</string>
-    <string name="btn_sub_pos_summary">Place the bottom subs anywhere from top (0%) to bottom (100%).</string>
+    <string name="btn_sub_pos_summary" formatted="false">Place the bottom subs anywhere from top (0%) to bottom (100%).</string>
     <string name="btn_secondary_pos">Top sub position</string>
-    <string name="btn_secondary_pos_summary">Place the top subs anywhere from top (0%) to bottom (100%).</string>
+    <string name="btn_secondary_pos_summary" formatted="false">Place the top subs anywhere from top (0%) to bottom (100%).</string>
     <string name="btn_secondary_sub">Secondary track</string>
     <string name="btn_secondary_sub_summary">Show a second subtitle track above the primary one.</string>
     <string name="btn_secondary_sub_swap">Swap primary / secondary</string>

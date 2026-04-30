@@ -3836,10 +3836,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updatePlayerTitleOverlay() {
-        val rawTitle = psc.meta.formatTitle()?.trim()
+        val rawTitle = psc.meta.formatTitle()?.trim().orEmpty()
         val shouldShow = !useAudioUI &&
             showMediaTitle &&
-            !rawTitle.isNullOrBlank() &&
+            rawTitle.isNotBlank() &&
             binding.controls.visibility == View.VISIBLE
 
         if (!shouldShow) {
@@ -3848,7 +3848,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return
         }
 
-        val lines = formatPlayerTitleOverlay(rawTitle!!)
+        val lines = formatPlayerTitleOverlay(rawTitle)
         binding.playerTitlePrimary.text = lines.primary
         binding.playerTitleSecondary.text = lines.secondary
         binding.playerTitleSecondary.isVisible = !lines.secondary.isNullOrBlank()

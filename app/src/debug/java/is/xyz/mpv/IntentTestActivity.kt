@@ -20,7 +20,7 @@ class IntentTestActivity : AppCompatActivity() {
             val extras = intent.extras
             if (extras != null) {
                 for (key in extras.keySet()) {
-                    val v = extras.get(key)
+                    val v = extras.valueForDebug(key)
                     updateText("extras[$key] = $v\n")
                 }
             }
@@ -35,6 +35,9 @@ class IntentTestActivity : AppCompatActivity() {
             binding.info.text = this.text
         }
     }
+
+    @Suppress("DEPRECATION")
+    private fun Bundle.valueForDebug(key: String): Any? = get(key)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

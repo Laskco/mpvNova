@@ -56,6 +56,7 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
      * Mandatory empty constructor for the fragment manager to instantiate the
      * fragment (e.g. upon screen orientation changes).
      */
+    @SuppressWarnings("deprecation")
     public AbstractFilePickerFragment() {
         // Retain this fragment across configuration changes, to allow
         // asynctasks and such to be used with ease.
@@ -88,6 +89,16 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
         return view;
     }
 
+    @Override
+    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // Fall back to root if still null
+        if (mCurrentPath == null)
+            mCurrentPath = getRoot();
+        refresh(mCurrentPath);
+    }
+
     protected View inflateRootView(LayoutInflater inflater, ViewGroup container) {
         return inflater.inflate( R.layout.nnf_fragment_filepicker, container, false);
     }
@@ -117,36 +128,6 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
             throw new ClassCastException(context.toString() +
                     " must implement OnFilePickedListener");
         }
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        setHasOptionsMenu(true);
-    }
-
-    /**
-     * Called when the fragment's activity has been created and this
-     * fragment's view hierarchy instantiated.  It can be used to do final
-     * initialization once these pieces are in place, such as retrieving
-     * views or restoring state.  It is also useful for fragments that use
-     * {@link #setRetainInstance(boolean)} to retain their instance,
-     * as this callback tells the fragment when it is fully associated with
-     * the new activity instance.  This is called after {@link #onCreateView}
-     * and before {@link #onViewStateRestored(Bundle)}.
-     *
-     * @param savedInstanceState If the fragment is being re-created from
-     *                           a previous saved state, this is the state.
-     */
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-
-        // Fall back to root if still null
-        if (mCurrentPath == null)
-            mCurrentPath = getRoot();
-        refresh(mCurrentPath);
     }
 
     @Override

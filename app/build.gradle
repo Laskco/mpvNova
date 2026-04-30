@@ -52,12 +52,12 @@ android {
     signingConfigs {
         if (hasReleaseSigning) {
             release {
-                storeFile rootProject.file(releaseStoreFile)
-                storePassword releaseStorePassword
-                keyAlias releaseKeyAlias
-                keyPassword releaseKeyPassword
-                enableV1Signing true
-                enableV2Signing true
+                storeFile = rootProject.file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
@@ -65,8 +65,26 @@ android {
     buildTypes {
         release {
             if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.release
             }
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // These bundled mpv/FFmpeg libraries are already packaged as-is by AGP.
+            keepDebugSymbols += [
+                "**/libavcodec.so",
+                "**/libavdevice.so",
+                "**/libavfilter.so",
+                "**/libavformat.so",
+                "**/libavutil.so",
+                "**/libc++_shared.so",
+                "**/libmpv.so",
+                "**/libplayer.so",
+                "**/libswresample.so",
+                "**/libswscale.so",
+            ]
         }
     }
 

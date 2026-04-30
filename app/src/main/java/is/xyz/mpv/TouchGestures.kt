@@ -62,10 +62,10 @@ internal class TouchGestures(private val observer: TouchGesturesObserver) {
     private var tapGestureCenter : PropertyChange? = null
     private var tapGestureRight : PropertyChange? = null
 
-    private inline fun checkFloat(vararg n: Float): Boolean {
+    private fun checkFloat(vararg n: Float): Boolean {
         return !n.any { it.isInfinite() || it.isNaN() }
     }
-    private inline fun assertFloat(vararg n: Float) {
+    private fun assertFloat(vararg n: Float) {
         if (!checkFloat(*n))
             throw IllegalArgumentException()
     }

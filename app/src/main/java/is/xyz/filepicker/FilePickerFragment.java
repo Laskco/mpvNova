@@ -15,6 +15,8 @@ import android.os.Build;
 import android.os.FileObserver;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -27,6 +29,7 @@ import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * An implementation of the picker which allows you to select a file from the internal/external
@@ -34,7 +37,6 @@ import java.util.List;
  */
 public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
-    protected static final int PERMISSIONS_REQUEST_ID = 1001;
     protected static final String PERMISSION_PRE33 = Manifest.permission.WRITE_EXTERNAL_STORAGE;
     @RequiresApi(33)
     protected static final String[] PERMISSIONS_POST33 = {
@@ -45,6 +47,9 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     protected boolean showHiddenItems = false;
     protected FileFilter filterPredicate = null;
     private File mRequestedPath = null;
+    private final ActivityResultLauncher<String[]> permissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
+                    this::onPermissionResult);
 
     public FilePickerFragment() {
     }
@@ -118,36 +123,23 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     protected void handlePermission(@NonNull File path) {
         mRequestedPath = path;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            requestPermissions(PERMISSIONS_POST33, PERMISSIONS_REQUEST_ID);
+            permissionLauncher.launch(PERMISSIONS_POST33);
         } else {
-            requestPermissions(new String[]{PERMISSION_PRE33}, PERMISSIONS_REQUEST_ID);
+            permissionLauncher.launch(new String[]{PERMISSION_PRE33});
         }
     }
 
-    /**
-     * This the method that gets notified when permission is granted/denied. By default,
-     * a granted request will result in a refresh of the list.
-     *
-     * @param requestCode  the code you requested
-     * @param permissions  array of permissions you requested. empty if process was cancelled.
-     * @param grantResults results for requests. empty if process was cancelled.
-     */
-    @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String[] permissions,
-                                           @NonNull int[] grantResults) {
-        if (requestCode != PERMISSIONS_REQUEST_ID)
-            return;
-        // If arrays are empty, then process was cancelled
-        if (permissions.length == 0) {
+    private void onPermissionResult(@NonNull Map<String, Boolean> grants) {
+        // If results are empty, then process was cancelled
+        if (grants.isEmpty()) {
             // Treat this as a cancel press
             if (mListener != null)
                 mListener.onCancelled();
             return;
         }
         boolean ok = false;
-        for (int r : grantResults) {
-            if (PackageManager.PERMISSION_GRANTED == r) {
+        for (Boolean granted : grants.values()) {
+            if (Boolean.TRUE.equals(granted)) {
                 ok = true;
                 break;
             }
@@ -284,21 +276,36 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
 
                 // Start watching for changes
-                fileObserver = new FileObserver(mCurrentPath.getPath(),
-                        FileObserver.CREATE |
-                                FileObserver.DELETE
-                                | FileObserver.MOVED_FROM | FileObserver.MOVED_TO
-                ) {
-
-                    @Override
-                    public void onEvent(int event, String path) {
-                        // Reload
-                        onContentChanged();
-                    }
-                };
+                fileObserver = createFileObserver(mCurrentPath);
                 fileObserver.startWatching();
 
                 forceLoad();
+            }
+
+            private FileObserver createFileObserver(@NonNull File path) {
+                int mask = FileObserver.CREATE |
+                        FileObserver.DELETE |
+                        FileObserver.MOVED_FROM |
+                        FileObserver.MOVED_TO;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    return new FileObserver(path, mask) {
+                        @Override
+                        public void onEvent(int event, String path) {
+                            onContentChanged();
+                        }
+                    };
+                }
+                return createLegacyFileObserver(path.getPath(), mask);
+            }
+
+            @SuppressWarnings("deprecation")
+            private FileObserver createLegacyFileObserver(@NonNull String path, int mask) {
+                return new FileObserver(path, mask) {
+                    @Override
+                    public void onEvent(int event, String path) {
+                        onContentChanged();
+                    }
+                };
             }
 
             /**
