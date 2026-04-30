@@ -81,7 +81,7 @@ setup_prefix () {
 	fi
 
 	# meson wants to be spoonfed this file, so create it ahead of time
-	# also define: release build, static libs and no source downloads at runtime(!!!)
+	# and pin release/static/nodownload defaults in one place.
 	cat >"$prefix_dir/crossfile.tmp" <<CROSSFILE
 [built-in options]
 buildtype = 'release'

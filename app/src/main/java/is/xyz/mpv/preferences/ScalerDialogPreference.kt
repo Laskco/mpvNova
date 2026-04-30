@@ -24,7 +24,6 @@ class ScalerDialogPreference(
     init {
         isPersistent = false
 
-        // read list of scalers from specified resource
         val styledAttrs = context.obtainStyledAttributes(attrs, R.styleable.ScalerPreferenceDialog)
         val res = styledAttrs.getResourceId(R.styleable.ScalerPreferenceDialog_entries, -1)
         entries = context.resources.getStringArray(res)
@@ -50,13 +49,11 @@ class ScalerDialogPreference(
         e1 = binding.param1
         e2 = binding.param2
 
-        // populate Spinner and set selected item
         s.setSimpleItems(entries)
 
         val va = sharedPreferences?.getString(key, "") ?: ""
         s.setText(va, false)
 
-        // populate EditText's
         e1.setText(sharedPreferences?.getString("${key}_param1", "") ?: "")
         e2.setText(sharedPreferences?.getString("${key}_param2", "") ?: "")
     }

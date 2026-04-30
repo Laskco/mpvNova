@@ -35,7 +35,6 @@ internal class SubTrackDialog(private val player: MPVView) {
             refresh()
         }
 
-        // Set up recycler view
         binding.list.adapter = CustomAdapter(this)
         refresh()
 

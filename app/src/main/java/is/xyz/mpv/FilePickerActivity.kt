@@ -98,7 +98,6 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             }
         }
 
-        // Ask the user what he wants
         val args = Bundle().apply {
             putString("title", intent.getStringExtra("title"))
             putBoolean("allow_document", intent.getBooleanExtra("allow_document", false))
@@ -141,14 +140,12 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         if (fragment == null)
             return
         if (permissions.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            // re-init file picker with correct paths
             initFilePicker()
         }
     }
 
     private fun inflateOptionsMenu(menu: Menu) {
         menuInflater.inflate(R.menu.menu_filepicker, menu)
-        // document picker does not have a concept of storages
         if (fragment == null)
             menu.findItem(R.id.action_external_storage).isVisible = false
     }
@@ -215,7 +212,6 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     private fun initFilePicker() {
-        // Create fragment first
         if (fragment == null) {
             fragment = MPVFilePickerFragment()
             with (supportFragmentManager.beginTransaction()) {
@@ -240,7 +236,6 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
         var defaultPathStr = intent.getStringExtra("default_path")
         if (defaultPathStr.isNullOrEmpty()) {
-            // TODO: rework or remove this setting
             defaultPathStr = sharedPrefs.getString("default_file_manager_path",
                 Environment.getExternalStorageDirectory().path)
         }
@@ -462,7 +457,6 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             }
         }
 
-        // values for "skip" in intent
         const val URL_DIALOG = 0
         const val FILE_PICKER = 1
         const val DOC_PICKER = 2

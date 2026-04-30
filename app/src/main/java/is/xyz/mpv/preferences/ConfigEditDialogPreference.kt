@@ -22,7 +22,6 @@ class ConfigEditDialogPreference(
     init {
         isPersistent = false
 
-        // determine where the file to be edited is located
         val styledAttrs = context.obtainStyledAttributes(attrs, R.styleable.ConfigEditDialog)
         val filename = styledAttrs.getString(R.styleable.ConfigEditDialog_filename)
         dialogMessage = styledAttrs.getString(R.styleable.ConfigEditDialog_dialogMessage)

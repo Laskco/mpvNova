@@ -19,16 +19,12 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
 
-        // apply phone-optimized defaults
         MPVLib.setOptionString("profile", "fast")
 
-        // vo
         setVo(defaultVo(sharedPreferences))
 
-        // hwdec
         val hwdec = defaultHwdec(sharedPreferences)
 
-        // vo: set display fps as reported by android
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val disp = ContextCompat.getDisplayOrDefault(context)
             val refreshRate = disp.mode.refreshRate
@@ -40,13 +36,11 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
                        "(${Build.VERSION.SDK_INT} < ${Build.VERSION_CODES.M})")
         }
 
-        // set non-complex options
         data class Property(val preferenceName: String, val mpvOption: String, val default: String = "")
         val opts = arrayOf(
                 Property("default_audio_language", "alang", "eng"),
                 Property("default_subtitle_language", "slang", "eng"),
 
-                // vo-related
                 Property("video_scale", "scale"),
                 Property("video_scale_param1", "scale-param1"),
                 Property("video_scale_param2", "scale-param2"),
@@ -108,16 +102,14 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         val cacheBytes = defaultDemuxerCacheBytes()
         MPVLib.setOptionString("demuxer-max-bytes", cacheBytes.toString())
         MPVLib.setOptionString("demuxer-max-back-bytes", cacheBytes.toString())
-        //
+
         val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         screenshotDir.mkdirs()
         MPVLib.setOptionString("screenshot-directory", screenshotDir.path)
-        // workaround for <https://github.com/mpv-player/mpv/issues/14651>
         MPVLib.setOptionString("vd-lavc-film-grain", "cpu")
     }
 
     override fun postInitOptions() {
-        // we need to call write-watch-later manually
         MPVLib.setOptionString("save-position-on-quit", "no")
     }
 
@@ -170,7 +162,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     }
 
     override fun observeProperties() {
-        // This observes all properties needed by MPVView, MPVActivity or other classes
         data class Property(val name: String, val format: Int = MPV_FORMAT_NONE)
         val p = arrayOf(
             Property("time-pos/full", MPV_FORMAT_DOUBLE),
@@ -215,7 +206,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     fun loadTracks() {
         for (list in tracks.values) {
             list.clear()
-            // pseudo-track to allow disabling audio/subs
             list.add(Track(-1, context.getString(R.string.track_off)))
         }
         val count = MPVLib.getPropertyInt("track-list/count")!!

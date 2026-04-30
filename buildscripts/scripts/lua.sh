@@ -32,7 +32,7 @@ make CC="$CC" AR="$AR rc" RANLIB="$RANLIB" \
 # TO_BIN=/dev/null disables installing lua & luac
 make INSTALL=${INSTALL:-install} INSTALL_TOP="$prefix_dir" TO_BIN=/dev/null install
 
-# make pc only generates a partial pkg-config file because ????
+# make pc only generates a partial pkg-config file, so fill in the missing fields.
 mkdir -p $prefix_dir/lib/pkgconfig
 make pc >$prefix_dir/lib/pkgconfig/lua.pc
 cat >>$prefix_dir/lib/pkgconfig/lua.pc <<'EOF'

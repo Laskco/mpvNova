@@ -6,7 +6,7 @@ import android.view.View
 internal interface PickerDialog {
     fun buildView(layoutInflater: LayoutInflater): View
 
-    fun isInteger(): Boolean // eh....
+    fun isInteger(): Boolean
 
     var number: Double?
 }

@@ -25,7 +25,6 @@ class InterpolationDialogPreference(
     init {
         isPersistent = false
 
-        // read video sync modes
         val styledAttrs = context.obtainStyledAttributes(
             attrs, R.styleable.InterpolationPreferenceDialog
         )
@@ -56,15 +55,12 @@ class InterpolationDialogPreference(
         sw = binding.switch1
         sp = binding.videoSync as MaterialAutoCompleteTextView
 
-        // populate switch
         sw.isChecked = sharedPreferences?.getBoolean("${key}_interpolation", false) ?: false
 
-        // populate spinner
         val s = sharedPreferences?.getString("${key}_sync", entryDefault) ?: entryDefault
         sp.setText(s, false)
         sp.setSimpleItems(entries)
 
-        // set listeners
         sw.setOnCheckedChangeListener { _, state -> ensureSyncMode(state) }
         sp.addTextChangedListener { ensureInterpolationToggled() }
     }
@@ -76,7 +72,6 @@ class InterpolationDialogPreference(
         e?.apply()
     }
 
-    // ensure setting consistency when either of switch/spinner changes
     private fun ensureSyncMode(interpolationState: Boolean) {
         if (!interpolationState) return
 

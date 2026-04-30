@@ -20,12 +20,6 @@ import androidx.core.app.ServiceCompat
 import androidx.media.app.NotificationCompat.MediaStyle
 import app.mpvnova.player.MPVLib.MpvEvent
 
-/*
-    All this service does is
-    - Discourage Android from killing mpv while it's in background
-    - Update the persistent notification (which we're forced to display)
-*/
-
 class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     override fun onCreate() {
         MPVLib.addObserver(this)
@@ -68,7 +62,6 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
             builder.setLargeIcon(it)
 
             builder.setColorized(true)
-            // scale thumbnail to a single color in two steps
             val b1 = Bitmap.createScaledBitmap(it, 16, 16, true)
             val b2 = Bitmap.createScaledBitmap(b1, 1, 1, true)
             builder.setColor(b2.getPixel(0, 0))
@@ -108,13 +101,9 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
         Log.v(TAG, "BackgroundPlaybackService: starting")
 
-        // read some metadata
-
         cachedMetadata.readAll()
         paused = MPVLib.getPropertyBoolean("pause") == true
         shouldShowPrevNext = (MPVLib.getPropertyInt("playlist-count") ?: 0) > 1
-
-        // create notification and turn this into a "foreground service"
 
         val notification = buildNotification()
         val type = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -137,8 +126,6 @@ class BackgroundPlaybackService : Service(), MPVLib.EventObserver {
     }
 
     override fun onBind(intent: Intent): IBinder? { return null }
-
-    /* Event observers */
 
     override fun eventProperty(property: String) {
         if (!cachedMetadata.update(property))

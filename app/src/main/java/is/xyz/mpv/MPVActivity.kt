@@ -65,15 +65,10 @@ typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
 
 class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserver, TouchGesturesObserver {
-    // for calls to eventUi() and eventPropertyUi()
     private val eventUiHandler = Handler(Looper.getMainLooper())
-    // for use with fadeRunnable1..3
     private val fadeHandler = Handler(Looper.getMainLooper())
-    // for use with stopServiceRunnable
     private val stopServiceHandler = Handler(Looper.getMainLooper())
-    // for use with clock updates while controls are visible
     private val clockHandler = Handler(Looper.getMainLooper())
-    // for periodic position-save ticks during playback (every 30s)
     private val periodicSaveHandler = Handler(Looper.getMainLooper())
     private val periodicSaveRunnable = object : Runnable {
         override fun run() {
@@ -92,9 +87,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // while the Activity instance stays alive.
     private var currentResumeSource: String? = null
 
-    /**
-     * DO NOT USE THIS
-     */
     private var activityIsStopped = false
 
     private var activityIsForeground = true
@@ -115,7 +107,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private lateinit var binding: PlayerBinding
     private lateinit var gestures: TouchGestures
 
-    // convenience alias
     private val player get() = binding.player
 
     private val seekBarChangeListener = object : SeekBar.OnSeekBarChangeListener {
@@ -146,7 +137,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
     }
 
-    // Fade out controls
     private val fadeRunnable = object : Runnable {
         var hasStarted = false
         private val listener = object : AnimatorListenerAdapter() {
@@ -167,7 +157,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
     }
 
-    // Fade out unlock button
     private val fadeRunnable2 = object : Runnable {
         private val listener = object : AnimatorListenerAdapter() {
             override fun onAnimationEnd(animation: Animator) {
@@ -180,9 +169,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
     }
 
-    // Fade out gesture text
     private val fadeRunnable3 = object : Runnable {
-        // okay this doesn't actually fade...
         override fun run() {
             binding.gestureTextView.visibility = View.GONE
         }
@@ -209,9 +196,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
     }
 
-    /* Settings */
     private var statsFPS = false
-    private var statsLuaMode = 0 // ==0 disabled, >0 page number
+    private var statsLuaMode = 0
 
     private var backgroundPlayMode = ""
     private var noUIPauseMode = ""
@@ -245,7 +231,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var gpuNextRenderFallbackStage = 0
     private var gpuNextCopyRetryConfirmed = false
     private var gpuNextCopyRetryDisplayedFrame = false
-    /* * */
 
     @SuppressLint("ClickableViewAccessibility")
     private fun initListeners() {
@@ -346,15 +331,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding = PlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Init controls to be hidden and view fullscreen
         hideControls()
 
-        // Initialize listeners for the player view
         initListeners()
 
         gestures = TouchGestures(this)
 
-        // set up initial UI state
         readSettings()
         onConfigurationChanged(resources.configuration)
         run {
@@ -379,7 +361,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         // persist, so it's safe to start the timer right away.
         periodicSaveHandler.postDelayed(periodicSaveRunnable, PERIODIC_SAVE_INTERVAL_MS)
 
-        // Parse the intent
         val filepath = parsePathFromIntent(intent)
         currentResumeSource = resumeSourceFromIntent(intent, filepath)
         if (intent.action == Intent.ACTION_VIEW) {
@@ -443,7 +424,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     override fun onDestroy() {
         Log.v(TAG, "Exiting.")
 
-        // Suppress any further callbacks
         activityIsForeground = false
         // Stop periodic resume saves; one final save runs from onPause()
         // already so no need to flush again here.
@@ -461,7 +441,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         audioFocusRequest = null
 
-        // take the background service with us
         stopServiceRunnable.run()
 
         player.removeObserver(this)
@@ -477,8 +456,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             setIntent(intent)
         pendingResumeToastMs = 0L
 
-        // Happens when mpv is still running (not necessarily playing) and the user selects a new
-        // file to be played from another app
         val filepath = intent?.let { parsePathFromIntent(it) }
         if (filepath == null) {
             return
@@ -643,7 +620,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun readSettings() {
-        // FIXME: settings should be in their own class completely
         val prefs = getDefaultSharedPreferences(applicationContext)
         val getString: (String, Int) -> String = { key, defaultRes ->
             prefs.getString(key, resources.getString(defaultRes))!!
@@ -796,12 +772,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             unlockUI()
         }
 
-        // Init controls to be hidden and view fullscreen
         hideControls()
         readSettings()
 
         activityIsForeground = true
-        // stop background service with a delay
         stopServiceHandler.removeCallbacks(stopServiceRunnable)
         stopServiceHandler.postDelayed(stopServiceRunnable, 1000L)
 
@@ -821,7 +795,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     // ===== Custom resume table for HTTPS streams =====
-    //
     // mpv's built-in watch-later keys positions by URL hash, which breaks for
     // Stremio / Nuvio debrid streams (the auth token in the URL rotates between
     // sessions, so the "same episode" hashes differently every launch and no
@@ -970,7 +943,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (becomingNoisyReceiverRegistered)
                 unregisterReceiver(becomingNoisyReceiver)
             becomingNoisyReceiverRegistered = false
-            // TODO: could abandon audio focus after a timeout
         } else {
             if (!becomingNoisyReceiverRegistered)
                 registerReceiver(
@@ -1144,13 +1116,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 binding.playerTitleOverlay.alpha < 1f ||
                 binding.controlsScrim.alpha < 1f
 
-        // remove all callbacks that were to be run for fading
         fadeHandler.removeCallbacks(fadeRunnable)
         if (controlsNeedAlphaReset) {
             binding.controls.animate().setListener(null).cancel()
             binding.topControls.animate().setListener(null).cancel()
 
-            // reset controls alpha to be visible
             binding.controls.alpha = 1f
             binding.topControls.alpha = 1f
             binding.playerTitleOverlay.alpha = 1f
@@ -1189,7 +1159,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             }
         }
 
-        // add a new callback to hide the controls once again
         if (!controlsShouldBeVisible())
             fadeHandler.postDelayed(fadeRunnable, CONTROLS_DISPLAY_TIMEOUT)
     }
@@ -1597,7 +1566,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gestures.setMetrics(dm.widthPixels.toFloat(), dm.heightPixels.toFloat())
         }
 
-        // Adjust control margins
         binding.controls.updateLayoutParams<MarginLayoutParams> {
             bottomMargin = if (!controlsAtBottom) {
                 Utils.convertDp(this@MPVActivity, 60f)
@@ -1841,7 +1809,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (!it.isNullOrEmpty())
                 pushOption("force-media-title", it)
         }
-        // TODO: `headers` would be good, maybe `tls_verify`
     }
 
     // UI (Part 2)
@@ -2324,7 +2291,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     // ========================================================================
     // Audio filter toggles (Voice Boost / DRC / Audio Normalization)
-    //
     // DRC mirrors the recovered native dynaudnorm stage as closely as we can in
     // mpv. It is treated as a primary dynamics stage and kept mutually
     // exclusive with Audio Normalization so the UI matches the active filter
@@ -3007,7 +2973,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     // ===== Track memory =====
-    //
     // When the user manually picks an audio or subtitle track, we stash its
     // language and title in SharedPreferences. On the next file load we look
     // at the new file's track list and try to find a track that "looks like"
@@ -3331,7 +3296,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun pickSpeed() {
-        // TODO: replace this with SliderPickerDialog
         val picker = SpeedPickerDialog()
 
         val restore = keepPlaybackForDialog()
@@ -3415,7 +3379,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             MPVLib.command(arrayOf(cmd, path2, "cached"))
         }
 
-        /******/
         val hiddenButtons = mutableSetOf<Int>()
         val buttons: MutableList<MenuItem> = mutableListOf(
                 MenuItem(R.id.audioBtn) {
@@ -3480,7 +3443,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             hiddenButtons.add(R.id.backgroundBtn)
         if ((MPVLib.getPropertyInt("chapter-list/count") ?: 0) == 0)
             hiddenButtons.add(R.id.rowChapter)
-        /******/
 
         genericMenu(R.layout.dialog_top_menu, buttons, hiddenButtons, restoreState)
     }
@@ -3511,7 +3473,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun openAdvancedMenu(restoreState: StateRestoreCallback) {
-        /******/
         val hiddenButtons = mutableSetOf<Int>()
         val buttons: MutableList<MenuItem> = mutableListOf(
                 MenuItem(R.id.subSeekPrev) {
@@ -3549,7 +3510,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             })
         }
 
-        // contrast, brightness and others get a -100 to 100 slider
         val basicIds = arrayOf(R.id.contrastBtn, R.id.brightnessBtn, R.id.gammaBtn, R.id.saturationBtn)
         val basicProps = arrayOf("contrast", "brightness", "gamma", "saturation")
         val basicTitles = arrayOf(R.string.contrast, R.string.video_brightness, R.string.gamma, R.string.saturation)
@@ -3561,7 +3521,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             })
         }
 
-        // audio / sub delay get a decimal picker
         buttons.add(MenuItem(R.id.audioDelayBtn) {
             val picker = DecimalPickerDialog(-600.0, 600.0)
             genericPickerDialog(picker, R.string.audio_delay, "audio-delay", restoreState)
@@ -3600,7 +3559,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             hiddenButtons.add(R.id.audioDelayBtn)
         if (player.sid == -1)
             hiddenButtons.addAll(arrayOf(R.id.subDelayBtn, R.id.rowSubSeek))
-        /******/
 
         genericMenu(R.layout.dialog_advanced_menu, buttons, hiddenButtons, restoreState)
     }
@@ -3672,10 +3630,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val buttonGroup = binding.controlsButtonGroup
 
         if (useAudioUI) {
-            // Change button layout of buttons group
             Utils.viewGroupReorder(buttonGroup, audioButtons)
 
-            // Show song title and more metadata
             binding.controlsTitleGroup.visibility = View.VISIBLE
             Utils.viewGroupReorder(binding.controlsTitleGroup, arrayOf(R.id.titleTextView, R.id.minorTitleTextView))
             updateMetadataDisplay()
@@ -3688,10 +3644,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.controlsTitleGroup.visibility = View.GONE
             updateMetadataDisplay()
 
-            hideControls() // do NOT use fade runnable
+            hideControls()
         }
 
-        // Visibility might have changed, so update
         updatePlaylistButtons()
     }
 

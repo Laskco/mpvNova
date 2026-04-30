@@ -101,10 +101,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         Log.w(TAG, "detaching surface")
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")
-        // Note that before calling detachSurface() we need to be sure that libmpv
-        // is done using the surface.
-        // FIXME: There could be a race condition here, because I don't think
-        // setting a property will wait for VO deinit.
+        // detachSurface() assumes libmpv is done using the surface; setting
+        // vo=null may not wait for VO deinit on every backend.
         MPVLib.detachSurface()
     }
 

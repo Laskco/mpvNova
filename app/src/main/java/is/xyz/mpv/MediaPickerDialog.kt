@@ -13,19 +13,6 @@ import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.roundToInt
-/**
- * Unified TV-styled picker dialog for subtitle / audio / decoder selection.
- *
- * The layout (dialog_media_picker.xml) has:
- *   - a title top-left
- *   - a RecyclerView on the left holding the selectable rows
- *   - an optional side panel on the right with:
- *       * a clickable "Delay" tile (for subs)
- *       * sound shaping controls (for audio)
- *
- * Each row uses the same CheckedTextView styling as the old track dialog,
- * so the "selected" item gets the bright pill with the purple check.
- */
 internal class MediaPickerDialog {
 
     data class Item(val label: CharSequence, val tag: Any?, val selected: Boolean)
@@ -138,9 +125,6 @@ internal class MediaPickerDialog {
         val listMinHeight = Utils.convertDp(binding.root.context, 280f)
         binding.list.layoutParams = binding.list.layoutParams.apply {
             height = if (hasFilters) 0 else listMinHeight
-            if (this is ViewGroup.LayoutParams) {
-                // no-op, keeps type-safe apply block on all devices
-            }
             if (this is android.widget.LinearLayout.LayoutParams) {
                 weight = if (hasFilters) 1f else 0f
             }
@@ -164,32 +148,27 @@ internal class MediaPickerDialog {
 
         binding.list.adapter = Adapter(this)
 
-        // Side panel — only visible if any subsection is requested.
         binding.sidePanel.isVisible = showDelay || hasFilters
         binding.persistFiltersRow.isVisible = showFilters
         binding.persistSubFiltersRow.isVisible = showSubFilters
         binding.filterScroll.isVisible = hasFilters
-        // Audio filter rows visibility
         binding.voiceBoostRow.isVisible = showFilters
         binding.volumeBoostRow.isVisible = showFilters
         binding.nightModeRow.isVisible = showFilters
         binding.audioNormRow.isVisible = showFilters
         binding.downmixRow.isVisible = showFilters
-        // Sub filter rows visibility
         binding.subScaleRow.isVisible = showSubFilters
         binding.subPosRow.isVisible = showSubFilters
         binding.secondaryPosRow.isVisible = showSubFilters
         binding.secondarySubRow.isVisible = showSubFilters
         configureResponsiveSizing(showDelay, showFilters, showSubFilters)
 
-        // Delay row (subs).
         binding.delayRow.isVisible = showDelay
         if (showDelay) {
             binding.delayValue.text = delayText ?: "0.00 s"
             binding.delayRow.setOnClickListener { onDelayClick?.invoke() }
         }
 
-        // Filter toggles (audio).
         binding.filterGroup.isVisible = hasFilters
         if (showFilters) {
             this.voiceBoostState = initialVoiceBoostState
@@ -247,7 +226,6 @@ internal class MediaPickerDialog {
             }
         }
 
-        // Subtitle filter toggles (subs).
         if (showSubFilters) {
             this.subScaleState = initialSubScaleState
             this.subPosState = initialSubPosState
@@ -508,8 +486,6 @@ internal class MediaPickerDialog {
         }
         syncAdjustButton(binding.secondarySubMinusBtn, secondarySubState.canDecrease)
         syncAdjustButton(binding.secondarySubPlusBtn, secondarySubState.canIncrease)
-        // Swap only makes sense when secondary is actually on; otherwise there
-        // is no pair to swap.
         syncAdjustButton(binding.secondarySubSwapBtn, secondarySubState.active)
 
         binding.persistSubFiltersCheck.visibility = if (persistSubFiltersEnabled) View.VISIBLE else View.INVISIBLE

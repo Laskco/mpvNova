@@ -41,7 +41,6 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
 
         logs = "mpvNova ${BuildConfig.VERSION_NAME} / ${BuildConfig.VERSION_CODE} (${BuildConfig.BUILD_TYPE})\n"
 
-        // create mpv context to capture version info from log
         MPVLib.create(this)
         mpvDestroyed = false
         MPVLib.addLogObserver(this)
@@ -69,7 +68,6 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
             logs += text
 
         if (text.startsWith("List of enabled features:", true)) {
-            // stop receiving log messages and populate text field
             MPVLib.removeLogObserver(this)
             updateLog()
         }

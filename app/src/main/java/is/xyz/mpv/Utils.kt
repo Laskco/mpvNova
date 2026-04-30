@@ -101,7 +101,6 @@ internal object Utils {
             copyAssetFile(assetManager, name, File("$configDir/$name"))
         }
 
-        // we used to ship this, but it's no longer needed
         File("$configDir/subfont.ttf").delete()
         // Earlier builds copied a `scripts/auto_subs.lua` here; track-memory
         // is now handled in MPVActivity directly so the script (and a stale
@@ -117,7 +116,6 @@ internal object Utils {
         try {
             val path = File("/proc/self/fd/${fd}").canonicalPath
             if (!path.startsWith("/proc") && File(path).canRead()) {
-                // Double check that we can read it
                 ins = FileInputStream(path)
                 ins.read()
                 return path
@@ -144,7 +142,6 @@ internal object Utils {
     }
 
     fun getScreenBrightness(activity: Activity): Float? {
-        // check if window has brightness set
         val lp = activity.window.attributes
         if (lp.screenBrightness >= 0f)
             return lp.screenBrightness
@@ -170,12 +167,10 @@ internal object Utils {
         val storageManager = context.getSystemService(Context.STORAGE_SERVICE) as StorageManager
 
         val candidates = mutableListOf<String>()
-        // check all media dirs, there's usually one on each storage volume
         context.externalMediaDirs.forEach {
             if (it != null)
                 candidates.add(it.absolutePath)
         }
-        // go on a journey to find other mounts Google doesn't want us to find
         File("/proc/mounts").forEachLine { line ->
             val path = line.split(' ')[1]
             if (path.startsWith("/proc") || path.startsWith("/sys") ||
@@ -197,7 +192,6 @@ internal object Utils {
             if (vol.state != Environment.MEDIA_MOUNTED && vol.state != Environment.MEDIA_MOUNTED_READ_ONLY)
                 continue
 
-            // find the actual root path of that volume
             while (true) {
                 val parent = root.parentFile
                 if (parent == null || wrapGetStorageVolume(parent) != vol)
@@ -277,7 +271,6 @@ internal object Utils {
 
         /** callback for properties of type <code>MPV_FORMAT_NONE</code> */
         fun update(property: String): Boolean {
-            // TODO?: maybe one day this could natively handle a MPV_FORMAT_NODE_MAP
             if (property == "metadata") {
                 // If we observe individual keys libmpv won't notify us once they become
                 // unavailable, so we observe "metadata" and read both keys on trigger.
@@ -401,7 +394,6 @@ internal object Utils {
         private val playbackStateBuilder = PlaybackStateCompat.Builder()
 
         private fun buildMediaMetadata(includeThumb: Boolean): MediaMetadataCompat {
-            // TODO could provide: genre, num_tracks, track_number, year
             return with (mediaMetadataBuilder) {
                 putText(MediaMetadataCompat.METADATA_KEY_ALBUM, meta.mediaAlbum)
                 if (includeThumb) {
@@ -439,7 +431,6 @@ internal object Utils {
             return with (playbackStateBuilder) {
                 setState(stateInt, position, speed)
                 setActions(actions)
-                //setActiveQueueItemId(0) TODO
                 build()
             }
         }
@@ -450,7 +441,6 @@ internal object Utils {
                 val ps = buildPlaybackState()
                 isActive = ps.state != PlaybackStateCompat.STATE_NONE
                 setPlaybackState(ps)
-                //setQueue(listOf()) TODO
             }
         }
     }

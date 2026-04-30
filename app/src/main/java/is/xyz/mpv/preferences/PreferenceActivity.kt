@@ -208,10 +208,6 @@ class PreferenceActivity : AppCompatActivity(),
         }
     }
 
-    /**
-     * The root preference fragment that displays preferences that link to the other preference
-     * fragments below.
-     */
     class SettingsFragment : StyledPreferenceFragment(R.xml.preferences_root) {
         override fun onPreferencesLoaded() {
             findPreference<Preference>("check_for_updates")?.setOnPreferenceClickListener {
@@ -223,7 +219,6 @@ class PreferenceActivity : AppCompatActivity(),
 
     class GeneralPreference : StyledPreferenceFragment(R.xml.pref_general) {
         override fun onPreferencesLoaded() {
-            // hide Material You on Android 11 or lower
             preferenceManager.findPreference<Preference>("material_you_theming")?.isVisible =
                 (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
 

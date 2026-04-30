@@ -28,7 +28,6 @@ internal class PlaylistDialog(private val player: MPVView) {
     fun buildView(layoutInflater: LayoutInflater): View {
         binding = DialogPlaylistBinding.inflate(layoutInflater)
 
-        // Set up recycler view
         binding.list.adapter = CustomAdapter(this)
         binding.list.setHasFixedSize(true)
         refresh()
@@ -67,7 +66,6 @@ internal class PlaylistDialog(private val player: MPVView) {
 
         val accent = ContextCompat.getColor(binding.root.context, R.color.accent)
         val disabled = ContextCompat.getColor(binding.root.context, R.color.alpha_disabled)
-        //
         val shuffleState = player.getShuffle()
         binding.shuffleBtn.apply {
             isEnabled = playlist.size > 1
