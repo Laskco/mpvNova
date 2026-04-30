@@ -15,6 +15,7 @@ app/default/release/
 .claude/
 .codex/
 .codex_tmp/
+AUDIO_FILTERS.txt
 
 keystore.properties
 keystore/
