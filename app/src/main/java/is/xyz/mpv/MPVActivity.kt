@@ -60,6 +60,7 @@ import java.util.Locale
 import java.io.File
 import java.lang.IllegalArgumentException
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
@@ -318,6 +319,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var onloadCommands = mutableListOf<Array<String>>()
     private var streamOpenLoading = false
     private var streamCacheLoading = false
+    private var cachedChapters: List<MPVView.Chapter> = emptyList()
+    private var pendingChapterSeekTime: Double? = null
+    private val clearPendingChapterSeek = Runnable { pendingChapterSeekTime = null }
 
     // Activity lifetime
 
@@ -4007,13 +4011,38 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun seekChapterRelative(direction: Int) {
-        val count = MPVLib.getPropertyInt("chapter-list/count") ?: 0
-        if (count == 0) {
+        val chapters = cachedChapters.ifEmpty {
+            player.loadChapters().also { cachedChapters = it }
+        }
+        if (chapters.isEmpty()) {
             MPVLib.command(arrayOf("add", "chapter", direction.toString()))
             return
         }
 
-        MPVLib.command(arrayOf("add", "chapter", direction.toString()))
+        val referenceTime = pendingChapterSeekTime
+            ?: MPVLib.getPropertyDouble("time-pos/full")
+            ?: (psc.position / 1000.0)
+
+        val target = if (direction > 0) {
+            chapters.firstOrNull { it.time > referenceTime + CHAPTER_SKIP_EPSILON_SEC }
+        } else {
+            chapters.lastOrNull { it.time < referenceTime - CHAPTER_SKIP_EPSILON_SEC }
+        }
+
+        if (target == null) {
+            pendingChapterSeekTime = null
+            MPVLib.command(arrayOf("add", "chapter", direction.toString()))
+            return
+        }
+
+        pendingChapterSeekTime = target.time
+        eventUiHandler.removeCallbacks(clearPendingChapterSeek)
+        eventUiHandler.postDelayed(clearPendingChapterSeek, 500)
+
+        MPVLib.command(arrayOf("seek", target.time.toString(), "absolute+exact"))
+        val targetMs = (target.time * 1000.0).roundToLong().coerceAtLeast(0L)
+        setPlaybackSeekbarProgress(seekbarProgressFromMillis(targetMs))
+        updatePlaybackTimeline(targetMs, forceTextUpdate = true)
     }
 
     /**
@@ -4023,6 +4052,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private fun updateChapterMarkers() {
         val duration = psc.durationSec
         val chapters = player.loadChapters()
+        cachedChapters = chapters
         val hasChapters = chapters.isNotEmpty()
 
         binding.nextChapterBtn.visibility = if (hasChapters) View.VISIBLE else View.GONE
@@ -4354,6 +4384,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextRenderFallbackStage = 0
             gpuNextCopyRetryConfirmed = false
             gpuNextCopyRetryDisplayedFrame = false
+            cachedChapters = emptyList()
+            pendingChapterSeekTime = null
             streamOpenLoading = isNetworkStreamPath(currentMpvPath())
             streamCacheLoading = false
             eventUiHandler.post { refreshLoadingOverlay() }
@@ -4705,6 +4737,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L
         // step used when the seekbar is the active TV dpad target
         private const val SEEK_BAR_DPAD_STEP_MS = 1000L
+        private const val CHAPTER_SKIP_EPSILON_SEC = 0.25
         // how often to re-save resume position during playback (ms)
         private const val PERIODIC_SAVE_INTERVAL_MS = 30_000L
         // window from end of file where saved positions are treated as "done"
