@@ -60,6 +60,7 @@ import java.util.Locale
 import java.io.File
 import java.lang.IllegalArgumentException
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
@@ -249,7 +250,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             volumeBoostBtn.setOnClickListener { adjustVolumeBoost(1, wrap = true) }
             nightModeBtn.setOnClickListener { adjustNightMode(1, wrap = true) }
             audioNormBtn.setOnClickListener { adjustAudioNorm(1, wrap = true) }
-            nextChapterBtn.setOnClickListener { MPVLib.command(arrayOf("add", "chapter", "1")) }
+            nextChapterBtn.setOnClickListener { seekChapterRelative(1) }
             topLockBtn.setOnClickListener { lockUI() }
             topPiPBtn.setOnClickListener { goIntoPiP() }
             topMenuBtn.setOnClickListener { openTopMenu() }
@@ -318,6 +319,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var onloadCommands = mutableListOf<Array<String>>()
     private var streamOpenLoading = false
     private var streamCacheLoading = false
+    private var cachedChapters: List<MPVView.Chapter> = emptyList()
 
     // Activity lifetime
 
@@ -3426,10 +3428,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                     }; false
                 },
                 MenuItem(R.id.chapterPrev) {
-                    MPVLib.command(arrayOf("add", "chapter", "-1")); true
+                    seekChapterRelative(-1); true
                 },
                 MenuItem(R.id.chapterNext) {
-                    MPVLib.command(arrayOf("add", "chapter", "1")); true
+                    seekChapterRelative(1); true
                 },
                 MenuItem(R.id.advancedBtn) { openAdvancedMenu(restoreState); false },
                 MenuItem(R.id.orientationBtn) {
@@ -4006,6 +4008,33 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding.nextBtn.imageTintList = ColorStateList.valueOf(if (plPos == plCount-1) g else w)
     }
 
+    private fun seekChapterRelative(direction: Int) {
+        val chapters = cachedChapters.ifEmpty {
+            player.loadChapters().also { cachedChapters = it }
+        }
+        if (chapters.isEmpty()) {
+            MPVLib.command(arrayOf("add", "chapter", direction.toString()))
+            return
+        }
+
+        val currentTime = MPVLib.getPropertyDouble("time-pos/full") ?: (psc.position / 1000.0)
+        val target = if (direction > 0) {
+            chapters.firstOrNull { it.time > currentTime + CHAPTER_SKIP_EPSILON_SEC }
+        } else {
+            chapters.lastOrNull { it.time < currentTime - CHAPTER_SKIP_EPSILON_SEC }
+        }
+
+        if (target == null) {
+            MPVLib.command(arrayOf("add", "chapter", direction.toString()))
+            return
+        }
+
+        MPVLib.command(arrayOf("seek", target.time.toString(), "absolute+keyframes"))
+        val targetMs = (target.time * 1000.0).roundToLong().coerceAtLeast(0L)
+        setPlaybackSeekbarProgress(seekbarProgressFromMillis(targetMs))
+        updatePlaybackTimeline(targetMs, forceTextUpdate = true)
+    }
+
     /**
      * Reads the chapter list from mpv and pushes tick positions to the seekbar.
      * Also shows/hides [nextChapterBtn] depending on whether chapters exist.
@@ -4013,6 +4042,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private fun updateChapterMarkers() {
         val duration = psc.durationSec
         val chapters = player.loadChapters()
+        cachedChapters = chapters
         val hasChapters = chapters.isNotEmpty()
 
         binding.nextChapterBtn.visibility = if (hasChapters) View.VISIBLE else View.GONE
@@ -4344,6 +4374,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextRenderFallbackStage = 0
             gpuNextCopyRetryConfirmed = false
             gpuNextCopyRetryDisplayedFrame = false
+            cachedChapters = emptyList()
             streamOpenLoading = isNetworkStreamPath(currentMpvPath())
             streamCacheLoading = false
             eventUiHandler.post { refreshLoadingOverlay() }
@@ -4695,6 +4726,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L
         // step used when the seekbar is the active TV dpad target
         private const val SEEK_BAR_DPAD_STEP_MS = 1000L
+        private const val CHAPTER_SKIP_EPSILON_SEC = 0.25
         // how often to re-save resume position during playback (ms)
         private const val PERIODIC_SAVE_INTERVAL_MS = 30_000L
         // window from end of file where saved positions are treated as "done"
