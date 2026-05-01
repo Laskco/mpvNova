@@ -210,6 +210,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var controlsAtBottom = true
     private var showMediaTitle = false
     private var useTimeRemaining = false
+    // Title passed by the launching app (Stremio / Nuvio) via intent extras.
+    // Preferred over mpv's media-title which often resolves to the container's
+    // embedded metadata (e.g. Japanese romaji) once the demuxer runs.
+    private var intentTitle: String? = null
 
     private var ignoreAudioFocus = false
     private var playlistExitWarning = true
@@ -893,6 +897,28 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (pos <= 0L) return null
         if (dur > 0L && pos >= dur - RESUME_NEAR_END_MS) return null
         return pos
+    }
+
+    /**
+     * Actively remove saved positions when a video finishes naturally.
+     * Called from MPV_EVENT_END_FILE *before* psc.eof() wipes state, so
+     * both the custom resume table entry and mpv's watch-later file are
+     * cleared. Without this, the periodic 30-second save may have written
+     * a near-end position that never gets cleaned up (psc.eof() makes the
+     * normal save path return early before reaching the removal code).
+     */
+    private fun clearFinishedPositions() {
+        // 1) Custom resume table
+        val identity = resumeIdentityFromSource(currentResumeSource)
+        if (identity != null) {
+            val prefs = getDefaultSharedPreferences(applicationContext)
+            prefs.edit()
+                .remove(resumeKey(identity))
+                .remove(legacyResumeKey(identity))
+                .apply()
+        }
+        // 2) mpv's native watch-later file
+        MPVLib.command(arrayOf("delete-watch-later-config"))
     }
 
     /**
@@ -1809,10 +1835,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 )
             }
         }
-        launchExtras.getString("title", "").let {
-            if (!it.isNullOrEmpty())
-                pushOption("force-media-title", it)
-        }
+        intentTitle = launchExtras.getString("title", "").takeIf { !it.isNullOrEmpty() }
+        intentTitle?.let { pushOption("force-media-title", it) }
     }
 
     // UI (Part 2)
@@ -3654,13 +3678,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         updatePlaylistButtons()
     }
 
+    /** Return the best available title: intent title from the launching app
+     *  wins over mpv's media-title (which often flips to container metadata). */
+    private fun effectiveTitle(): String? = intentTitle ?: psc.meta.formatTitle()
+
     private fun updateMetadataDisplay() {
         updatePlayerTitleOverlay()
         if (!useAudioUI) {
             if (showMediaTitle)
-                binding.fullTitleTextView.text = psc.meta.formatTitle()
+                binding.fullTitleTextView.text = effectiveTitle()
         } else {
-            binding.titleTextView.text = psc.meta.formatTitle()
+            binding.titleTextView.text = effectiveTitle()
             binding.minorTitleTextView.text = psc.meta.formatArtistAlbum()
         }
     }
@@ -3818,7 +3846,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updatePlayerTitleOverlay() {
-        val rawTitle = psc.meta.formatTitle()?.trim().orEmpty()
+        val rawTitle = effectiveTitle()?.trim().orEmpty()
         val shouldShow = !useAudioUI &&
             showMediaTitle &&
             rawTitle.isNotBlank() &&
@@ -4369,6 +4397,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (psc.duration > 0L)
                 lastDurationMs = psc.duration
             eofWasReached = true
+            // Actively clean up saved positions so a finished video doesn't
+            // resume at the very end on next launch. Must run before psc.eof()
+            // wipes position/duration (which causes saveResumePosition's early
+            // return to skip the cleanup).
+            clearFinishedPositions()
             psc.eof()
             updateMediaSession()
         }
