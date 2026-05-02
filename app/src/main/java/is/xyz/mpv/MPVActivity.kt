@@ -3731,7 +3731,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         fun cleanTitlePart(value: String): String {
             return stripFileExtension(value)
-                .replace(Regex("[._]+"), " ")
+                .replace(Regex("[._·•‧]+"), " ")
                 .replace(Regex("""\s+[+]\s*"""), " ")
                 .replace(Regex("\\s+"), " ")
                 .trim(' ', '-', '–', '—', ':', '|')
@@ -4458,6 +4458,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             // run and the file is loaded.
             applyRememberedTrack("sub")
             applyRememberedTrack("audio")
+
+            // Safety net: if we ended up near the end of the file (e.g. the
+            // launching app sent a near-end position without a duration so we
+            // couldn't filter it in parseIntentExtras), seek back to the start.
+            val loadedPos = psc.position
+            val loadedDur = psc.duration
+            if (loadedDur > 0L && loadedPos >= loadedDur - RESUME_NEAR_END_MS) {
+                Log.v(TAG, "resume: position $loadedPos is near end of $loadedDur, restarting")
+                MPVLib.command(arrayOf("seek", "0", "absolute"))
+                pendingResumeToastMs = 0L  // suppress stale toast
+            }
 
             // Surface a "Resumed from X:XX" toast if we asked for a non-zero
             // start position during intent parsing. Delay the toast until
