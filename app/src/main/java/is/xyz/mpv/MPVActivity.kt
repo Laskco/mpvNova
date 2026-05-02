@@ -59,6 +59,7 @@ import java.util.Date
 import java.util.Locale
 import java.io.File
 import java.lang.IllegalArgumentException
+import java.net.URLDecoder
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
@@ -3734,6 +3735,42 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return value.replace(Regex("""^\s*\[[^\]]{1,40}]\s*"""), "")
         }
 
+        fun decodeQueryPart(value: String): String {
+            return try {
+                URLDecoder.decode(value, "UTF-8")
+            } catch (e: IllegalArgumentException) {
+                value
+            }
+        }
+
+        fun titleFromQueryParam(value: String): String? {
+            val queryStart = value.indexOf('?')
+            if (queryStart < 0)
+                return null
+            val query = value.substring(queryStart + 1).substringBefore('#')
+            val params = query.split('&', ';').mapNotNull { part ->
+                val splitAt = part.indexOf('=')
+                if (splitAt <= 0) {
+                    null
+                } else {
+                    val key = decodeQueryPart(part.substring(0, splitAt))
+                        .lowercase(Locale.US)
+                        .replace(' ', '_')
+                    val paramValue = decodeQueryPart(part.substring(splitAt + 1)).trim()
+                    key to paramValue
+                }
+            }
+            val titleKeys = listOf("torrent_name", "filename", "file", "title", "name")
+            return titleKeys
+                .firstNotNullOfOrNull { key -> params.firstOrNull { it.first == key }?.second }
+                ?.takeIf { it.isNotBlank() }
+        }
+
+        fun normalizeRawTitle(value: String): String {
+            titleFromQueryParam(value)?.let { return it }
+            return value.substringBefore('?').substringBefore('#')
+        }
+
         fun cleanTitlePart(value: String): String {
             return stripFileExtension(value)
                 .replace(Regex("[._·•‧]+"), " ")
@@ -3768,6 +3805,30 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 return true
             val technicalCount = tokens.count { isTechnicalToken(it) }
             return technicalCount >= (tokens.size * 0.65f).roundToInt().coerceAtLeast(1)
+        }
+
+        fun looksLikeReleaseTitle(value: String): Boolean {
+            val hasMediaExtension = mediaExtensions.any { extension ->
+                value.endsWith(".$extension", ignoreCase = true) ||
+                    value.endsWith(" $extension", ignoreCase = true)
+            }
+            if (hasMediaExtension)
+                return true
+
+            val cleaned = cleanTitlePart(value)
+            val hasEpisodeMarker = Regex(
+                """(?i)(?:^|\s)(?:S\d{1,2}\s*E\d{1,3}|\d{1,2}x\d{1,3})(?:\s|$)"""
+            ).containsMatchIn(cleaned)
+            if (!hasEpisodeMarker)
+                return false
+
+            val tokens = cleaned.split(Regex("\\s+")).filter { it.isNotBlank() }
+            return tokens.count { isTechnicalToken(it) } >= 2
+        }
+
+        fun isAllCapsPhrase(value: String): Boolean {
+            val letters = value.filter { it.isLetter() }
+            return letters.length >= 4 && letters.none { it.isLowerCase() }
         }
 
         fun stripTrailingTechnicalTokens(value: String): String {
@@ -3815,6 +3876,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             val cleaned = stripReleaseTail(withoutTechnicalGroups)
             if (cleaned.isBlank() || isMostlyTechnical(cleaned))
                 return null
+            if (isAllCapsPhrase(cleaned))
+                return null
             return cleaned
         }
 
@@ -3822,7 +3885,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             return if (!episodeTitle.isNullOrBlank()) "$label • $episodeTitle" else label
         }
 
-        val title = cleanTitlePart(stripLeadingReleaseGroup(rawTitle))
+        val normalizedTitle = normalizeRawTitle(rawTitle)
+        val suppressInferredEpisodeTitle = looksLikeReleaseTitle(normalizedTitle)
+        val title = cleanTitlePart(stripLeadingReleaseGroup(normalizedTitle))
         val seasonEpisodeRegexes = listOf(
             Regex(
                 """(?i)^(.*?)\s*(?:[-–—:|]|\s)+S(\d{1,2})\s*E(\d{1,3})\s*(?:[-–—:|]|\s)*(.*)$"""
@@ -3837,7 +3902,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             val show = cleanTitlePart(match.groupValues[1]).ifBlank { title }
             val season = match.groupValues[2].toIntOrNull()
             val episode = match.groupValues[3].toIntOrNull()
-            val episodeTitle = cleanEpisodeTitle(match.groupValues[4])
+            val episodeTitle = if (suppressInferredEpisodeTitle) {
+                null
+            } else {
+                cleanEpisodeTitle(match.groupValues[4])
+            }
             if (season != null && episode != null) {
                 val episodeLabel = "S$season E$episode"
                 return PlayerTitleLines(show, buildEpisodeLine(episodeLabel, episodeTitle))
@@ -3857,7 +3926,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             val match = regex.matchEntire(title) ?: continue
             val show = cleanTitlePart(match.groupValues[1]).ifBlank { title }
             val episode = match.groupValues[2].toIntOrNull() ?: continue
-            val episodeTitle = cleanEpisodeTitle(match.groupValues[3])
+            val episodeTitle = if (suppressInferredEpisodeTitle) {
+                null
+            } else {
+                cleanEpisodeTitle(match.groupValues[3])
+            }
             val episodeLabel = "E$episode"
             return PlayerTitleLines(show, buildEpisodeLine(episodeLabel, episodeTitle))
         }
