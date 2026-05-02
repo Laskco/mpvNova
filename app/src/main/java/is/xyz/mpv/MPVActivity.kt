@@ -210,10 +210,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var controlsAtBottom = true
     private var showMediaTitle = false
     private var useTimeRemaining = false
-    // Title passed by the launching app (Stremio / Nuvio) via intent extras.
-    // Preferred over mpv's media-title which often resolves to the container's
-    // embedded metadata (e.g. Japanese romaji) once the demuxer runs.
+    // Intent title from the launching app; consumed at START_FILE.
     private var intentTitle: String? = null
+    // Display title locked for the current file: either from the intent or
+    // the first media-title mpv reports (the URL filename), whichever comes
+    // first.  Prevents the demuxer's container metadata from overriding it.
+    private var lockedTitle: String? = null
 
     private var ignoreAudioFocus = false
     private var playlistExitWarning = true
@@ -1816,11 +1818,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
         // Honor a position passed by the launching app first; fall back to our
         // own resume table for HTTPS streams whose URL hash mpv can't track.
+        // Apply the near-end check to BOTH sources so a finished video doesn't
+        // resume at the very last second.
         val intentPositionMs = launchExtras.getInt("position", 0).toLong()
-        val effectivePositionMs = if (intentPositionMs > 0L)
-            intentPositionMs
-        else
-            loadResumePosition() ?: 0L
+        val intentDurationMs = launchExtras.getInt("duration", 0).toLong()
+        val intentNearEnd = intentDurationMs > 0L &&
+                intentPositionMs >= intentDurationMs - RESUME_NEAR_END_MS
+        val effectivePositionMs = when {
+            intentPositionMs > 0L && !intentNearEnd -> intentPositionMs
+            intentPositionMs <= 0L -> loadResumePosition() ?: 0L
+            else -> 0L  // intent position was near-end — treat as finished
+        }
         if (effectivePositionMs > 0L) {
             pushOption("start", "${effectivePositionMs / 1000f}")
             // Surface a toast for any non-trivial resume (>=60s) regardless of
@@ -3678,9 +3686,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         updatePlaylistButtons()
     }
 
-    /** Return the best available title: intent title from the launching app
-     *  wins over mpv's media-title (which often flips to container metadata). */
-    private fun effectiveTitle(): String? = intentTitle ?: psc.meta.formatTitle()
+    /** Return the best available title: locked title (from intent or first
+     *  media-title) wins over later mpv updates (container metadata). */
+    private fun effectiveTitle(): String? = lockedTitle ?: psc.meta.formatTitle()
 
     private fun updateMetadataDisplay() {
         updatePlayerTitleOverlay()
@@ -4381,6 +4389,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     override fun eventProperty(property: String, value: String) {
+        // Lock the first useful media-title so the demuxer's container
+        // metadata (often a different-language or stripped-down title)
+        // can't override the filename-derived title from the URL.
+        if (property == "media-title" && value.isNotBlank() && lockedTitle == null)
+            lockedTitle = value
+
         val metaUpdated = psc.update(property, value)
         if (metaUpdated)
             updateMediaSession()
@@ -4419,6 +4433,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextCopyRetryDisplayedFrame = false
             cachedChapters = emptyList()
             pendingChapterSeekTime = null
+            // Consume the intent title (if any) and reset the display lock
+            // so the first media-title for this file gets captured fresh.
+            lockedTitle = intentTitle
+            intentTitle = null
             streamOpenLoading = isNetworkStreamPath(currentMpvPath())
             streamCacheLoading = false
             eventUiHandler.post { refreshLoadingOverlay() }
