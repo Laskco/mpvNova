@@ -83,6 +83,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // ms to seek to on file-load if we restored from our resume table; 0 = no
     // restore happened. Drives the "Resumed from X:XX" toast.
     private var pendingResumeToastMs = 0L
+    // The start position we asked mpv to seek to (from intent or resume table).
+    // Checked at FILE_LOADED against the actual duration so we can catch
+    // near-end positions that slipped through parseIntentExtras.
+    private var pendingStartPositionMs = 0L
     // Source URL/path for the currently loaded file. Do not read Activity.intent
     // directly for resume saves because onNewIntent() can load another episode
     // while the Activity instance stays alive.
@@ -1829,6 +1833,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             intentPositionMs <= 0L -> loadResumePosition() ?: 0L
             else -> 0L  // intent position was near-end — treat as finished
         }
+        pendingStartPositionMs = effectivePositionMs
         if (effectivePositionMs > 0L) {
             pushOption("start", "${effectivePositionMs / 1000f}")
             // Surface a toast for any non-trivial resume (>=60s) regardless of
@@ -3741,6 +3746,13 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             val compact = token.trim('.', '-', '_', '+')
             val normalized = token.lowercase(Locale.US)
                 .trim('.', '-', '_', '+')
+            // Compound tokens joined by hyphens (e.g. "1080p-Hi10p"):
+            // split and check if every part is technical on its own.
+            if ('-' in compact) {
+                val parts = compact.split('-').filter { it.isNotBlank() }
+                if (parts.size >= 2 && parts.all { isTechnicalToken(it) })
+                    return true
+            }
             return normalized in technicalWords ||
                 normalized in mediaExtensions ||
                 technicalTokenRegex.matches(normalized) ||
@@ -4459,15 +4471,21 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             applyRememberedTrack("sub")
             applyRememberedTrack("audio")
 
-            // Safety net: if we ended up near the end of the file (e.g. the
-            // launching app sent a near-end position without a duration so we
-            // couldn't filter it in parseIntentExtras), seek back to the start.
-            val loadedPos = psc.position
-            val loadedDur = psc.duration
-            if (loadedDur > 0L && loadedPos >= loadedDur - RESUME_NEAR_END_MS) {
-                Log.v(TAG, "resume: position $loadedPos is near end of $loadedDur, restarting")
-                MPVLib.command(arrayOf("seek", "0", "absolute"))
-                pendingResumeToastMs = 0L  // suppress stale toast
+            // Safety net: if the requested start position is near the end of
+            // the actual file (e.g. the launching app sent a near-end position
+            // without a duration extra so we couldn't filter it earlier), seek
+            // back to the start.  Query duration directly from mpv since psc
+            // may not have processed the property change yet.
+            if (pendingStartPositionMs > 0L) {
+                val fileDur = MPVLib.getPropertyDouble("duration/full")
+                    ?.times(1000)?.toLong() ?: 0L
+                if (fileDur > 0L && pendingStartPositionMs >= fileDur - RESUME_NEAR_END_MS) {
+                    Log.v(TAG, "resume: start position ${pendingStartPositionMs}ms is near " +
+                            "end of ${fileDur}ms, restarting from beginning")
+                    MPVLib.command(arrayOf("seek", "0", "absolute"))
+                    pendingResumeToastMs = 0L
+                }
+                pendingStartPositionMs = 0L
             }
 
             // Surface a "Resumed from X:XX" toast if we asked for a non-zero
