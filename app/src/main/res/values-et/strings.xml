@@ -98,8 +98,6 @@
     <string name="pref_auto_rotation_title">Ekraan orientatsioon</string>
     <string name="pref_auto_rotation_summary">Otsusta millise orientatsioon mpv hakkab esitama portraiti või maastik videod sisse.</string>
 
-    <string name="pref_display_media_title_title">Näita meedia pealkirja (videod)</string>
-    <string name="pref_display_media_title_summary">Näita pealkirja või failinime videodelt juhtmed üleval. Audio failid näitab alati oma metaandmed ekraanis.</string>
 
     <string name="pref_bottom_controls_title">Näita juhtmeid madalal ekraanit</string>
 

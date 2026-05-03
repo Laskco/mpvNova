@@ -102,8 +102,6 @@
     <string name="pref_auto_rotation_title">Orientació de pantalla</string>
     <string name="pref_auto_rotation_summary">Decideix l\'orientació, horitzontal o vertical, en què mpv reproduirà els vídeos.</string>
     
-    <string name="pref_display_media_title_title">Mostra el títol (del vídeo)</string>
-    <string name="pref_display_media_title_summary">Mostra el títol o el nom del fitxer del vídeo sobre els controls. Els fitxers d\'àudio mostren sempre les seves metadades.</string>
 
     <string name="pref_bottom_controls_title">Mostra els controls al capdavall de la pantalla</string>
 
