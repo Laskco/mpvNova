@@ -288,16 +288,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (lockedUI) false else gestures.onTouchEvent(e)
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(binding.outside) { _, windowInsets ->
+        ViewCompat.setOnApplyWindowInsetsListener(binding.outside) { v, windowInsets ->
             // guidance: https://medium.com/androiddevelopers/gesture-navigation-handling-visual-overlaps-4aed565c134c
-            val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-            val insets2 = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout())
-            binding.outside.updateLayoutParams<MarginLayoutParams> {
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.updateLayoutParams<MarginLayoutParams> {
                 // avoid system bars and cutout
-                leftMargin = Math.max(insets.left, insets2.left)
-                topMargin = Math.max(insets.top, insets2.top)
-                bottomMargin = Math.max(insets.bottom, insets2.bottom)
-                rightMargin = Math.max(insets.right, insets2.right)
+                leftMargin = insets.left
+                topMargin = insets.top
+                bottomMargin = insets.bottom
+                rightMargin = insets.right
             }
             WindowInsetsCompat.CONSUMED
         }
@@ -435,6 +436,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         // Stop periodic resume saves; one final save runs from onPause()
         // already so no need to flush again here.
         periodicSaveHandler.removeCallbacks(periodicSaveRunnable)
+
+        if (becomingNoisyReceiverRegistered) {
+            unregisterReceiver(becomingNoisyReceiver)
+            becomingNoisyReceiverRegistered = false
+        }
 
         BackgroundPlaybackService.mediaToken = null
         mediaSession?.let {

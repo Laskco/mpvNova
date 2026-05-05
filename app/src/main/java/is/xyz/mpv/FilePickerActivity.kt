@@ -54,6 +54,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         setSupportActionBar(binding.toolbar)
         supportActionBar?.setDisplayShowTitleEnabled(false)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        supportActionBar?.hide()
         binding.toolbar.setNavigationOnClickListener {
             onBackPressedImpl()
         }
