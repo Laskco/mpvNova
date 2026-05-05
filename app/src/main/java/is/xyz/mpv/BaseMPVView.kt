@@ -115,16 +115,50 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
         }
 
         try {
-            val text = libavcodec.readBytes().toString(Charsets.ISO_8859_1)
-            val match = Regex("""FFmpeg version [^\u0000\r\n]+""").find(text)?.value
-            if (match != null) {
-                Log.i(TAG, "Bundled $match")
+            val marker = "FFmpeg version ".toByteArray(Charsets.ISO_8859_1)
+            var result: String? = null
+            libavcodec.inputStream().buffered(16384).use { stream ->
+                val buf = ByteArray(16384)
+                var carry = ByteArray(0)
+                while (result == null) {
+                    val read = stream.read(buf)
+                    if (read == -1) break
+                    val chunk = if (carry.isEmpty()) buf.copyOf(read)
+                                else carry + buf.copyOf(read)
+                    val idx = indexOfBytes(chunk, marker)
+                    if (idx >= 0) {
+                        var end = idx + marker.size
+                        while (end < chunk.size && chunk[end] != 0.toByte()
+                            && chunk[end] != '\r'.code.toByte()
+                            && chunk[end] != '\n'.code.toByte()) end++
+                        result = String(chunk, idx, end - idx, Charsets.ISO_8859_1)
+                    } else {
+                        carry = if (chunk.size > marker.size)
+                            chunk.copyOfRange(chunk.size - marker.size, chunk.size)
+                        else chunk
+                    }
+                }
+            }
+            if (result != null) {
+                Log.i(TAG, "Bundled $result")
             } else {
                 Log.w(TAG, "Bundled FFmpeg version string not found in libavcodec.so")
             }
         } catch (e: Exception) {
             Log.w(TAG, "Bundled FFmpeg check failed", e)
         }
+    }
+
+    private fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
+        val limit = haystack.size - needle.size
+        var i = 0
+        outer@ while (i <= limit) {
+            for (j in needle.indices) {
+                if (haystack[i + j] != needle[j]) { i++; continue@outer }
+            }
+            return i
+        }
+        return -1
     }
 
     companion object {

@@ -737,7 +737,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 "secondary_sub_pos_pct",
                 if (persistSubFilters) secondaryPosSteps[secondaryPosLevel] else 0
             )
-            commit()
+            apply()
         }
     }
 
@@ -823,18 +823,15 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         } catch (_: Exception) {
             source
         }
-        // 40-char = SHA-1 (BT v1 infohash), 64-char = SHA-256 (BT v2 / file
-        // content hash). It is stable across rotating auth tokens, but not always
-        // unique per episode when the stream comes from a season pack.
-        val match = Regex("/([a-fA-F0-9]{40,64})(?=/|$)").find(path) ?: return null
+        val match = RESUME_HASH_REGEX.find(path) ?: return null
         val hash = match.groupValues[1].lowercase(Locale.US)
         val lastSegment = path
             .split('/')
             .lastOrNull { it.isNotBlank() && !it.equals(hash, ignoreCase = true) }
         val fileToken = lastSegment
             ?.lowercase(Locale.US)
-            ?.replace(Regex("""\.[a-z0-9]{2,5}$"""), "")
-            ?.replace(Regex("""[^a-z0-9]+"""), "-")
+            ?.replace(FILE_EXTENSION_REGEX, "")
+            ?.replace(NON_ALNUM_REGEX, "-")
             ?.trim('-')
             ?.take(120)
             ?.takeIf { it.length >= 3 }
@@ -1094,6 +1091,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.statsTextView.text = statsText
     }
 
+    private var clockFormatter: SimpleDateFormat? = null
+    private var clockFormatterIs24: Boolean? = null
+
     private fun updateClockInfo(force: Boolean = false) {
         val now = System.currentTimeMillis()
         val tick = now / 1000L
@@ -1102,9 +1102,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         lastClockInfoTick = tick
 
         val is24Hour = android.text.format.DateFormat.is24HourFormat(this)
-        val pattern = if (is24Hour) "HH:mm" else "hh:mm a"
-        val formatter = SimpleDateFormat(pattern, Locale.getDefault())
-        val clockText = formatter.format(Date(now))
+        if (clockFormatter == null || clockFormatterIs24 != is24Hour) {
+            val pattern = if (is24Hour) "HH:mm" else "hh:mm a"
+            clockFormatter = SimpleDateFormat(pattern, Locale.getDefault())
+            clockFormatterIs24 = is24Hour
+        }
+        val clockText = clockFormatter!!.format(Date(now))
         if (binding.clockTextView.text.toString() != clockText)
             binding.clockTextView.text = clockText
 
@@ -1113,7 +1116,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             val endTimeMillis = now + (remainingSeconds * 1000L)
             val endsAtText = getString(
                 R.string.player_ends_at,
-                formatter.format(Date(endTimeMillis))
+                clockFormatter!!.format(Date(endTimeMillis))
             )
             binding.endsAtTextView.visibility = View.VISIBLE
             if (binding.endsAtTextView.text.toString() != endsAtText)
@@ -3029,19 +3032,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         "the", "and", "of", "a", "an", "or", "to", "for"
     )
 
-    /**
-     * Lowercase, normalize punctuation (including brackets) to spaces, drop
-     * tiny / stopword tokens. We deliberately keep bracket *contents* — for
-     * anime sub tracks, the bracket usually carries the release group name
-     * (`[USBD]`, `[Rasetsu]`, `[GotWoot+Final8]`) and that's exactly the bit
-     * the user wants to stick across episodes. Stripping it loses the signal.
-     */
     private fun normalizeTitleTokens(title: String): Set<String> {
         if (title.isEmpty()) return emptySet()
         return title
             .lowercase()
-            .replace(Regex("[^a-z0-9 ]"), " ")
-            .split(Regex("\\s+"))
+            .replace(TITLE_NON_ALNUM_REGEX, " ")
+            .split(WHITESPACE_REGEX)
             .filter { it.length > 2 && it !in trackTitleStopwords }
             .toSet()
     }
@@ -4578,37 +4574,28 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     companion object {
         private const val TAG = "mpv"
-        // how long should controls be displayed on screen (ms)
         private const val CONTROLS_DISPLAY_TIMEOUT = 10_000L
-        // how long controls fade to disappear (ms)
         private const val CONTROLS_FADE_DURATION = 500L
-        // resolution (px) of the thumbnail displayed with playback notification
         private const val THUMB_SIZE = 384
-        // smallest aspect ratio that is considered non-square
-        private const val ASPECT_RATIO_MIN = 1.2f // covers 5:4 and up
-        // fraction to which audio volume is ducked on loss of audio focus
+        private const val ASPECT_RATIO_MIN = 1.2f
         private const val AUDIO_FOCUS_DUCKING = 0.5f
-        // request codes for invoking other activities
         private const val RCODE_EXTERNAL_AUDIO = 1000
         private const val RCODE_EXTERNAL_SUB = 1001
         private const val RCODE_LOAD_FILE = 1002
-        // action of result intent
         private const val RESULT_INTENT = "app.mpvnova.player.MPVActivity.result"
-        // stream type used with AudioManager
         private const val STREAM_TYPE = AudioManager.STREAM_MUSIC
-        // precision used by seekbar (1/s)
         private const val SEEK_BAR_PRECISION = 1000L
-        // minimum interval between automatic seekbar repaints while playback is running
         private const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L
-        // step used when the seekbar is the active TV dpad target
         private const val SEEK_BAR_DPAD_STEP_MS = 1000L
         private const val CHAPTER_SKIP_EPSILON_SEC = 0.25
-        // how often to re-save resume position during playback (ms)
         private const val PERIODIC_SAVE_INTERVAL_MS = 30_000L
-        // window from end of file where saved positions are treated as "done"
-        // and not restored (avoids resuming at 99% straight into credits)
         private const val RESUME_NEAR_END_MS = 30_000L
-        // hard cap on the resume table — oldest entries get evicted past this
         private const val RESUME_TABLE_MAX_ENTRIES = 500
+
+        private val RESUME_HASH_REGEX = Regex("/([a-fA-F0-9]{40,64})(?=/|$)")
+        private val FILE_EXTENSION_REGEX = Regex("""\.[a-z0-9]{2,5}$""")
+        private val NON_ALNUM_REGEX = Regex("""[^a-z0-9]+""")
+        private val TITLE_NON_ALNUM_REGEX = Regex("[^a-z0-9 ]")
+        private val WHITESPACE_REGEX = Regex("\\s+")
     }
 }
