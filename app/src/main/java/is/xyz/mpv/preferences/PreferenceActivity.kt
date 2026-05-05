@@ -171,6 +171,7 @@ class PreferenceActivity : AppCompatActivity(),
 
             val horizontalPadding = dp(4)
             listView.apply {
+                itemAnimator = null
                 clipToPadding = true
                 overScrollMode = View.OVER_SCROLL_NEVER
                 setPadding(horizontalPadding, dp(2), horizontalPadding, dp(6))

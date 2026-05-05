@@ -33,6 +33,7 @@ import androidx.core.content.ContextCompat
 import android.view.*
 import android.view.ViewGroup.MarginLayoutParams
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.activity.addCallback
@@ -101,6 +102,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var lastSeekbarProgress = Int.MIN_VALUE
     private var lastSeekbarUiUpdateMs = 0L
     private var lastClockInfoTick = Long.MIN_VALUE
+    @DrawableRes
+    private var lastPlayButtonIconRes = 0
 
     private var audioManager: AudioManager? = null
     private var audioFocusRequest: AudioFocusRequestCompat? = null
@@ -1509,7 +1512,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val controls = dpadButtons()
         controls.forEachIndexed { i, child ->
             val selected = i == btnSelected
-            child.isSelected = selected
+            if (child.isSelected != selected) {
+                child.isSelected = selected
+            }
             if (child is ChapterSeekBar) {
                 child.setDpadSelected(selected)
             }
@@ -1521,7 +1526,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             if (selectedChild !== binding.playbackSeekbar && binding.playbackSeekbar.isFocused) {
                 binding.playbackSeekbar.clearFocus()
             }
-            if (selectedChild.isFocusable) {
+            if (selectedChild.isFocusable && !selectedChild.isFocused) {
                 selectedChild.requestFocus()
             }
         }
@@ -2505,9 +2510,24 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     )
     private val volumeBoostStepsDb = intArrayOf(0, 2, 4, 6, 8, 10, 12, 15, 18, 21)
 
-    private fun refreshFilterTint(btn: android.widget.ImageButton, active: Boolean) {
+    private fun View.setVisibilityIfChanged(newVisibility: Int) {
+        if (visibility != newVisibility)
+            visibility = newVisibility
+    }
+
+    private fun TextView.setTextIfChanged(newText: CharSequence?) {
+        if (text.toString() != newText.toString())
+            text = newText
+    }
+
+    private fun ImageButton.setImageTintColorIfChanged(color: Int) {
+        if (imageTintList?.defaultColor != color)
+            imageTintList = ColorStateList.valueOf(color)
+    }
+
+    private fun refreshFilterTint(btn: ImageButton, active: Boolean) {
         val colorRes = if (active) R.color.tv_filter_active_icon else R.color.tv_text
-        btn.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(this, colorRes))
+        btn.setImageTintColorIfChanged(ContextCompat.getColor(this, colorRes))
     }
 
     private fun isVoiceBoostOn() = voiceBoostLevel > 0
@@ -3679,8 +3699,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun updateMetadataDisplay() {
         if (useAudioUI) {
-            binding.titleTextView.text = psc.meta.formatTitle()
-            binding.minorTitleTextView.text = psc.meta.formatArtistAlbum()
+            binding.titleTextView.setTextIfChanged(psc.meta.formatTitle())
+            binding.minorTitleTextView.setTextIfChanged(psc.meta.formatArtistAlbum())
         }
     }
 
@@ -3740,13 +3760,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (!force && lastDisplayedPlaybackSecond == position)
             return
         lastDisplayedPlaybackSecond = position
-        binding.playbackPositionTxt.text = Utils.prettyTime(position)
+        binding.playbackPositionTxt.setTextIfChanged(Utils.prettyTime(position))
         if (useTimeRemaining) {
             val diff = psc.durationSec - position
-            binding.playbackDurationTxt.text = if (diff <= 0)
+            val durationText = if (diff <= 0)
                 "-00:00"
             else
                 Utils.prettyTime(-diff, true)
+            binding.playbackDurationTxt.setTextIfChanged(durationText)
         }
 
         // Keep the expensive secondary UI work at roughly once per second even
@@ -3760,8 +3781,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val duration = (durationMs / 1000f).roundToInt()
         if (!useTimeRemaining) {
             val durationText = Utils.prettyTime(duration)
-            if (binding.playbackDurationTxt.text.toString() != durationText)
-                binding.playbackDurationTxt.text = durationText
+            binding.playbackDurationTxt.setTextIfChanged(durationText)
         }
 
         val seekbarMax = seekbarProgressFromMillis(durationMs)
@@ -3776,7 +3796,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun updatePlaybackStatus(paused: Boolean) {
         val r = if (paused) R.drawable.ic_play_arrow_black_24dp else R.drawable.ic_pause_black_24dp
-        binding.playBtn.setImageResource(r)
+        if (lastPlayButtonIconRes != r) {
+            binding.playBtn.setImageResource(r)
+            lastPlayButtonIconRes = r
+        }
 
         updatePiPParams()
         if (paused) {
@@ -3791,13 +3814,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             eventUiHandler.post { updateDecoderButton() }
             return
         }
-        binding.cycleDecoderBtn.text = when (player.currentDecoderMode) {
+        val decoderText = when (player.currentDecoderMode) {
             MPVView.DECODER_MODE_HW_PLUS -> "HW+"
             MPVView.DECODER_MODE_HW -> "HW"
             MPVView.DECODER_MODE_GNEXT, MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
             MPVView.DECODER_MODE_SW -> "SW"
             else -> "HW"
         }
+        binding.cycleDecoderBtn.setTextIfChanged(decoderText)
     }
 
     private fun toggleStatsOverlay() {
@@ -3833,7 +3857,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updateSpeedButton() {
-        binding.cycleSpeedBtn.text = getString(R.string.ui_speed, psc.speed)
+        binding.cycleSpeedBtn.setTextIfChanged(getString(R.string.ui_speed, psc.speed))
     }
 
     private fun updatePlaylistButtons() {
@@ -3842,17 +3866,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (!useAudioUI && plCount == 1) {
             // use View.GONE so the buttons won't take up any space
-            binding.prevBtn.visibility = View.GONE
-            binding.nextBtn.visibility = View.GONE
+            binding.prevBtn.setVisibilityIfChanged(View.GONE)
+            binding.nextBtn.setVisibilityIfChanged(View.GONE)
             return
         }
-        binding.prevBtn.visibility = View.VISIBLE
-        binding.nextBtn.visibility = View.VISIBLE
+        binding.prevBtn.setVisibilityIfChanged(View.VISIBLE)
+        binding.nextBtn.setVisibilityIfChanged(View.VISIBLE)
 
         val g = ContextCompat.getColor(this, R.color.tint_disabled)
         val w = ContextCompat.getColor(this, R.color.tint_normal)
-        binding.prevBtn.imageTintList = ColorStateList.valueOf(if (plPos == 0) g else w)
-        binding.nextBtn.imageTintList = ColorStateList.valueOf(if (plPos == plCount-1) g else w)
+        binding.prevBtn.setImageTintColorIfChanged(if (plPos == 0) g else w)
+        binding.nextBtn.setImageTintColorIfChanged(if (plPos == plCount-1) g else w)
     }
 
     private fun seekChapterRelative(direction: Int) {

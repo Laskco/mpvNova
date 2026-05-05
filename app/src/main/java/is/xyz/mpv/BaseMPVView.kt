@@ -57,6 +57,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     protected abstract fun observeProperties()
 
     private var filePath: String? = null
+    private var lastSurfaceWidth = -1
+    private var lastSurfaceHeight = -1
 
     /**
      * Set the first file to be played once the player is ready.
@@ -79,6 +81,10 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
     // Surface callbacks
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
+        if (width == lastSurfaceWidth && height == lastSurfaceHeight)
+            return
+        lastSurfaceWidth = width
+        lastSurfaceHeight = height
         MPVLib.setPropertyString("android-surface-size", "${width}x$height")
     }
 
@@ -99,6 +105,8 @@ abstract class BaseMPVView(context: Context, attrs: AttributeSet) : SurfaceView(
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         Log.w(TAG, "detaching surface")
+        lastSurfaceWidth = -1
+        lastSurfaceHeight = -1
         MPVLib.setPropertyString("vo", "null")
         MPVLib.setPropertyString("force-window", "no")
         // detachSurface() assumes libmpv is done using the surface; setting
