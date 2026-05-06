@@ -56,6 +56,15 @@
         <item name="materialAlertDialogTheme">@style/AppTheme.Preference.AlertDialog</item>
     </style>
 
+    <style name="AppTheme.ExternalPlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowActionBar">false</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+    </style>
+
     <style name="TvAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
         <item name="colorPrimary">@color/tv_purple</item>
         <item name="colorAccent">@color/tv_purple_hot</item>

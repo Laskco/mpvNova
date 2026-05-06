@@ -28,7 +28,7 @@ android {
         applicationId = 'app.mpvnova.player'
 
         versionCode = project.ext.appVersionCode
-        versionName = "2026-05-05-hotfix2"
+        versionName = "2026-05-06"
 
         vectorDrawables.useSupportLibrary = true
     }

@@ -316,13 +316,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private var playbackHasStarted = false
-    // Set true once mpv reports MPV_EVENT_END_FILE for the current file. The
-    // PlaybackStateCache wipes its position/duration as soon as that event
-    // fires, so we cache the duration here to report `position == duration`
-    // back to the launching app (Stremio / Nuvio / MX-Player-style launchers
-    // use that as the "episode finished, advance to next" signal).
+    // Set true once mpv reports MPV_EVENT_END_FILE for the current file. Some
+    // launchers, including Stremio's mpv parser, treat an OK result without
+    // position/duration extras as completed playback.
     private var eofWasReached = false
-    private var lastDurationMs = 0L
     private var onloadCommands = mutableListOf<Array<String>>()
     private var streamOpenLoading = false
     private var streamCacheLoading = false
@@ -413,20 +410,20 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val result = Intent(RESULT_INTENT)
         result.data = if (intent.data?.scheme == "file") null else intent.data
         if (includeTimePos) {
-            // When playback ended naturally we want to report position ==
-            // duration so launching apps treat the item as fully watched and
-            // advance to the next one (Stremio's auto-advance, MX Player's
-            // end_by="playback_completion" convention, etc.). psc.eof() has
-            // already wiped its own position/duration by this point, so fall
-            // back to the snapshot we took in MPV_EVENT_END_FILE.
-            val duration = if (eofWasReached) lastDurationMs else psc.duration
-            val position = if (eofWasReached) duration else psc.position
-            result.putExtra("position", position.coerceAtLeast(0L).toInt())
-            result.putExtra("duration", duration.coerceAtLeast(0L).toInt())
-            result.putExtra(
-                "end_by",
-                if (eofWasReached) "playback_completion" else "user",
-            )
+            if (eofWasReached) {
+                result.putExtra("end_by", "playback_completion")
+            } else {
+                val safePosition = psc.position.coerceAtLeast(0L)
+                val safeDuration = psc.duration.coerceAtLeast(0L)
+                result.putExtra("position", safePosition.toInt())
+                result.putExtra("duration", safeDuration.toInt())
+                result.putExtra("extra_position", safePosition)
+                result.putExtra("extra_duration", safeDuration)
+                intent.data?.takeUnless { it.scheme == "file" }?.let {
+                    result.putExtra("extra_uri", it.toString())
+                }
+                result.putExtra("end_by", "user")
+            }
         }
         setResult(code, result)
         finish()
@@ -476,6 +473,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (filepath == null) {
             return
         }
+        resetPlaybackResultState()
         val nextResumeSource = resumeSourceFromIntent(intent, filepath)
         val willReplaceCurrentFile = activityIsForeground || !didResumeBackgroundPlayback || this.newIntentReplace
         if (willReplaceCurrentFile) {
@@ -503,6 +501,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             prepareStreamLoading(filepath)
             MPVLib.command(arrayOf("loadfile", filepath))
         }
+    }
+
+    private fun resetPlaybackResultState() {
+        playbackHasStarted = false
+        eofWasReached = false
     }
 
     private fun isNetworkStreamPath(path: String?): Boolean {
@@ -801,6 +804,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun savePosition() {
         if (!shouldSavePosition)
+            return
+        if (resumeIdentityFromSource(currentResumeSource) != null)
             return
         if (MPVLib.getPropertyBoolean("eof-reached") ?: true) {
             Log.d(TAG, "player indicates EOF, not saving watch-later config")
@@ -1804,6 +1809,9 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         fun pushOption(key: String, value: String) {
             onloadCommands.add(arrayOf("set", "file-local-options/${key}", value))
         }
+
+        if (resumeIdentityFromSource(currentResumeSource) != null)
+            pushOption("resume-playback", "no")
 
         // Note: these only apply to the first file, it's not clear what the semantics for a
         // playlist should be.
@@ -4232,11 +4240,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_END_FILE) {
-            // Snapshot duration before psc.eof() resets it so finishWithResult
-            // can later report `position == duration` for completion-aware
-            // launchers like Stremio.
-            if (psc.duration > 0L)
-                lastDurationMs = psc.duration
             eofWasReached = true
             // Actively clean up saved positions so a finished video doesn't
             // resume at the very end on next launch. Must run before psc.eof()
@@ -4254,6 +4257,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             )
 
         if (eventId == MpvEvent.MPV_EVENT_START_FILE) {
+            resetPlaybackResultState()
             audioNormUnderrunHintShown = false
             gpuNextRenderFallbackStage = 0
             gpuNextCopyRetryConfirmed = false
@@ -4612,7 +4616,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val RCODE_EXTERNAL_AUDIO = 1000
         private const val RCODE_EXTERNAL_SUB = 1001
         private const val RCODE_LOAD_FILE = 1002
-        private const val RESULT_INTENT = "app.mpvnova.player.MPVActivity.result"
+        private const val RESULT_INTENT = "is.xyz.mpv.MPVActivity.result"
         private const val STREAM_TYPE = AudioManager.STREAM_MUSIC
         private const val SEEK_BAR_PRECISION = 1000L
         private const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L

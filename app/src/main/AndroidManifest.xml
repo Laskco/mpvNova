@@ -35,13 +35,11 @@
             android:value="true" />
 
         <activity
-            android:name=".MPVActivity"
+            android:name=".ExternalPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
-            android:supportsPictureInPicture="true"
-            android:launchMode="singleTask"
-            android:alwaysRetainTaskState="true"
+            android:launchMode="singleTop"
             android:autoRemoveFromRecents="true"
-            android:theme="@style/AppTheme"
+            android:theme="@style/AppTheme.ExternalPlayer"
             android:exported="true">
             <intent-filter> <!-- Media protocols -->
                 <action android:name="android.intent.action.VIEW" />
@@ -207,6 +205,16 @@
                 <data android:mimeType="video/*" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MPVActivity"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
+            android:supportsPictureInPicture="true"
+            android:launchMode="singleTask"
+            android:alwaysRetainTaskState="true"
+            android:autoRemoveFromRecents="true"
+            android:theme="@style/AppTheme"
+            android:exported="true" />
 
         <activity
             android:name=".MainActivity"
