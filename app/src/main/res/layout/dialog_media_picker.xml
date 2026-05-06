@@ -174,7 +174,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_filter_alt_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -238,7 +238,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_voice_boost_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -328,7 +328,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_volume_boost_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -418,7 +418,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_night_mode_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -516,7 +516,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_audio_norm_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -614,7 +614,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_audiotrack_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -707,7 +707,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_filter_alt_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -774,7 +774,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_subtitles_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -843,7 +843,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_subtitles_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -934,7 +934,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_subtitles_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -1025,7 +1025,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_subtitles_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout
@@ -1116,7 +1116,7 @@
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
                                 android:src="@drawable/ic_subtitles_black_24dp"
-                                android:tint="@color/tv_text" />
+                                app:tint="@color/tv_text" />
                         </FrameLayout>
 
                         <LinearLayout

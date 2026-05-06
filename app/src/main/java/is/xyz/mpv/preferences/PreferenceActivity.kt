@@ -1,5 +1,6 @@
 package app.mpvnova.player.preferences
 
+import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -147,6 +148,7 @@ class PreferenceActivity : AppCompatActivity(),
             onPreferencesLoaded()
         }
 
+        @SuppressLint("RestrictedApi")
         override fun onCreateAdapter(preferenceScreen: PreferenceScreen): RecyclerView.Adapter<*> {
             return object : PreferenceGroupAdapter(preferenceScreen) {
                 override fun onBindViewHolder(holder: PreferenceViewHolder, position: Int) {

@@ -3,6 +3,7 @@ package app.mpvnova.player
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Paint
+import android.os.Build
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.content.ContextCompat
@@ -75,7 +76,11 @@ class ChapterSeekBar @JvmOverloads constructor(
         if (trackSpan <= 0f) return
 
         val centerY     = height / 2f
-        val trackHalfH  = maxOf(maxHeight.toFloat(), 8f * density) / 2f
+        val trackHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            maxOf(maxHeight.toFloat(), 8f * density)
+        else
+            8f * density
+        val trackHalfH  = trackHeight / 2f
         if (dpadSelected) {
             selectionPaint.strokeWidth = 2f * density
             val inset = 3f * density

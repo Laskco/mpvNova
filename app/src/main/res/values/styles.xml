@@ -40,7 +40,7 @@
         <item name="windowActionBar">false</item>
         <item name="android:windowTranslucentNavigation">true</item>
         <item name="android:windowTranslucentStatus">true</item>
-        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowLayoutInDisplayCutoutMode" tools:targetApi="o_mr1">shortEdges</item>
         <item name="android:windowBackground">@android:color/black</item>
         <item name="colorPrimary">@color/tv_purple</item>
         <item name="colorPrimaryDark">@color/tv_purple_deep</item>
@@ -156,7 +156,7 @@
         <item name="android:gravity">center</item>
         <item name="android:drawablePadding">12dp</item>
         <item name="android:padding">20dp</item>
-        <item name="android:drawableTint">@color/tv_text</item>
+        <item name="android:drawableTint" tools:targetApi="m">@color/tv_text</item>
         <item name="android:stateListAnimator">@null</item>
     </style>
 

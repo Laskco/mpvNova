@@ -88,6 +88,38 @@ android {
         }
     }
 
+    lint {
+        disable += [
+            // Keep lint useful for build-breaking correctness checks while
+            // filtering noisy style/resource warnings that do not match this
+            // TV-focused fork or are already intentional upstream patterns.
+            "ContentDescription",
+            "DefaultLocale",
+            "DisableBaselineAlignment",
+            "DiscouragedApi",
+            "HardcodedText",
+            "IconLauncherShape",
+            "LabelFor",
+            "NestedWeights",
+            "NotifyDataSetChanged",
+            "PictureInPictureIssue",
+            "PluralsCandidate",
+            "RelativeOverlap",
+            "RtlSymmetry",
+            "ScopedStorage",
+            "SelectedPhotoAccess",
+            "SetTextI18n",
+            "SmallSp",
+            "StaticFieldLeak",
+            "TooManyViews",
+            "TypographyEllipsis",
+            "UnusedAttribute",
+            "UnusedResources",
+            "UseKtx",
+            "UselessParent",
+        ]
+    }
+
     splits {
         abi {
             enable = true

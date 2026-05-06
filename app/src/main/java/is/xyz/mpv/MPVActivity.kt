@@ -161,6 +161,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         override fun run() {
             binding.topControls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
+            binding.playerTitleOverlay.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION)
             binding.controls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).setListener(listener)
         }
     }
@@ -215,7 +216,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     private var autoRotationMode = ""
 
     private var controlsAtBottom = true
+    private var showMediaTitle = false
     private var useTimeRemaining = false
+    private var pendingIntentTitle: String? = null
+    private var pendingFallbackTitle: String? = null
+    private var currentVideoTitle: String? = null
 
     private var ignoreAudioFocus = false
     private var playlistExitWarning = true
@@ -371,6 +376,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         val filepath = parsePathFromIntent(intent)
         currentResumeSource = resumeSourceFromIntent(intent, filepath)
+        prepareMediaTitleFromIntent(intent, filepath)
         if (intent.action == Intent.ACTION_VIEW) {
             parseIntentExtras(intent.extras)
         }
@@ -478,6 +484,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val willReplaceCurrentFile = activityIsForeground || !didResumeBackgroundPlayback || this.newIntentReplace
         if (willReplaceCurrentFile) {
             currentResumeSource = nextResumeSource
+            prepareMediaTitleFromIntent(intent, filepath)
             parseIntentExtras(intent.extras)
         } else {
             onloadCommands.clear()
@@ -660,6 +667,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         if (this.autoRotationMode != "manual") // don't reset
             this.autoRotationMode = getString("auto_rotation", R.string.pref_auto_rotation_default)
         this.controlsAtBottom = prefs.getBoolean("bottom_controls", true)
+        this.showMediaTitle = prefs.getBoolean("display_media_title", true)
         this.useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
         this.ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
         this.playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)
@@ -1158,15 +1166,18 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 fadeRunnable.hasStarted ||
                 binding.controls.alpha < 1f ||
                 binding.topControls.alpha < 1f ||
+                binding.playerTitleOverlay.alpha < 1f ||
                 binding.controlsScrim.alpha < 1f
 
         fadeHandler.removeCallbacks(fadeRunnable)
         if (controlsNeedAlphaReset) {
             binding.controls.animate().setListener(null).cancel()
             binding.topControls.animate().setListener(null).cancel()
+            binding.playerTitleOverlay.animate().setListener(null).cancel()
 
             binding.controls.alpha = 1f
             binding.topControls.alpha = 1f
+            binding.playerTitleOverlay.alpha = 1f
             binding.controlsScrim.alpha = 1f
             fadeRunnable.hasStarted = false
         }
@@ -1176,6 +1187,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.topControls.visibility = View.VISIBLE
             binding.controlsScrim.visibility = View.VISIBLE
             binding.timeInfoPanel.visibility = View.VISIBLE
+            updatePlayerTitleOverlay()
 
             if (this.statsFPS) {
                 updateStats()
@@ -1218,6 +1230,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         // see http://stackoverflow.com/a/12655713/2606891
         binding.controls.visibility = View.GONE
         binding.topControls.visibility = View.GONE
+        binding.playerTitleOverlay.visibility = View.GONE
         binding.controlsScrim.visibility = View.GONE
         binding.timeInfoPanel.visibility = View.GONE
         binding.statsTextView.visibility = View.GONE
@@ -1706,13 +1719,49 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updatePlayerToastPlacement() {
-        val topMarginDp = 22f
+        val topMarginDp = if (binding.playerTitleOverlay.isVisible) 96f else 22f
         binding.playerToast.updateLayoutParams<MarginLayoutParams> {
             topMargin = Utils.convertDp(this@MPVActivity, topMarginDp)
         }
     }
 
     // Intent/Uri parsing
+
+    private fun prepareMediaTitleFromIntent(intent: Intent?, filepath: String?) {
+        pendingIntentTitle = intent?.extras
+            ?.getString("title")
+            ?.takeIf { it.isNotBlank() }
+            ?.let { Uri.decode(it).trim() }
+            ?.takeIf { it.isNotBlank() }
+        pendingFallbackTitle = titleFromPathLike(filepath)
+    }
+
+    private fun titleFromPathLike(path: String?): String? {
+        val trimmed = path?.trim()?.takeIf { it.isNotBlank() } ?: return null
+        if (trimmed.startsWith("content://", ignoreCase = true))
+            return null
+        if (trimmed.startsWith("memory://", ignoreCase = true))
+            return null
+
+        val uri = runCatching { Uri.parse(trimmed) }.getOrNull()
+        val candidate = if (uri != null &&
+            uri.isHierarchical &&
+            !uri.isRelative &&
+            !uri.scheme.isNullOrBlank()
+        ) {
+            if (uri.scheme.equals("content", ignoreCase = true)) {
+                null
+            } else {
+                uri.lastPathSegment
+            }
+        } else {
+            File(trimmed).name
+        }
+
+        return candidate
+            ?.let { Uri.decode(it).trim() }
+            ?.takeIf { it.isNotBlank() }
+    }
 
     private fun parsePathFromIntent(intent: Intent): String? {
         fun safeResolveUri(u: Uri?): String? {
@@ -1812,6 +1861,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (resumeIdentityFromSource(currentResumeSource) != null)
             pushOption("resume-playback", "no")
+
+        pendingIntentTitle?.let {
+            pushOption("force-media-title", it)
+        }
 
         // Note: these only apply to the first file, it's not clear what the semantics for a
         // playlist should be.
@@ -1997,7 +2050,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 initialAudioNormState = currentAudioNormState(),
                 initialDownmixState = currentDownmixState(),
                 persistFiltersOn = persistAudioFilters,
-            ), 0, 0, 0, 0)
+            ))
             setOnDismissListener { restore() }
             create()
         }
@@ -2110,7 +2163,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 initialSecondaryPosState = currentSecondaryPosState(),
                 initialSecondarySubState = currentSecondarySubState(),
                 persistSubFiltersOn = persistSubFilters,
-            ), 0, 0, 0, 0)
+            ))
             setOnDismissListener { restore() }
             create()
         }
@@ -2228,7 +2281,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
                 inflater,
                 title = getString(R.string.dialog_title_decoder),
                 items = items,
-            ), 0, 0, 0, 0)
+            ))
             setOnDismissListener { restore() }
             create()
         }
@@ -3706,10 +3759,33 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updateMetadataDisplay() {
+        updatePlayerTitleOverlay()
         if (useAudioUI) {
             binding.titleTextView.setTextIfChanged(psc.meta.formatTitle())
             binding.minorTitleTextView.setTextIfChanged(psc.meta.formatArtistAlbum())
+        } else if (showMediaTitle) {
+            binding.fullTitleTextView.setTextIfChanged(currentVideoTitle)
         }
+    }
+
+    private fun updatePlayerTitleOverlay() {
+        val title = currentVideoTitle?.trim().orEmpty()
+        val shouldShow = !useAudioUI &&
+            showMediaTitle &&
+            title.isNotBlank() &&
+            binding.controls.isVisible
+
+        if (!shouldShow) {
+            binding.playerTitleOverlay.visibility = View.GONE
+            updatePlayerToastPlacement()
+            return
+        }
+
+        binding.playerTitlePrimary.setTextIfChanged(title)
+        binding.playerTitleSecondary.visibility = View.GONE
+        binding.playerTitleOverlay.alpha = 1f
+        binding.playerTitleOverlay.visibility = View.VISIBLE
+        updatePlayerToastPlacement()
     }
 
     private fun seekbarProgressFromMillis(positionMs: Long): Int {
@@ -4264,9 +4340,17 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextCopyRetryDisplayedFrame = false
             cachedChapters = emptyList()
             pendingChapterSeekTime = null
+            currentVideoTitle = pendingIntentTitle
+                ?: pendingFallbackTitle
+                ?: titleFromPathLike(currentMpvPath())
+            pendingIntentTitle = null
+            pendingFallbackTitle = null
             streamOpenLoading = isNetworkStreamPath(currentMpvPath())
             streamCacheLoading = false
-            eventUiHandler.post { refreshLoadingOverlay() }
+            eventUiHandler.post {
+                refreshLoadingOverlay()
+                updateMetadataDisplay()
+            }
             applySessionDecoderModeIfNeeded()
             val cmds = onloadCommands.toTypedArray()
             onloadCommands.clear()

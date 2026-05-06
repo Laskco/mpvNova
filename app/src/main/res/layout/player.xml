@@ -129,6 +129,22 @@
                     android:visibility="gone"
                     tools:text="Artist / Album" />
 
+                <TextView
+                    android:id="@+id/fullTitleTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="start"
+                    android:letterSpacing="0.01"
+                    android:paddingStart="2dp"
+                    android:paddingBottom="4dp"
+                    android:singleLine="true"
+                    android:textColor="@color/tv_text"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    tools:ignore="RtlSymmetry"
+                    tools:text="Wistoria: Wand and Sword - S01E08" />
+
             </LinearLayout>
 
             <!-- Seekbar row: thin progress line, no inline time -->
@@ -414,6 +430,64 @@
             android:visibility="gone"
             tools:text="60 FPS"
             tools:visibility="visible" />
+
+        <!-- =============== TOP-CENTER: MEDIA TITLE =============== -->
+        <LinearLayout
+            android:id="@+id/playerTitleOverlay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginTop="20dp"
+            android:background="@drawable/bg_player_toast"
+            android:elevation="8dp"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingStart="18dp"
+            android:paddingTop="10dp"
+            android:paddingEnd="18dp"
+            android:paddingBottom="10dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/playerTitlePrimary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:maxWidth="620dp"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="8"
+                android:textColor="@color/tv_text"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                tools:text="Attack on Titan" />
+
+            <TextView
+                android:id="@+id/playerTitleSecondary"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:maxWidth="620dp"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="8"
+                android:textColor="@color/tv_text_dim"
+                android:textSize="12sp"
+                android:visibility="gone"
+                tools:text="S1 E1"
+                tools:visibility="visible" />
+        </LinearLayout>
 
         <!-- =============== GESTURE TOAST =============== -->
         <TextView
