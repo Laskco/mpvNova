@@ -4692,7 +4692,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     companion object {
         private const val TAG = "mpv"
-        private const val CONTROLS_DISPLAY_TIMEOUT = 10_000L
+        private const val CONTROLS_DISPLAY_TIMEOUT = 5_000L
         private const val CONTROLS_FADE_DURATION = 500L
         private const val THUMB_SIZE = 384
         private const val ASPECT_RATIO_MIN = 1.2f
