@@ -457,7 +457,7 @@
                 android:ellipsize="end"
                 android:gravity="center"
                 android:includeFontPadding="false"
-                android:maxLines="1"
+                android:maxLines="2"
                 android:maxWidth="620dp"
                 android:shadowColor="#CC000000"
                 android:shadowDx="0"

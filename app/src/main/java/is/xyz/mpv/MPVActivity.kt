@@ -1745,11 +1745,21 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // Intent/Uri parsing
 
     private fun prepareMediaTitleFromIntent(intent: Intent?, filepath: String?) {
-        pendingItemTitle = intent?.extras
-            ?.takeIf { it.containsKey("title") }
-            ?.getString("title")
-            ?.let(VlcTitleResolver::itemTitleFromExtra)
+        pendingItemTitle = titleFromIntentExtras(intent) ?: VlcTitleResolver.queryTitleFromPathLike(filepath)
         pendingFileName = VlcTitleResolver.fileNameFromPathLike(filepath)
+    }
+
+    private fun titleFromIntentExtras(intent: Intent?): String? {
+        val extras = intent?.extras ?: return null
+        for (key in VLC_TITLE_EXTRA_KEYS) {
+            if (!extras.containsKey(key))
+                continue
+            val title = extras.getString(key)
+                ?: extras.getCharSequence(key)?.toString()
+                ?: continue
+            VlcTitleResolver.itemTitleFromExtra(title)?.let { return it }
+        }
+        return null
     }
 
     private fun resolveVlcStyleVideoTitle(): String? {
@@ -3800,12 +3810,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         binding.playerTitlePrimary.setTextIfChanged(title)
         binding.playerTitleSecondary.setVisibilityIfChanged(View.GONE)
+        updatePlayerTitleWidth()
         if (binding.playerTitleOverlay.alpha != 1f)
             binding.playerTitleOverlay.alpha = 1f
         val wasHidden = binding.playerTitleOverlay.visibility != View.VISIBLE
         binding.playerTitleOverlay.setVisibilityIfChanged(View.VISIBLE)
         if (wasHidden)
             updatePlayerToastPlacement()
+    }
+
+    private fun updatePlayerTitleWidth() {
+        val horizontalMargin = Utils.convertDp(this@MPVActivity, 64f)
+        val width = resources.displayMetrics.widthPixels
+        val maxWidth = (width - horizontalMargin * 2)
+            .coerceAtLeast(Utils.convertDp(this@MPVActivity, 260f))
+        val cappedWidth = minOf(maxWidth, Utils.convertDp(this@MPVActivity, 980f))
+        if (binding.playerTitlePrimary.maxWidth != cappedWidth)
+            binding.playerTitlePrimary.maxWidth = cappedWidth
     }
 
     private fun seekbarProgressFromMillis(positionMs: Long): Int {
@@ -4745,6 +4766,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         private const val RESUME_NEAR_END_MS = 30_000L
         private const val RESUME_TABLE_MAX_ENTRIES = 500
 
+        private val VLC_TITLE_EXTRA_KEYS = arrayOf(
+            "title",
+            Intent.EXTRA_TITLE,
+            Intent.EXTRA_SUBJECT,
+        )
         private val RESUME_HASH_REGEX = Regex("/([a-fA-F0-9]{40,64})(?=/|$)")
         private val FILE_EXTENSION_REGEX = Regex("""\.[a-z0-9]{2,5}$""")
         private val NON_ALNUM_REGEX = Regex("""[^a-z0-9]+""")

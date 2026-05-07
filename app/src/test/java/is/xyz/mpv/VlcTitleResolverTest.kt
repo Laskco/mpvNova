@@ -21,10 +21,18 @@ class VlcTitleResolverTest {
     }
 
     @Test
-    fun externalItemTitleIsNotReleaseParsed() {
+    fun externalItemTitleKeepsCleanTitle() {
+        assertEquals(
+            "Gals Cant be Kind to Otaku S01E03",
+            VlcTitleResolver.itemTitleFromExtra("Gals Cant be Kind to Otaku S01E03")
+        )
+    }
+
+    @Test
+    fun releaseStyleExternalItemTitleIsCleaned() {
         val title = "Gals.Cant.be.Kind.to.Otaku.S01E05.So.You.like.our.swimsuits.1080p.CR.WEB"
 
-        assertEquals(title, VlcTitleResolver.itemTitleFromExtra(title))
+        assertEquals("Gals Cant be Kind to Otaku S01E05", VlcTitleResolver.itemTitleFromExtra(title))
     }
 
     @Test
@@ -43,7 +51,7 @@ class VlcTitleResolverTest {
     @Test
     fun mediaTitleMatchingFileNameIsIgnored() {
         assertEquals(
-            "The.Ramparts.of.Ice.S01E01",
+            "The Ramparts of Ice S01E01",
             VlcTitleResolver.resolve(
                 itemTitle = null,
                 mediaTitle = "The.Ramparts.of.Ice.S01E01.mkv",
@@ -69,8 +77,41 @@ class VlcTitleResolverTest {
     @Test
     fun fileNameFallbackOnlyStripsFinalExtension() {
         assertEquals(
-            "The.Ramparts.of.Ice.S01E01.1080p.NF.WEB-DL",
+            "The Ramparts of Ice S01E01",
             VlcTitleResolver.titleFromFileName("The.Ramparts.of.Ice.S01E01.1080p.NF.WEB-DL.mkv")
+        )
+    }
+
+    @Test
+    fun fileNameFallbackStopsAtEpisodeCodeBeforeReleaseTags() {
+        assertEquals(
+            "Gals Cant be Kind to Otaku S01E03",
+            VlcTitleResolver.titleFromFileName(
+                "Gals.Cant.be.Kind.to.Otaku.S01E03.Do.You.Want.to.Come.Over.1080p.CR.WEB-DL.mkv"
+            )
+        )
+    }
+
+    @Test
+    fun torrentMetadataQueryUsesSafeNameOnly() {
+        assertEquals(
+            "Koori no Jyouheki",
+            VlcTitleResolver.queryTitleFromPathLike(
+                "1?torrent_name=The.Ramparts.of.Ice.S01E01.SINIRLAR.VE.DUVARLAR.REPACK.1080p.NF.WEB-DL.mkv&name=Koori%20no%20Jyouheki&media_id=tt39123061"
+            )
+        )
+    }
+
+    @Test
+    fun mediaTitleContainingTorrentMetadataIsIgnored() {
+        assertEquals(
+            "Gals Cant be Kind to Otaku S01E03",
+            VlcTitleResolver.resolve(
+                itemTitle = null,
+                mediaTitle = "1?torrent_name=Gals.Cant.be.Kind.to.Otaku.S01E03.1080p.mkv&media_id=tt123",
+                fileName = "Gals.Cant.be.Kind.to.Otaku.S01E03.1080p.mkv",
+                isStream = true
+            )
         )
     }
 
