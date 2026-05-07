@@ -8,7 +8,7 @@
         app:title="@string/pref_header_appearance" />
     <Preference
         app:fragment="app.mpvnova.player.preferences.PreferenceActivity$GeneralPreference"
-        app:icon="@drawable/round_palette_24"
+        app:icon="@drawable/round_tune_24"
         app:summary="@string/pref_header_general_summary"
         app:title="@string/pref_header_general" />
     <Preference
@@ -38,19 +38,19 @@
         app:title="@string/pref_header_advanced" />
     <Preference
         app:fragment="app.mpvnova.player.preferences.PreferenceActivity$SupportPreference"
-        app:icon="@drawable/round_info_24"
+        app:icon="@drawable/round_help_24"
         app:summary="@string/pref_header_support_summary"
         app:title="@string/pref_header_support" />
 
     <Preference
         android:key="check_for_updates"
-        app:icon="@drawable/round_info_24"
+        app:icon="@drawable/round_update_24"
         app:summary="@string/pref_check_updates_summary"
         app:title="@string/pref_check_updates_title" />
 
     <Preference
         android:key="release_history"
-        app:icon="@drawable/round_info_24"
+        app:icon="@drawable/round_history_24"
         app:summary="@string/pref_release_history_summary"
         app:title="@string/pref_release_history_title" />
 

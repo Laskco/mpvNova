@@ -49,6 +49,7 @@ class PreferenceActivity : AppCompatActivity(),
     private lateinit var preferences: SharedPreferences
     private val updateManager by lazy { AppUpdateManager(this) }
     private var currentSubtitle: CharSequence? = null
+    private var lastNavigatedPosition: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppearanceTheme.applyPreferences(this)
@@ -90,8 +91,24 @@ class PreferenceActivity : AppCompatActivity(),
     }
 
     override fun onBackStackChanged() {
-        if (supportFragmentManager.backStackEntryCount == 0)
+        if (supportFragmentManager.backStackEntryCount == 0) {
             currentSubtitle = getString(R.string.settings_root_subtitle)
+            val position = lastNavigatedPosition
+            if (position >= 0) {
+                binding.root.post {
+                    val frag = supportFragmentManager.findFragmentById(R.id.main)
+                    if (frag is PreferenceFragmentCompat) {
+                        frag.listView?.let { rv ->
+                            rv.scrollToPosition(position)
+                            rv.post {
+                                rv.findViewHolderForAdapterPosition(position)
+                                    ?.itemView?.requestFocus()
+                            }
+                        }
+                    }
+                }
+            }
+        }
         updateChrome()
     }
 
@@ -138,6 +155,14 @@ class PreferenceActivity : AppCompatActivity(),
         val fragment = supportFragmentManager.fragmentFactory.instantiate(
             classLoader, pref.fragment ?: return false
         ).apply { arguments = pref.extras }
+
+        val screen = caller.preferenceScreen
+        for (i in 0 until screen.preferenceCount) {
+            if (screen.getPreference(i) === pref) {
+                lastNavigatedPosition = i
+                break
+            }
+        }
 
         supportFragmentManager.beginTransaction().replace(R.id.main, fragment).addToBackStack(null)
             .commit()
@@ -291,9 +316,10 @@ class PreferenceActivity : AppCompatActivity(),
         private fun populateColorThemes(row: LinearLayout) {
             row.removeAllViews()
             val selectedTheme = AppearanceTheme.currentValue(requireContext())
-            themeChoices.forEachIndexed { index, choice ->
-                row.addView(createThemeTile(choice, selectedTheme == choice.value).apply {
-                    if (index == 0) requestFocus()
+            themeChoices.forEachIndexed { _, choice ->
+                val isSelected = selectedTheme == choice.value
+                row.addView(createThemeTile(choice, isSelected).apply {
+                    if (isSelected) requestFocus()
                 })
             }
         }

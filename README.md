@@ -52,6 +52,10 @@ For the inherited playback feature set, scripting support, and core behavior tha
 </div>
 
 <div align="center">
+  <img src="docs/screenshots/settings-appearance.png" alt="Settings appearance color theme picker" width="96%" />
+</div>
+
+<div align="center">
   <img src="docs/screenshots/settings-decoder-mode-dialog.png" alt="Preferred decoder mode settings dialog" width="96%" />
 </div>
 
