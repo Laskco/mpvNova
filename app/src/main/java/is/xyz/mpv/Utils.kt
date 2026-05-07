@@ -137,8 +137,12 @@ internal object Utils {
         val minutes = d % 3600 / 60
         val seconds = d % 60
         if (hours == 0)
-            return "%02d:%02d".format(minutes, seconds)
-        return "%d:%02d:%02d".format(hours, minutes, seconds)
+            return "${twoDigits(minutes)}:${twoDigits(seconds)}"
+        return "$hours:${twoDigits(minutes)}:${twoDigits(seconds)}"
+    }
+
+    private fun twoDigits(value: Int): String {
+        return if (value in 0..9) "0$value" else value.toString()
     }
 
     fun getScreenBrightness(activity: Activity): Float? {
@@ -220,6 +224,21 @@ internal object Utils {
             val c = group.getChildAt(i)
             m[c.id] = c
         }
+
+        val requestedIds = idOrder.toHashSet()
+        val alreadyOrdered = group.childCount == m.size &&
+                idOrder.size <= group.childCount &&
+                idOrder.indices.all { i ->
+                    val c = group.getChildAt(i)
+                    c.id == idOrder[i] && c.visibility == View.VISIBLE
+                } &&
+                (idOrder.size until group.childCount).all { i ->
+                    val c = group.getChildAt(i)
+                    c.id !in requestedIds && c.visibility == View.GONE
+                }
+        if (alreadyOrdered)
+            return
+
         group.removeAllViews()
         // Re-add children in specified order and unhide
         for (id in idOrder) {

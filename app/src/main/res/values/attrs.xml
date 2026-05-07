@@ -24,4 +24,37 @@
     <attr name="nnf_list_item_divider" format="reference"/>
 
     <attr name="materialToolbarStyle" format="reference" />
+
+    <attr name="mpvAccent" format="color" />
+    <attr name="mpvAccentHot" format="color" />
+    <attr name="mpvAccentDeep" format="color" />
+    <attr name="mpvAccentInk" format="color" />
+    <attr name="mpvTextOnAccent" format="color" />
+    <attr name="mpvFilterActiveIcon" format="color" />
+    <attr name="mpvWindowStart" format="color" />
+    <attr name="mpvWindowCenter" format="color" />
+    <attr name="mpvWindowEnd" format="color" />
+    <attr name="mpvWindowGlowStart" format="color" />
+    <attr name="mpvWindowGlowEnd" format="color" />
+    <attr name="mpvWindowGlowAltStart" format="color" />
+    <attr name="mpvWindowGlowAltEnd" format="color" />
+    <attr name="mpvSurfaceStart" format="color" />
+    <attr name="mpvSurfaceEnd" format="color" />
+    <attr name="mpvSurfaceAltStart" format="color" />
+    <attr name="mpvSurfaceAltEnd" format="color" />
+    <attr name="mpvSurfaceSoft" format="color" />
+    <attr name="mpvSurfaceStrongStart" format="color" />
+    <attr name="mpvSurfaceStrongEnd" format="color" />
+    <attr name="mpvHeroStart" format="color" />
+    <attr name="mpvHeroEnd" format="color" />
+    <attr name="mpvOverlayStart" format="color" />
+    <attr name="mpvOverlayCenter" format="color" />
+    <attr name="mpvOverlayEnd" format="color" />
+    <attr name="mpvChipStart" format="color" />
+    <attr name="mpvChipEnd" format="color" />
+    <attr name="mpvStroke" format="color" />
+    <attr name="mpvStrokeStrong" format="color" />
+    <attr name="mpvStrokeFocus" format="color" />
+    <attr name="mpvFocusWash" format="color" />
+    <attr name="mpvFocusWashSoft" format="color" />
 </resources>

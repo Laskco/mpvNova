@@ -4,10 +4,10 @@
     <corners android:radius="18dp" />
     <gradient
         android:angle="270"
-        android:endColor="#7A101318"
-        android:startColor="#9A1A1F26"
+        android:endColor="?attr/mpvOverlayEnd"
+        android:startColor="?attr/mpvOverlayStart"
         android:type="linear" />
     <stroke
         android:width="1dp"
-        android:color="#3AFFFFFF" />
+        android:color="?attr/mpvStrokeStrong" />
 </shape>

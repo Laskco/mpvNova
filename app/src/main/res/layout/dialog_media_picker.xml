@@ -29,7 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/mpv_activity"
-            android:textColor="@color/tv_purple_hot" />
+            android:textColor="?attr/mpvAccentHot" />
 
         <TextView
             android:id="@+id/pickerTitle"

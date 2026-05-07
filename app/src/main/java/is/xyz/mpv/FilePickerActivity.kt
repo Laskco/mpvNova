@@ -46,6 +46,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppearanceTheme.applySpecialFilePicker(this)
         super.onCreate(null)
         Log.v(TAG, "FilePickerActivity: created")
 

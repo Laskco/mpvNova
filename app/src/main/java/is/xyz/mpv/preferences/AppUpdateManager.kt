@@ -16,6 +16,7 @@ import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.DialogAppUpdateBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
@@ -60,6 +61,50 @@ class AppUpdateManager(private val activity: Activity) {
                 .getString(PENDING_UPDATE_TAG_KEY, null)
             installDownloadedApk(tagName, apk)
         }
+    }
+
+    fun showReleaseHistory() {
+        val history = releaseHistory()
+        if (history.length() == 0) {
+            MaterialAlertDialogBuilder(activity)
+                .setTitle(R.string.update_history_title)
+                .setMessage(R.string.update_history_empty)
+                .setPositiveButton(R.string.update_close, null)
+                .show()
+            return
+        }
+
+        val body = buildString {
+            for (i in 0 until history.length()) {
+                val item = history.optJSONObject(i) ?: continue
+                val tag = item.optString("tag")
+                    .ifBlank { activity.getString(R.string.update_history_unknown_version) }
+                val title = item.optString("name")
+                    .takeIf { it.isNotBlank() && it != tag }
+                append(tag)
+                if (title != null)
+                    append(" - ").append(title.cleanMarkdown())
+                append("\n\n")
+                append(item.optString("notes").ifBlank {
+                    activity.getString(R.string.update_notes_empty)
+                }.cleanMarkdown())
+                if (i != history.length() - 1)
+                    append("\n\n---\n\n")
+            }
+        }
+
+        showGlassDialog(
+            title = activity.getString(R.string.update_history_title),
+            version = null,
+            releaseTitle = null,
+            notesHeading = null,
+            notes = body,
+            primaryText = null,
+            onPrimary = null,
+            ignoreText = null,
+            onIgnore = null,
+            showClose = true,
+        )
     }
 
     private fun showUpdateResult(
@@ -210,7 +255,7 @@ class AppUpdateManager(private val activity: Activity) {
             notes = releaseJson.optString("body").trim(),
             assetName = selectedAsset.optString("name").trim(),
             downloadUrl = downloadUrl
-        )
+        ).also { recordReleaseHistory(it) }
     }
 
     private fun downloadApk(release: ReleaseInfo): File {
@@ -483,6 +528,38 @@ class AppUpdateManager(private val activity: Activity) {
             .toList()
     }
 
+    private fun recordReleaseHistory(release: ReleaseInfo) {
+        val existing = releaseHistory()
+        val result = JSONArray()
+        result.put(
+            JSONObject()
+                .put("tag", release.tagName)
+                .put("name", release.name)
+                .put("notes", release.notes)
+                .put("time", System.currentTimeMillis())
+        )
+
+        for (i in 0 until existing.length()) {
+            val item = existing.optJSONObject(i) ?: continue
+            if (item.optString("tag") == release.tagName)
+                continue
+            result.put(item)
+            if (result.length() >= RELEASE_HISTORY_LIMIT)
+                break
+        }
+
+        PreferenceManager.getDefaultSharedPreferences(activity).edit()
+            .putString(RELEASE_HISTORY_KEY, result.toString())
+            .apply()
+    }
+
+    private fun releaseHistory(): JSONArray {
+        val raw = PreferenceManager.getDefaultSharedPreferences(activity)
+            .getString(RELEASE_HISTORY_KEY, null)
+            ?: return JSONArray()
+        return runCatching { JSONArray(raw) }.getOrDefault(JSONArray())
+    }
+
     private fun ReleaseInfo.displayTitle(): String? {
         return name.takeIf { it.isNotBlank() && it != tagName }?.cleanMarkdown()
     }
@@ -507,6 +584,8 @@ class AppUpdateManager(private val activity: Activity) {
         private const val IGNORED_UPDATE_TAG_KEY = "ignored_update_tag"
         private const val PENDING_UPDATE_TAG_KEY = "pending_update_tag"
         private const val PENDING_UPDATE_APK_PATH_KEY = "pending_update_apk_path"
+        private const val RELEASE_HISTORY_KEY = "release_history"
+        private const val RELEASE_HISTORY_LIMIT = 5
         private val KNOWN_ABIS = listOf("arm64-v8a", "armeabi-v7a", "x86_64", "x86")
     }
 }

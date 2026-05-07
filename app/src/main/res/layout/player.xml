@@ -425,7 +425,7 @@
             android:shadowDx="1"
             android:shadowDy="1"
             android:shadowRadius="2"
-            android:textColor="@color/tv_purple_hot"
+            android:textColor="?attr/mpvAccentHot"
             android:textSize="11sp"
             android:visibility="gone"
             tools:text="60 FPS"
@@ -530,7 +530,7 @@
                 style="@style/MpvTv.TextSmallCaps"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/tv_purple_hot"
+                android:textColor="?attr/mpvAccentHot"
                 android:visibility="gone"
                 tools:text="Voice boost"
                 tools:visibility="visible" />
@@ -605,7 +605,7 @@
             android:padding="12dp"
             android:visibility="gone"
             app:srcCompat="@drawable/ic_lock_open_24dp"
-            app:tint="@color/tv_purple_hot" />
+            app:tint="?attr/mpvAccentHot" />
 
     </RelativeLayout>
 </RelativeLayout>

@@ -10,8 +10,11 @@ import java.io.File
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
     private val updateManager by lazy { AppUpdateManager(this) }
     private var checkedForUpdatesThisSession = false
+    private var appliedThemeValue = AppearanceTheme.DEFAULT_VALUE
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        appliedThemeValue = AppearanceTheme.currentValue(this)
+        AppearanceTheme.applyFilePicker(this)
         super.onCreate(savedInstanceState)
         WindowCompat.setDecorFitsSystemWindows(window, false)
         logBundledFfmpegVersion()
@@ -29,6 +32,10 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
 
     override fun onResume() {
         super.onResume()
+        if (AppearanceTheme.currentValue(this) != appliedThemeValue) {
+            recreate()
+            return
+        }
         updateManager.resumePendingInstallIfAllowed()
     }
 

@@ -217,10 +217,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private var controlsAtBottom = true
     private var showMediaTitle = false
+    private var controlsDisplayTimeoutMs = DEFAULT_CONTROLS_DISPLAY_TIMEOUT
+    private var keepControlsVisibleWhilePaused = false
     private var useTimeRemaining = false
-    private var pendingIntentTitle: String? = null
-    private var pendingFallbackTitle: String? = null
+    private var pendingItemTitle: String? = null
+    private var pendingFileName: String? = null
+    private var currentItemTitle: String? = null
     private var currentVideoTitle: String? = null
+    private var cachedActiveFilterColor: Int? = null
 
     private var ignoreAudioFocus = false
     private var playlistExitWarning = true
@@ -335,6 +339,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     // Activity lifetime
 
     override fun onCreate(icicle: Bundle?) {
+        AppearanceTheme.applyPlayer(this)
         super.onCreate(icicle)
 
         // Do these here and not in MainActivity because mpv can be launched from a file browser
@@ -668,6 +673,11 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             this.autoRotationMode = getString("auto_rotation", R.string.pref_auto_rotation_default)
         this.controlsAtBottom = prefs.getBoolean("bottom_controls", true)
         this.showMediaTitle = prefs.getBoolean("display_media_title", true)
+        this.controlsDisplayTimeoutMs = parseControlsTimeout(
+            prefs.getString("player_controls_timeout", DEFAULT_CONTROLS_DISPLAY_TIMEOUT.toString())
+        )
+        this.keepControlsVisibleWhilePaused =
+            prefs.getBoolean("keep_controls_visible_paused", false)
         this.useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
         this.ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
         this.playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)
@@ -1154,6 +1164,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         return userIsOperatingSeekbar
     }
 
+    private fun shouldAutoHideControls(): Boolean {
+        return controlsDisplayTimeoutMs > 0L &&
+                !controlsShouldBeVisible() &&
+                !(keepControlsVisibleWhilePaused && psc.pause)
+    }
+
     /** Make controls visible, also controls the timeout until they fade. */
     private fun showControls() {
         if (lockedUI) {
@@ -1183,15 +1199,15 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         }
 
         if (!controlsWereVisible) {
-            binding.controls.visibility = View.VISIBLE
-            binding.topControls.visibility = View.VISIBLE
-            binding.controlsScrim.visibility = View.VISIBLE
-            binding.timeInfoPanel.visibility = View.VISIBLE
+            binding.controls.setVisibilityIfChanged(View.VISIBLE)
+            binding.topControls.setVisibilityIfChanged(View.VISIBLE)
+            binding.controlsScrim.setVisibilityIfChanged(View.VISIBLE)
+            binding.timeInfoPanel.setVisibilityIfChanged(View.VISIBLE)
             updatePlayerTitleOverlay()
 
             if (this.statsFPS) {
                 updateStats()
-                binding.statsTextView.visibility = View.VISIBLE
+                binding.statsTextView.setVisibilityIfChanged(View.VISIBLE)
             }
 
             val insetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -1213,8 +1229,8 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             }
         }
 
-        if (!controlsShouldBeVisible())
-            fadeHandler.postDelayed(fadeRunnable, CONTROLS_DISPLAY_TIMEOUT)
+        if (shouldAutoHideControls())
+            fadeHandler.postDelayed(fadeRunnable, controlsDisplayTimeoutMs)
     }
 
     /** Hide controls instantly */
@@ -1228,12 +1244,12 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding.playbackSeekbar.clearFocus()
         // use GONE here instead of INVISIBLE (which makes more sense) because of Android bug with surface views
         // see http://stackoverflow.com/a/12655713/2606891
-        binding.controls.visibility = View.GONE
-        binding.topControls.visibility = View.GONE
-        binding.playerTitleOverlay.visibility = View.GONE
-        binding.controlsScrim.visibility = View.GONE
-        binding.timeInfoPanel.visibility = View.GONE
-        binding.statsTextView.visibility = View.GONE
+        binding.controls.setVisibilityIfChanged(View.GONE)
+        binding.topControls.setVisibilityIfChanged(View.GONE)
+        binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+        binding.controlsScrim.setVisibilityIfChanged(View.GONE)
+        binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
+        binding.statsTextView.setVisibilityIfChanged(View.GONE)
         updatePlayerToastPlacement()
         clockHandler.removeCallbacks(clockRunnable)
 
@@ -1272,7 +1288,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         binding.unlockBtn.alpha = 1f
         binding.unlockBtn.visibility = View.VISIBLE
 
-        fadeHandler.postDelayed(fadeRunnable2, CONTROLS_DISPLAY_TIMEOUT)
+        fadeHandler.postDelayed(fadeRunnable2, DEFAULT_CONTROLS_DISPLAY_TIMEOUT)
     }
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
@@ -1720,47 +1736,32 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     private fun updatePlayerToastPlacement() {
         val topMarginDp = if (binding.playerTitleOverlay.isVisible) 96f else 22f
-        binding.playerToast.updateLayoutParams<MarginLayoutParams> {
-            topMargin = Utils.convertDp(this@MPVActivity, topMarginDp)
-        }
+        val topMarginPx = Utils.convertDp(this@MPVActivity, topMarginDp)
+        if ((binding.playerToast.layoutParams as? MarginLayoutParams)?.topMargin == topMarginPx)
+            return
+        binding.playerToast.updateLayoutParams<MarginLayoutParams> { topMargin = topMarginPx }
     }
 
     // Intent/Uri parsing
 
     private fun prepareMediaTitleFromIntent(intent: Intent?, filepath: String?) {
-        pendingIntentTitle = intent?.extras
+        pendingItemTitle = intent?.extras
+            ?.takeIf { it.containsKey("title") }
             ?.getString("title")
-            ?.takeIf { it.isNotBlank() }
-            ?.let { Uri.decode(it).trim() }
-            ?.takeIf { it.isNotBlank() }
-        pendingFallbackTitle = titleFromPathLike(filepath)
+            ?.let(VlcTitleResolver::itemTitleFromExtra)
+        pendingFileName = VlcTitleResolver.fileNameFromPathLike(filepath)
     }
 
-    private fun titleFromPathLike(path: String?): String? {
-        val trimmed = path?.trim()?.takeIf { it.isNotBlank() } ?: return null
-        if (trimmed.startsWith("content://", ignoreCase = true))
-            return null
-        if (trimmed.startsWith("memory://", ignoreCase = true))
-            return null
-
-        val uri = runCatching { Uri.parse(trimmed) }.getOrNull()
-        val candidate = if (uri != null &&
-            uri.isHierarchical &&
-            !uri.isRelative &&
-            !uri.scheme.isNullOrBlank()
-        ) {
-            if (uri.scheme.equals("content", ignoreCase = true)) {
-                null
-            } else {
-                uri.lastPathSegment
-            }
-        } else {
-            File(trimmed).name
-        }
-
-        return candidate
-            ?.let { Uri.decode(it).trim() }
-            ?.takeIf { it.isNotBlank() }
+    private fun resolveVlcStyleVideoTitle(): String? {
+        currentItemTitle?.let { return it }
+        val path = currentMpvPath()
+        val fileName = pendingFileName ?: VlcTitleResolver.fileNameFromPathLike(path)
+        return VlcTitleResolver.resolve(
+            itemTitle = null,
+            mediaTitle = psc.meta.mediaTitle,
+            fileName = fileName,
+            isStream = isNetworkStreamPath(path)
+        )
     }
 
     private fun parsePathFromIntent(intent: Intent): String? {
@@ -1861,10 +1862,6 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
         if (resumeIdentityFromSource(currentResumeSource) != null)
             pushOption("resume-playback", "no")
-
-        pendingIntentTitle?.let {
-            pushOption("force-media-title", it)
-        }
 
         // Note: these only apply to the first file, it's not clear what the semantics for a
         // playlist should be.
@@ -2367,7 +2364,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         val end = start + activeWord.length
         return SpannableString(label).apply {
             setSpan(
-                ForegroundColorSpan(ContextCompat.getColor(this@MPVActivity, R.color.tv_filter_active_icon)),
+                ForegroundColorSpan(activeFilterColor()),
                 start,
                 end,
                 Spanned.SPAN_EXCLUSIVE_EXCLUSIVE
@@ -2586,9 +2583,23 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             imageTintList = ColorStateList.valueOf(color)
     }
 
+    private fun activeFilterColor(): Int {
+        cachedActiveFilterColor?.let { return it }
+        val color = AppearanceTheme.resolveColor(
+            this,
+            R.attr.mpvFilterActiveIcon,
+            ContextCompat.getColor(this, R.color.tv_filter_active_icon)
+        )
+        cachedActiveFilterColor = color
+        return color
+    }
+
     private fun refreshFilterTint(btn: ImageButton, active: Boolean) {
-        val colorRes = if (active) R.color.tv_filter_active_icon else R.color.tv_text
-        btn.setImageTintColorIfChanged(ContextCompat.getColor(this, colorRes))
+        val color = if (active)
+            activeFilterColor()
+        else
+            ContextCompat.getColor(this, R.color.tv_text)
+        btn.setImageTintColorIfChanged(color)
     }
 
     private fun isVoiceBoostOn() = voiceBoostLevel > 0
@@ -3759,12 +3770,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
     }
 
     private fun updateMetadataDisplay() {
-        updatePlayerTitleOverlay()
         if (useAudioUI) {
+            updatePlayerTitleOverlay()
             binding.titleTextView.setTextIfChanged(psc.meta.formatTitle())
             binding.minorTitleTextView.setTextIfChanged(psc.meta.formatArtistAlbum())
         } else if (showMediaTitle) {
+            currentVideoTitle = resolveVlcStyleVideoTitle()
+            updatePlayerTitleOverlay()
             binding.fullTitleTextView.setTextIfChanged(currentVideoTitle)
+        } else {
+            updatePlayerTitleOverlay()
         }
     }
 
@@ -3776,16 +3791,21 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             binding.controls.isVisible
 
         if (!shouldShow) {
-            binding.playerTitleOverlay.visibility = View.GONE
-            updatePlayerToastPlacement()
+            val wasVisible = binding.playerTitleOverlay.visibility == View.VISIBLE
+            binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+            if (wasVisible)
+                updatePlayerToastPlacement()
             return
         }
 
         binding.playerTitlePrimary.setTextIfChanged(title)
-        binding.playerTitleSecondary.visibility = View.GONE
-        binding.playerTitleOverlay.alpha = 1f
-        binding.playerTitleOverlay.visibility = View.VISIBLE
-        updatePlayerToastPlacement()
+        binding.playerTitleSecondary.setVisibilityIfChanged(View.GONE)
+        if (binding.playerTitleOverlay.alpha != 1f)
+            binding.playerTitleOverlay.alpha = 1f
+        val wasHidden = binding.playerTitleOverlay.visibility != View.VISIBLE
+        binding.playerTitleOverlay.setVisibilityIfChanged(View.VISIBLE)
+        if (wasHidden)
+            updatePlayerToastPlacement()
     }
 
     private fun seekbarProgressFromMillis(positionMs: Long): Int {
@@ -3888,8 +3908,16 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         updatePiPParams()
         if (paused) {
             window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (keepControlsVisibleWhilePaused && binding.controls.visibility == View.VISIBLE)
+                fadeHandler.removeCallbacks(fadeRunnable)
+            else if (keepControlsVisibleWhilePaused)
+                showControls()
         } else {
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            if (controlsDisplayTimeoutMs > 0L && binding.controls.visibility == View.VISIBLE) {
+                fadeHandler.removeCallbacks(fadeRunnable)
+                fadeHandler.postDelayed(fadeRunnable, controlsDisplayTimeoutMs)
+            }
         }
     }
 
@@ -4340,11 +4368,10 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
             gpuNextCopyRetryDisplayedFrame = false
             cachedChapters = emptyList()
             pendingChapterSeekTime = null
-            currentVideoTitle = pendingIntentTitle
-                ?: pendingFallbackTitle
-                ?: titleFromPathLike(currentMpvPath())
-            pendingIntentTitle = null
-            pendingFallbackTitle = null
+            currentItemTitle = pendingItemTitle
+            currentVideoTitle = resolveVlcStyleVideoTitle()
+            pendingItemTitle = null
+            pendingFileName = null
             streamOpenLoading = isNetworkStreamPath(currentMpvPath())
             streamCacheLoading = false
             eventUiHandler.post {
@@ -4598,6 +4625,14 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
         fadeHandler.postDelayed(fadeRunnable3, 500L)
     }
 
+    private fun parseControlsTimeout(value: String?): Long {
+        return when (value) {
+            "never" -> -1L
+            else -> value?.toLongOrNull()?.takeIf { it > 0L }
+                ?: DEFAULT_CONTROLS_DISPLAY_TIMEOUT
+        }
+    }
+
     override fun onPropertyChange(p: PropertyChange, diff: Float) {
         val gestureTextView = binding.gestureTextView
         when (p) {
@@ -4692,7 +4727,7 @@ class MPVActivity : AppCompatActivity(), MPVLib.EventObserver, MPVLib.LogObserve
 
     companion object {
         private const val TAG = "mpv"
-        private const val CONTROLS_DISPLAY_TIMEOUT = 5_000L
+        private const val DEFAULT_CONTROLS_DISPLAY_TIMEOUT = 5_000L
         private const val CONTROLS_FADE_DURATION = 500L
         private const val THUMB_SIZE = 384
         private const val ASPECT_RATIO_MIN = 1.2f

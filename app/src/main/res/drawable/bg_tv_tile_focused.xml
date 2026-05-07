@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#22FFFFFF" />
+            <solid android:color="?attr/mpvFocusWash" />
             <corners android:radius="28dp" />
         </shape>
     </item>
@@ -12,9 +12,9 @@
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#F0192433"
-                android:endColor="#F0111824" />
-            <stroke android:width="2dp" android:color="@color/tv_stroke_focus" />
+                android:startColor="?attr/mpvSurfaceStrongStart"
+                android:endColor="?attr/mpvSurfaceStrongEnd" />
+            <stroke android:width="2dp" android:color="?attr/mpvStrokeFocus" />
             <corners android:radius="24dp" />
         </shape>
     </item>

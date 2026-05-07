@@ -29,7 +29,11 @@ class ChapterSeekBar @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
     private val selectionPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.tv_purple_hot)
+        color = AppearanceTheme.resolveColor(
+            context,
+            R.attr.mpvAccentHot,
+            ContextCompat.getColor(context, R.color.tv_purple_hot)
+        )
         style = Paint.Style.STROKE
     }
 

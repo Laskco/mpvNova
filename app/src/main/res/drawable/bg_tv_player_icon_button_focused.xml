@@ -2,7 +2,7 @@
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="oval">
-            <solid android:color="#16FFFFFF" />
+            <solid android:color="?attr/mpvFocusWashSoft" />
         </shape>
     </item>
     <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
@@ -12,7 +12,7 @@
                 android:endColor="#7813171C"
                 android:startColor="#9630353C"
                 android:type="linear" />
-            <stroke android:width="1dp" android:color="#9AFFFFFF" />
+            <stroke android:width="1dp" android:color="?attr/mpvStrokeFocus" />
         </shape>
     </item>
 </layer-list>

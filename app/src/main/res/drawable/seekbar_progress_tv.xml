@@ -23,8 +23,8 @@
             <shape android:shape="rectangle">
                 <gradient
                     android:angle="0"
-                    android:startColor="@color/tv_purple_deep"
-                    android:endColor="@color/tv_purple" />
+                    android:startColor="?attr/mpvAccentDeep"
+                    android:endColor="?attr/mpvAccent" />
                 <corners android:radius="5dp" />
                 <size android:height="8dp" />
             </shape>

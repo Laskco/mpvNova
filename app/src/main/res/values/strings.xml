@@ -237,14 +237,17 @@
     <string name="tv_tile_settings_sub">Playback, video, and gestures</string>
 
     <!-- Strings related to Settings -->
+    <string name="pref_header_appearance">Appearance</string>
+    <string name="pref_header_appearance_summary">Color theme for the home screen, settings, and player controls.</string>
+
     <string name="pref_header_general">General</string>
     <string name="pref_header_general_summary">Languages, defaults, background playback, and startup behavior.</string>
 
     <string name="pref_header_video">Video</string>
     <string name="pref_header_video_summary">Scaling, interpolation, debanding, and decode quality.</string>
 
-    <string name="pref_header_ui">User interface</string>
-    <string name="pref_header_ui_summary">Orientation, titles, popups, and playlist confirmations.</string>
+    <string name="pref_header_ui">Player UI</string>
+    <string name="pref_header_ui_summary">Controls, titles, popups, and playlist confirmations.</string>
 
     <string name="pref_header_gestures">Touch gestures</string>
     <string name="pref_header_gestures_summary">Horizontal and vertical drags, plus double-tap actions.</string>
@@ -254,12 +257,16 @@
 
     <string name="pref_header_advanced">Advanced</string>
     <string name="pref_header_advanced_summary">Renderer switches and direct access to config files.</string>
+    <string name="pref_header_support">Support &amp; diagnostics</string>
+    <string name="pref_header_support_summary">Copy device details and export a support bundle.</string>
 
     <string name="pref_header_about_mpv">About mpvNova</string>
     <string name="pref_header_about_mpv_summary">See build details and bundled playback-core features.</string>
 
     <string name="pref_check_updates_title">App updates</string>
     <string name="pref_check_updates_summary">Check GitHub releases, download the latest APK, and hand it to Android\'s installer.</string>
+    <string name="pref_release_history_title">Release notes history</string>
+    <string name="pref_release_history_summary">View recently fetched mpvNova changelogs again.</string>
     <string name="update_available_title">App Update</string>
     <string name="update_checking">Checking for the latest release...</string>
     <string name="update_new_version">New version: %1$s</string>
@@ -282,12 +289,28 @@
     <string name="update_install_permission_title">Allow app installs</string>
     <string name="update_install_permission_message">Android needs permission before mpvNova can open a downloaded APK. Turn on \"Allow from this source\", then return here and the installer will open.</string>
     <string name="update_open_permission_settings">Open settings</string>
+    <string name="update_history_title">Release notes history</string>
+    <string name="update_history_empty">No release notes have been fetched yet. Check for updates once, then they will appear here.</string>
+    <string name="update_history_unknown_version">Unknown version</string>
 
     <string name="pref_default_file_manager_path_title">Default file manager path</string>
     <string name="pref_default_file_manager_path_summary" translatable="false">%s</string>
 
     <string name="pref_material_you_theming_title">Material You</string>
     <string name="pref_material_you_theming_summary">Use dynamic colors</string>
+    <string name="appearance_color_theme_title">Color Theme</string>
+    <string name="appearance_color_theme_summary">Pick the accent color used across the app</string>
+    <string name="appearance_theme_white">White</string>
+    <string name="appearance_theme_crimson">Crimson</string>
+    <string name="appearance_theme_ocean">Ocean</string>
+    <string name="appearance_theme_violet">Violet</string>
+    <string name="appearance_theme_emerald">Emerald</string>
+    <string name="appearance_theme_amber">Amber</string>
+    <string name="appearance_theme_rose">Rose</string>
+    <string name="appearance_amoled_mode_title">AMOLED Mode</string>
+    <string name="appearance_amoled_mode_summary">Use pure black for app backgrounds</string>
+    <string name="appearance_pure_black_surfaces_title">Pure Black Surfaces</string>
+    <string name="appearance_pure_black_surfaces_summary">Also make cards, panels, and containers pure black</string>
 
     <string name="pref_default_audio_language_title">Default audio language</string>
     <string name="pref_default_audio_language_message">Audio language(s) to be selected by default when playing a video with multiple audio streams.\nTwo- or three-letter languages codes work. Multiple values can be delimited by comma.</string>
@@ -322,6 +345,13 @@
     <string name="pref_display_media_title_summary">Display a VLC-style media title at the top of the player UI when the launcher or file path provides one.</string>
 
     <string name="pref_bottom_controls_title">Show controls at bottom of screen</string>
+    <string name="pref_player_controls_timeout_title">Auto-hide player controls</string>
+    <string name="pref_player_controls_timeout_summary">Choose how long controls stay visible after player UI activity.</string>
+    <string name="pref_player_controls_timeout_default" translatable="false">5000</string>
+    <string name="pref_keep_controls_visible_paused_title">Keep controls visible while paused</string>
+    <string name="pref_keep_controls_visible_paused_summary">When playback is paused, keep the player controls on screen until playback resumes or you hide them manually.</string>
+    <string name="pref_reset_player_ui_title">Reset player UI settings</string>
+    <string name="pref_reset_player_ui_summary">Restore player controls, title, popup, and playlist UI preferences without changing playback, audio, or subtitle settings.</string>
 
     <string name="pref_no_ui_pause_title">Continue playback during UI popups</string>
     <string name="pref_no_ui_pause_summary">Continue playback while popups are open. (e.g. during the playlist dialog)</string>
@@ -377,6 +407,15 @@
     <string name="pref_stats_mode_summary">Choose which statistics are displayed</string>
 
     <string name="pref_gpu_debug_title">Enable OpenGL debugging</string>
+    <string name="pref_copy_debug_info_title">Copy debug info</string>
+    <string name="pref_copy_debug_info_summary">Copy app, mpv, FFmpeg, Android, device, and decoder details for support posts.</string>
+    <string name="pref_export_config_bundle_title">Export config bundle</string>
+    <string name="pref_export_config_bundle_summary">Share mpv.conf, input.conf, diagnostics, and selected settings as a zip file.</string>
+    <string name="support_debug_info_title">mpvNova debug info</string>
+    <string name="support_debug_info_copied">Debug info copied</string>
+    <string name="support_export_chooser">Export mpvNova support bundle</string>
+    <string name="support_export_no_target">No app can export the support bundle</string>
+    <string name="support_reset_player_ui_done">Player UI settings reset</string>
 
     <string name="pref_gpu_next_title">Use gpu-next</string>
     <string name="pref_gpu_next_summary">Use new video rendering backend, based on libplacebo.</string>

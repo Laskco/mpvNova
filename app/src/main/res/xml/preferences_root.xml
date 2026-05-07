@@ -2,6 +2,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <Preference
+        app:fragment="app.mpvnova.player.preferences.PreferenceActivity$AppearancePreference"
+        app:icon="@drawable/round_palette_24"
+        app:summary="@string/pref_header_appearance_summary"
+        app:title="@string/pref_header_appearance" />
+    <Preference
         app:fragment="app.mpvnova.player.preferences.PreferenceActivity$GeneralPreference"
         app:icon="@drawable/round_palette_24"
         app:summary="@string/pref_header_general_summary"
@@ -31,12 +36,23 @@
         app:icon="@drawable/round_settings_24"
         app:summary="@string/pref_header_advanced_summary"
         app:title="@string/pref_header_advanced" />
+    <Preference
+        app:fragment="app.mpvnova.player.preferences.PreferenceActivity$SupportPreference"
+        app:icon="@drawable/round_info_24"
+        app:summary="@string/pref_header_support_summary"
+        app:title="@string/pref_header_support" />
 
     <Preference
         android:key="check_for_updates"
         app:icon="@drawable/round_info_24"
         app:summary="@string/pref_check_updates_summary"
         app:title="@string/pref_check_updates_title" />
+
+    <Preference
+        android:key="release_history"
+        app:icon="@drawable/round_info_24"
+        app:summary="@string/pref_release_history_summary"
+        app:title="@string/pref_release_history_title" />
 
     <Preference
         app:icon="@drawable/round_info_24"

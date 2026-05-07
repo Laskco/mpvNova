@@ -43,6 +43,21 @@
         <item>device</item>
     </string-array>
 
+    <string-array name="player_controls_timeout_entries">
+        <item>3 seconds</item>
+        <item>5 seconds</item>
+        <item>8 seconds</item>
+        <item>10 seconds</item>
+        <item>Never</item>
+    </string-array>
+    <string-array name="player_controls_timeout_values" translatable="false">
+        <item>3000</item>
+        <item>5000</item>
+        <item>8000</item>
+        <item>10000</item>
+        <item>never</item>
+    </string-array>
+
     <!-- obtained from mpv -scale=help -->
     <string-array name="scaler_list" translatable="false">
         <item>bilinear</item>

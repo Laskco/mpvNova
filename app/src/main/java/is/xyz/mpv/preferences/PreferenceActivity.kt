@@ -3,19 +3,29 @@ package app.mpvnova.player.preferences
 import android.annotation.SuppressLint
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
 import android.graphics.Rect
 import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import android.view.MenuItem
+import android.view.ViewGroup
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.XmlRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updatePadding
+import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
 import androidx.preference.PreferenceGroupAdapter
@@ -28,6 +38,7 @@ import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.DynamicColors
+import app.mpvnova.player.AppearanceTheme
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.ActivitySettingsBinding
 
@@ -40,6 +51,7 @@ class PreferenceActivity : AppCompatActivity(),
     private var currentSubtitle: CharSequence? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppearanceTheme.applyPreferences(this)
         super.onCreate(savedInstanceState)
 
         preferences = PreferenceManager.getDefaultSharedPreferences(this)
@@ -100,8 +112,12 @@ class PreferenceActivity : AppCompatActivity(),
     }
 
     override fun onSharedPreferenceChanged(sharedPreferences: SharedPreferences, key: String?) {
-        if (key != "material_you_theming") return
-        if (sharedPreferences.getBoolean(key, false))
+        if (key != "material_you_theming" &&
+            key != AppearanceTheme.PREF_KEY &&
+            key != AppearanceTheme.PREF_AMOLED_MODE &&
+            key != AppearanceTheme.PREF_PURE_BLACK_SURFACES
+        ) return
+        if (key == "material_you_theming" && sharedPreferences.getBoolean(key, false))
             DynamicColors.applyToActivityIfAvailable(this)
         recreate()
     }
@@ -138,6 +154,10 @@ class PreferenceActivity : AppCompatActivity(),
 
     private fun checkForAppUpdates() {
         updateManager.checkForUpdates()
+    }
+
+    private fun showReleaseHistory() {
+        updateManager.showReleaseHistory()
     }
 
     abstract class StyledPreferenceFragment(
@@ -217,7 +237,139 @@ class PreferenceActivity : AppCompatActivity(),
                 (activity as? PreferenceActivity)?.checkForAppUpdates()
                 true
             }
+            findPreference<Preference>("release_history")?.setOnPreferenceClickListener {
+                (activity as? PreferenceActivity)?.showReleaseHistory()
+                true
+            }
         }
+    }
+
+    class AppearancePreference : Fragment() {
+        private data class ThemeChoice(
+            val value: String,
+            val labelRes: Int,
+            val color: Int
+        )
+
+        private val themeChoices = listOf(
+            ThemeChoice("nova", R.string.appearance_theme_white, Color.WHITE),
+            ThemeChoice("crimson", R.string.appearance_theme_crimson, Color.rgb(244, 67, 54)),
+            ThemeChoice("ocean", R.string.appearance_theme_ocean, Color.rgb(33, 150, 243)),
+            ThemeChoice("violet", R.string.appearance_theme_violet, Color.rgb(156, 39, 176)),
+            ThemeChoice("emerald", R.string.appearance_theme_emerald, Color.rgb(76, 175, 80)),
+            ThemeChoice("amber", R.string.appearance_theme_amber, Color.rgb(255, 152, 0)),
+            ThemeChoice("rose", R.string.appearance_theme_rose, Color.rgb(216, 27, 96)),
+        )
+
+        private lateinit var preferences: SharedPreferences
+
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: Bundle?
+        ): View {
+            return inflater.inflate(R.layout.fragment_appearance, container, false)
+        }
+
+        override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+            super.onViewCreated(view, savedInstanceState)
+            AppearanceTheme.migrateLegacyOled(requireContext())
+            preferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
+            populateColorThemes(view.findViewById(R.id.colorThemeRow))
+            bindSwitchRow(
+                view.findViewById(R.id.amoledRow),
+                view.findViewById(R.id.amoledSwitch),
+                AppearanceTheme.PREF_AMOLED_MODE
+            )
+            bindSwitchRow(
+                view.findViewById(R.id.pureBlackRow),
+                view.findViewById(R.id.pureBlackSwitch),
+                AppearanceTheme.PREF_PURE_BLACK_SURFACES
+            )
+        }
+
+        private fun populateColorThemes(row: LinearLayout) {
+            row.removeAllViews()
+            val selectedTheme = AppearanceTheme.currentValue(requireContext())
+            themeChoices.forEachIndexed { index, choice ->
+                row.addView(createThemeTile(choice, selectedTheme == choice.value).apply {
+                    if (index == 0) requestFocus()
+                })
+            }
+        }
+
+        private fun createThemeTile(choice: ThemeChoice, selected: Boolean): View {
+            val context = requireContext()
+            val tile = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                gravity = android.view.Gravity.CENTER
+                isClickable = true
+                isFocusable = true
+                isSelected = selected
+                background = AppCompatResources.getDrawable(context, R.drawable.bg_appearance_tile)
+                contentDescription = getString(choice.labelRes)
+                setPadding(dp(8), dp(8), dp(8), dp(8))
+                setOnClickListener {
+                    if (preferences.getString(AppearanceTheme.PREF_KEY, AppearanceTheme.DEFAULT_VALUE) == choice.value)
+                        return@setOnClickListener
+                    preferences.edit()
+                        .putString(AppearanceTheme.PREF_KEY, choice.value)
+                        .apply()
+                }
+            }
+            tile.layoutParams = LinearLayout.LayoutParams(dp(88), dp(86)).apply {
+                marginEnd = dp(18)
+            }
+
+            val swatch = FrameLayout(context).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(choice.color)
+                    setStroke(dp(1), if (choice.value == "nova") Color.rgb(210, 210, 210) else choice.color)
+                }
+            }
+            tile.addView(swatch, LinearLayout.LayoutParams(dp(40), dp(40)))
+
+            val label = TextView(context).apply {
+                text = getString(choice.labelRes)
+                setTextColor(Color.rgb(188, 188, 188))
+                textSize = 12f
+                typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+                gravity = android.view.Gravity.CENTER
+                includeFontPadding = false
+            }
+            tile.addView(label, LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topMargin = dp(8)
+            })
+            return tile
+        }
+
+        private fun bindSwitchRow(row: View, switch: SwitchCompat, key: String) {
+            switch.isChecked = preferences.getBoolean(key, false)
+            fun setPreferenceChecked(checked: Boolean) {
+                switch.isChecked = checked
+                if (preferences.getBoolean(key, false) == checked)
+                    return
+                preferences.edit()
+                    .putBoolean(key, checked)
+                    .apply()
+            }
+            row.setOnClickListener {
+                setPreferenceChecked(!preferences.getBoolean(key, false))
+            }
+            switch.setOnClickListener {
+                setPreferenceChecked(switch.isChecked)
+            }
+        }
+
+        private fun dp(value: Int): Int = TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
+            value.toFloat(),
+            resources.displayMetrics
+        ).toInt()
     }
 
     class GeneralPreference : StyledPreferenceFragment(R.xml.pref_general) {
@@ -301,7 +453,12 @@ class PreferenceActivity : AppCompatActivity(),
         override fun onPreferencesLoaded() {
             val packageManager = requireContext().packageManager
             if (!packageManager.hasSystemFeature(PackageManager.FEATURE_SCREEN_PORTRAIT))
-                findPreference<Preference>("auto_rotation")?.isEnabled = false
+                // Disabled top rows can trap Android TV D-pad focus before it reaches the toolbar.
+                findPreference<Preference>("auto_rotation")?.isVisible = false
+            findPreference<Preference>("reset_player_ui_settings")?.setOnPreferenceClickListener {
+                activity?.let(SupportActions::resetPlayerUiSettings)
+                true
+            }
         }
     }
 
@@ -318,4 +475,17 @@ class PreferenceActivity : AppCompatActivity(),
     class DeveloperPreference : StyledPreferenceFragment(R.xml.pref_developer)
 
     class AdvancePreference : StyledPreferenceFragment(R.xml.pref_advanced)
+
+    class SupportPreference : StyledPreferenceFragment(R.xml.pref_support) {
+        override fun onPreferencesLoaded() {
+            findPreference<Preference>("copy_debug_info")?.setOnPreferenceClickListener {
+                activity?.let(SupportActions::copyDebugInfo)
+                true
+            }
+            findPreference<Preference>("export_config_bundle")?.setOnPreferenceClickListener {
+                activity?.let(SupportActions::exportConfigBundle)
+                true
+            }
+        }
+    }
 }

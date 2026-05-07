@@ -4,17 +4,17 @@
         <shape android:shape="rectangle">
             <gradient
                 android:angle="315"
-                android:endColor="#E64A4F55"
-                android:startColor="#E663686E"
+                android:endColor="?attr/mpvAccentDeep"
+                android:startColor="?attr/mpvAccent"
                 android:type="linear" />
-            <stroke android:width="1dp" android:color="@color/tv_stroke_focus" />
+            <stroke android:width="1dp" android:color="?attr/mpvStrokeFocus" />
             <corners android:radius="18dp" />
         </shape>
     </item>
 
     <item android:state_pressed="true">
         <shape android:shape="rectangle">
-            <solid android:color="@color/tv_focus_wash_soft" />
+            <solid android:color="?attr/mpvFocusWashSoft" />
             <corners android:radius="18dp" />
         </shape>
     </item>
@@ -23,10 +23,10 @@
         <shape android:shape="rectangle">
             <gradient
                 android:angle="315"
-                android:endColor="#CC40454B"
-                android:startColor="#D85B6067"
+                android:endColor="?attr/mpvAccentDeep"
+                android:startColor="?attr/mpvAccent"
                 android:type="linear" />
-            <stroke android:width="1dp" android:color="#BFFFFFFF" />
+            <stroke android:width="1dp" android:color="?attr/mpvStrokeStrong" />
             <corners android:radius="18dp" />
         </shape>
     </item>

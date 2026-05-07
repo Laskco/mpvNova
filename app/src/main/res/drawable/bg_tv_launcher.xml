@@ -5,9 +5,9 @@
             <gradient
                 android:type="linear"
                 android:angle="270"
-                android:startColor="#FF101216"
-                android:centerColor="#FF090B0E"
-                android:endColor="#FF040506" />
+                android:startColor="?attr/mpvWindowStart"
+                android:centerColor="?attr/mpvWindowCenter"
+                android:endColor="?attr/mpvWindowEnd" />
         </shape>
     </item>
 
@@ -18,8 +18,8 @@
                 android:centerX="0.15"
                 android:centerY="0.18"
                 android:gradientRadius="780"
-                android:startColor="#22FFFFFF"
-                android:endColor="#00000000" />
+                android:startColor="?attr/mpvWindowGlowStart"
+                android:endColor="?attr/mpvWindowGlowEnd" />
         </shape>
     </item>
 
@@ -30,8 +30,8 @@
                 android:centerX="0.84"
                 android:centerY="0.72"
                 android:gradientRadius="860"
-                android:startColor="#16D8DDE3"
-                android:endColor="#00000000" />
+                android:startColor="?attr/mpvWindowGlowAltStart"
+                android:endColor="?attr/mpvWindowGlowAltEnd" />
         </shape>
     </item>
 </layer-list>

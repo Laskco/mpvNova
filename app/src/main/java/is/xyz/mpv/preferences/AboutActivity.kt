@@ -7,6 +7,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.preference.PreferenceManager
 import com.google.android.material.color.DynamicColors
+import app.mpvnova.player.AppearanceTheme
 import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.MPVLib
 import app.mpvnova.player.MPVLib.MpvLogLevel
@@ -19,6 +20,7 @@ class AboutActivity : AppCompatActivity(), MPVLib.LogObserver {
     private var mpvDestroyed = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppearanceTheme.applyPreferences(this)
         super.onCreate(savedInstanceState)
 
         val preferences = PreferenceManager.getDefaultSharedPreferences(this)

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <Preference
+        android:key="copy_debug_info"
+        android:summary="@string/pref_copy_debug_info_summary"
+        android:title="@string/pref_copy_debug_info_title"
+        app:iconSpaceReserved="false" />
+
+    <Preference
+        android:key="export_config_bundle"
+        android:summary="@string/pref_export_config_bundle_summary"
+        android:title="@string/pref_export_config_bundle_title"
+        app:iconSpaceReserved="false" />
+
+</PreferenceScreen>

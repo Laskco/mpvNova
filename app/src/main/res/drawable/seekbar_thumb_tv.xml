@@ -9,7 +9,7 @@
     <item android:left="7dp" android:top="7dp" android:right="7dp" android:bottom="7dp">
         <shape android:shape="oval">
             <solid android:color="#FFFFFFFF" />
-            <stroke android:width="2dp" android:color="@color/tv_purple_deep" />
+            <stroke android:width="2dp" android:color="?attr/mpvAccentDeep" />
             <size android:width="18dp" android:height="18dp" />
         </shape>
     </item>

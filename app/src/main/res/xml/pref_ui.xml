@@ -25,6 +25,22 @@
         android:title="@string/pref_bottom_controls_title" />
 
     <ListPreference
+        app:iconSpaceReserved="false"
+        android:defaultValue="@string/pref_player_controls_timeout_default"
+        android:key="player_controls_timeout"
+        android:summary="@string/pref_player_controls_timeout_summary"
+        android:entries="@array/player_controls_timeout_entries"
+        android:entryValues="@array/player_controls_timeout_values"
+        android:title="@string/pref_player_controls_timeout_title" />
+
+    <SwitchPreferenceCompat
+        app:iconSpaceReserved="false"
+        android:defaultValue="false"
+        android:key="keep_controls_visible_paused"
+        android:summary="@string/pref_keep_controls_visible_paused_summary"
+        android:title="@string/pref_keep_controls_visible_paused_title" />
+
+    <ListPreference
         android:defaultValue="@string/pref_no_ui_pause_default"
         app:iconSpaceReserved="false"
         android:key="no_ui_pause"
@@ -39,5 +55,11 @@
         android:key="playlist_exit_warning"
         android:summary="@string/pref_playlist_exit_warning_summary"
         android:title="@string/pref_playlist_exit_warning_title" />
+
+    <Preference
+        app:iconSpaceReserved="false"
+        android:key="reset_player_ui_settings"
+        android:summary="@string/pref_reset_player_ui_summary"
+        android:title="@string/pref_reset_player_ui_title" />
 
 </PreferenceScreen>
