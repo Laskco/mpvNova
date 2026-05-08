@@ -15,12 +15,14 @@ if [ ! -d mbedtls ]; then
 fi
 
 # dav1d
-[ ! -d dav1d ] && git clone https://github.com/videolan/dav1d
+if [ ! -d dav1d ]; then
+	git clone https://github.com/videolan/dav1d
+	git -C dav1d checkout 1.5.3
+fi
 
-# ffmpeg
+# ffmpeg (always pin to stable release)
 if [ ! -d ffmpeg ]; then
-	args=(--depth=1 -b "$v_ci_ffmpeg")
-	git clone https://github.com/FFmpeg/FFmpeg ffmpeg "${args[@]}"
+	git clone --depth=1 -b "$v_ci_ffmpeg" https://github.com/FFmpeg/FFmpeg ffmpeg
 fi
 
 # freetype2
@@ -62,7 +64,10 @@ if [ ! -d fontconfig ]; then
 fi
 
 # libass
-[ ! -d libass ] && git clone https://github.com/libass/libass
+if [ ! -d libass ]; then
+	git clone https://github.com/libass/libass
+	git -C libass checkout 0.17.4
+fi
 
 # lua
 if [ ! -d lua ]; then
@@ -72,9 +77,15 @@ if [ ! -d lua ]; then
 fi
 
 # libplacebo
-[ ! -d libplacebo ] && git clone --recursive https://github.com/haasn/libplacebo
+if [ ! -d libplacebo ]; then
+	git clone --recursive https://github.com/haasn/libplacebo
+	git -C libplacebo checkout v7.360.1
+fi
 
-# mpv
-[ ! -d mpv ] && git clone https://github.com/mpv-player/mpv
+# mpv (post-v0.41.0, matching upstream mpv-android)
+if [ ! -d mpv ]; then
+	git clone https://github.com/mpv-player/mpv
+	git -C mpv checkout 9ce79bc
+fi
 
 cd ..

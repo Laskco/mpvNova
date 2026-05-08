@@ -1,0 +1,107 @@
+name: build-native
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        arch: [armv7l, arm64, x86, x86_64]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '17'
+          distribution: temurin
+
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install autoconf pkgconf libtool ninja-build python3-pip gperf nasm
+          sudo pip3 install meson
+
+      - name: Download SDK + NDK
+        run: |
+          cd buildscripts
+          IN_CI=1 ./include/download-sdk.sh
+
+      - name: Download deps
+        run: |
+          cd buildscripts
+          ./include/download-deps.sh
+
+      - name: Build native libraries (${{ matrix.arch }})
+        run: |
+          cd buildscripts
+          ./buildall.sh --arch ${{ matrix.arch }} --only-deps mpvnova
+
+      - name: Build libplayer.so (${{ matrix.arch }})
+        run: |
+          NDK_DIR=$(echo buildscripts/sdk/android-ndk-*)
+          export PATH="$NDK_DIR:$PATH"
+
+          arch=${{ matrix.arch }}
+          prefix="$PWD/buildscripts/prefix"
+          if [ "$arch" = "armv7l" ]; then
+            ndk-build -C app/src/main -j$(nproc) \
+              PREFIX32="$prefix/armv7l" \
+              APP_ABI=armeabi-v7a
+          elif [ "$arch" = "arm64" ]; then
+            ndk-build -C app/src/main -j$(nproc) \
+              PREFIX64="$prefix/arm64" \
+              APP_ABI=arm64-v8a
+          elif [ "$arch" = "x86" ]; then
+            ndk-build -C app/src/main -j$(nproc) \
+              PREFIX_X86="$prefix/x86" \
+              APP_ABI=x86
+          elif [ "$arch" = "x86_64" ]; then
+            ndk-build -C app/src/main -j$(nproc) \
+              PREFIX_X64="$prefix/x86_64" \
+              APP_ABI=x86_64
+          fi
+
+      - name: Collect .so files
+        run: |
+          arch=${{ matrix.arch }}
+          mkdir -p collected
+
+          if [ "$arch" = "armv7l" ]; then abi="armeabi-v7a"
+          elif [ "$arch" = "arm64" ]; then abi="arm64-v8a"
+          elif [ "$arch" = "x86" ]; then abi="x86"
+          elif [ "$arch" = "x86_64" ]; then abi="x86_64"
+          fi
+
+          cp buildscripts/prefix/$arch/lib/*.so collected/ 2>/dev/null || true
+          cp app/src/main/libs/$abi/*.so collected/ 2>/dev/null || true
+
+      - name: Upload .so files
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-libs-${{ matrix.arch }}
+          path: collected/*.so
+
+  bundle:
+    runs-on: ubuntu-24.04
+    needs: build
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: all-libs
+
+      - name: Organize by ABI
+        run: |
+          mkdir -p jniLibs/armeabi-v7a jniLibs/arm64-v8a jniLibs/x86 jniLibs/x86_64
+          cp all-libs/native-libs-armv7l/*.so jniLibs/armeabi-v7a/
+          cp all-libs/native-libs-arm64/*.so jniLibs/arm64-v8a/
+          cp all-libs/native-libs-x86/*.so jniLibs/x86/
+          cp all-libs/native-libs-x86_64/*.so jniLibs/x86_64/
+
+      - name: Upload combined jniLibs
+        uses: actions/upload-artifact@v7
+        with:
+          name: jniLibs-all-abis
+          path: jniLibs/
