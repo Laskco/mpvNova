@@ -1,0 +1,29 @@
+name: quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  android-quality:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Fix Gradle permissions
+        run: chmod +x gradlew
+
+      - name: Run Android quality checks
+        run: ./gradlew :app:lintDefaultDebug :app:testDefaultDebugUnitTest :app:detekt buildHealth --no-daemon

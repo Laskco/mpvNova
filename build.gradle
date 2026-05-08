@@ -2,19 +2,34 @@
 buildscript {
     ext.kotlin_version = '2.3.21'
     repositories {
+        gradlePluginPortal()
         mavenCentral()
         google()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:9.2.0'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'io.gitlab.arturbosch.detekt:io.gitlab.arturbosch.detekt.gradle.plugin:1.23.8'
+        classpath 'com.autonomousapps.dependency-analysis:com.autonomousapps.dependency-analysis.gradle.plugin:3.10.0'
     }
 }
+
+apply plugin: 'com.autonomousapps.dependency-analysis'
 
 allprojects {
     repositories {
         mavenCentral()
         google()
+    }
+}
+
+dependencyAnalysis {
+    issues {
+        all {
+            onAny {
+                severity('warn')
+            }
+        }
     }
 }
 

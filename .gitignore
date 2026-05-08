@@ -3,6 +3,7 @@
 .idea/
 .vscode/
 .kotlin/
+.fallow/
 .android-home/
 .externalNativeBuild/
 .cxx/

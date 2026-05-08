@@ -72,8 +72,12 @@ You can use Android Studio to develop the Java part of the codebase. Before usin
 You should point Android Studio to the existing SDK installation at `buildscripts/sdk/android-sdk-linux`.
 Then click "Open an existing Android Studio project" and select this repository root.
 
-Note that if you build from Android Studio only the Java/Kotlin part will be built.
-If you make any changes to libraries (ffmpeg, mpv, ...) or the app's native code (`app/src/main/jni/*`), first rebuild native code with:
+Note that Android Studio and the GitHub build workflow package the bundled native
+libraries from `app/src/main/jniLibs` as-is. Do not rebuild or replace those
+libraries as part of normal app work.
+
+If you intentionally change libraries (ffmpeg, mpv, ...) or the app's native
+code (`app/src/main/jni/*`), rebuild native code separately with:
 
 ```sh
 ./buildall.sh -n

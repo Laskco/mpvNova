@@ -1,0 +1,32 @@
+package app.mpvnova.player
+
+import android.app.PendingIntent
+import android.content.BroadcastReceiver
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.util.Log
+import androidx.core.app.PendingIntentCompat
+
+class NotificationButtonReceiver : BroadcastReceiver() {
+    override fun onReceive(context: Context?, intent: Intent?) {
+        Log.v(TAG, "NotificationButtonReceiver: ${intent!!.action}")
+        when (intent.action) {
+            "$PREFIX.PLAY_PAUSE" -> mpvCommand(arrayOf("cycle", "pause"))
+            "$PREFIX.ACTION_PREV" -> mpvCommand(arrayOf("playlist-prev"))
+            "$PREFIX.ACTION_NEXT" -> mpvCommand(arrayOf("playlist-next"))
+        }
+    }
+
+    companion object {
+        fun createIntent(context: Context, action: String): PendingIntent {
+            val intent = Intent("$PREFIX.$action")
+            intent.component = ComponentName(context, NotificationButtonReceiver::class.java)
+            return PendingIntentCompat.getBroadcast(context, 0, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT, false)!!
+        }
+
+        private const val TAG = "mpv"
+        private const val PREFIX = "app.mpvnova.player"
+    }
+}
