@@ -12,13 +12,24 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 
 - TV-first home screen and launcher integration
 - Remote-friendly player HUD with strong D-pad focus behavior
-- Custom subtitle, audio, decoder, and settings panels
+- Custom subtitle, audio, chapter, decoder, and settings panels
+- Smart subtitle matching for binge-watching, tied to persisted subtitle settings
+- Multiple built-in color themes, AMOLED mode, and pure black surfaces
 - Dialogue-focused audio tools for stereo and surround playback
+- Device-aware decoder paths including gpu-next and Shield Anime handling
 - In-app update checks backed by GitHub releases
 - Leanback launcher support and TV banner assets
 - Built for sideloading on Android TV and Google TV devices
 
 For the inherited playback feature set, scripting support, and core behavior that mpvNova builds on top of, see upstream [mpv-android](https://github.com/mpv-android/mpv-android).
+
+---
+
+## Android TV Only
+
+mpvNova is built for Android TV and Google TV. Android phones and tablets are out of scope, and mobile UI support will not be added.
+
+For mobile-focused Android mpv options, use projects such as [mpvEx](https://github.com/marlboro-advance/mpvEx) or [mpvKt](https://github.com/abdallahmehiz/mpvKt).
 
 ---
 
@@ -77,17 +88,21 @@ Download the latest APK from the [GitHub releases page](https://github.com/Laskc
 
 ---
 
-## Features
+## What mpvNova Adds
 
-- Android TV / Google TV launcher support with leanback entry points and banner assets
-- TV-first home screen with quick actions for folders, storage, URL playback, and settings
-- Redesigned player HUD with chapter markers, title display, and a TV-scale seek bar
-- In-player decoder picker with `HW+`, `HW`, `SW`, `G-NEXT`, and `Shield Anime (Hi10P)` modes
-- Live `G-NEXT` path display for direct, copy, or software-backed playback paths
+mpvNova inherits mpv-android's playback foundation: hardware/software decoding, gestures, libass subtitles, dual subtitles, advanced rendering settings, URL playback, background playback, Picture-in-Picture, and keyboard input. The additions below are the TV-focused layer built for this fork.
+
+- Android TV / Google TV launcher support with leanback entry points, TV banner assets, and a couch-first home screen
+- Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
+- Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
+- Custom subtitle panel with dual-track display, one-tap primary/secondary swap, independent position, size, delay, and secondary subtitle controls
+- Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
 - Audio panel with Voice Boost, Volume Boost, DRC, Audio Normalization, Channel Downmix, surround-state feedback, and filter persistence
-- Subtitle panel with dual-track display, one-tap primary/secondary swap, independent positioning, scale, delay, and filter persistence
-- Home-screen update prompt plus manual update checks from Settings
-- Decoder and stats overlays that are easier to read from a TV
+- In-player decoder picker with `HW+`, `HW`, `SW`, `G-NEXT`, and `Shield Anime (Hi10P)` modes
+- Live `G-NEXT` path display for direct, copy, or software-backed playback paths, plus automatic decoder fallback for known trouble cases
+- Appearance themes for White, Crimson, Ocean, Violet, Emerald, Amber, and Rose, plus AMOLED mode and pure black surfaces
+- Home-screen update prompt, manual update checks, APK handoff to Android's installer, and release-note history from Settings
+- Resume-position handling, media-title cleanup for launcher/stream sources, readable stats overlays, and support/debug export tools
 
 ---
 

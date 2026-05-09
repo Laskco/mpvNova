@@ -150,21 +150,33 @@ internal fun MPVActivity.showChapterPickerDialog() {
     val restore = keepPlaybackForDialog()
     val items = chapters.map { ch ->
         val timecode = Utils.prettyTime(ch.time.roundToInt())
-        if (ch.title != null)
-            getString(R.string.ui_chapter, ch.title, timecode)
-        else
-            getString(R.string.ui_chapter_fallback, ch.index + 1, timecode)
-    }.toTypedArray()
+        val title = ch.title?.takeIf { it.isNotBlank() }
+            ?: "${getString(R.string.chapter_button)} ${ch.index + 1}"
+        ChapterPickerDialog.Item(ch.index, title, timecode)
+    }
     val selected = mpvGetPropertyInt("chapter") ?: 0
-    androidx.appcompat.app.AlertDialog.Builder(this)
-        .setTitle(R.string.dialog_title_chapter)
-        .setSingleChoiceItems(items, selected) { dialog, item ->
-            mpvSetPropertyInt("chapter", chapters[item].index)
-            dialog.dismiss()
-        }
-        .setNegativeButton(R.string.dialog_cancel) { d, _ -> d.cancel() }
-        .setOnDismissListener { restore() }
-        .show()
+    val impl = ChapterPickerDialog(items, selected)
+    lateinit var dialog: AlertDialog
+    impl.onItemPicked = { item ->
+        mpvSetPropertyInt("chapter", item.index)
+        dialog.dismiss()
+    }
+    impl.onCancelClick = { dialog.cancel() }
+    dialog = with(AlertDialog.Builder(this)) {
+        val inflater = LayoutInflater.from(context)
+        setView(impl.buildView(inflater))
+        setOnDismissListener { restore() }
+        create()
+    }
+    showWidePlayerDialog(
+        dialog,
+        PlayerDialogLayout(
+            widthFraction = 0.46f,
+            maxWidthDp = 560f,
+            heightFraction = 0.62f,
+            maxHeightDp = 540f,
+        )
+    )
 }
 
 internal fun MPVActivity.updateOrientation(initial: Boolean = false) {

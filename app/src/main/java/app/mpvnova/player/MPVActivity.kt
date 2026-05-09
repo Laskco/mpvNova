@@ -570,6 +570,9 @@ class MPVActivity : AppCompatActivity() {
 
     /** dpad navigation */
     internal var btnSelected = -1
+    internal var pendingDpadLongClickView: View? = null
+    internal var pendingDpadLongClickRunnable: Runnable? = null
+    internal var dpadLongClickPerformed = false
 
     internal var mightWantToToggleControls = false
 

@@ -130,6 +130,9 @@ internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
 }
 
 internal fun MPVActivity.applyRememberedTrack(type: String) {
+    if (type == "sub" && !persistSubFilters)
+        return
+
     val prefs = getDefaultSharedPreferences(applicationContext)
     val (titleKey, langKey) = trackMemoryKeys(type)
     val savedTitle = prefs.getString(titleKey, null)

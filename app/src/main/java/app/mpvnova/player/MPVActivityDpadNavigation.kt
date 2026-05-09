@@ -116,13 +116,51 @@ internal fun MPVActivity.handleCenterDpad(
 ): Boolean {
     if (seekbarSelected)
         return false
-    if (ev.action == KeyEvent.ACTION_UP) {
-        val view = controls.getOrNull(btnSelected)
-        if (ev.eventTime - ev.downTime > DPAD_LONG_PRESS_MS)
-            view?.performLongClick()
-        else
-            view?.performClick()
-        showControls()
+
+    return when (ev.action) {
+        KeyEvent.ACTION_DOWN -> {
+            if (ev.repeatCount == 0)
+                scheduleDpadLongClick(controls.getOrNull(btnSelected))
+            showControls()
+            true
+        }
+        KeyEvent.ACTION_UP -> {
+            val view = controls.getOrNull(btnSelected)
+            cancelPendingDpadLongClick()
+            if (!dpadLongClickPerformed)
+                view?.performClick()
+            dpadLongClickPerformed = false
+            showControls()
+            true
+        }
+        else -> true
     }
-    return true
+}
+
+private fun MPVActivity.scheduleDpadLongClick(view: View?) {
+    cancelPendingDpadLongClick()
+    dpadLongClickPerformed = false
+    if (view == null || !view.isLongClickable)
+        return
+
+    val runnable = Runnable {
+        if (pendingDpadLongClickView === view && view.performLongClick()) {
+            dpadLongClickPerformed = true
+            showControls()
+        }
+        pendingDpadLongClickView = null
+        pendingDpadLongClickRunnable = null
+    }
+    pendingDpadLongClickView = view
+    pendingDpadLongClickRunnable = runnable
+    view.postDelayed(runnable, DPAD_LONG_PRESS_MS)
+}
+
+private fun MPVActivity.cancelPendingDpadLongClick() {
+    val view = pendingDpadLongClickView
+    val runnable = pendingDpadLongClickRunnable
+    if (view != null && runnable != null)
+        view.removeCallbacks(runnable)
+    pendingDpadLongClickView = null
+    pendingDpadLongClickRunnable = null
 }
