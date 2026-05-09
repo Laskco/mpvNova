@@ -1,11 +1,8 @@
-package is.xyz.mpv;
+package app.mpvnova.player;
 
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.view.Surface;
-
-import app.mpvnova.player.MpvEventBridgeKt;
-import app.mpvnova.player.MpvLogBridgeKt;
 
 @SuppressWarnings("unused")
 public final class MPVLib {
@@ -20,7 +17,6 @@ public final class MPVLib {
     public static void ensureLoaded() {
     }
 
-    // Native ABI shim: libplayer.so exports Java_is_xyz_mpv_MPVLib_* symbols.
     public static native void create(Context appctx);
     public static native void init();
     public static native void destroy();

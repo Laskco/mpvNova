@@ -3,48 +3,47 @@ package app.mpvnova.player
 import android.content.Context
 import android.graphics.Bitmap
 import android.view.Surface
-import `is`.xyz.mpv.MPVLib as NativeMPVLib
 
 internal fun ensureNativeLibrariesLoaded() {
-    NativeMPVLib.ensureLoaded()
+    MPVLib.ensureLoaded()
 }
 
 fun mpvCreate(appctx: Context) {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.create(appctx)
+    MPVLib.create(appctx)
 }
 
 fun mpvInit() {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.init()
+    MPVLib.init()
 }
 
 fun mpvDestroy() {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.destroy()
+    MPVLib.destroy()
 }
 
 fun mpvAttachSurface(surface: Surface) {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.attachSurface(surface)
+    MPVLib.attachSurface(surface)
 }
 
 fun mpvDetachSurface() {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.detachSurface()
+    MPVLib.detachSurface()
 }
 
 fun mpvCommand(cmd: Array<out String>) {
     ensureNativeLibrariesLoaded()
-    NativeMPVLib.command(cmd)
+    MPVLib.command(cmd)
 }
 
 fun mpvSetOptionString(name: String, value: String): Int {
     ensureNativeLibrariesLoaded()
-    return NativeMPVLib.setOptionString(name, value)
+    return MPVLib.setOptionString(name, value)
 }
 
 fun mpvGrabThumbnail(dimension: Int): Bitmap? {
     ensureNativeLibrariesLoaded()
-    return NativeMPVLib.grabThumbnail(dimension)
+    return MPVLib.grabThumbnail(dimension)
 }
