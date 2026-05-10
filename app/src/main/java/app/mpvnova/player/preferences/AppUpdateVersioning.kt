@@ -61,29 +61,34 @@ internal fun ReleaseInfo.displayTitle(): String? {
 }
 
 internal fun chooseBestApkAsset(assets: List<JSONObject>): JSONObject? {
-    return when {
-        assets.isEmpty() -> null
-        assets.size == 1 -> assets.first()
-        else -> bestCompatibleApkAsset(assets)
-    }
+    val selectedName = chooseBestApkAssetName(
+        assets.map { asset -> asset.optString("name") },
+        Build.SUPPORTED_ABIS?.toList().orEmpty()
+    )
+    return assets.firstOrNull { asset -> asset.optString("name") == selectedName }
 }
 
-private fun bestCompatibleApkAsset(assets: List<JSONObject>): JSONObject {
-    val supportedAbis = Build.SUPPORTED_ABIS?.toList().orEmpty()
-    val exactMatch = supportedAbis.firstNotNullOfOrNull { abi ->
-        assets.firstOrNull { asset ->
-            asset.optString("name").contains(abi, ignoreCase = true)
+internal fun chooseBestApkAssetName(
+    assetNames: List<String>,
+    supportedAbis: List<String>
+): String? {
+    return when {
+        assetNames.isEmpty() -> null
+        assetNames.size == 1 -> assetNames.first()
+        else -> {
+            val exactMatch = supportedAbis.firstNotNullOfOrNull { abi ->
+                assetNames.firstOrNull { name -> name.contains(abi, ignoreCase = true) }
+            }
+            val universal = assetNames.firstOrNull { assetName ->
+                val name = assetName.lowercase()
+                name.contains("universal") ||
+                    name.contains("all") ||
+                    name.contains("universal-release")
+            }
+            val abiNeutral = assetNames.firstOrNull { name ->
+                KNOWN_ABIS.none { abi -> name.contains(abi, ignoreCase = true) }
+            }
+            exactMatch ?: universal ?: abiNeutral ?: assetNames.first()
         }
     }
-    val universal = assets.firstOrNull { asset ->
-        val name = asset.optString("name").lowercase()
-        name.contains("universal") ||
-            name.contains("all") ||
-            name.contains("universal-release")
-    }
-    val abiNeutral = assets.firstOrNull { asset ->
-        val name = asset.optString("name")
-        KNOWN_ABIS.none { abi -> name.contains(abi, ignoreCase = true) }
-    }
-    return exactMatch ?: universal ?: abiNeutral ?: assets.first()
 }

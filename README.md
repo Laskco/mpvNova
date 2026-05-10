@@ -19,15 +19,17 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 - Device-aware decoder paths including gpu-next and Shield Anime handling
 - In-app update checks backed by GitHub releases
 - Leanback launcher support and TV banner assets
-- Built for sideloading on Android TV and Google TV devices
+- Built for sideloading on Android TV, Google TV, and Android-based Fire OS TV devices
 
 For the inherited playback feature set, scripting support, and core behavior that mpvNova builds on top of, see upstream [mpv-android](https://github.com/mpv-android/mpv-android).
 
 ---
 
-## Android TV Only
+## TV Devices Only
 
-mpvNova is built for Android TV and Google TV. Android phones and tablets are out of scope, and mobile UI support will not be added.
+mpvNova is built for Android TV, Google TV, and Android-based Amazon Fire TV / Fire TV Stick devices running Fire OS. Android phones and tablets are out of scope, and mobile UI support will not be added.
+
+Newer Vega OS Fire TV sticks are a different non-Android target. mpvNova's APK builds support Fire OS devices, not Vega OS devices that do not install Android APKs.
 
 For mobile-focused Android mpv options, use projects such as [mpvEx](https://github.com/marlboro-advance/mpvEx) or [mpvKt](https://github.com/abdallahmehiz/mpvKt).
 
@@ -84,6 +86,7 @@ Download the latest APK from the [GitHub releases page](https://github.com/Laskc
 
 - Use the **universal** APK if you want one build that works across device architectures
 - Use an ABI-specific APK only if you already know the target device architecture
+- On Android-based Fire TV / Fire TV Stick devices, use the **universal** APK or the `armeabi-v7a` APK for most stick models
 - After installation, future releases can also be checked from **Settings > App updates**
 
 ---
@@ -92,7 +95,7 @@ Download the latest APK from the [GitHub releases page](https://github.com/Laskc
 
 mpvNova inherits mpv-android's playback foundation: hardware/software decoding, gestures, libass subtitles, dual subtitles, advanced rendering settings, URL playback, background playback, Picture-in-Picture, and keyboard input. The additions below are the TV-focused layer built for this fork.
 
-- Android TV / Google TV launcher support with leanback entry points, TV banner assets, and a couch-first home screen
+- Android TV, Google TV, and Fire OS launcher support with leanback entry points, TV banner assets, and a couch-first home screen
 - Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
 - Custom subtitle panel with dual-track display, one-tap primary/secondary swap, independent position, size, delay, and secondary subtitle controls
@@ -152,6 +155,8 @@ The Gradle config currently builds:
 - `x86_64`
 
 There is also an `api29` flavor for older-target compatibility builds.
+
+For Amazon Appstore or Fire OS distribution, use the default flavor because it targets the current SDK while keeping `minSdk` low enough for older Android-based Fire TV devices.
 
 ---
 

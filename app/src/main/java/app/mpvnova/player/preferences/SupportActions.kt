@@ -6,6 +6,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Build
 import android.widget.Toast
 import androidx.core.content.FileProvider
@@ -89,6 +91,12 @@ object SupportActions {
 
     private fun buildDebugInfo(context: Context): String {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val packageManager = context.packageManager
+        val uiModeType = context.resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK
+        val isFireTv = packageManager.hasSystemFeature(AMAZON_FEATURE_FIRE_TV)
+        val isTvMode = uiModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        val hasTouchscreen = packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+        val hasFakeTouch = packageManager.hasSystemFeature(PackageManager.FEATURE_FAKETOUCH)
         val autoDecoder = prefs.getBoolean("decoder_auto_fallback", true)
         val preferredDecoder = prefs.getString("preferred_decoder_mode", null)
             ?.takeIf { it.isNotBlank() }
@@ -108,6 +116,12 @@ object SupportActions {
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL} (${Build.PRODUCT})")
             appendLine("Android: ${Build.VERSION.RELEASE} / API ${Build.VERSION.SDK_INT}")
             appendLine("ABIs: ${Build.SUPPORTED_ABIS?.joinToString().orEmpty()}")
+            appendLine("Fire TV: ${if (isFireTv) "yes" else "no"}")
+            appendLine("TV mode: ${if (isTvMode) "yes" else "no"}")
+            appendLine(
+                "Input features: touchscreen=${if (hasTouchscreen) "yes" else "no"}, " +
+                    "faketouch=${if (hasFakeTouch) "yes" else "no"}"
+            )
             appendLine("Decoder setting: $decoder")
             appendLine("mpv: ${nativeVersion(context, "libmpv.so", "mpv v")}")
             appendLine("FFmpeg: ${nativeVersion(context, "libavcodec.so", "FFmpeg version ")}")
@@ -162,4 +176,5 @@ object SupportActions {
     }
 
     private const val VERSION_SCAN_MAX_CHARS = 120
+    private const val AMAZON_FEATURE_FIRE_TV = "amazon.hardware.fire_tv"
 }
