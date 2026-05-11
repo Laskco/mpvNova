@@ -17,7 +17,7 @@
                 android:type="radial"
                 android:centerX="0.15"
                 android:centerY="0.18"
-                android:gradientRadius="780"
+                android:gradientRadius="780dp"
                 android:startColor="?attr/mpvWindowGlowStart"
                 android:endColor="?attr/mpvWindowGlowEnd" />
         </shape>
@@ -29,7 +29,7 @@
                 android:type="radial"
                 android:centerX="0.84"
                 android:centerY="0.72"
-                android:gradientRadius="860"
+                android:gradientRadius="860dp"
                 android:startColor="?attr/mpvWindowGlowAltStart"
                 android:endColor="?attr/mpvWindowGlowAltEnd" />
         </shape>
