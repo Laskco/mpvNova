@@ -37,9 +37,14 @@ jobs:
       - name: Verify Android build
         run: ./gradlew :app:assemble
 
-      - name: Upload APKs
+      - name: Upload api29 debug APKs
         uses: actions/upload-artifact@v7
         with:
-          name: apks
-          path: app/build/outputs/apk/**/*.apk
+          name: api29-debug-apks
+          path: app/build/outputs/apk/api29/debug/*.apk
 
+      - name: Upload api29 release APKs
+        uses: actions/upload-artifact@v7
+        with:
+          name: api29-release-apks
+          path: app/build/outputs/apk/api29/release/*.apk
