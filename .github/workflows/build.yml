@@ -36,3 +36,10 @@ jobs:
 
       - name: Verify Android build
         run: ./gradlew :app:assemble
+
+      - name: Upload APKs
+        uses: actions/upload-artifact@v7
+        with:
+          name: apks
+          path: app/build/outputs/apk/**/*.apk
+
