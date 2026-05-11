@@ -36,3 +36,13 @@ jobs:
 
       - name: Verify Android build
         run: ./gradlew :app:assemble
+
+      - name: Upload release APK artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apks
+          if-no-files-found: error
+          path: |
+            app/build/outputs/apk/default/release/app-default-*-release.apk
+            app/build/outputs/apk/api29/release/app-api29-universal-release.apk
+            app/build/outputs/apk/api29/debug/app-api29-universal-debug.apk
