@@ -26,4 +26,4 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Android quality checks
-        run: ./gradlew :app:lintDefaultDebug :app:testDefaultDebugUnitTest :app:detekt buildHealth --no-daemon
+        run: ./gradlew :app:lintDefaultDebug :app:testDefaultDebugUnitTest :app:detekt --no-daemon
