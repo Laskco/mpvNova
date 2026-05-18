@@ -713,7 +713,8 @@ class MPVActivity : AppCompatActivity() {
         R.string.audio_norm_preset_smooth,
         R.string.audio_norm_preset_speech,
         R.string.audio_norm_preset_balanced,
-        R.string.audio_norm_preset_strong
+        R.string.audio_norm_preset_strong,
+        R.string.audio_norm_preset_loudnorm_22
     )
 
     internal val nightModePresets = listOf(
@@ -756,7 +757,8 @@ class MPVActivity : AppCompatActivity() {
             "equalizer=f=3000:t=q:w=0.9:g=1.3," +
             "acompressor=threshold=-24dB:ratio=2.15:attack=14:release=360:knee=3.5:" +
             "link=average:detection=rms:makeup=1.12," +
-            "alimiter=limit=0.94:attack=2:release=18]"
+            "alimiter=limit=0.94:attack=2:release=18]",
+        "$audioNormFilterLabel:lavfi=[loudnorm=I=-22:TP=-1.5:LRA=2]"
     )
     internal val voiceBoostPresets = listOf(
         "",

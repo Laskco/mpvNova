@@ -115,6 +115,7 @@
     <string name="audio_norm_preset_speech">-16 LUFS</string>
     <string name="audio_norm_preset_balanced">-15 LUFS</string>
     <string name="audio_norm_preset_strong">-14 LUFS</string>
+    <string name="audio_norm_preset_loudnorm_22">Loudnorm -22 LUFS</string>
 
     <!-- Less simple strings -->
     <string name="title_speed_dialog">Playback speed</string>
