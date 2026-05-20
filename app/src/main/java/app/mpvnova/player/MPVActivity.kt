@@ -315,6 +315,7 @@ class MPVActivity : AppCompatActivity() {
         if (intent.action == Intent.ACTION_VIEW) {
             parseIntentExtras(intent.extras)
         }
+        addAutomaticSubtitleOptions(filepath)
 
         if (filepath == null) {
             Log.e(MPV_ACTIVITY_TAG, "No file given, exiting")
@@ -404,6 +405,7 @@ class MPVActivity : AppCompatActivity() {
         } else {
             onloadCommands.clear()
         }
+        addAutomaticSubtitleOptions(filepath)
 
         if (!activityIsForeground && didResumeBackgroundPlayback) {
             applySavedAudioFilterDefaults()

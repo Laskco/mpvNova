@@ -251,7 +251,7 @@ private object FilePickerStartup {
     }
 }
 
-private object FilePickerMenuActions {
+internal object FilePickerMenuActions {
     fun openExternalStorage(activity: FilePickerActivity) {
         val currentFragment = activity.fragment ?: return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
@@ -275,7 +275,27 @@ private object FilePickerMenuActions {
         currentFragment: MPVFilePickerFragment,
     ) {
         val volumes = Utils.getStorageVolumes(activity)
+        showExternalStoragePicker(activity, currentFragment, volumes)
+    }
+
+    fun showInitialStoragePicker(
+        activity: FilePickerActivity,
+        currentFragment: MPVFilePickerFragment,
+        volumes: List<Utils.StoragePath>,
+    ) {
+        val anchor = currentFragment.view ?: activity.binding.fragmentContainerView
+        anchor.post {
+            showExternalStoragePicker(activity, currentFragment, volumes)
+        }
+    }
+
+    private fun showExternalStoragePicker(
+        activity: FilePickerActivity,
+        currentFragment: MPVFilePickerFragment,
+        volumes: List<Utils.StoragePath>,
+    ) {
         AlertDialog.Builder(activity)
+            .setTitle(R.string.action_external_storage)
             .setItems(volumes.map { it.description }.toTypedArray()) { dialog, item ->
                 val volume = volumes[item]
                 with(currentFragment) {
@@ -376,6 +396,7 @@ private fun FilePickerActivity.initFilePicker() {
         activeFragment.filterPredicate = FilePickerActivity.MEDIA_FILE_FILTER
 
     var defaultPathStr = intent.getStringExtra("default_path")
+    val hasExplicitDefaultPath = !defaultPathStr.isNullOrEmpty()
     if (defaultPathStr.isNullOrEmpty()) {
         defaultPathStr = sharedPrefs.getString(
             "default_file_manager_path",
@@ -385,21 +406,11 @@ private fun FilePickerActivity.initFilePicker() {
     val defaultPath = File(defaultPathStr ?: Environment.getExternalStorageDirectory().path)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-        // check that the preferred path is inside a storage volume
-        val vols = Utils.getStorageVolumes(this)
-        val preferredVolume = vols.find { defaultPath.startsWith(it.path) }
-        val targetVolume = preferredVolume ?: vols.firstOrNull()
-        if (preferredVolume == null) {
-            Log.w(FilePickerActivity.TAG, "default path set to \"$defaultPath\" but no such storage volume")
-        }
-        if (targetVolume == null) {
-            Log.e(FilePickerActivity.TAG, "can't find any volumes at all!")
-        } else {
-            with(activeFragment) {
-                root = targetVolume.path
-                goToDir(if (preferredVolume == null) targetVolume.path else defaultPath)
-            }
-        }
+        openFilePickerAtStorageVolume(
+            activeFragment,
+            defaultPath,
+            hasExplicitDefaultPath
+        )
     } else {
         // Old device: go to preferred path but don't restrict root
         activeFragment.goToDir(defaultPath)

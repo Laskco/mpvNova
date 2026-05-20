@@ -616,6 +616,14 @@
         <item name="android:colorBackgroundCacheHint">@null</item>
     </style>
 
+    <style name="AppTheme.Launcher" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:colorBackgroundCacheHint">@null</item>
+    </style>
+
     <style name="TvAlertDialog" parent="Theme.AppCompat.Dialog.Alert">
         <item name="colorPrimary">?attr/mpvAccent</item>
         <item name="colorAccent">?attr/mpvAccentHot</item>

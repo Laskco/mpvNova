@@ -3,9 +3,17 @@ package app.mpvnova.player
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import java.io.File
 
 internal fun MPVActivity.addOnloadOption(key: String, value: String) {
     onloadCommands.add(arrayOf("set", "file-local-options/${key}", value))
+}
+
+internal fun MPVActivity.addAutomaticSubtitleOptions(filepath: String?) {
+    if (filepath == null || filepath.contains("://") || !File(filepath).isFile)
+        return
+    addOnloadOption("sub-auto", "fuzzy")
+    addOnloadOption("sub-file-paths", AUTOMATIC_SUBTITLE_PATHS)
 }
 
 internal fun MPVActivity.addIntentSubtitles(launchExtras: Bundle) {
@@ -38,6 +46,8 @@ internal fun MPVActivity.applyIntentStartPosition(launchExtras: Bundle) {
         )
     }
 }
+
+private const val AUTOMATIC_SUBTITLE_PATHS = "subs:sub:subtitles:subtitle"
 
 private fun MPVActivity.effectiveIntentStartPosition(launchExtras: Bundle, intentPositionMs: Long): Long {
     val intentDurationMs = launchExtras.getInt("duration", 0).toLong()

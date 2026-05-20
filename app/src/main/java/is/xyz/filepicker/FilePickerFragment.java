@@ -38,7 +38,7 @@ import java.util.Map;
  */
 public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
-    protected static final String PERMISSION_PRE33 = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+    protected static final String PERMISSION_PRE33 = Manifest.permission.READ_EXTERNAL_STORAGE;
     @RequiresApi(33)
     protected static final String[] PERMISSIONS_POST33 = {
             Manifest.permission.READ_MEDIA_AUDIO,
@@ -94,7 +94,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     }
 
     /**
-     * @return true if app has been granted permission to write to the SD-card.
+     * @return true if app has been granted permission to read shared storage.
      */
     public static boolean hasPermission(@NonNull Context context, @NonNull File path) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -118,7 +118,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     }
 
     /**
-     * Request permission to write to the SD-card.
+     * Request permission to read shared storage.
      */
     @Override
     protected void handlePermission(@NonNull File path) {

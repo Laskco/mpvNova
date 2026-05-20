@@ -66,6 +66,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.io.File
+import java.io.FileNotFoundException
 import java.lang.IllegalArgumentException
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -125,6 +126,15 @@ internal fun MPVActivity.resolveUri(data: Uri): String? {
 
 internal fun MPVActivity.translateContentUri(uri: Uri): String {
     Log.v(MPV_ACTIVITY_TAG, "Resolving content URI: $uri")
+    try {
+        contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
+            Utils.findRealPath(fd.fd)?.let { return it }
+        }
+    } catch (e: FileNotFoundException) {
+        Log.v(MPV_ACTIVITY_TAG, "Content URI is not backed by a readable file descriptor", e)
+    } catch (e: SecurityException) {
+        Log.v(MPV_ACTIVITY_TAG, "No permission to inspect content URI file descriptor", e)
+    }
     return uri.toString()
 }
 

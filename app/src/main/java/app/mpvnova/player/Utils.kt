@@ -203,6 +203,17 @@ fun handleInsetsAsPadding(view: View) {
     }
 }
 
+@SuppressLint("NewApi")
+private fun storageVolumeDisplayName(volume: StorageVolume, context: Context, root: File): String {
+    val label = volume.getDescription(context).trim().ifEmpty { root.path }
+    val mountId = root.name
+    return if (volume.isPrimary || mountId.isEmpty() || label.contains(mountId, ignoreCase = true)) {
+        label
+    } else {
+        "$label ($mountId)"
+    }
+}
+
 internal object Utils {
     fun copyAssets(context: Context) {
         val assetManager = context.assets
@@ -289,7 +300,7 @@ internal object Utils {
         for (path in StorageVolumeResolver.collectCandidates(context)) {
             val (root, volume) = StorageVolumeResolver.findRoot(storageManager, path) ?: continue
             if (!list.any { it.path == root }) {
-                list.add(StoragePath(root, volume.getDescription(context)))
+                list.add(StoragePath(root, storageVolumeDisplayName(volume, context, root)))
             }
         }
         return list
