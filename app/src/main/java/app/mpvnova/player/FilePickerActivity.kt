@@ -2,10 +2,8 @@ package app.mpvnova.player
 
 import `is`.xyz.filepicker.AbstractFilePickerFragment
 import android.app.Activity
-import android.app.UiModeManager
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -15,7 +13,6 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.PopupMenu
 import android.widget.Toast
@@ -37,6 +34,12 @@ import app.mpvnova.player.databinding.ActivityFilepickerBinding
 import app.mpvnova.player.databinding.FragmentFilepickerChoiceBinding
 import java.io.File
 import java.io.FileFilter
+
+private val TOOLBAR_STORAGE_SELECTOR_KEYS = intArrayOf(
+    KeyEvent.KEYCODE_DPAD_CENTER,
+    KeyEvent.KEYCODE_ENTER,
+    KeyEvent.KEYCODE_NUMPAD_ENTER,
+)
 
 class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFilePickedListener {
     internal lateinit var binding: ActivityFilepickerBinding
@@ -112,14 +115,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val uiModeManager = getSystemService(UI_MODE_SERVICE) as UiModeManager
-        if (uiModeManager.currentModeType != Configuration.UI_MODE_TYPE_TELEVISION) {
-            inflateOptionsMenu(menu)
-        } else {
-            // add a dummy menu item so the menu icon shows up, even though you can't use it on TV.
-            // it is instead opened via dpad keys
-            menu.add(Menu.NONE, Menu.NONE, Menu.NONE, "...")
-        }
+        inflateOptionsMenu(menu)
         return true
     }
 
@@ -142,6 +138,10 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
+        val selectFocusedToolbar = ev.action == KeyEvent.ACTION_DOWN &&
+            window.currentFocus === binding.toolbar &&
+            fragment != null &&
+            ev.keyCode in TOOLBAR_STORAGE_SELECTOR_KEYS
         // If up is pressed at the header element display the usual options menu as a popup menu
         // to make it usable on Android TV.
         val openMenu = if (ev.action == KeyEvent.ACTION_DOWN && ev.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
@@ -155,19 +155,24 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         } else {
             false
         }
-        return if (openMenu) {
-            if (!focusToolbarNavigation()) {
-                PopupMenu(this, findViewById(R.id.context_anchor)).apply {
-                    setOnMenuItemClickListener {
-                        this@FilePickerActivity.onOptionsItemSelected(it)
-                    }
-                    this@FilePickerActivity.inflateOptionsMenu(menu)
-                    show()
-                }
+        return when {
+            selectFocusedToolbar -> {
+                FilePickerMenuActions.openExternalStorage(this)
+                true
             }
-            true
-        } else {
-            super.dispatchKeyEvent(ev)
+            openMenu -> {
+                if (!focusToolbarNavigation()) {
+                    PopupMenu(this, findViewById(R.id.context_anchor)).apply {
+                        setOnMenuItemClickListener {
+                            this@FilePickerActivity.onOptionsItemSelected(it)
+                        }
+                        this@FilePickerActivity.inflateOptionsMenu(menu)
+                        show()
+                    }
+                }
+                true
+            }
+            else -> super.dispatchKeyEvent(ev)
         }
     }
 
@@ -360,25 +365,11 @@ private fun FilePickerActivity.inflateOptionsMenu(menu: Menu) {
 }
 
 private fun FilePickerActivity.focusToolbarNavigation(): Boolean {
-    val toolbar = binding.toolbar
-    val navigationDescription = toolbar.navigationContentDescription?.toString()
-    val queue = ArrayDeque<View>()
-    queue.add(toolbar)
-    while (queue.isNotEmpty()) {
-        val view = queue.removeFirst()
-        if (view !== toolbar && view.visibility == View.VISIBLE && view.isFocusable) {
-            val description = view.contentDescription?.toString()
-            if (navigationDescription != null && description == navigationDescription) {
-                return view.requestFocus()
-            }
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                queue.add(view.getChildAt(i))
-            }
-        }
-    }
-    return toolbar.requestFocus()
+    val focusTarget = intArrayOf(R.id.action_external_storage, R.id.action_file_filter)
+        .asSequence()
+        .mapNotNull { findViewById<View?>(it) }
+        .firstOrNull { it.visibility == View.VISIBLE && it.isFocusable }
+    return focusTarget?.requestFocus() == true
 }
 
 private fun FilePickerActivity.initFilePicker() {
