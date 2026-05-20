@@ -4,16 +4,36 @@ import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import java.io.File
+import java.util.Locale
 
 internal fun MPVActivity.addOnloadOption(key: String, value: String) {
     onloadCommands.add(arrayOf("set", "file-local-options/${key}", value))
 }
 
 internal fun MPVActivity.addAutomaticSubtitleOptions(filepath: String?) {
-    if (filepath == null || filepath.contains("://") || !File(filepath).isFile)
+    val file = filepath
+        ?.takeUnless { it.contains("://") }
+        ?.let(::File)
+    if (file?.isFile != true)
         return
-    addOnloadOption("sub-auto", "fuzzy")
-    addOnloadOption("sub-file-paths", AUTOMATIC_SUBTITLE_PATHS)
+
+    val matchingSubtitles = matchingLocalSubtitleFiles(file)
+    if (matchingSubtitles.isNotEmpty()) {
+        addOnloadOption("sub-auto", "no")
+        val hasSelectedIntentSubtitle = onloadCommands.any { command ->
+            command.size >= SUB_ADD_SELECTED_COMMAND_SIZE &&
+                command[0] == "sub-add" &&
+                command[2] == "select"
+        }
+        matchingSubtitles.forEachIndexed { index, subfile ->
+            val flag = if (index == 0 && !hasSelectedIntentSubtitle) "select" else "auto"
+            Log.v(MPV_ACTIVITY_TAG, "Adding matching subtitle from local folder: $subfile")
+            onloadCommands.add(arrayOf("sub-add", subfile.absolutePath, flag))
+        }
+    } else {
+        addOnloadOption("sub-auto", "fuzzy")
+        addOnloadOption("sub-file-paths", AUTOMATIC_SUBTITLE_PATHS)
+    }
 }
 
 internal fun MPVActivity.addIntentSubtitles(launchExtras: Bundle) {
@@ -48,6 +68,85 @@ internal fun MPVActivity.applyIntentStartPosition(launchExtras: Bundle) {
 }
 
 private const val AUTOMATIC_SUBTITLE_PATHS = "subs:sub:subtitles:subtitle"
+private const val SUB_ADD_SELECTED_COMMAND_SIZE = 3
+
+internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
+    val parent = videoFile.parentFile ?: return emptyList()
+    val videoBase = videoFile.nameWithoutExtension
+    val searchDirs = automaticSubtitleSearchDirs(parent)
+    val exactCandidates = searchDirs
+        .asSequence()
+        .flatMap { directory ->
+            AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence().map { extension ->
+                File(directory, "$videoBase.$extension")
+            }
+        }
+    val listedCandidates = searchDirs
+        .asSequence()
+        .flatMap { directory -> directory.listFiles()?.asSequence() ?: emptySequence() }
+    return (exactCandidates + listedCandidates)
+        .filter { candidate ->
+            candidate.isFile &&
+                candidate.canRead() &&
+                candidate.isMatchingSubtitleFor(videoBase, parent)
+        }
+        .distinctBy { it.absolutePath }
+        .sortedWith(
+            compareBy<File> { matchingSubtitleRank(videoBase, it.nameWithoutExtension) }
+                .thenBy { it.name.lowercase(Locale.ROOT) }
+        )
+        .toList()
+}
+
+private val AUTOMATIC_SUBTITLE_DIRS = listOf("subs", "sub", "subtitles", "subtitle")
+
+private val AUTOMATIC_SUBTITLE_EXTENSIONS = setOf(
+    "ass",
+    "srt",
+    "ssa",
+    "sub",
+    "vtt",
+)
+
+private fun automaticSubtitleSearchDirs(parent: File): List<File> {
+    return buildList {
+        add(parent)
+        AUTOMATIC_SUBTITLE_DIRS.forEach { name ->
+            val directory = File(parent, name)
+            if (directory.isDirectory) {
+                add(directory)
+                directory.listFiles()
+                    ?.filter { it.isDirectory }
+                    ?.forEach(::add)
+            }
+        }
+    }
+}
+
+private fun File.isMatchingSubtitleFor(videoBase: String, videoParent: File): Boolean {
+    val extension = extension.lowercase(Locale.ROOT)
+    val matchesVideoSpecificDirectory = parentFile?.let { parent ->
+        parent.parentFile != videoParent && subtitleBaseMatchesVideo(parent.name, videoBase)
+    } == true
+    return extension in AUTOMATIC_SUBTITLE_EXTENSIONS &&
+        (
+            subtitleBaseMatchesVideo(nameWithoutExtension, videoBase) ||
+                matchesVideoSpecificDirectory
+            )
+}
+
+internal fun subtitleBaseMatchesVideo(subtitleBase: String, videoBase: String): Boolean =
+    subtitleBase.equals(videoBase, ignoreCase = true) ||
+        (
+            subtitleBase.startsWith(videoBase, ignoreCase = true) &&
+                subtitleBase.getOrNull(videoBase.length) in AUTOMATIC_SUBTITLE_SEPARATORS
+            )
+
+private val AUTOMATIC_SUBTITLE_SEPARATORS = setOf('.', '-', '_', ' ', '[', '(')
+
+private fun matchingSubtitleRank(videoBase: String, subtitleBase: String): Int {
+    return if (subtitleBase.equals(videoBase, ignoreCase = true)) 0 else 1
+}
 
 private fun MPVActivity.effectiveIntentStartPosition(launchExtras: Bundle, intentPositionMs: Long): Long {
     val intentDurationMs = launchExtras.getInt("duration", 0).toLong()

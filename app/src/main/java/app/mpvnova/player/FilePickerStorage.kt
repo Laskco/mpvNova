@@ -21,6 +21,7 @@ internal fun FilePickerActivity.openFilePickerAtStorageVolume(
 
     with(activeFragment) {
         root = targetVolume.path
+        setRootLabel(targetVolume.description)
         goToDir(if (preferredVolume == null) targetVolume.path else defaultPath)
     }
     if (volumes.size > 1 && !hasExplicitDefaultPath)

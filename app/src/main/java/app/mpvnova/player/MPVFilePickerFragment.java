@@ -13,6 +13,7 @@ import java.io.File;
 public class MPVFilePickerFragment extends FilePickerFragment {
 
     private File rootPath = new File("/");
+    private String rootLabel = "";
 
     @Override
     public void onClickCheckable(@NonNull View v, @NonNull FileViewHolder vh) {
@@ -44,6 +45,10 @@ public class MPVFilePickerFragment extends FilePickerFragment {
         rootPath = path;
     }
 
+    public void setRootLabel(@NonNull String label) {
+        rootLabel = label;
+    }
+
     public boolean isBackTop() {
         return mCurrentPath.equals(getRoot());
     }
@@ -51,16 +56,21 @@ public class MPVFilePickerFragment extends FilePickerFragment {
     private @NonNull String makeRelative(@NonNull String path) {
         String head = getRoot().toString();
         if (path.equals(head))
-            return "";
+            return rootLabel.isEmpty() ? head : rootLabel;
         if (!head.endsWith("/"))
             head += "/";
-        return path.startsWith(head) ? path.substring(head.length()) : path;
+        String relative = path.startsWith(head) ? path.substring(head.length()) : path;
+        return rootLabel.isEmpty() ? relative : rootLabel + " / " + relative;
     }
 
     @Override
     public void onChangePath(File file) {
         ActionBar bar = ((AppCompatActivity)getActivity()).getSupportActionBar();
-        if (file != null && bar != null)
-            bar.setSubtitle(makeRelative(file.getPath()));
+        if (file != null) {
+            String location = makeRelative(file.getPath());
+            if (bar != null)
+                bar.setSubtitle(location);
+            ((FilePickerActivity)getActivity()).setPickerLocation(location);
+        }
     }
 }

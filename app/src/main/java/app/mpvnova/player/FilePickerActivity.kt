@@ -182,6 +182,10 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
     override fun onCancelled() = finishWithResult(RESULT_CANCELED)
 
+    fun setPickerLocation(location: String) {
+        binding.filePickerLocation.text = location.ifEmpty { getString(R.string.file_picker_title) }
+    }
+
     companion object {
         internal const val TAG = "mpv"
 
@@ -298,8 +302,13 @@ internal object FilePickerMenuActions {
             .setTitle(R.string.action_external_storage)
             .setItems(volumes.map { it.description }.toTypedArray()) { dialog, item ->
                 val volume = volumes[item]
+                Log.v(
+                    FilePickerActivity.TAG,
+                    "FilePickerActivity: selected storage \"${volume.description}\" at \"${volume.path}\""
+                )
                 with(currentFragment) {
                     root = volume.path
+                    setRootLabel(volume.description)
                     goToDir(volume.path)
                 }
                 dialog.dismiss()

@@ -10,12 +10,18 @@ import app.mpvnova.player.R;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.FileObserver;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
+import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -48,6 +54,9 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     protected boolean showHiddenItems = false;
     protected FileFilter filterPredicate = null;
     private File mRequestedPath = null;
+    private final ActivityResultLauncher<Intent> allFilesAccessLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                    this::onAllFilesAccessResult);
     private final ActivityResultLauncher<String[]> permissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(),
                     this::onPermissionResult);
@@ -97,6 +106,9 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
      * @return true if app has been granted permission to read shared storage.
      */
     public static boolean hasPermission(@NonNull Context context, @NonNull File path) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             // user can choose to grant at least one
             for (String permission : PERMISSIONS_POST33) {
@@ -123,10 +135,35 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     @Override
     protected void handlePermission(@NonNull File path) {
         mRequestedPath = path;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            launchAllFilesAccessSettings();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissionLauncher.launch(PERMISSIONS_POST33);
         } else {
             permissionLauncher.launch(new String[]{PERMISSION_PRE33});
+        }
+    }
+
+    private void launchAllFilesAccessSettings() {
+        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+        intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
+        try {
+            allFilesAccessLauncher.launch(intent);
+        } catch (ActivityNotFoundException e) {
+            allFilesAccessLauncher.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+        }
+    }
+
+    private void onAllFilesAccessResult(@SuppressWarnings("unused") ActivityResult result) {
+        if (mRequestedPath == null)
+            return;
+        if (hasPermission(mRequestedPath)) {
+            refresh(mRequestedPath);
+        } else {
+            Toast.makeText(getContext(), R.string.nnf_permission_external_write_denied,
+                    Toast.LENGTH_SHORT).show();
+            if (mListener != null)
+                mListener.onCancelled();
         }
     }
 

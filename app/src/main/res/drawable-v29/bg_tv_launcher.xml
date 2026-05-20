@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="linear"
+                android:angle="270"
+                android:startColor="?attr/mpvWindowStart"
+                android:centerColor="?attr/mpvWindowCenter"
+                android:endColor="?attr/mpvWindowEnd" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.15"
+                android:centerY="0.18"
+                android:gradientRadius="780dp"
+                android:startColor="?attr/mpvWindowGlowStart"
+                android:endColor="?attr/mpvWindowGlowEnd" />
+        </shape>
+    </item>
+
+    <item>
+        <shape android:shape="rectangle">
+            <gradient
+                android:type="radial"
+                android:centerX="0.84"
+                android:centerY="0.72"
+                android:gradientRadius="860dp"
+                android:startColor="?attr/mpvWindowGlowAltStart"
+                android:endColor="?attr/mpvWindowGlowAltEnd" />
+        </shape>
+    </item>
+</layer-list>
