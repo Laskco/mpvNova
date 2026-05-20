@@ -11,10 +11,8 @@ internal fun MPVActivity.addOnloadOption(key: String, value: String) {
 }
 
 internal fun MPVActivity.addAutomaticSubtitleOptions(filepath: String?) {
-    val file = filepath
-        ?.takeUnless { it.contains("://") }
-        ?.let(::File)
-    if (file?.isFile != true)
+    val file = filepath?.toCanonicalLocalFile() ?: return
+    if (!file.isFile)
         return
 
     val matchingSubtitles = matchingLocalSubtitleFiles(file)
@@ -71,31 +69,37 @@ private const val AUTOMATIC_SUBTITLE_PATHS = "subs:sub:subtitles:subtitle"
 private const val SUB_ADD_SELECTED_COMMAND_SIZE = 3
 
 internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
-    val parent = videoFile.parentFile ?: return emptyList()
-    val videoBase = videoFile.nameWithoutExtension
-    val searchDirs = automaticSubtitleSearchDirs(parent)
-    val exactCandidates = searchDirs
-        .asSequence()
-        .flatMap { directory ->
-            AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence().map { extension ->
-                File(directory, "$videoBase.$extension")
+    val canonicalVideo = videoFile.canonicalFileOrNull()?.takeIf { it.isFile }
+    val parent = canonicalVideo?.parentFile?.canonicalFileOrNull()
+    return if (canonicalVideo == null || parent == null) {
+        emptyList()
+    } else {
+        val videoBase = canonicalVideo.nameWithoutExtension
+        val searchDirs = automaticSubtitleSearchDirs(parent)
+        val exactCandidates = searchDirs
+            .asSequence()
+            .flatMap { directory ->
+                AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence().map { extension ->
+                    directory.resolveConfinedChild("$videoBase.$extension")
+                }
             }
-        }
-    val listedCandidates = searchDirs
-        .asSequence()
-        .flatMap { directory -> directory.listFiles()?.asSequence() ?: emptySequence() }
-    return (exactCandidates + listedCandidates)
-        .filter { candidate ->
-            candidate.isFile &&
-                candidate.canRead() &&
-                candidate.isMatchingSubtitleFor(videoBase, parent)
-        }
-        .distinctBy { it.absolutePath }
-        .sortedWith(
-            compareBy<File> { matchingSubtitleRank(videoBase, it.nameWithoutExtension) }
-                .thenBy { it.name.lowercase(Locale.ROOT) }
-        )
-        .toList()
+            .filterNotNull()
+        val listedCandidates = searchDirs
+            .asSequence()
+            .flatMap { directory -> directory.listConfinedChildren(parent) }
+        (exactCandidates + listedCandidates)
+            .filter { candidate ->
+                candidate.isFile &&
+                    candidate.canRead() &&
+                    candidate.isMatchingSubtitleFor(videoBase, parent)
+            }
+            .distinctBy { it.absolutePath }
+            .sortedWith(
+                compareBy<File> { matchingSubtitleRank(videoBase, it.nameWithoutExtension) }
+                    .thenBy { it.name.lowercase(Locale.ROOT) }
+            )
+            .toList()
+    }
 }
 
 private val AUTOMATIC_SUBTITLE_DIRS = listOf("subs", "sub", "subtitles", "subtitle")
@@ -109,15 +113,16 @@ private val AUTOMATIC_SUBTITLE_EXTENSIONS = setOf(
 )
 
 private fun automaticSubtitleSearchDirs(parent: File): List<File> {
+    val canonicalParent = parent.canonicalFileOrNull() ?: return emptyList()
     return buildList {
-        add(parent)
+        add(canonicalParent)
         AUTOMATIC_SUBTITLE_DIRS.forEach { name ->
-            val directory = File(parent, name)
+            val directory = canonicalParent.resolveConfinedChild(name) ?: return@forEach
             if (directory.isDirectory) {
                 add(directory)
-                directory.listFiles()
-                    ?.filter { it.isDirectory }
-                    ?.forEach(::add)
+                directory.listConfinedChildren(canonicalParent)
+                    .filter { it.isDirectory }
+                    .forEach(::add)
             }
         }
     }
