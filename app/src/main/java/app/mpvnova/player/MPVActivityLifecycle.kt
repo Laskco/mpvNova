@@ -2,7 +2,6 @@ package app.mpvnova.player
 
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.media.AudioManager
 import android.util.Log
@@ -11,27 +10,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media.AudioManagerCompat
 
-/**
- * Lifecycle-stage helpers for [MPVActivity]. Splits the substantial
- * onCreate / onDestroy bodies into named phases so the override is a
- * short orchestrator and each phase is grep-able by intent rather than
- * by line range.
- *
- * onPause / onResume / onNewIntent / onConfigurationChanged still live
- * in MPVActivity directly — they're short enough already and tied to
- * the override signatures.
- */
+/** Lifecycle-stage helpers for [MPVActivity] — keeps the override bodies short. */
 
 internal fun MPVActivity.setupRootView() {
     binding = app.mpvnova.player.databinding.PlayerBinding.inflate(layoutInflater)
     setContentView(binding.root)
-    // setSelected fires AccessibilityEvent.TYPE_VIEW_SELECTED, which on
-    // Shield with TV-launcher a11y services runs a main-thread subtree
-    // walk on every button-bar dpad press. Scope the opt-out to JUST
-    // the bottom controls subtree (where setSelected actually fires
-    // during dpad navigation) — the rest of the overlay (toast, title,
-    // loading spinner, top pill) stays normally accessible so screen
-    // readers can still announce player-level events.
+    // Block a11y subtree walks for the bottom controls only — setSelected
+    // fires TYPE_VIEW_SELECTED there on every dpad press and Shield's TV
+    // launcher a11y service does a main-thread walk per event.
     binding.controls.importantForAccessibility =
         View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
     isTvUiMode = (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
@@ -44,7 +30,8 @@ internal fun MPVActivity.setupImmersiveWindow() {
     val insetsController = WindowCompat.getInsetsController(window, window.decorView)
     insetsController.systemBarsBehavior =
         WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-    if (!packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE))
+    // Drop the PiP icon on devices without the feature (Fire TV, older AOSP).
+    if (!packageManager.hasSystemFeature(android.content.pm.PackageManager.FEATURE_PICTURE_IN_PICTURE))
         binding.topPiPBtn.visibility = View.GONE
 }
 
@@ -73,10 +60,7 @@ private fun MPVActivity.setupAudioSessionId() {
         Log.w(MPV_ACTIVITY_TAG, "AudioManager.generateAudioSessionId() returned error")
 }
 
-/**
- * onDestroy phase: drop every scheduled callback we own and clear all the
- * coalescing flags so nothing tries to fire against a torn-down activity.
- */
+/** onDestroy: drop scheduled callbacks + clear coalescing flags. */
 internal fun MPVActivity.cancelAllScheduledWork() {
     periodicSaveHandler.removeCallbacks(periodicSaveRunnable)
     eventUiHandler.removeCallbacks(commitSeekbarSeekRunnable)
@@ -89,10 +73,7 @@ internal fun MPVActivity.cancelAllScheduledWork() {
     mediaSessionUpdatePending = false
 }
 
-/**
- * onDestroy phase: release the media session and abandon audio focus
- * cleanly. Both are independently nullable / optional, so guard each.
- */
+/** onDestroy: release the media session and abandon audio focus. */
 internal fun MPVActivity.releaseMediaAndAudioFocus() {
     BackgroundPlaybackService.mediaToken = null
     mediaSession?.let {
@@ -108,12 +89,7 @@ internal fun MPVActivity.releaseMediaAndAudioFocus() {
     audioFocusRequest = null
 }
 
-/**
- * onNewIntent phase for the case where the activity is already in the
- * foreground (or we're configured to replace the current file regardless
- * of state). Updates the resume source / metadata for the new intent and
- * parses any embedded extras.
- */
+/** onNewIntent: foreground replacement path — refresh resume source + extras. */
 internal fun MPVActivity.applyNewIntentReplacement(intent: Intent, filepath: String, nextResumeSource: String?) {
     currentResumeSource = nextResumeSource
     prepareMediaTitleFromIntent(intent, filepath)

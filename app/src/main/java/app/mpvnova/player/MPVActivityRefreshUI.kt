@@ -11,15 +11,6 @@ import androidx.annotation.StringRes
 import androidx.core.view.isVisible
 import java.io.File
 
-internal fun MPVActivity.openAdvancedMenu(restoreState: StateRestoreCallback) {
-    genericMenu(
-        R.layout.dialog_advanced_menu,
-        advancedMenuItems(restoreState),
-        advancedHiddenButtons(),
-        restoreState
-    )
-}
-
 internal fun MPVActivity.openFilePickerFor(title: String, skip: Int?, callback: ActivityResultCallback) {
     if (skip == null) {
         openFileSourceDialog(title, callback)
@@ -29,7 +20,7 @@ internal fun MPVActivity.openFilePickerFor(title: String, skip: Int?, callback: 
     intent.putExtra("title", title)
     intent.putExtra("allow_document", true)
     intent.putExtra("skip", skip)
-    // start file picker at directory of current file
+    // Start the picker in the current file's directory.
     val path = mpvGetPropertyString("path") ?: ""
     if (path.startsWith('/'))
         intent.putExtra("default_path", File(path).parent)
@@ -81,7 +72,7 @@ private fun MPVActivity.openFileSourceDialog(title: String, callback: ActivityRe
 }
 
 internal fun MPVActivity.refreshUi() {
-    // forces update of entire UI, used when resuming the activity
+    // Force-refresh the whole UI — used on activity resume.
     updatePlaybackStatus(psc.pause)
     updatePlaybackTimeline(psc.position, forceTextUpdate = true)
     updatePlaybackDuration(psc.duration)
@@ -95,17 +86,21 @@ internal fun MPVActivity.refreshUi() {
     updateChapterMarkers()
 }
 
-internal fun MPVActivity.updateAudioUI() {
-    // Note: prev/next now live in the button group at all times (TV redesign).
-    // For the audio-only UI we just reorder the button group; for video mode
-    // we use the full button row including the new audio-filter buttons.
-    val audioButtons = arrayOf(R.id.prevBtn, R.id.cycleAudioBtn, R.id.playBtn,
-            R.id.nextChapterBtn, R.id.cycleSpeedBtn, R.id.nextBtn)
-    val videoButtons = arrayOf(R.id.playBtn, R.id.nextChapterBtn, R.id.prevBtn, R.id.nextBtn,
-            R.id.cycleSubsBtn, R.id.cycleAudioBtn,
-            R.id.cycleSpeedBtn, R.id.cycleDecoderBtn, R.id.statsToggleBtn,
-            R.id.voiceBoostBtn, R.id.volumeBoostBtn, R.id.nightModeBtn, R.id.audioNormBtn)
+// Hoisted to avoid re-allocating on every updateAudioUI() call. Prev/next
+// live in the button group permanently (TV redesign).
+private val AUDIO_UI_BUTTONS = intArrayOf(
+    R.id.prevBtn, R.id.cycleAudioBtn, R.id.playBtn,
+    R.id.nextChapterBtn, R.id.cycleSpeedBtn, R.id.nextBtn,
+)
+private val VIDEO_UI_BUTTONS = intArrayOf(
+    R.id.playBtn, R.id.nextChapterBtn, R.id.prevBtn, R.id.nextBtn,
+    R.id.cycleSubsBtn, R.id.cycleAudioBtn,
+    R.id.cycleSpeedBtn, R.id.cycleDecoderBtn, R.id.statsToggleBtn,
+    R.id.voiceBoostBtn, R.id.volumeBoostBtn, R.id.nightModeBtn, R.id.audioNormBtn,
+)
+private val AUDIO_UI_TITLE_GROUP = intArrayOf(R.id.titleTextView, R.id.minorTitleTextView)
 
+internal fun MPVActivity.updateAudioUI() {
     val shouldUseAudioUI = isPlayingAudioOnly()
     if (shouldUseAudioUI == useAudioUI)
         return
@@ -115,18 +110,15 @@ internal fun MPVActivity.updateAudioUI() {
     val buttonGroup = binding.controlsButtonGroup
 
     if (useAudioUI) {
-        Utils.viewGroupReorder(buttonGroup, audioButtons)
-
+        Utils.viewGroupReorder(buttonGroup, AUDIO_UI_BUTTONS)
         binding.controlsTitleGroup.visibility = View.VISIBLE
-        Utils.viewGroupReorder(binding.controlsTitleGroup, arrayOf(R.id.titleTextView, R.id.minorTitleTextView))
+        Utils.viewGroupReorder(binding.controlsTitleGroup, AUDIO_UI_TITLE_GROUP)
         updateMetadataDisplay()
-
         showControls()
     } else {
-        Utils.viewGroupReorder(buttonGroup, videoButtons)
+        Utils.viewGroupReorder(buttonGroup, VIDEO_UI_BUTTONS)
         binding.controlsTitleGroup.visibility = View.GONE
         updateMetadataDisplay()
-
         hideControls()
     }
 

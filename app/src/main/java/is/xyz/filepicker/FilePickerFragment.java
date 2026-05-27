@@ -139,7 +139,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
         if (mRequestedPath == null)
             return;
         if (hasPermission(mRequestedPath)) {
-            refresh(mRequestedPath);
+            onPermissionGranted(mRequestedPath);
         } else {
             Toast.makeText(getContext(), R.string.nnf_permission_external_write_denied,
                     Toast.LENGTH_SHORT).show();
@@ -166,7 +166,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
         if (ok) {
             // Do refresh
             if (mRequestedPath != null)
-                refresh(mRequestedPath);
+                onPermissionGranted(mRequestedPath);
         } else {
             Toast.makeText(getContext(), R.string.nnf_permission_external_write_denied,
                     Toast.LENGTH_SHORT).show();
@@ -174,6 +174,10 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
             if (mListener != null)
                 mListener.onCancelled();
         }
+    }
+
+    protected void onPermissionGranted(@NonNull File requestedPath) {
+        refresh(requestedPath);
     }
 
     /**

@@ -10,18 +10,15 @@ internal enum class GpuNextFallbackAction {
     FallbackToGpu,
 }
 
-// A single transient libplacebo error (e.g. "failed creating pass" when
-// the OSD overlay is added on UI open) must not flip the renderer mid-
-// playback — that rebuilds the VO while audio keeps draining its buffer,
-// causing the audio/video/sub desync users see on Hi10p+g-next.
+// A single transient libplacebo error must not flip the renderer mid-
+// playback — that rebuilds the VO while audio keeps draining its buffer
+// → A/V/sub desync (Hi10p+g-next).
 private const val GPU_NEXT_ERROR_WINDOW_MS = 1500L
 private const val GPU_NEXT_ERROR_WINDOW_THRESHOLD = 3
 
 internal fun MPVActivity.canApplyGpuNextRenderFallback(level: Int): Boolean {
-    // Cheap, ordered gates: auto-fallback enabled, error-level log line, the
-    // current VO is actually gpu-next, and the user has not explicitly picked
-    // g-next or the Shield Hi10P mode (otherwise the fallback would silently
-    // switch their chosen renderer every time the OSD logs a transient error).
+    // Gates: auto-fallback on, error-level log, VO is gpu-next, user didn't
+    // explicitly pick gpu-next/Shield-Hi10P (else we'd override their choice).
     val chosen = sessionDecoderMode ?: preferredDecoderMode
     val userPickedGpuNextMode =
         chosen == MPVView.DECODER_MODE_GNEXT || chosen == MPVView.DECODER_MODE_SHIELD_H10P
@@ -30,9 +27,8 @@ internal fun MPVActivity.canApplyGpuNextRenderFallback(level: Int): Boolean {
         player.requestedVideoOutput.trim().lowercase(Locale.US).startsWith("gpu-next") &&
         !userPickedGpuNextMode
     if (!gatesPassed) return false
-    // Sliding error-count window: require ≥ THRESHOLD errors inside WINDOW_MS
-    // before treating it as a sustained failure. Single OSD-related blips
-    // (very common on Tegra when controls fade in) won't trip the rebuild.
+    // Sliding window: ≥THRESHOLD errors inside WINDOW_MS = sustained failure.
+    // Single OSD blips (common on Tegra) don't trip the rebuild.
     val now = SystemClock.uptimeMillis()
     if (now - gpuNextErrorWindowStartMs > GPU_NEXT_ERROR_WINDOW_MS) {
         gpuNextErrorWindowStartMs = now

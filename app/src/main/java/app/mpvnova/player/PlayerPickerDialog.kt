@@ -24,7 +24,7 @@ internal fun MPVActivity.showPlayerPickerDialog(
     handleInsetsAsPadding(binding.root)
     dialog = with(AlertDialog.Builder(this)) {
         setView(binding.root)
-        setOnDismissListener { restoreState() }
+        setOnDismissListener { restoreState(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(dialog, layout)

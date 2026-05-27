@@ -19,10 +19,14 @@ internal fun MPVActivity.readPlaybackSettings(
     shouldSavePosition = prefs.getBoolean("save_position", true)
     controlsAtBottom = prefs.getBoolean("bottom_controls", true)
     showMediaTitle = prefs.getBoolean("display_media_title", true)
+    showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     controlsDisplayTimeoutMs = parseControlsTimeout(
         prefs.getString("player_controls_timeout", DEFAULT_CONTROLS_DISPLAY_TIMEOUT.toString())
     )
     keepControlsVisibleWhilePaused = prefs.getBoolean("keep_controls_visible_paused", false)
+    exitWithDoubleBack = prefs.getBoolean("exit_with_double_back", false)
+    autoRefreshRateSwitch = prefs.getBoolean("auto_refresh_rate_switch", false)
+    dpadUpJumpsToTopControls = prefs.getBoolean("dpad_up_jumps_to_top_controls", false)
     remoteNextChapterKeyCode = remoteButtonKeyCode(prefs.getString(
         PREF_REMOTE_NEXT_CHAPTER_BUTTON,
         REMOTE_BUTTON_DISABLED

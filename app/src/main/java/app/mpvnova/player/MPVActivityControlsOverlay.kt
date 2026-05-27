@@ -22,12 +22,9 @@ internal fun MPVActivity.showControls() {
         performFirstShowSetup()
     }
     updateClockInfo(force = !controlsWereVisible)
-    // The deferred dpad-focus update is only needed on the first show, when
-    // the controls subtree was just made VISIBLE and the layout pass hasn't
-    // run yet. When controls were already visible the focus state is already
-    // correct — skipping the post here is critical during fast dpad
-    // navigation, where every ACTION_DOWN/UP otherwise scheduled an extra
-    // UI-thread runnable that starved the SW Hi10p decoder of cores.
+    // Defer dpad-focus update only on first show — pre-layout. Skipping the
+    // post when already visible is critical during fast dpad nav (each
+    // ACTION_DOWN/UP would starve SW Hi10p decode).
     if (!controlsWereVisible && btnSelected != -1) {
         binding.controls.post {
             if (btnSelected != -1 && binding.controls.visibility == View.VISIBLE) {
@@ -45,38 +42,43 @@ private fun MPVActivity.resetControlsAlphaIfNeeded(controlsWereVisible: Boolean)
         binding.controls.alpha < 1f ||
         binding.topControls.alpha < 1f ||
         binding.playerTitleOverlay.alpha < 1f ||
-        binding.controlsScrim.alpha < 1f
+        binding.controlsScrim.alpha < 1f ||
+        binding.timeInfoPanel.alpha < 1f ||
+        binding.statsTextView.alpha < 1f
     if (!needReset) return
+    // Cancel pending fade animators or they'll keep overwriting our alpha.
     binding.controls.animate().setListener(null).cancel()
     binding.topControls.animate().setListener(null).cancel()
     binding.playerTitleOverlay.animate().setListener(null).cancel()
+    binding.controlsScrim.animate().cancel()
+    binding.timeInfoPanel.animate().cancel()
+    binding.statsTextView.animate().cancel()
     binding.controls.alpha = 1f
     binding.topControls.alpha = 1f
     binding.playerTitleOverlay.alpha = 1f
     binding.controlsScrim.alpha = 1f
+    binding.timeInfoPanel.alpha = 1f
+    binding.statsTextView.alpha = 1f
     fadeRunnable.hasStarted = false
 }
 
 private fun MPVActivity.performFirstShowSetup() {
-    // Transition: hidden → visible. Pause first if we should, so the
-    // decoder gets all available CPU/GPU for the moment of overlay
-    // composition (Hi10p SW + alpha overlay over a SurfaceView is the
-    // case that drifted before).
+    // hidden → visible. Autopause first so the decoder gets full CPU/GPU
+    // for the overlay composition (Hi10p SW + alpha over SurfaceView drifts).
     maybeAutoPauseForControlsOverlay()
     binding.controls.setVisibilityIfChanged(View.VISIBLE)
     binding.topControls.setVisibilityIfChanged(View.VISIBLE)
     binding.controlsScrim.setVisibilityIfChanged(View.VISIBLE)
-    binding.timeInfoPanel.setVisibilityIfChanged(View.VISIBLE)
+    binding.timeInfoPanel.setVisibilityIfChanged(
+        if (showClockOverlay) View.VISIBLE else View.GONE
+    )
     updatePlayerTitleOverlay()
     if (statsFPS) {
         updateStats()
         binding.statsTextView.setVisibilityIfChanged(View.VISIBLE)
     }
-    // TV launchers have no system bars to toggle. Calling
-    // insetsController.show/hide there is a no-op semantically but still
-    // triggers a window-decor update → SurfaceFlinger micro-hitch, which
-    // is enough to make a CPU-starved SW Hi10p decoder underrun every
-    // time the controls overlay opens. Skip the call on TV.
+    // TV has no system bars — the call is semantically a no-op but still
+    // triggers a window-decor update → SurfaceFlinger hitch → Hi10p underrun.
     if (!isTvUiMode) {
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.show(WindowInsetsCompat.Type.navigationBars())
@@ -84,7 +86,9 @@ private fun MPVActivity.performFirstShowSetup() {
     updatePlaybackTimeline(psc.position, forceTextUpdate = true)
     updatePlayerToastPlacement()
     clockHandler.removeCallbacks(clockRunnable)
-    clockHandler.post(clockRunnable)
+    // Don't tick the clock when its overlay is off.
+    if (showClockOverlay)
+        clockHandler.post(clockRunnable)
 }
 
 internal fun MPVActivity.refreshVisibleControlsTimeout() {
@@ -110,9 +114,7 @@ internal fun MPVActivity.keepVisibleControlsFresh() {
 internal fun MPVActivity.hideControls() {
     if (controlsShouldBeVisible())
         return
-    // No auto-resume on hide — the overlay autopause requires a manual
-    // play press to come back. Just clear our flag so the next overlay
-    // open starts clean.
+    // No auto-resume — overlay autopause requires a manual play press.
     controlsOverlayAutoPaused = false
     if (btnSelected != -1) {
         btnSelected = -1
@@ -130,8 +132,7 @@ internal fun MPVActivity.hideControls() {
     updatePlayerToastPlacement()
     clockHandler.removeCallbacks(clockRunnable)
 
-    // Skip on TV — system bars don't exist there and the call just costs us
-    // a window-decor hitch. See showControls() for the full reasoning.
+    // Skip on TV — see performFirstShowSetup() for the SurfaceFlinger hitch.
     if (!isTvUiMode) {
         val insetsController = WindowCompat.getInsetsController(window, window.decorView)
         insetsController.hide(WindowInsetsCompat.Type.systemBars())
@@ -140,8 +141,6 @@ internal fun MPVActivity.hideControls() {
 
 internal fun MPVActivity.hideControlsFade() {
     fadeHandler.removeCallbacks(fadeRunnable)
-    // No auto-resume — if the overlay autopaused playback, the user must
-    // explicitly press play to resume. See fadeRunnable for full reasoning.
     fadeHandler.post(fadeRunnable)
 }
 

@@ -35,8 +35,7 @@ internal fun MPVActivity.adjustSubPos(delta: Int): MediaPickerDialog.ValueState 
 }
 
 internal fun MPVActivity.adjustSecondaryPos(delta: Int): MediaPickerDialog.ValueState {
-    // Defensive: should be greyed out by canDecrease/canIncrease but the
-    // value would be meaningless without a secondary track on screen.
+    // Defensive — canDecrease/canIncrease should grey this out already.
     if (player.secondarySid == -1) return currentSecondaryPosState()
     val maxLevel = secondaryPosSteps.lastIndex
     secondaryPosLevel = (secondaryPosLevel + delta).coerceIn(0, maxLevel)
@@ -51,14 +50,11 @@ internal fun MPVActivity.adjustSecondarySub(delta: Int): MediaPickerDialog.Value
     if (available.isEmpty()) {
         return currentSecondarySubState()
     }
-    // Cycle through: Off → track1 → track2 → ... → trackN → Off → ...
-    // -1 represents the Off slot in this cycle. This lets the user step
-    // forward/backward through every non-primary track instead of being
-    // stuck with whatever mpv auto-picked when secondary first turned on.
+    // Off (-1) → track1 → … → trackN → Off. Lets the user step through
+    // every non-primary track instead of being stuck on mpv's auto-pick.
     val cycle = listOf(-1) + available.map { it.mpvId }
     val current = player.secondarySid
     val currentIdx = cycle.indexOf(current).let { if (it < 0) 0 else it }
-    // Modular arithmetic that handles negative deltas correctly.
     val step = if (delta == 0) 0 else delta
     val nextIdx = ((currentIdx + step) % cycle.size + cycle.size) % cycle.size
     val nextSid = cycle[nextIdx]
@@ -67,8 +63,7 @@ internal fun MPVActivity.adjustSecondarySub(delta: Int): MediaPickerDialog.Value
     val toastValue = if (nextSid == -1) {
         getString(R.string.status_off)
     } else {
-        // Use the friendly track name in the toast so the user can tell
-        // which language they just landed on, rather than just an id.
+        // Friendly track name so the user can see which language they landed on.
         available.firstOrNull { it.mpvId == nextSid }?.name ?: "#$nextSid"
     }
     showToast(getString(R.string.btn_secondary_sub), toastValue)
@@ -78,10 +73,8 @@ internal fun MPVActivity.adjustSecondarySub(delta: Int): MediaPickerDialog.Value
 internal fun MPVActivity.swapPrimaryAndSecondarySub() {
     val primary = player.sid
     val secondary = player.secondarySid
-    // Nothing meaningful to swap if there's no secondary track active.
     if (secondary == -1) return
-    // Clear secondary first so mpv doesn't briefly see the same track set
-    // as both primary and secondary (it auto-rejects that state).
+    // Clear secondary first — mpv auto-rejects the same track in both slots.
     player.secondarySid = -1
     player.sid = secondary
     if (primary != -1) {

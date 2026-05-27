@@ -154,6 +154,17 @@ private object StorageVolumeResolver {
 
     private fun addProcMountCandidate(candidates: MutableList<String>, line: String) {
         val path = line.split(' ', limit = 3).getOrNull(1) ?: return
+        // The rootfs mount ("/") shows up in /proc/mounts and, when
+        // MANAGE_EXTERNAL_STORAGE is granted, StorageManager.getStorageVolume(/)
+        // happily returns the primary volume — so "/" leaks into the list of
+        // storage volumes. That breaks the picker two ways:
+        //   1. File.startsWith("/") matches every absolute path, so "/"
+        //      always wins as the "preferred volume" and the picker lands
+        //      at filesystem root showing just ".." (see screenshot bug).
+        //   2. Even after fixing the prefix match, "/" would still appear
+        //      as a confusing entry in the multi-volume chooser popup.
+        // Skip it outright.
+        if (path == "/") return
         if (!IGNORED_MOUNT_PREFIXES.any { path.startsWith(it) }) {
             candidates.add(path)
         }
@@ -314,7 +325,7 @@ internal object Utils {
         to.addView(view, if (toIndex >= 0) toIndex else (to.childCount + 1 + toIndex))
     }
 
-    fun viewGroupReorder(group: ViewGroup, idOrder: Array<Int>) {
+    fun viewGroupReorder(group: ViewGroup, idOrder: IntArray) {
         val m = mutableMapOf<Int, View>()
         for (i in 0 until group.childCount) {
             val c = group.getChildAt(i)

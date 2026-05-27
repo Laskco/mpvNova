@@ -101,12 +101,13 @@ internal fun MPVActivity.clampAudioFilterState() {
 }
 
 internal fun MPVActivity.savePosition() {
+    val eofReached = mpvGetPropertyBoolean("eof-reached")
     val shouldWrite = shouldSavePosition &&
         resumeIdentityFromSource(currentResumeSource) == null &&
-        mpvGetPropertyBoolean("eof-reached") != true
+        eofReached != true
     if (shouldWrite) {
         mpvCommand(arrayOf("write-watch-later-config"))
-    } else if (mpvGetPropertyBoolean("eof-reached") ?: true) {
+    } else if (eofReached ?: true) {
         Log.d(MPV_ACTIVITY_TAG, "player indicates EOF, not saving watch-later config")
     }
 }

@@ -41,6 +41,7 @@ internal fun MPVActivity.openPlayerBrightnessPicker(restoreState: StateRestoreCa
                 restorePlayerScreenBrightness(previousActive, previousRemember, previousPercent)
             }
             restoreState()
+            reopenDrawerIfPending()
         }
         create()
     }

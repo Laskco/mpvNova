@@ -35,6 +35,15 @@ public class MPVFilePickerFragment extends FilePickerFragment {
         return true;
     }
 
+    @Override
+    protected void onPermissionGranted(@NonNull File requestedPath) {
+        if (getActivity() instanceof FilePickerActivity) {
+            ((FilePickerActivity) getActivity()).onFilePermissionGranted();
+        } else {
+            super.onPermissionGranted(requestedPath);
+        }
+    }
+
     @NonNull
     @Override
     public File getRoot() {

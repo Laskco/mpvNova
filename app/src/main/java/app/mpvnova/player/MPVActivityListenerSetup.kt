@@ -12,9 +12,7 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     cycleAudioBtn.setOnClickListener { pickAudio() }
     cycleSubsBtn.setOnClickListener { pickSub() }
     playBtn.setOnClickListener {
-        // The user explicitly cycling pause means whatever pause state
-        // they end up in is their choice — not our auto-pause overlay
-        // logic. Clear the flag so the overlay close doesn't fight them.
+        // Manual cycle wins — clear the overlay autopause flag.
         controlsOverlayAutoPaused = false
         player.cyclePause()
     }
@@ -27,7 +25,7 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     audioNormBtn.setOnClickListener { adjustAudioNorm(1, wrap = true) }
     nextChapterBtn.setOnClickListener { seekChapterRelative(1) }
     topPiPBtn.setOnClickListener { goIntoPiP() }
-    topMenuBtn.setOnClickListener { openTopMenu() }
+    topMenuBtn.setOnClickListener { openPlayerDrawer() }
     playbackDurationTxt.setOnClickListener { toggleTimeRemainingDisplay() }
 }
 
@@ -57,11 +55,8 @@ internal fun MPVActivity.bindTouchAndInsetsListeners() {
             WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
         )
         val lp = view.layoutParams as MarginLayoutParams
-        // Skip the requestLayout cascade when nothing actually changed.
-        // setOnApplyWindowInsetsListener gets invoked on every system-bar
-        // dispatch (controller hide/show, rotation, focus, …) and each
-        // updateLayoutParams call triggers a layout pass for the whole
-        // outside subtree.
+        // Skip the requestLayout cascade when nothing changed — this fires
+        // on every system-bar dispatch.
         val horizMarginsChanged = lp.leftMargin != insets.left || lp.rightMargin != insets.right
         val vertMarginsChanged = lp.topMargin != insets.top || lp.bottomMargin != insets.bottom
         if (horizMarginsChanged || vertMarginsChanged) {

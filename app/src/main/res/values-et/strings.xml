@@ -46,11 +46,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Avage väliaudio…</string>
     <string name="open_external_sub">Avage välisubtiitri…</string>
-    <string name="advanced_menu">Rohkem…</string>
     <string name="resume_bg_playback">Esita tagaesitus</string>
     <string name="toggle_stats">Lülita statistika</string>
     <string name="chapter_button">Pealkiri</string>
-    <string name="sub_seek_button">Keri subtiitrilt</string>
     <string name="action_settings">Sätted</string>
     <string name="action_playlist">Esitusloend</string>
     <string name="action_open_url">Ava URL</string>

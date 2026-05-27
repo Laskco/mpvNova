@@ -1,7 +1,6 @@
 package app.mpvnova.player
 
 import android.view.Gravity
-import androidx.annotation.IdRes
 
 internal data class ResumeIdentity(val hash: String, val fileToken: String?)
 internal data class TrackData(val trackId: Int, val trackType: String)
@@ -14,14 +13,8 @@ internal data class PlayerDialogLayout(
     val maxHeightDp: Float? = null,
 )
 internal data class TrackMeta(val mpvId: Int, val title: String, val lang: String)
-internal data class MenuItem(
-    @param:IdRes val idRes: Int,
-    val keepMenuOpen: Boolean = false,
-    val handler: () -> Boolean
-)
 
-internal val MPVActivity.activityContext: MPVActivity
-    get() = this
+internal val MPVActivity.activityContext: MPVActivity get() = this
 
 internal abstract class ControlsFadeRunnable : Runnable {
     abstract var hasStarted: Boolean

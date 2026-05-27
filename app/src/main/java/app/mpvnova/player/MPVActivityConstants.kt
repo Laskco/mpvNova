@@ -7,7 +7,9 @@ internal const val MPV_ACTIVITY_TAG = "mpv"
 internal const val RESULT_OK = android.app.Activity.RESULT_OK
 internal const val RESULT_CANCELED = android.app.Activity.RESULT_CANCELED
 internal const val DEFAULT_CONTROLS_DISPLAY_TIMEOUT = 5_000L
-internal const val CONTROLS_FADE_DURATION = 500L
+// Controls-overlay fade-out. Snappy 280ms paired with a Material
+// accelerate curve so the overlay clears in one motion.
+internal const val CONTROLS_FADE_DURATION = 280L
 internal const val PLAYER_TOAST_FADE_IN_MS = 140L
 internal const val PLAYER_TOAST_FADE_OUT_MS = 180L
 internal const val LOADING_OVERLAY_FADE_MS = 180L
@@ -34,10 +36,7 @@ internal const val MPV_MILLIS_PER_SECOND_FLOAT = 1_000f
 internal const val MPV_MILLIS_PER_SECOND_DOUBLE = 1_000.0
 internal const val SEEK_BAR_PRECISION = 1000L
 internal const val PLAYER_SEEKBAR_UI_INTERVAL_MS = 125L
-// Delay between mpv firing time-pos and us actually waking the UI thread.
-// Naturally batches the per-frame event burst into a handful of UI updates
-// per second so the SW decoder threads don't get preempted ~60×/sec when
-// the user has the controls overlay open.
+// Coalesce mpv's ~60Hz time-pos burst into a handful of UI updates/sec.
 internal const val TIME_POS_UI_COALESCE_DELAY_MS = 200L
 internal const val SEEKBAR_SEEK_DEBOUNCE_MS = 90L
 internal const val DPAD_SEEK_DEBOUNCE_MS = 140L
@@ -73,10 +72,8 @@ internal const val SURROUND_7_1_CHANNEL_COUNT = 8
 internal const val MIN_SURROUND_CHANNELS = 6
 internal const val TRACK_MEMORY_MIN_SCORE = 0.5
 internal const val GPU_NEXT_FALLBACK_TOAST_MS = 5_200L
-// How long after applying the Shield Hi10p fallback to issue the resync
-// seek. Needs to be long enough that the decoder + VO settled (mediacodec
-// open + gpu-next swapchain rebuild) but short enough that the user hasn't
-// already started scrubbing themselves.
+// Wait for decoder + VO to settle after the Shield Hi10p fallback before
+// firing the resync seek.
 internal const val SHIELD_FALLBACK_RESYNC_DELAY_MS = 900L
 internal const val DEFAULT_AUDIO_SAMPLE_RATE = 48_000
 internal const val DB_TO_LINEAR_BASE = 10.0
@@ -116,6 +113,13 @@ internal const val ADVANCED_SUB_DELAY_DIALOG_WIDTH_FRACTION = 0.56f
 internal const val ADVANCED_SUB_DELAY_DIALOG_MAX_WIDTH_DP = 620f
 internal const val ADVANCED_SUB_DELAY_DIALOG_HEIGHT_FRACTION = 0.72f
 internal const val ADVANCED_SUB_DELAY_DIALOG_MAX_HEIGHT_DP = 520f
+// Player settings drawer (right-edge VIMU-style panel). Wider than other
+// in-player dialogs since it has two columns (content + tabs).
+internal const val DRAWER_WIDTH_FRACTION = 0.52f
+internal const val DRAWER_MAX_WIDTH_DP = 800f
+// Window for "press Back twice to exit". Long enough to be comfortable,
+// short enough that stray presses don't half-arm the next real exit.
+internal const val DOUBLE_BACK_WINDOW_MS = 2000L
 internal const val SQUARE_ASPECT_RATIO = 1
 internal const val PIP_ASPECT_RATIO_SCALE = 10_000
 internal const val REMOTE_ACTION_EMPTY_TEXT = ""

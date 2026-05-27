@@ -1,34 +1,12 @@
-// Detekt's MayBeConstant would have us promote these to `const val`, which in
-// turn would fire TopLevelPropertyNaming demanding UPPER_SNAKE_CASE — and
-// renaming would break the 29 existing call sites that match these names
-// already in their MPVActivity property days. The values are still effectively
-// constants; the suppression is for the cosmetic preference, not behaviour.
+// MayBeConstant suppressed: promoting to const val would force UPPER_SNAKE
+// names, breaking ~29 call sites. Kept camelCase for source compat.
 @file:Suppress("MayBeConstant")
 
 package app.mpvnova.player
 
-// ============================================================================
-// Audio-filter preset definitions for the player UI.
-//
-// Voice Boost, DRC, Audio Normalization, Night Mode, and Dialogue Downmix
-// each have a small handful of preset filter chains the user can cycle
-// through. These chains are static text — the labels (`@voiceboost`, etc.)
-// are mpv filter slot names; the FFmpeg filter expressions inside them
-// describe the actual processing.
-//
-// Moved out of MPVActivity to keep the activity class focused on lifecycle
-// + UI; these are process-wide constants and have no per-activity state.
-// The mutable level state (voiceBoostLevel, volumeBoostDb, etc.) still
-// lives on MPVActivity because it changes during a playback session.
-//
-// Names kept in camelCase (not UPPER_SNAKE) so the existing call sites
-// don't need to be touched — the move is purely "where does this code
-// live," not "what is it called."
-// ============================================================================
-
-// ---- mpv filter slot labels ----
-// The @-prefixed names mpv assigns to each filter so we can add / replace /
-// drop a single slot without rebuilding the whole chain.
+// Audio-filter preset chains for the player UI. mpv filter slot labels
+// (@-prefixed) let us add/replace/drop a single slot without rebuilding
+// the whole chain.
 
 internal val voiceBoostFilterLabel = "@voiceboost"
 internal val volumeBoostFilterLabel = "@volumeboost"
@@ -42,10 +20,8 @@ internal val drcFilterBody = "dynaudnorm=f=100:p=1/sqrt(2):m=100:s=12:g=11"
 
 internal val volumeBoostStepsDb = VOLUME_BOOST_STEPS_DB
 
-// ---- Preset label string resource IDs ----
-// Indexed by preset level (0 = off). Length matches the matching preset
-// chain array below.
-
+// Preset label string resource IDs — indexed by preset level (0 = off),
+// length matches the matching preset chain array.
 internal val voiceBoostPresetLabelIds = intArrayOf(
     R.string.filter_value_off,
     R.string.voice_boost_preset_soft,
@@ -79,10 +55,8 @@ internal val audioNormPresetLabelIds = intArrayOf(
     R.string.audio_norm_preset_loudnorm_22,
 )
 
-// ---- Filter chain presets ----
-// Index 0 is always the empty (off) state. Subsequent indices map 1:1 to
-// the matching label-ID arrays above.
-
+// Filter chain presets — index 0 is the empty (off) state, rest map 1:1
+// to the label-ID arrays above.
 internal val nightModePresets: List<String> = listOf(
     "",
     "$nightModeFilterLabel:lavfi=[$drcFilterBody]",

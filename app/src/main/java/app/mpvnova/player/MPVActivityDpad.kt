@@ -61,17 +61,9 @@ internal fun MPVActivity.interceptDpad(ev: KeyEvent): Boolean {
 }
 
 internal fun MPVActivity.updateSelectedDpadButton() {
-    // The dpad selection model lives entirely on `btnSelected`, not on
-    // framework focus — interceptDpad runs at Activity.dispatchKeyEvent
-    // before any focus dispatch, and DPAD_CENTER calls performClick()
-    // directly. The button backgrounds light up via `state_selected` in
-    // their drawable selectors, so isSelected alone is all we need for the
-    // visual feedback. We deliberately do NOT call requestFocus() here:
-    // every focus change fires AccessibilityManager.sendAccessibilityEvent
-    // AND triggers ViewRootImpl.scheduleTraversals() — a full window
-    // layout/measure/draw pass on the next frame. At ~10 button presses/sec
-    // while scrolling, that's the spike that lets the SW Hi10p decoder
-    // fall behind real-time and accumulates the A-V drift the user sees.
+    // Selection lives on btnSelected, not framework focus. isSelected drives
+    // state_selected in the drawable; requestFocus() would fire a11y events
+    // + scheduleTraversals() per press → SW Hi10p decoder drift.
     val controls = dpadButtons()
     controls.forEachIndexed { i, child ->
         val selected = i == btnSelected
@@ -85,33 +77,23 @@ internal fun MPVActivity.updateSelectedDpadButton() {
 }
 
 internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
-    // intercept some keys to provide functionality native to
-    // mpvNova even if libmpv already implements these
+    // Override libmpv's defaults for mpvNova-specific behavior.
     var unhandled = 0
 
     when (event.unicodeChar.toChar()) {
-        // (overrides a default binding)
         'j' -> cycleSub()
         '#' -> cycleAudio()
-
         else -> unhandled++
     }
-    // Note: dpad center is bound according to how Android TV apps should generally behave,
-    // see <https://developer.android.com/docs/quality-guidelines/tv-app-quality>.
-    // Due to implementation inconsistencies enter and numpad enter need to perform the same
-    // function (issue #963).
+    // Enter + numpad-enter must do the same thing (issue #963).
     when (event.keyCode) {
-        // (no default binding)
         KeyEvent.KEYCODE_CAPTIONS -> cycleSub()
         KeyEvent.KEYCODE_MEDIA_AUDIO_TRACK -> cycleAudio()
         KeyEvent.KEYCODE_INFO -> toggleControls()
-        KeyEvent.KEYCODE_MENU -> openTopMenu()
-        KeyEvent.KEYCODE_GUIDE -> openTopMenu()
+        KeyEvent.KEYCODE_MENU -> openPlayerDrawer()
+        KeyEvent.KEYCODE_GUIDE -> openPlayerDrawer()
         KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> player.cyclePause()
-
-        // (overrides a default binding)
         KeyEvent.KEYCODE_ENTER -> player.cyclePause()
-
         else -> unhandled++
     }
 
@@ -119,8 +101,21 @@ internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
 }
 
 internal fun MPVActivity.onBackPressedImpl() {
+    // Double-back: first press toasts, second within window exits.
+    // Skipped when the playlist warning already gates the exit.
     val notYetPlayed = psc.playlistCount - psc.playlistPos - 1
-    if (notYetPlayed <= 0 || !playlistExitWarning) {
+    val playlistConfirmsExit = notYetPlayed > 0 && playlistExitWarning
+    if (exitWithDoubleBack && !playlistConfirmsExit) {
+        val now = android.os.SystemClock.uptimeMillis()
+        if (now - lastBackPressMs > DOUBLE_BACK_WINDOW_MS) {
+            lastBackPressMs = now
+            showToast(getString(R.string.exit_double_back_hint))
+            return
+        }
+        lastBackPressMs = 0L
+    }
+
+    if (!playlistConfirmsExit) {
         finishWithResult(RESULT_OK, true)
         return
     }

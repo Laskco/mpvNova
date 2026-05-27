@@ -11,14 +11,9 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * File-only crash reporter. No network, no third-party SDK, no opt-in
- * dialog. Catches uncaught exceptions on any thread, writes a one-shot
- * text report to cacheDir/crashes/, then chains to the previous handler
- * so the process still dies normally (the OS will see a crash too).
- *
- * The user surfaces these crash files by tapping "Export support bundle"
- * in Settings → Support — the zip picks up every file under
- * cacheDir/crashes/ automatically.
+ * File-only crash reporter. Writes a text report to cacheDir/crashes/,
+ * then chains to the previous handler so the OS still sees the crash.
+ * "Export support bundle" zips this directory.
  */
 internal object CrashReporter {
     private const val TAG = "mpvNova-crash"
@@ -38,16 +33,12 @@ internal object CrashReporter {
             try {
                 writeCrashFile(appContext, thread, throwable)
             } catch (write: Throwable) {
-                // Last-ditch logcat fallback so the crash still leaves a trace
-                // somewhere even if the disk write itself failed. We
-                // intentionally catch Throwable here — the alternative is
-                // the secondary exception killing the JVM before the
-                // chained-default handler runs, which would also lose the
-                // *original* crash. Better to log + continue.
+                // Catch Throwable: secondary exception would kill the JVM
+                // before the chained handler runs, losing the original crash.
                 Log.e(TAG, "Failed to write crash report", write)
             }
-            // Always chain — the default handler is what kills the process and
-            // surfaces the crash to the OS. Skipping it would hang the app.
+            // Always chain — default handler kills the process and surfaces
+            // the crash to the OS. Skipping it hangs the app.
             previous?.uncaughtException(thread, throwable)
         }
     }
@@ -80,11 +71,7 @@ internal object CrashReporter {
         })
     }
 
-    /**
-     * Keep the most recent [MAX_CRASH_FILES] crash files so the cache directory
-     * doesn't grow forever for users who hit recurring crashes. Anything older
-     * is dropped silently.
-     */
+    /** Keep at most [MAX_CRASH_FILES] crash files; older ones dropped silently. */
     private fun pruneOldCrashes(dir: File) {
         val existing = dir.listFiles()?.filter { it.isFile && it.name.startsWith("crash-") }
             ?: return

@@ -4,11 +4,6 @@ import android.util.Log
 import android.support.v4.media.session.MediaSessionCompat
 
 internal fun MPVActivity.initMediaSession(): MediaSessionCompat {
-    /*
-        https://developer.android.com/guide/topics/media-apps/working-with-a-media-session
-        https://developer.android.com/guide/topics/media-apps/audio-app/mediasession-callbacks
-        https://developer.android.com/reference/android/support/v4/media/session/MediaSessionCompat
-     */
     val session = MediaSessionCompat(this, MPV_ACTIVITY_TAG)
     session.setFlags(0)
     session.setCallback(mediaSessionCallback)
@@ -16,9 +11,8 @@ internal fun MPVActivity.initMediaSession(): MediaSessionCompat {
 }
 
 internal fun MPVActivity.updateMediaSession() {
-    // Coalesce: many property updates within the same event-loop turn
-    // collapse to a single MediaSession IPC. Lifecycle paths that need an
-    // immediate write (onPause, onload, etc.) can call updateMediaSessionNow().
+    // Coalesce same-turn property updates into one IPC. Use
+    // updateMediaSessionNow() when a sync write is required.
     if (mediaSessionUpdatePending) return
     mediaSessionUpdatePending = true
     eventUiHandler.post(mediaSessionUpdateRunnable)
@@ -30,12 +24,8 @@ internal fun MPVActivity.updateMediaSessionNow() {
     }
 }
 
-// Property → UI-thread handler tables. Centralised so adding a new
-// observed property in MPVView.observeProperties() lines up with adding
-// a handler here. If a property is observed but has no entry it gets
-// silently dropped on the UI side (which is fine — many properties are
-// observed only for their event-thread side-effects like media-session
-// sync, not UI updates).
+// Property → UI handler tables. Observed properties without an entry are
+// silently dropped on the UI side (event-thread side-effects only).
 
 private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "track-list" to {
@@ -62,9 +52,8 @@ private val LONG_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
 )
 
 private val DOUBLE_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
-    // time-pos/full is intentionally absent — it goes through the coalesced
-    // timePosUiRunnable to keep the SW decoder from being preempted by a
-    // per-frame UI dispatch.
+    // time-pos/full is intentionally absent — coalesced via timePosUiRunnable
+    // to keep the SW decoder from being preempted by per-frame UI dispatches.
     "duration/full" to { updatePlaybackDuration(psc.duration) },
     "video-params/aspect" to { updatePiPParams() },
     "video-params/rotate" to { updatePiPParams() },
@@ -86,9 +75,7 @@ internal fun MPVActivity.eventMetadataPropertyUi(property: String, metaUpdated: 
 
 internal fun MPVActivity.eventBooleanPropertyUi(property: String, value: Boolean) {
     if (!activityIsForeground) return
-    // pause has value-dependent behavior (auto-close overlay on unpause)
-    // so it lives outside the simple map. Everything else is a no-arg
-    // handler.
+    // pause has value-dependent behavior (overlay auto-close on unpause).
     when (property) {
         "pause" -> handlePauseUi(value)
         "paused-for-cache" -> {

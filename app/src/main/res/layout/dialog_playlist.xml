@@ -74,6 +74,13 @@
         android:background="@drawable/bg_tv_panel_card"
         android:clipToPadding="false"
         android:padding="12dp"
+        android:scrollbarDefaultDelayBeforeFade="1200"
+        android:scrollbarFadeDuration="240"
+        android:scrollbarSize="3dp"
+        android:scrollbarStyle="insideInset"
+        android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+        android:scrollbars="vertical"
         app:layoutManager="LinearLayoutManager"
         tools:listitem="@layout/dialog_playlist_item" />
 

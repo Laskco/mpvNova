@@ -47,4 +47,11 @@
         android:summary="@string/pref_video_fastdecode_summary"
         android:title="@string/pref_video_fastdecode_title" />
 
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        app:iconSpaceReserved="false"
+        android:key="auto_refresh_rate_switch"
+        android:summary="@string/pref_auto_refresh_rate_summary"
+        android:title="@string/pref_auto_refresh_rate_title" />
+
 </PreferenceScreen>

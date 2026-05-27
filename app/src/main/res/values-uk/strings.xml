@@ -46,11 +46,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Відкрити зовнішнє аудіо…</string>
     <string name="open_external_sub">Відкрити зовнішні субтитри…</string>
-    <string name="advanced_menu">Додатково…</string>
     <string name="resume_bg_playback">Фонове відтворення</string>
     <string name="toggle_stats">Показати/приховати статистику</string>
     <string name="chapter_button">Розділ</string>
-    <string name="sub_seek_button">Позиціювання за субтитрами</string>
     <string name="action_settings">Налаштування</string>
     <string name="action_playlist">Список відтворення</string>
     <string name="action_open_url">Відкрити адресу</string>

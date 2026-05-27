@@ -15,17 +15,8 @@ internal class MpvActivityLifecycleObserver(private val activity: MPVActivity) :
 }
 
 /**
- * Wraps an [MPVActivity] for mpv's native event callbacks. Two concerns
- * live here:
- *
- *   1. State sync — every property update folds into the playback-state
- *      cache and (when meta changed) refreshes the media session.
- *   2. UI dispatch — UI updates for foreground activity are posted to the
- *      UI handler via the typed [eventLongPropertyUi] / `eventDoublePropertyUi`
- *      / `eventStringPropertyUi` / `eventBooleanPropertyUi` /
- *      `eventMetadataPropertyUi` helpers, which each route through a
- *      property → handler table so adding or renaming a property only
- *      requires updating one place.
+ * mpv event callback wrapper. Folds property updates into the playback-state
+ * cache + media session, then dispatches UI handlers via typed property tables.
  */
 internal class MpvActivityEventObserver(private val activity: MPVActivity) : MpvEventObserver {
 
@@ -54,10 +45,8 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     override fun eventProperty(property: String, value: Double): Unit = with(activity) {
         if (psc.update(property, value)) updateMediaSession()
         if (!activityIsForeground) return
-        // time-pos/full is special: mpv fires it at video frame rate, so
-        // posting a fresh Runnable per event would wake the UI thread ~60×/s
-        // and starve the SW decoder on Hi10p. Route it through the coalesced
-        // runnable instead, which natural-batches into ~5 UI updates/sec.
+        // time-pos/full fires at frame rate — coalesce to ~5 UI/sec or it
+        // starves the SW Hi10p decoder.
         if (property == "time-pos/full") {
             if (!timePosUiPending) {
                 timePosUiPending = true
@@ -79,11 +68,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         activity.handleMpvEvent(eventId)
     }
 
-    /**
-     * Event-thread side-effects for boolean property updates: things that
-     * must run regardless of foreground state and shouldn't be deferred to
-     * the UI handler (audio focus reacquire, shuffle sync, etc.).
-     */
+    /** Event-thread side-effects that must run regardless of foreground state. */
     private fun MPVActivity.dispatchEventThreadBoolean(property: String, value: Boolean, metaUpdated: Boolean) {
         when (property) {
             "shuffle" -> mediaSession?.setShuffleMode(
@@ -96,11 +81,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
             handleAudioFocus()
     }
 
-    /**
-     * Event-thread side-effects for FORMAT_NONE / metadata-string updates.
-     * loop-* drive the MediaSession repeat mode, audio-track changes feed
-     * audio focus + filter persistence, pause cycles audio focus.
-     */
+    /** FORMAT_NONE / metadata-string event-thread side-effects. */
     private fun MPVActivity.dispatchEventThreadMetadata(property: String) {
         when (property) {
             "loop-file", "loop-playlist" -> {
@@ -131,11 +112,8 @@ internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLo
     }
 
     /**
-     * mpv emits "Audio device underrun detected" when the AO can't keep
-     * up. If the user has a non-downmixed surround track AND has audio
-     * normalisation enabled, the most likely cause is that normalisation
-     * is pushing levels past what the surround stack can sustain. Surface
-     * a one-shot hint pointing them at the downmix toggle.
+     * "Audio device underrun" + normalisation + non-downmixed surround →
+     * suggest the downmix toggle (one-shot hint).
      */
     private fun MPVActivity.maybeShowAudioNormUnderrunHint(text: String) {
         val shouldShowHint = !audioNormUnderrunHintShown &&

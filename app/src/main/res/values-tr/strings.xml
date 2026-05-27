@@ -42,11 +42,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Harici ses aç…</string>
     <string name="open_external_sub">Harici alt yazı aç…</string>
-    <string name="advanced_menu">Gelişmiş…</string>
     <string name="resume_bg_playback">Arka planda oynat</string>
     <string name="toggle_stats">İstatistikleri aç/kapat</string>
     <string name="chapter_button">Bölüm</string>
-    <string name="sub_seek_button">Alt yazıya göre ara</string>
     <string name="action_settings">Ayarlar</string>
     <string name="action_playlist">Oynatma Listesi</string>
     <string name="action_open_url">URL Aç</string>

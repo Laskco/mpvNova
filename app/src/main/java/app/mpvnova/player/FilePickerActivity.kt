@@ -1,3 +1,4 @@
+@file:Suppress("TooManyFunctions")
 package app.mpvnova.player
 
 import `is`.xyz.filepicker.AbstractFilePickerFragment
@@ -14,6 +15,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.view.WindowInsets
+import android.widget.ImageButton
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.addCallback
@@ -24,9 +26,11 @@ import androidx.core.util.Predicate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.children
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import `is`.xyz.filepicker.DocumentPickerFragment
 import `is`.xyz.filepicker.FilePickerFragment
@@ -41,12 +45,14 @@ private val TOOLBAR_STORAGE_SELECTOR_KEYS = intArrayOf(
     KeyEvent.KEYCODE_NUMPAD_ENTER,
 )
 
+@Suppress("TooManyFunctions")
 class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFilePickedListener {
     internal lateinit var binding: ActivityFilepickerBinding
     internal var fragment: MPVFilePickerFragment? = null
     internal var fragment2: MPVDocumentPickerFragment? = null
 
     internal var lastSeenInsets: WindowInsets? = null
+    internal var pendingFilePermissionSetup = false
 
     internal var documentOpener = registerForActivityResult(ActivityResultContracts.OpenDocument()) {
         it?.let { uri ->
@@ -102,6 +108,18 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             FilePickerStartup.showChoiceFragment(this)
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (
+            pendingFilePermissionSetup &&
+            fragment != null &&
+            FilePickerFragment.hasPermission(this, File("/"))
+        ) {
+            pendingFilePermissionSetup = false
+            binding.fragmentContainerView.post { initFilePicker() }
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<out String>,
         grantResults: IntArray
@@ -142,33 +160,17 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             window.currentFocus === binding.toolbar &&
             fragment != null &&
             ev.keyCode in TOOLBAR_STORAGE_SELECTOR_KEYS
-        // If up is pressed at the header element display the usual options menu as a popup menu
-        // to make it usable on Android TV.
-        val openMenu = if (ev.action == KeyEvent.ACTION_DOWN && ev.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
-            val recycler: RecyclerView = findViewById(android.R.id.list)
-            val holder = try {
-                window.currentFocus?.let { recycler.getChildViewHolder(it) }
-            } catch (ignored: IllegalArgumentException) {
-                null
-            }
-            holder is AbstractFilePickerFragment<*>.HeaderViewHolder
-        } else {
-            false
-        }
+        val moveFocusToToolbar = ev.action == KeyEvent.ACTION_DOWN &&
+            ev.keyCode == KeyEvent.KEYCODE_DPAD_UP &&
+            isFileListTopRowFocused()
         return when {
             selectFocusedToolbar -> {
                 FilePickerMenuActions.openExternalStorage(this)
                 true
             }
-            openMenu -> {
+            moveFocusToToolbar -> {
                 if (!focusToolbarNavigation()) {
-                    PopupMenu(this, findViewById(R.id.context_anchor)).apply {
-                        setOnMenuItemClickListener {
-                            this@FilePickerActivity.onOptionsItemSelected(it)
-                        }
-                        this@FilePickerActivity.inflateOptionsMenu(menu)
-                        show()
-                    }
+                    showFilePickerOptionsPopup()
                 }
                 true
             }
@@ -189,6 +191,11 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
     fun setPickerLocation(location: String) {
         binding.filePickerLocation.text = location.ifEmpty { getString(R.string.file_picker_title) }
+    }
+
+    fun onFilePermissionGranted() {
+        pendingFilePermissionSetup = false
+        binding.fragmentContainerView.post { initFilePicker() }
     }
 
     companion object {
@@ -365,11 +372,56 @@ private fun FilePickerActivity.inflateOptionsMenu(menu: Menu) {
 }
 
 private fun FilePickerActivity.focusToolbarNavigation(): Boolean {
+    findToolbarNavigationButton()?.let {
+        it.isFocusable = true
+        it.isFocusableInTouchMode = false
+        if (it.visibility == View.VISIBLE && it.requestFocus()) {
+            return true
+        }
+    }
     val focusTarget = intArrayOf(R.id.action_external_storage, R.id.action_file_filter)
         .asSequence()
         .mapNotNull { findViewById<View?>(it) }
         .firstOrNull { it.visibility == View.VISIBLE && it.isFocusable }
-    return focusTarget?.requestFocus() == true
+    return focusTarget?.requestFocus() == true || binding.toolbar.requestFocus()
+}
+
+private fun FilePickerActivity.findToolbarNavigationButton(): View? {
+    val description = binding.toolbar.navigationContentDescription
+    return binding.toolbar.children.firstOrNull {
+        (description != null && it.contentDescription == description) || it is ImageButton
+    }
+}
+
+@Suppress("ReturnCount")
+private fun FilePickerActivity.isFileListTopRowFocused(): Boolean {
+    if (fragment == null)
+        return false
+    val recycler = runCatching { findViewById<RecyclerView>(android.R.id.list) }.getOrNull()
+        ?: return false
+    val focused = window.currentFocus ?: return false
+    if (focused === recycler) {
+        return !recycler.canScrollVertically(-1)
+    }
+    val holder = recycler.findContainingViewHolder(focused) ?: return false
+    val firstVisiblePosition = (recycler.layoutManager as? LinearLayoutManager)
+        ?.findFirstVisibleItemPosition()
+        ?: RecyclerView.NO_POSITION
+    return !recycler.canScrollVertically(-1) &&
+        (
+            holder is AbstractFilePickerFragment<*>.HeaderViewHolder ||
+                holder.bindingAdapterPosition <= maxOf(firstVisiblePosition, 1)
+        )
+}
+
+private fun FilePickerActivity.showFilePickerOptionsPopup() {
+    PopupMenu(this, findViewById(R.id.context_anchor)).apply {
+        setOnMenuItemClickListener {
+            this@showFilePickerOptionsPopup.onOptionsItemSelected(it)
+        }
+        this@showFilePickerOptionsPopup.inflateOptionsMenu(menu)
+        show()
+    }
 }
 
 private fun FilePickerActivity.initFilePicker() {
@@ -386,8 +438,10 @@ private fun FilePickerActivity.initFilePicker() {
 
     if (!FilePickerFragment.hasPermission(this, File("/"))) {
         Log.v(FilePickerActivity.TAG, "FilePickerActivity: waiting for file picker permission")
+        pendingFilePermissionSetup = true
         return
     }
+    pendingFilePermissionSetup = false
 
     Log.v(FilePickerActivity.TAG, "FilePickerActivity: showing file picker")
     val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)

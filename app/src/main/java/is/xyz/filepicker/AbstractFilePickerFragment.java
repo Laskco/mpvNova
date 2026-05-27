@@ -7,6 +7,7 @@
 package is.xyz.filepicker;
 
 import app.mpvnova.player.R;
+import app.mpvnova.player.TvScrollbars;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -47,6 +48,7 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
     protected RecyclerView recyclerView;
     protected LinearLayoutManager layoutManager;
     protected List<T> mFiles = null;
+    private View scrollbarThumb = null;
     // Keep track if we are currently loading a directory, in case it takes a long time
     protected boolean isLoading = false;
 
@@ -71,6 +73,10 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
         mPositionMap = new HashMap<>();
 
         recyclerView = (RecyclerView) view.findViewById(android.R.id.list);
+        scrollbarThumb = view.findViewById(R.id.filePickerScrollbarThumb);
+        if (scrollbarThumb != null) {
+            TvScrollbars.bind(recyclerView, scrollbarThumb);
+        }
         // improve performance if you know that changes in content
         // do not change the size of the RecyclerView
         //noinspection InvalidSetHasFixedSize
@@ -214,6 +220,8 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
             layoutManager.scrollToPositionWithOffset(mPositionMap.get(key), 0);
         else
             layoutManager.scrollToPositionWithOffset(0, 0);
+        if (scrollbarThumb != null)
+            TvScrollbars.revealAfterLayout(recyclerView, scrollbarThumb);
     }
 
     /**

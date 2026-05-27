@@ -7,22 +7,11 @@ import androidx.media.AudioAttributesCompat
 import androidx.media.AudioFocusRequestCompat
 import androidx.media.AudioManagerCompat
 
-/**
- * Audio focus + dialog pause + controls-overlay autopause.
- *
- * - [handleAudioFocus] / [requestAudioFocus] / [onAudioFocusChange]: own
- *   the AudioFocus lifecycle and the becoming-noisy receiver.
- * - [keepPlaybackForDialog] / [pauseForDialog]: dialog-open helpers that
- *   either keep video running with keep-open or pause based on the user's
- *   "Pause playback when UI dialogs open" preference.
- * - [shouldAutoPauseForControlsOverlay] / [maybeAutoPauseForControlsOverlay]:
- *   the player-UI-specific autopause that pauses while the controls overlay
- *   is visible (default on for Shield Hi10p, opt-in for everything else).
- */
+/** Audio focus + dialog pause + controls-overlay autopause. */
 
 /**
- * Requests or abandons audio focus and noisy receiver depending on the playback state.
- * @warning Call from event thread, not UI thread
+ * Request/abandon audio focus + noisy receiver based on playback state.
+ * @warning Call from event thread, not UI thread.
  */
 internal fun MPVActivity.handleAudioFocus() {
     if ((psc.pause && !psc.cachePause) || !isPlayingAudio) {
@@ -36,8 +25,7 @@ internal fun MPVActivity.handleAudioFocus() {
                 IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
             )
         becomingNoisyReceiverRegistered = true
-        // (re-)request audio focus
-        // Note that this will actually request focus every time the user unpauses, refer to discussion in #1066
+        // Re-requests on every unpause — see discussion in #1066.
         if (requestAudioFocus()) {
             onAudioFocusChange(AudioManager.AUDIOFOCUS_GAIN, "request")
         } else {
@@ -51,7 +39,7 @@ internal fun MPVActivity.requestAudioFocus(): Boolean {
     val req = audioFocusRequest ?:
         with(AudioFocusRequestCompat.Builder(AudioManagerCompat.AUDIOFOCUS_GAIN)) {
         setAudioAttributes(with(AudioAttributesCompat.Builder()) {
-            // N.B.: libmpv may use different values in ao_audiotrack, but here we always pretend to be music.
+            // libmpv's ao_audiotrack may differ — here we always pretend to be music.
             setUsage(AudioAttributesCompat.USAGE_MEDIA)
             setContentType(AudioAttributesCompat.CONTENT_TYPE_MUSIC)
             build()
@@ -77,7 +65,7 @@ internal fun MPVActivity.onAudioFocusChange(type: Int, source: String) {
     when (type) {
         AudioManager.AUDIOFOCUS_LOSS,
         AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
-            // loss can occur in addition to ducking, so remember the old callback
+            // Loss can occur on top of ducking — chain the old restore.
             val oldRestore = audioFocusRestore
             val wasPlayerPaused = player.paused ?: false
             player.paused = true
@@ -115,11 +103,10 @@ internal fun MPVActivity.pauseForDialog(): StateRestoreCallback {
         else -> false // "never"
     }
     if (useKeepOpen) {
-        // don't pause but set keep-open so mpv doesn't exit while the user is doing stuff
+        // Don't pause, just set keep-open so mpv doesn't exit mid-dialog.
         return keepPlaybackForDialog()
     }
 
-    // Pause playback during UI dialogs
     val wasPlayerPaused = player.paused ?: true
     player.paused = true
     return {
@@ -128,13 +115,10 @@ internal fun MPVActivity.pauseForDialog(): StateRestoreCallback {
     }
 }
 
-// Player UI auto-pause for the controls overlay. Two independent toggles can
-// turn it on:
-//   - autoPauseControlsOverlayEnabled (general): pause for any file.
-//   - autoPauseShieldHi10pEnabled (specific): pause for Hi10p H.264 on Shield,
-//     where the SW decoder is so close to real-time that any concurrent UI
-//     work accumulates A/V drift. Defaults on because that hardware case is
-//     a known problem, but the user can opt out from the Player UI settings.
+// Controls-overlay autopause:
+//   - autoPauseControlsOverlayEnabled (general): opt-in, any file.
+//   - autoPauseShieldHi10pEnabled (default on): Shield Hi10p H.264, where SW
+//     decode is too close to real-time to share with UI work.
 internal fun MPVActivity.shouldAutoPauseForControlsOverlay(): Boolean {
     val shieldHi10pCase = autoPauseShieldHi10pEnabled &&
         isNvidiaShieldDevice() &&

@@ -25,13 +25,9 @@ internal fun MPVActivity.updatePlaybackDuration(durationMs: Long) {
 
 internal fun MPVActivity.handlePauseUi(paused: Boolean) {
     updatePlaybackStatus(paused)
-    // If playback just transitioned to playing AND the controls overlay is
-    // still up AND this is a file where we'd autopause, hide the overlay.
-    // Otherwise we land in the exact state the autopause exists to prevent:
-    // video playing while the overlay burns UI cycles on top, which on SW
-    // Hi10p Shield rapidly accumulates A/V drift. Covers every unpause
-    // path — play button, media-session, headset, dpad-center — because
-    // it watches the property instead of the click.
+    // Unpause + overlay still up + autopause-eligible → hide overlay.
+    // Otherwise the autopause condition we just left would immediately
+    // re-apply. Property-driven so it covers every unpause path.
     if (!paused &&
         binding.controls.visibility == View.VISIBLE &&
         shouldAutoPauseForControlsOverlay()) {
@@ -92,7 +88,6 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
     if (!shouldFallback) return
 
     // Pause around the swap so audio can't drain → no underrun → no drift.
-    // We only restore play state if we were the ones to pause it.
     val wasPlaying = player.paused == false
     if (wasPlaying) {
         shieldFallbackResumeAfter = true
@@ -100,10 +95,8 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
     }
     player.applyShieldHi10pFallback(shieldDecoderFallback)
     updateDecoderButton()
-    // Resync seek + unpause must wait for mpv's playback-restart event,
-    // which signals the rebuilt decoder is actually back online. A fixed
-    // delay doesn't work because the rebuild length is unpredictable
-    // (Shield's MediaCodec retry cascade can take 3+ seconds).
+    // Wait for playback-restart — fixed delay can't cover Shield's 3+s
+    // MediaCodec retry cascade.
     pendingShieldFallbackResync = true
 }
 

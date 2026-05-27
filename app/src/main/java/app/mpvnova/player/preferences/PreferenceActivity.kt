@@ -39,6 +39,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
 import app.mpvnova.player.R
+import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.databinding.ActivitySettingsBinding
 
 private val THEME_RECREATE_KEYS = setOf(
@@ -48,7 +49,14 @@ private val THEME_RECREATE_KEYS = setOf(
     AppearanceTheme.PREF_PURE_BLACK_SURFACES
 )
 
-private const val LIST_HORIZONTAL_PADDING_DP = 4
+// Visual margin inside the listView. The right offset that separates the
+// scrollbar from the bg_surface_host's rounded inner edge comes from the
+// fragment host FrameLayout's layout_marginEnd in activity_settings.xml,
+// not from padding here — paddingRight on a RecyclerView with
+// SCROLLBARS_INSIDE_INSET style positions the scrollbar within the same
+// view, but doesn't shrink the view itself. The marginEnd approach does
+// shrink the view, which physically moves the scrollbar inward.
+private const val LIST_HORIZONTAL_PADDING_DP = 6
 private const val LIST_TOP_PADDING_DP = 2
 private const val LIST_BOTTOM_PADDING_DP = 6
 private const val LIST_VERTICAL_SPACE_DP = 2
@@ -253,6 +261,11 @@ class PreferenceActivity : AppCompatActivity(),
                 setPadding(horizontalPadding, dp(LIST_TOP_PADDING_DP), horizontalPadding, dp(LIST_BOTTOM_PADDING_DP))
                 if (itemDecorationCount == 0)
                     addItemDecoration(VerticalSpaceDecoration(dp(LIST_VERTICAL_SPACE_DP)))
+                isVerticalScrollBarEnabled = false
+                val scrollbarThumb = requireActivity().findViewById<View>(R.id.settingsScrollbarThumb)
+                if (scrollbarThumb != null) {
+                    TvScrollbars.bind(this, scrollbarThumb)
+                }
             }
             ViewCompat.setOnApplyWindowInsetsListener(listView) { recycler, insets ->
                 val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

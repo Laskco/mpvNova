@@ -131,7 +131,7 @@ internal fun MPVActivity.showChapterPickerDialog() {
     dialog = with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater))
-        setOnDismissListener { restore() }
+        setOnDismissListener { restore(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(

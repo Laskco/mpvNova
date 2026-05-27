@@ -126,7 +126,7 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - JDK 21
 - Android SDK with current build tools
 - Git for version information in builds
-- Gradle wrapper `9.5.0`
+- Gradle wrapper `9.5.1`
 - Android Gradle Plugin `9.2.0`
 - Kotlin `2.3.21`
 

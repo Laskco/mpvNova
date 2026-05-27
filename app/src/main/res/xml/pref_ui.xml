@@ -45,6 +45,27 @@
         android:summary="@string/pref_autopause_shield_hi10p_summary"
         android:title="@string/pref_autopause_shield_hi10p_title" />
 
+    <SwitchPreferenceCompat
+        android:defaultValue="true"
+        app:iconSpaceReserved="false"
+        android:key="display_clock_overlay"
+        android:summary="@string/pref_display_clock_overlay_summary"
+        android:title="@string/pref_display_clock_overlay_title" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        app:iconSpaceReserved="false"
+        android:key="exit_with_double_back"
+        android:summary="@string/pref_exit_with_double_back_summary"
+        android:title="@string/pref_exit_with_double_back_title" />
+
+    <SwitchPreferenceCompat
+        android:defaultValue="false"
+        app:iconSpaceReserved="false"
+        android:key="dpad_up_jumps_to_top_controls"
+        android:summary="@string/pref_dpad_up_jumps_top_summary"
+        android:title="@string/pref_dpad_up_jumps_top_title" />
+
     <app.mpvnova.player.preferences.RemoteButtonPreference
         app:iconSpaceReserved="false"
         android:defaultValue="@string/pref_remote_button_unassigned_value"

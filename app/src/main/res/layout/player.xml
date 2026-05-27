@@ -553,6 +553,7 @@
                 style="@style/MpvPlayer.ButtonBarIconButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:contentDescription="@string/action_pip"
                 android:padding="8dp"
                 app:srcCompat="@drawable/ic_picture_in_picture_24dp"
                 app:tint="@color/tv_text" />

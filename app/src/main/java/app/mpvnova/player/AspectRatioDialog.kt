@@ -32,7 +32,7 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
     handleInsetsAsPadding(binding.root)
     dialog = with(AlertDialog.Builder(this)) {
         setView(binding.root)
-        setOnDismissListener { restoreState() }
+        setOnDismissListener { restoreState(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(dialog, aspectRatioDialogLayout())

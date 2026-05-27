@@ -48,11 +48,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">گشودن صدای خارجی…</string>
     <string name="open_external_sub">گشودن زیرنویس خارجی…</string>
-    <string name="advanced_menu">پیشرفته…</string>
     <string name="resume_bg_playback">پخش در پس‌زمینه</string>
     <string name="toggle_stats">تغییر آمار</string>
     <string name="chapter_button">فصل</string>
-    <string name="sub_seek_button">جابه‌جایی با زیرنویس</string>
     <string name="action_settings">تنظیمات</string>
     <string name="action_playlist">فهرست پخش</string>
     <string name="action_open_url">گشودن جریان</string>

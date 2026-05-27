@@ -46,11 +46,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Obre un àudio extern…</string>
     <string name="open_external_sub">Obre uns subtítols externs…</string>
-    <string name="advanced_menu">Avançat…</string>
     <string name="resume_bg_playback">Reprodueix en segon pla</string>
     <string name="toggle_stats">Commuta les estadístiques</string>
     <string name="chapter_button">Capítol</string>
-    <string name="sub_seek_button">Filtra pels subtítols</string>
     <string name="action_settings">Paràmetres</string>
     <string name="action_playlist">Llista de reproducció</string>
     <string name="action_open_url">Obre l\'URL</string>

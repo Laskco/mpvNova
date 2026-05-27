@@ -18,10 +18,7 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
 }
 
 private fun MPVActivity.handleMpvPlaybackRestart() {
-    // After the Shield Hi10p fallback rebuilt the decoder, playback-restart
-    // is the signal that the new decoder is actually producing frames. Drain
-    // the pending resync now: tiny exact seek to flush A/V/subs back into
-    // alignment, then unpause.
+    // First frame from the rebuilt decoder — flush A/V/subs via tiny seek, then unpause.
     if (pendingShieldFallbackResync) {
         pendingShieldFallbackResync = false
         eventUiHandler.post(shieldFallbackResyncRunnable)
@@ -77,6 +74,7 @@ private fun MPVActivity.handleMpvFileLoaded() {
     guardNearEndStartPosition()
     showResumeToastIfNeeded()
     refreshAudioFiltersAfterFileLoad()
+    maybeApplyContentRefreshRate()
 }
 
 private fun MPVActivity.guardNearEndStartPosition() {
@@ -113,11 +111,14 @@ private fun MPVActivity.showResumeToastIfNeeded() {
     }
 }
 
+private fun MPVActivity.anyAudioFilterOn(): Boolean =
+    isVoiceBoostOn() || isVolumeBoostOn() || isNightModeOn() || isAudioNormOn()
+
 private fun MPVActivity.refreshAudioFiltersAfterFileLoad() {
     if (persistAudioFilters) {
         rebuildAudioFilters()
         eventUiHandler.post { refreshAllFilterTints() }
-    } else if (listOf(isVoiceBoostOn(), isVolumeBoostOn(), isNightModeOn(), isAudioNormOn()).any { it }) {
+    } else if (anyAudioFilterOn()) {
         voiceBoostLevel = 0
         volumeBoostDb = 0
         nightModeLevel = 0

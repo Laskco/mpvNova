@@ -50,7 +50,6 @@
     <string name="player_ends_at">Ends at %1$s</string>
     <string name="player_loading_stream">Opening stream...</string>
     <string name="player_buffering_stream">Buffering stream...</string>
-    <string name="player_menu">Player menu</string>
     <string name="dialog_delay_label">Delay</string>
     <string name="dialog_title_subs">Subtitles</string>
     <string name="dialog_title_audio">Audio</string>
@@ -140,12 +139,10 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Open external audio…</string>
     <string name="open_external_sub">Open external subtitle…</string>
-    <string name="advanced_menu">Advanced…</string>
     <string name="advanced_menu_title">Advanced</string>
     <string name="resume_bg_playback">Play in background</string>
     <string name="toggle_stats">Toggle stats</string>
     <string name="chapter_button">Chapter</string>
-    <string name="sub_seek_button">Seek by subtitle</string>
     <string name="action_settings">Settings</string>
     <string name="action_playlist">Playlist</string>
     <string name="action_repeat">Repeat</string>
@@ -306,6 +303,7 @@
     <string name="pref_display_media_title_summary">Display a VLC-style media title at the top of the player UI when the launcher or file path provides one.</string>
 
     <string name="pref_bottom_controls_title">Show controls at bottom of screen</string>
+    <string name="pref_bottom_controls_summary">When on, the player controls dock to the bottom of the screen. When off, they float as a centered overlay above the bottom edge.</string>
     <string name="pref_player_controls_timeout_title">Auto-hide player controls</string>
     <string name="pref_player_controls_timeout_summary">Choose how long controls stay visible after player UI activity.</string>
     <string name="pref_player_controls_timeout_default" translatable="false">5000</string>
@@ -384,4 +382,51 @@
     <!-- File picker -->
     <string name="nnf_name">Name</string>
     <string name="nnf_permission_external_write_denied">Permission to access file system denied</string>
+
+    <!-- Player settings drawer (in-player gear icon -> right-side panel).
+         Tabs group the existing top-menu and advanced-menu options into
+         categories so users do not have to remember which dialog hides
+         which feature. -->
+    <string name="action_pip">Picture-in-picture</string>
+    <string name="drawer_tab_video">Video</string>
+    <string name="drawer_tab_audio">Audio</string>
+    <string name="drawer_tab_subtitles">Subtitles</string>
+    <string name="drawer_tab_playback">Playback</string>
+    <string name="drawer_tab_interface">Interface</string>
+    <string name="drawer_section_video">Video</string>
+    <string name="drawer_section_audio">Audio</string>
+    <string name="drawer_section_subtitles">Subtitles</string>
+    <string name="drawer_section_playback">Playback</string>
+    <string name="drawer_section_interface">Interface</string>
+    <!-- Drawer action labels for the entries that open dedicated pickers. -->
+    <!-- Shorter label for the drawer Video tab where two buttons share a row;
+         the full "Video brightness" wraps to two lines and breaks alignment
+         with the adjacent Contrast button. -->
+    <string name="btn_brightness">Brightness</string>
+    <string name="btn_sub_track">Subtitle track &amp; size</string>
+    <string name="btn_sub_seek_prev">Previous subtitle</string>
+    <string name="btn_sub_seek_next">Next subtitle</string>
+    <string name="btn_chapter_prev">Previous chapter</string>
+    <string name="btn_chapter_next">Next chapter</string>
+
+    <!-- Drawer Video tab: Take Screenshot action label + save toast. -->
+    <string name="btn_screenshot">Screenshot</string>
+    <string name="toast_screenshot_saved">Saved to Pictures</string>
+    <string name="btn_play_speed">Playback speed</string>
+    <string name="btn_decoder">Decoder</string>
+    <string name="btn_audio_filters">Audio filters &amp; track</string>
+
+    <!-- VIMU-parity additions. -->
+    <string name="pref_exit_with_double_back_title">Exit with double back press</string>
+    <string name="pref_exit_with_double_back_summary">Require pressing Back twice within two seconds to exit the player. Helps prevent accidental TV-remote exits during playback.</string>
+    <string name="exit_double_back_hint">Press Back again to exit</string>
+
+    <string name="pref_display_clock_overlay_title">Show clock overlay</string>
+    <string name="pref_display_clock_overlay_summary">Display the current time and \"ends at\" estimate at the top-left when the player controls are visible.</string>
+
+    <string name="pref_auto_refresh_rate_title">Match display refresh rate</string>
+    <string name="pref_auto_refresh_rate_summary">On Android TV, switch the display refresh rate to match the playing video (e.g., 23.976 fps content drives a 23.976 Hz mode). Eliminates 3:2 pulldown judder on 60 Hz panels. Reverts to the system default when playback ends.</string>
+
+    <string name="pref_dpad_up_jumps_top_title">D-pad up jumps to top controls</string>
+    <string name="pref_dpad_up_jumps_top_summary">When on, pressing Up from the seekbar jumps to the top-right PiP / Settings icons instead of hiding the overlay. When off (default), pressing Up from the seekbar hides the overlay.</string>
 </resources>

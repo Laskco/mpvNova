@@ -33,7 +33,7 @@ internal fun MPVActivity.pickDecoder() {
                 items = items,
             )
         ))
-        setOnDismissListener { restore() }
+        setOnDismissListener { restore(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(

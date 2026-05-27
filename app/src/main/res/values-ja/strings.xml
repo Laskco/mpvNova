@@ -36,11 +36,9 @@
     <string name="open_external_audio">外部オーディオファイルを読み込む…</string>
     <string name="open_external_sub">外部字幕ファイルを読み込む…</string>
     <string name="action_playlist">プレイリスト</string>
-    <string name="advanced_menu">詳細設定…</string>
     <string name="resume_bg_playback">バックグラウンドで再生</string>
     <string name="toggle_stats">統計情報の表示切替</string>
     <string name="chapter_button">チャプター</string>
-    <string name="sub_seek_button">字幕でシーク</string>
     <string name="action_settings">設定</string>
     <string name="action_open_url">URLを開く</string>
     <string name="action_pick_file">ファイルを選択</string>

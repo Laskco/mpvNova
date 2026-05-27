@@ -33,11 +33,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Abrir áudio externo…</string>
     <string name="open_external_sub">Abrir legenda externa…</string>
-    <string name="advanced_menu">Avançado…</string>
     <string name="resume_bg_playback">Reproduzir em segundo plano</string>
     <string name="toggle_stats">Alternar as estatísticas</string>
     <string name="chapter_button">Capítulo</string>
-    <string name="sub_seek_button">Buscar por subtítulo</string>
     <string name="action_settings">Configurações</string>
     <string name="action_open_url">Abrir URL</string>
     <string name="action_pick_file">Selecione o arquivo</string>

@@ -46,11 +46,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Abrir audio externo…</string>
     <string name="open_external_sub">Abrir subtítulo externo…</string>
-    <string name="advanced_menu">Avanzado…</string>
     <string name="resume_bg_playback">Reproducir en segundo plano</string>
     <string name="toggle_stats">Alternar estadísticas</string>
     <string name="chapter_button">Capítulo</string>
-    <string name="sub_seek_button">Desplazarse por subtítulo</string>
     <string name="action_settings">Ajustes</string>
     <string name="action_playlist">Lista de reproducción</string>
     <string name="action_open_url">Abrir URL</string>

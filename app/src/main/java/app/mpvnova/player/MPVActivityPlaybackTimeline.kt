@@ -125,10 +125,8 @@ internal fun MPVActivity.updatePlaybackText(position: Int, force: Boolean = fals
         binding.playbackDurationTxt.setTextIfChanged(durationText)
     }
 
-    // Avoid running secondary UI work while the user is scrubbing; heavy
-    // decoder paths can already be busy with the actual seek.
-    // The clock + "Ends at" panel has its own 30s heartbeat (clockRunnable),
-    // so we don't need to recompute it every playback second.
+    // Skip secondary UI work while scrubbing — decoder is busy with the seek.
+    // Clock + "Ends at" panel has its own 30s heartbeat.
     if (!userIsOperatingSeekbar && pendingDpadSeekPreviewMs == null)
         updateStats()
 }

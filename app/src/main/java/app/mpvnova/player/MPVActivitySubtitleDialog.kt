@@ -63,7 +63,7 @@ internal fun MPVActivity.createSubPickerDialog(
     return with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater, subPickerOptions(delayValue)))
-        setOnDismissListener { restore() }
+        setOnDismissListener { restore(); reopenDrawerIfPending() }
         create()
     }
 }

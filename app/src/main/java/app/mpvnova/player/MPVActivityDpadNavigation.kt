@@ -21,11 +21,8 @@ internal fun MPVActivity.interceptDpadWithoutControls(ev: KeyEvent): Boolean {
                 KeyEvent.ACTION_DOWN -> {
                     showControls()
                     btnSelected = 0
-                    // updateSelectedDpadButton highlights the seekbar via
-                    // ChapterSeekBar.setDpadSelected — no framework
-                    // requestFocus needed (which would trigger a full window
-                    // traversal that starves the SW decoder during dpad
-                    // seeking on Hi10p).
+                    // No requestFocus — setDpadSelected drives the highlight;
+                    // framework focus would trigger window-wide traversal.
                     updateSelectedDpadButton()
                     seekPlaybackFromDpad(seekDeltaFromDpadEvent(ev))
                 }
@@ -43,15 +40,8 @@ internal fun MPVActivity.activateDpadSelection(ev: KeyEvent, controls: List<View
 }
 
 internal fun MPVActivity.requestFirstControlFocusIfNeeded() {
-    // Was: requestFocus on the first control button when controls open via
-    // DPAD_DOWN. Now: the visual "selected" state is driven entirely by
-    // updateSelectedDpadButton → isSelected → state_selected in the
-    // button drawable. The framework focus pointer can stay wherever it
-    // was; we never need to move it during player UI navigation, and
-    // skipping these requestFocus calls eliminates a window-wide layout
-    // traversal at every controls-open. We still post a deferred selection
-    // refresh so the highlight settles after the layout pass that the
-    // visibility change triggers.
+    // No framework requestFocus — isSelected drives the highlight via
+    // state_selected. Just defer a refresh until after the visibility-pass layout.
     binding.controls.post {
         if (btnSelected != -1 && binding.controls.visibility == View.VISIBLE) {
             updateSelectedDpadButton()
@@ -92,15 +82,36 @@ internal fun MPVActivity.handleVerticalDpad(
     if (ev.action == KeyEvent.ACTION_DOWN) {
         if (seekbarSelected)
             commitPendingSeekbarSeek()
-        when {
-            ev.keyCode == KeyEvent.KEYCODE_DPAD_UP && !seekbarSelected -> btnSelected = 0
-            ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN && seekbarSelected && controls.size > 1 -> btnSelected = 1
-            else -> btnSelected = -1
-        }
+        btnSelected = nextSelectionForVerticalDpad(ev, seekbarSelected, controls)
         updateSelectedDpadButton()
         if (btnSelected == -1) hideControlsFade() else showControls()
     }
     return true
+}
+
+@Suppress("ReturnCount")
+private fun MPVActivity.nextSelectionForVerticalDpad(
+    ev: KeyEvent,
+    seekbarSelected: Boolean,
+    controls: List<View>,
+): Int {
+    val current = controls.getOrNull(btnSelected)
+    if (current === binding.topMenuBtn || current === binding.topPiPBtn) {
+        // Top control: DOWN → seekbar, UP → exit.
+        return if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 0 else -1
+    }
+    val isUp = ev.keyCode == KeyEvent.KEYCODE_DPAD_UP
+    if (seekbarSelected) {
+        // Seekbar: DOWN → first bottom button. UP hides, or jumps to top icons
+        // when dpad_up_jumps_to_top_controls is on. Prefer PiP (leftmost).
+        if (!isUp) return if (controls.size > 1) 1 else -1
+        if (!dpadUpJumpsToTopControls) return -1
+        return controls.indexOf(binding.topPiPBtn).takeIf { it >= 0 }
+            ?: controls.indexOf(binding.topMenuBtn).takeIf { it >= 0 }
+            ?: -1
+    }
+    // Bottom button: UP → seekbar, DOWN → hide.
+    return if (isUp) 0 else -1
 }
 
 internal fun MPVActivity.handleHorizontalDpad(
@@ -118,14 +129,8 @@ internal fun MPVActivity.handleHorizontalDpad(
                 val count = controls.size
                 btnSelected = (count + btnSelected + direction) % count
                 updateSelectedDpadButton()
-                // Controls are already visible here (we're navigating their
-                // buttons), so showControls() would only refresh the auto-hide
-                // timer. Skip the rest of the function and just bump the
-                // timer directly — this avoids re-running the alpha checks,
-                // updateClockInfo, and the deferred binding.controls.post for
-                // dpad selection that each showControls() call schedules.
-                // At ~10 presses/sec while scrolling buttons, that work
-                // adds up to enough UI-thread CPU to chronically starve
+                // Skip showControls() — already visible. Just bump the timer:
+                // at ~10 presses/sec the alpha/clock/post work would starve
                 // the SW Hi10p decoder.
                 refreshVisibleControlsTimeout()
             }
@@ -135,9 +140,7 @@ internal fun MPVActivity.handleHorizontalDpad(
                 commitPendingSeekbarSeek()
                 keepVisibleControlsFresh()
             } else {
-                // ACTION_UP follows the matching ACTION_DOWN with no state
-                // change in between — the selection and visibility are
-                // already correct, just refresh the auto-hide timer.
+                // Selection/visibility already set by ACTION_DOWN — just bump the timer.
                 refreshVisibleControlsTimeout()
             }
         }

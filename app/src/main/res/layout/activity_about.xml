@@ -86,7 +86,14 @@
                 android:layout_height="match_parent"
                 android:background="@drawable/bg_surface_host"
                 android:clipToPadding="false"
-                android:padding="16dp">
+                android:padding="16dp"
+                android:scrollbarDefaultDelayBeforeFade="1200"
+                android:scrollbarFadeDuration="240"
+                android:scrollbarSize="3dp"
+                android:scrollbarStyle="insideInset"
+                android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+                android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+                android:scrollbars="vertical">
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"

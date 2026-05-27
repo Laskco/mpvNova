@@ -37,23 +37,19 @@ class MPVActivity : AppCompatActivity() {
     internal val periodicSaveHandler = Handler(Looper.getMainLooper())
     internal val periodicSaveRunnable = object : Runnable {
         override fun run() {
-            // Both writes are no-ops when there's nothing to save (no file
-            // loaded yet, paused at 0, EOF reached, etc.).
+            // Both writes no-op when there's nothing to save.
             savePosition()
             saveResumePosition()
             periodicSaveHandler.postDelayed(this, PERIODIC_SAVE_INTERVAL_MS)
         }
     }
-    // ms to seek to on file-load if we restored from our resume table; 0 = no
-    // restore happened. Drives the "Resumed from X:XX" toast.
+    // 0 = no restore happened. Drives the "Resumed from X:XX" toast.
     internal var pendingResumeToastMs = 0L
-    // The start position we asked mpv to seek to (from intent or resume table).
-    // Checked at FILE_LOADED against the actual duration so we can catch
-    // near-end positions that slipped through parseIntentExtras.
+    // Start position from intent/resume table — rechecked at FILE_LOADED
+    // for near-end positions that slipped through parseIntentExtras.
     internal var pendingStartPositionMs = 0L
-    // Source URL/path for the currently loaded file. Do not read Activity.intent
-    // directly for resume saves because onNewIntent() can load another episode
-    // while the Activity instance stays alive.
+    // Don't read Activity.intent for resume saves — onNewIntent can swap
+    // files while the Activity stays alive.
     internal var currentResumeSource: String? = null
 
     internal var activityIsStopped = false
@@ -73,37 +69,20 @@ class MPVActivity : AppCompatActivity() {
     @DrawableRes
     internal var lastPlayButtonIconRes = 0
 
-    // mpv fires `time-pos/full` at video framerate (~60Hz) from its native
-    // event thread. Posting a fresh lambda to the UI handler each time burns
-    // allocations and main-thread cycles even though updatePlaybackTimeline()
-    // throttles its real work to PLAYER_SEEKBAR_UI_INTERVAL_MS. Coalesce to a
-    // single pending Runnable: subsequent events become no-ops until the UI
-    // thread drains the pending update and clears the flag.
+    // Coalesce ~60/sec time-pos bursts into one UI hop.
     @Volatile internal var timePosUiPending = false
     internal val timePosUiRunnable = Runnable {
         timePosUiPending = false
         if (!activityIsForeground) return@Runnable
-        // When the controls overlay is hidden (the common case during
-        // playback) every per-frame seekbar / text update is invisible work.
-        // showControls() forces a full refresh, so stale state catches up
-        // the instant the user surfaces the UI.
         if (binding.controls.visibility != View.VISIBLE) return@Runnable
         if (!userIsOperatingSeekbar && pendingSeekbarSeekMs == null && pendingDpadSeekPreviewMs == null)
             updatePlaybackTimeline(psc.position)
     }
 
-    // True when the current device has no system bars to toggle, i.e. running
-    // as a leanback / TV launcher. The insetsController.show/hide calls we'd
-    // otherwise make in show/hideControls() are semantically no-ops there, but
-    // they still propagate through the framework and trigger a window-decor
-    // hitch — which is enough to make a CPU-starved SW Hi10p decoder underrun
-    // every time the player UI opens. Computed once in onCreate.
+    // TV/leanback mode — system-bar calls are no-ops but hitch the decoder.
     internal var isTvUiMode = false
 
-    // mpv fires a burst of metadata properties (media-title, metadata,
-    // artist, album, …) within a few ms when a file loads. Each one rebuilds
-    // the whole title / artist / album text strip. Coalesce: many bursts
-    // collapse into one updateMetadataDisplay() at the end of the queue.
+    // Coalesce metadata bursts at file-load into one UI refresh.
     @Volatile internal var metadataUiPending = false
     internal val metadataUiRunnable = Runnable {
         metadataUiPending = false
@@ -111,24 +90,14 @@ class MPVActivity : AppCompatActivity() {
         updateMetadataDisplay()
     }
 
-    // Same coalescing for MediaSession writes — each write builds a fresh
-    // MediaMetadata + PlaybackState Parcel and ships it across IPC to
-    // system_server. A burst of property updates during file load can fire
-    // 5-10 of these; collapse them to a single end-of-queue update.
+    // Coalesce MediaSession writes (each one ships a Parcel via IPC).
     @Volatile internal var mediaSessionUpdatePending = false
     internal val mediaSessionUpdateRunnable = Runnable {
         mediaSessionUpdatePending = false
         updateMediaSessionNow()
     }
 
-    // Applying the Shield Hi10p decoder fallback rebuilds the VO + decoder.
-    // The cascade takes ~3s during which audio would drain and underrun,
-    // leaving A/V/subs misaligned forever (the symptom users describe as
-    // "everything desyncs and only a rewind fixes it"). We pause around the
-    // swap so audio can't drain, then wait for mpv's playback-restart event
-    // (which signals the decoder is actually back online — a fixed delay
-    // doesn't work because the cascade length is unpredictable) and only
-    // then unpause + issue a tiny exact self-seek to flush both pipelines.
+    // Shield Hi10p decoder swap: pause, wait for playback-restart, exact-seek to realign.
     internal var pendingShieldFallbackResync = false
     internal var shieldFallbackResumeAfter = false
     internal val shieldFallbackResyncRunnable = Runnable {
@@ -203,22 +172,28 @@ class MPVActivity : AppCompatActivity() {
             }
         }
 
-        override fun run() {
-            // NOTE: we deliberately do NOT resume playback here. If the
-            // controls overlay autopaused playback, the user must manually
-            // press play to resume — autohide doesn't sneak it back into
-            // a "playing while overlay still visible" state, and the user
-            // stays in control of when playback actually resumes.
+        // Accelerate-out so overlay doesn't linger at half-opacity.
+        private val accelerate = androidx.interpolator.view.animation.FastOutLinearInInterpolator()
 
-            // withLayer() promotes the view to LAYER_TYPE_HARDWARE for the
-            // duration of the animation. Without it, each frame of the fade
-            // forces the entire overlay (text, icons, drawables) to redraw
-            // and alpha-blend onto the SurfaceView in software — brutal on
-            // Tegra-class hardware. With it, the view rasterizes once to a
-            // GPU texture and the per-frame work is a single compositing op.
-            binding.topControls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).withLayer()
-            binding.playerTitleOverlay.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).withLayer()
-            binding.controls.animate().alpha(0f).setDuration(CONTROLS_FADE_DURATION).setListener(listener).withLayer()
+        override fun run() {
+            // All overlays share duration + curve + withLayer() → one GPU texture.
+            binding.topControls.animate()
+                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
+            binding.playerTitleOverlay.animate()
+                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
+            binding.controlsScrim.animate()
+                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
+            binding.timeInfoPanel.animate()
+                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
+            binding.statsTextView.animate()
+                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
+            // Main bar drives the listener so hideControls() fires once.
+            binding.controls.animate()
+                .alpha(0f)
+                .setDuration(CONTROLS_FADE_DURATION)
+                .setInterpolator(accelerate)
+                .setListener(listener)
+                .withLayer()
         }
     }
 
@@ -254,8 +229,19 @@ class MPVActivity : AppCompatActivity() {
 
     internal var controlsAtBottom = true
     internal var showMediaTitle = false
+    internal var showClockOverlay = true
     internal var controlsDisplayTimeoutMs = DEFAULT_CONTROLS_DISPLAY_TIMEOUT
     internal var keepControlsVisibleWhilePaused = false
+    internal var exitWithDoubleBack = false
+    internal var lastBackPressMs = 0L
+    internal var autoRefreshRateSwitch = false
+    internal var dpadUpJumpsToTopControls = false
+    // Drawer state: remembered tab, reopen-after-subdialog flag, cached binding.
+    internal var lastDrawerTab: DrawerTab = DrawerTab.VIDEO
+    internal var drawerReopenPending = false
+    internal var drawerBinding: app.mpvnova.player.databinding.DialogPlayerDrawerBinding? = null
+    internal var drawerHandlersBound = false
+    internal var currentDrawerDialog: androidx.appcompat.app.AlertDialog? = null
     internal var remoteNextChapterKeyCode: Int? = null
     internal var playerScreenBrightnessActive = false
     internal var rememberPlayerScreenBrightness = false
@@ -290,33 +276,25 @@ class MPVActivity : AppCompatActivity() {
     internal var shieldDecoderModeEnabled = true
     internal var shieldDecoderFallback = MPVView.SHIELD_DECODER_FALLBACK_COPY
     internal var preferredDecoderMode = ""
-    // User preference: auto-pause playback while the controls overlay is
-    // visible. Applies to all files.
+    // Autopause: pause while controls overlay is visible. Shield variant
+    // defaults on (Hi10p SW can't share CPU with the UI).
+    // controlsOverlayAutoPaused = we paused (vs user) → safe to auto-resume.
     internal var autoPauseControlsOverlayEnabled = false
-    // User preference: also auto-pause on Shield when the file is Hi10p
-    // H.264. Defaults on because the SW decoder there is too tight to share
-    // CPU with the UI without drifting; can be turned off if the user
-    // would rather keep playback running and accept the drift.
     internal var autoPauseShieldHi10pEnabled = true
-    // True when we paused for the controls overlay AND the player was
-    // playing at the time — restore to playing on hide.
     internal var controlsOverlayAutoPaused = false
     internal var audioNormUnderrunHintShown = false
     internal var gpuNextRenderFallbackStage = 0
     internal var gpuNextCopyRetryConfirmed = false
     internal var gpuNextCopyRetryDisplayedFrame = false
-    // Sustained-error detector for gpu-next: a single transient libplacebo
-    // log line (e.g. "failed creating pass" when the OSD overlay is added
-    // on UI open) must not trip a renderer fallback — that fallback rebuilds
-    // the VO mid-playback, which desyncs audio/video/subs because audio keeps
-    // draining its buffer while video stalls.
+    // Sustained-error window for gpu-next — a single transient libplacebo
+    // log line must not trip the renderer fallback (that rebuilds the VO
+    // mid-playback and desyncs A/V/subs).
     internal var gpuNextErrorWindowStartMs = 0L
     internal var gpuNextErrorWindowCount = 0
 
 
     internal var playbackHasStarted = false
-    // Set true once mpv reports MPV_EVENT_END_FILE for the current file. Some
-    // launchers, including Stremio's mpv parser, treat an OK result without
+    // True once mpv reports END_FILE. Stremio's mpv parser treats OK without
     // position/duration extras as completed playback.
     internal var eofWasReached = false
     internal var onloadCommands = mutableListOf<Array<String>>()
@@ -333,9 +311,7 @@ class MPVActivity : AppCompatActivity() {
         super.onCreate(icicle)
         lifecycle.addObserver(lifecycleObserver)
 
-        // mpv can be launched directly from a file browser without going
-        // through MainActivity, so the one-time setup that lives there
-        // (asset copy, notification channel) has to be re-run here.
+        // Launched directly from a file browser → re-run MainActivity's one-time setup.
         Utils.copyAssets(this)
         createBackgroundPlaybackNotificationChannel(this)
 
@@ -346,12 +322,9 @@ class MPVActivity : AppCompatActivity() {
         onConfigurationChanged(resources.configuration)
         setupImmersiveWindow()
 
-        // Best-effort cleanup: drop stale resume entries before we add a
-        // new one for this session. Runs in O(table size) which is bounded.
+        // Drop stale resume entries before adding ours.
         pruneResumeTable()
-        // Periodic position save during playback. Both savePosition() and
-        // saveResumePosition() are no-ops when there's nothing meaningful
-        // to persist, so it's safe to start the timer right away.
+        // Both saves no-op when there's nothing to persist — safe to arm immediately.
         periodicSaveHandler.postDelayed(periodicSaveRunnable, PERIODIC_SAVE_INTERVAL_MS)
 
         val filepath = parsePathFromIntent(intent)
@@ -448,8 +421,7 @@ class MPVActivity : AppCompatActivity() {
             BackgroundPlaybackService.thumbnail = mpvGrabThumbnail(THUMB_SIZE)
         else
             BackgroundPlaybackService.thumbnail = null
-        // media session uses the same thumbnail. Flush synchronously because
-        // we're about to purge the UI handler queue below.
+        // Flush synchronously — handler queue gets purged below.
         updateMediaSessionNow()
 
         activityIsForeground = false
@@ -460,8 +432,7 @@ class MPVActivity : AppCompatActivity() {
         if (isFinishing) {
             savePosition()
             saveResumePosition()
-            // tell mpv to shut down so that any other property changes or such are ignored,
-            // preventing useless busywork
+            // Shut mpv down so further property changes are ignored.
             mpvCommand(arrayOf("stop"))
         } else if (!shouldBackground) {
             player.paused = true
@@ -482,7 +453,7 @@ class MPVActivity : AppCompatActivity() {
     }
 
     override fun onResume() {
-        // If we never actually left the foreground, don't reinitialize playback state.
+        // Never left foreground → skip reinit.
         if (activityIsForeground) {
             super.onResume()
             return
@@ -521,7 +492,7 @@ class MPVActivity : AppCompatActivity() {
     internal var clockFormatterIs24: Boolean? = null
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
-        // try built-in event handler first, forward all other events to libmpv
+        // Built-in handlers first; forward the rest to libmpv.
         val handled = interceptDpad(ev) ||
             interceptRemoteNextChapterButton(ev) ||
             (ev.action == KeyEvent.ACTION_DOWN && interceptKeyDown(ev)) ||
@@ -550,41 +521,19 @@ class MPVActivity : AppCompatActivity() {
         }
     }
 
-    // ========================================================================
-    // Audio filter toggles (Voice Boost / DRC / Audio Normalization)
-    // DRC mirrors the recovered native dynaudnorm stage as closely as we can in
-    // mpv. It is treated as a primary dynamics stage and kept mutually
-    // exclusive with Audio Normalization so the UI matches the active filter
-    // chain instead of silently suppressing one stage behind the scenes.
-    // ========================================================================
+    // Audio filter levels. DRC is mutually exclusive with audio-norm so the
+    // UI matches the active chain. Preset arrays live in AudioFilterPresets.kt.
     internal var voiceBoostLevel = 0
     internal var volumeBoostDb = 0
     internal var nightModeLevel = 0
     internal var audioNormLevel = 0
     internal var downmixLevel = 0
 
-    // Filter slot labels + preset chain arrays moved to AudioFilterPresets.kt
-    // — they're constant strings with no per-activity state. The mutable
-    // level vars above (voiceBoostLevel, volumeBoostDb, etc.) stay here
-    // because they change during a playback session.
-
-    // ===== Subtitle filter presets & state =====
-
-    // Default (1.0x) is at index 3.
+    // Subtitle filter state. subPosSteps spans -25..125% in 5% steps so the
+    // user can click past edges without focus bouncing (mpv soft-clamps).
     internal val subScaleSteps = SUB_SCALE_STEPS
-
-    // -25..125 range in 5% steps. The on-screen range is 0..100% but we let
-    // the user keep clicking past those edges (mpv soft-clamps `sub-pos` to the
-    // visible range) so they can dial in extreme values without the buttons
-    // bouncing focus on them. Index 5 = 0% (top edge), index 25 = 100% (bottom
-    // edge). Same array drives both primary and secondary positions.
     internal val subPosSteps = SUB_POSITION_STEPS
     internal val secondaryPosSteps = subPosSteps
-
-
-    // Track memory (subtitle / audio reapply on file load) lives in
-    // MPVActivityTrackMemory.kt and the pure scoring logic in
-    // TrackTitleMatching.kt.
 
     internal var pendingActivityResultCallback: ActivityResultCallback? = null
     internal val filePickerResultLauncher =
@@ -601,11 +550,6 @@ class MPVActivity : AppCompatActivity() {
             )
             pendingActivityResultCallback = null
         }
-
-    // Chapter handling lives in MPVActivityChapters.kt; PiP handling in
-    // MPVActivityPiP.kt.
-
-    // Media Session handling
 
     internal val mediaSessionCallback = object : MediaSessionCompat.Callback() {
         override fun onPause() {

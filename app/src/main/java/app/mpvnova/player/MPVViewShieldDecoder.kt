@@ -3,22 +3,11 @@ package app.mpvnova.player
 import android.content.SharedPreferences
 import androidx.preference.PreferenceManager
 
-// Shield's MediaCodec can't decode 10-bit H.264, so the Hi10p auto-fallback
-// reconfigures playback to one of two known-working paths. Users can pick
-// which path they prefer in Advanced settings.
-//
-// COPY (default, `g_next_copy`): vo=gpu-next + hwdec=mediacodec-copy. mpv
-//   silently SW-decodes the file (MediaCodec init fails for 10-bit) but with
-//   the *default* decoder tuning, so no aggressive frame-dropping. Steady-
-//   state playback feels smooth on Tegra. Tuned on top with:
-//     skiploopfilter=nonref → ~25% faster decode, visually invisible
-//     audio-buffer=1.0       → 1s output headroom so brief decode lag never
-//                              underruns the audio device
-//
-// SW (`g_next_sw`): explicit hwdec=no + aggressive SW tuning (6 threads,
-//   framedrop=vo, display-resample, small cache). Bulletproof A/V sync at
-//   the cost of visible frame drops during heavy scenes. Available for
-//   devices / sources where the COPY path doesn't keep up.
+// Shield MediaCodec can't decode 10-bit H.264. Two fallback paths:
+//   COPY (default): vo=gpu-next + hwdec=mediacodec-copy → mpv SW-decodes
+//     with default tuning + skiploopfilter=nonref + 1s audio buffer.
+//   SW: hwdec=no + aggressive SW tuning (6 threads, framedrop=vo,
+//     display-resample). Bulletproof A/V at the cost of frame drops.
 internal fun MPVView.applyShieldHi10pFallback(fallback: String) {
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     applyShieldHi10pFallback(sharedPreferences, fallback)

@@ -10,16 +10,7 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.RequiresApi
 import androidx.annotation.StringRes
 
-/**
- * Picture-in-picture activity-side glue:
- *
- *   - [onPiPModeChangedImpl] handles enter/exit transitions, including the
- *     Android-12-and-older quirk where PiP exit doesn't fire a clean signal.
- *   - [updatePiPParams] / [buildPiPParams] rebuild the PiP overlay actions
- *     (play/pause + optional prev/next) and pin the aspect ratio.
- *   - [makeRemoteAction] is the RemoteAction factory the PiP buttons use to
- *     fire back into [NotificationButtonReceiver].
- */
+/** Picture-in-picture activity-side glue. */
 
 internal fun MPVActivity.onPiPModeChangedImpl(state: Boolean) {
     Log.v(MPV_ACTIVITY_TAG, "onPiPModeChanged($state)")
@@ -28,14 +19,11 @@ internal fun MPVActivity.onPiPModeChangedImpl(state: Boolean) {
         return
     }
 
-    // For whatever stupid reason Android provides no good detection for when PiP is exited
-    // so we have to do this shit <https://stackoverflow.com/questions/43174507/#answer-56127742>
-    // If we don't exit the activity here it will stick around and not be retrievable from the
-    // recents screen, or react to onNewIntent().
+    // No clean PiP-exit signal — finish here or the activity sticks around
+    // unreachable from recents. <https://stackoverflow.com/a/56127742>
+    // On Android ≤12 the result gets delivered on the *next* launch, which
+    // makes the file picker look broken.
     if (activityIsStopped) {
-        // Note: On Android 12 or older there's another bug with this: the result will not
-        // be delivered to the calling activity and is instead instantly returned the next
-        // time, which makes it looks like the file picker is broken.
         finishWithResult(RESULT_OK, true)
     }
 }
@@ -64,7 +52,7 @@ internal fun MPVActivity.updatePiPParams(force: Boolean = false) {
     try {
         setPictureInPictureParams(buildPiPParams())
     } catch (ignored: IllegalArgumentException) {
-        // Android has some limits of what the aspect ratio can be
+        // Aspect ratio out of Android's bounds — fall back to square.
         setPictureInPictureParams(buildPiPParams(Rational(SQUARE_ASPECT_RATIO, SQUARE_ASPECT_RATIO)))
     }
 }

@@ -41,11 +41,9 @@
     <!-- Action buttons -->
     <string name="open_external_audio">Открыть внешнее аудио…</string>
     <string name="open_external_sub">Открыть внешние субтитры…</string>
-    <string name="advanced_menu">Расширенные…</string>
     <string name="resume_bg_playback">Проигрывать в фоне</string>
     <string name="toggle_stats">Переключить статистику</string>
     <string name="chapter_button">Глава</string>
-    <string name="sub_seek_button">Искать по субтитрам</string>
     <string name="action_settings">Настройки</string>
     <string name="action_playlist">Список воспроизведения</string>
     <string name="action_open_url">Открыть URL</string>

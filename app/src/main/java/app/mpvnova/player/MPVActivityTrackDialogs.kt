@@ -101,7 +101,7 @@ internal fun MPVActivity.pickAudio() {
                 persistFiltersOn = persistAudioFilters,
             )
         ))
-        setOnDismissListener { restore() }
+        setOnDismissListener { restore(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(
@@ -209,7 +209,7 @@ internal fun MPVActivity.openPlaylistMenu(restore: StateRestoreCallback) {
     dialog = with (AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater))
-        setOnDismissListener { restore() }
+        setOnDismissListener { restore(); reopenDrawerIfPending() }
         create()
     }
     showWidePlayerDialog(
