@@ -2,19 +2,21 @@
 package app.mpvnova.player
 
 import android.view.Gravity
+import android.view.KeyEvent
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import androidx.appcompat.app.AlertDialog
-import androidx.core.view.isVisible
+import androidx.recyclerview.widget.LinearLayoutManager
 import app.mpvnova.player.databinding.DialogPlayerDrawerBinding
 
 /**
- * Player settings drawer: right-edge VIMU-style panel. Tabs swap by
- * visibility (no fragments) so focus stays inside one dialog.
+ * Player settings drawer: right-edge VIMU-style panel. Tabs swap the
+ * RecyclerView rows in place so focus stays inside one dialog.
  */
 
-internal enum class DrawerTab { VIDEO, AUDIO, SUBTITLES, PLAYBACK, INTERFACE }
+private const val FIRST_FOCUSABLE_DRAWER_ROW_POSITION = 0
 
 internal fun MPVActivity.openPlayerDrawer() {
     val restoreState = keepPlaybackForDialog()
@@ -22,7 +24,8 @@ internal fun MPVActivity.openPlayerDrawer() {
     // cost once per session.
     val binding = drawerBinding ?: DialogPlayerDrawerBinding.inflate(LayoutInflater.from(this)).also {
         handleInsetsAsPadding(it.root)
-        TvScrollbars.bind(it.drawerContentScroll, it.drawerContentScrollbarThumb)
+        it.drawerContentList.adapter = PlayerDrawerAdapter(this) { currentDrawerDialog?.dismiss() }
+        TvScrollbars.bind(it.drawerContentList, it.drawerContentScrollbarThumb)
         drawerBinding = it
     }
     // Detach from prior dialog's window tree if needed before setView.
@@ -30,15 +33,9 @@ internal fun MPVActivity.openPlayerDrawer() {
 
     if (!drawerHandlersBound) {
         bindDrawerTabSwitching(binding)
-        bindDrawerActionButtons(binding) { currentDrawerDialog?.dismiss() }
         drawerHandlersBound = true
-    } else {
-        selectDrawerTab(binding, lastDrawerTab)
     }
-    // Pref rows rebind every open so external pref changes are picked up.
-    bindDrawerPrefRows(binding)
-    applyDrawerVisibilityForCurrentState(binding)
-    TvScrollbars.revealAfterLayout(binding.drawerContentScroll, binding.drawerContentScrollbarThumb)
+    selectDrawerTab(binding, lastDrawerTab, revealScrollbar = false)
 
     val onDrawerClosed = {
         currentDrawerDialog = null
@@ -62,12 +59,13 @@ internal fun MPVActivity.openPlayerDrawer() {
             gravity = Gravity.END,
         )
     )
+    revealDrawerContentScrollbar(binding)
 
     drawerTabButton(binding, lastDrawerTab).requestFocus()
 }
 
 private fun MPVActivity.highlightTopMenuAfterDrawerClose() {
-    // Skip when a sub-dialog is about to bounce back to the drawer —
+    // Skip when a sub-dialog is about to bounce back to the drawer:
     // the highlight would flicker.
     if (drawerReopenPending) return
     // Post so the window teardown finishes before we walk dpadButtons().
@@ -90,7 +88,7 @@ internal fun MPVActivity.reopenDrawerIfPending() {
     if (!drawerReopenPending) return
     drawerReopenPending = false
     // Post so the sub-dialog's window tears down before the drawer
-    // slides back in — otherwise the back press that closed the
+    // slides back in; otherwise the back press that closed the
     // sub-dialog can dismiss the drawer in the same dispatch.
     eventUiHandler.post { openPlayerDrawer() }
 }
@@ -108,16 +106,21 @@ private fun MPVActivity.bindDrawerTabSwitching(binding: DialogPlayerDrawerBindin
             lastDrawerTab = tab
             selectDrawerTab(binding, tab)
         }
+        button.setOnKeyListener { _, keyCode, event ->
+            if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && event.action == KeyEvent.ACTION_DOWN) {
+                focusFirstDrawerContentRow(binding)
+            } else {
+                false
+            }
+        }
     }
-    selectDrawerTab(binding, lastDrawerTab)
 }
 
-internal fun selectDrawerTab(binding: DialogPlayerDrawerBinding, tab: DrawerTab) {
-    binding.tabVideo.isVisible = tab == DrawerTab.VIDEO
-    binding.tabAudio.isVisible = tab == DrawerTab.AUDIO
-    binding.tabSubtitles.isVisible = tab == DrawerTab.SUBTITLES
-    binding.tabPlayback.isVisible = tab == DrawerTab.PLAYBACK
-    binding.tabInterface.isVisible = tab == DrawerTab.INTERFACE
+internal fun MPVActivity.selectDrawerTab(
+    binding: DialogPlayerDrawerBinding,
+    tab: DrawerTab,
+    revealScrollbar: Boolean = true,
+) {
     val active = drawerTabButton(binding, tab)
     listOf(
         binding.tabBtnVideo,
@@ -126,8 +129,22 @@ internal fun selectDrawerTab(binding: DialogPlayerDrawerBinding, tab: DrawerTab)
         binding.tabBtnPlayback,
         binding.tabBtnInterface,
     ).forEach { it.isSelected = (it === active) }
-    binding.drawerContentScroll.scrollTo(0, 0)
-    TvScrollbars.revealAfterLayout(binding.drawerContentScroll, binding.drawerContentScrollbarThumb)
+
+    val (eyebrowRes, titleRes) = when (tab) {
+        DrawerTab.VIDEO -> R.string.drawer_tab_video to R.string.drawer_section_video
+        DrawerTab.AUDIO -> R.string.drawer_tab_audio to R.string.drawer_section_audio
+        DrawerTab.SUBTITLES -> R.string.drawer_tab_subtitles to R.string.drawer_section_subtitles
+        DrawerTab.PLAYBACK -> R.string.drawer_tab_playback to R.string.drawer_section_playback
+        DrawerTab.INTERFACE -> R.string.drawer_tab_interface to R.string.drawer_section_interface
+    }
+    binding.drawerStaticHeader.drawerRowEyebrow.setText(eyebrowRes)
+    binding.drawerStaticHeader.drawerRowTitle.setText(titleRes)
+
+    val adapter = binding.drawerContentList.adapter as? PlayerDrawerAdapter ?: return
+    binding.drawerContentList.stopScroll()
+    binding.drawerContentList.clearFocus()
+    adapter.submitRows(buildPlayerDrawerRows(tab))
+    resetDrawerContentPosition(binding, revealScrollbar)
 }
 
 private fun drawerTabButton(binding: DialogPlayerDrawerBinding, tab: DrawerTab): Button = when (tab) {
@@ -138,22 +155,49 @@ private fun drawerTabButton(binding: DialogPlayerDrawerBinding, tab: DrawerTab):
     DrawerTab.INTERFACE -> binding.tabBtnInterface
 }
 
-internal fun MPVActivity.applyDrawerVisibilityForCurrentState(binding: DialogPlayerDrawerBinding) {
-    binding.drawerBackgroundBtn.isVisible = isPlayingAudio
+private fun resetDrawerContentPosition(
+    binding: DialogPlayerDrawerBinding,
+    revealScrollbar: Boolean,
+) {
+    val list = binding.drawerContentList
+    val layoutManager = list.layoutManager as? LinearLayoutManager
+    layoutManager?.scrollToPositionWithOffset(0, 0)
+    list.post {
+        (list.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+        list.post {
+            (list.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+            if (revealScrollbar) {
+                revealDrawerContentScrollbar(binding)
+            }
+        }
+    }
+}
 
-    val hasChapters = (mpvGetPropertyInt("chapter-list/count") ?: 0) > 0
-    binding.drawerChapterBtn.isVisible = hasChapters
-    binding.drawerRowChapter.isVisible = hasChapters
+private fun revealDrawerContentScrollbar(binding: DialogPlayerDrawerBinding) {
+    val list = binding.drawerContentList
+    list.post {
+        (list.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+        list.post {
+            TvScrollbars.refresh(list, binding.drawerContentScrollbarThumb)
+        }
+    }
+}
 
-    val hasVideo = player.vid != -1
-    binding.drawerRowVideoAdjust1.isVisible = hasVideo
-    binding.drawerRowVideoAdjust2.isVisible = hasVideo
-    binding.drawerAspectBtn.isVisible = hasVideo
-
-    val hasAudio = player.aid != -1
-    binding.drawerAudioDelayBtn.isVisible = hasAudio && hasVideo
-
-    val hasSub = player.sid != -1
-    binding.drawerSubDelayBtn.isVisible = hasSub
-    binding.drawerRowSubSeek.isVisible = hasSub
+private fun focusFirstDrawerContentRow(binding: DialogPlayerDrawerBinding): Boolean {
+    val list = binding.drawerContentList
+    list.stopScroll()
+    (list.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+    list.post {
+        (list.layoutManager as? LinearLayoutManager)?.scrollToPositionWithOffset(0, 0)
+        list.post {
+            val target = list.findViewHolderForAdapterPosition(FIRST_FOCUSABLE_DRAWER_ROW_POSITION)
+                ?.itemView
+                ?.takeIf(View::isFocusable)
+            if (target?.requestFocus() != true) {
+                list.requestFocus()
+            }
+            TvScrollbars.refresh(list, binding.drawerContentScrollbarThumb)
+        }
+    }
+    return true
 }

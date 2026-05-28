@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Player settings drawer. Sits flush against the right edge of the screen
      (we set gravity=END on the dialog window) with a translucent panel
-     background. Right column is the tab list, left column is the active
-     tab's contents scrollable independently. -->
+     background. Right column is the tab list, left column is a RecyclerView
+     so scroll range and scrollbar behavior match the other player dialogs. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,551 +12,85 @@
     android:elevation="24dp"
     android:orientation="horizontal">
 
-    <!-- ============= LEFT: ACTIVE TAB'S CONTENT ============= -->
-    <FrameLayout
+    <LinearLayout
         android:id="@+id/drawerContentFrame"
         android:layout_width="0dp"
         android:layout_height="match_parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="16dp"
         android:layout_weight="2.7"
-        android:layout_marginEnd="14dp">
+        android:orientation="vertical"
+        tools:ignore="NestedWeights">
 
-        <ScrollView
-            android:id="@+id/drawerContentScroll"
+        <include
+            android:id="@+id/drawerStaticHeader"
+            layout="@layout/drawer_row_header"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginEnd="20dp"
-            android:clipToPadding="false"
-            android:fillViewport="true"
-            android:nextFocusRight="@+id/tabBtnVideo"
-            android:paddingStart="24dp"
-            android:paddingTop="20dp"
+            android:paddingStart="8dp"
+            android:paddingTop="12dp"
             android:paddingEnd="6dp"
-            android:paddingBottom="20dp"
-            android:scrollbars="none"
-            tools:ignore="RtlSymmetry">
+            tools:ignore="RtlSymmetry" />
 
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="0dp"
+            android:layout_marginTop="2dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_tv_panel_card"
+            android:clipToOutline="true"
+            android:paddingStart="8dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="4dp"
+            tools:targetApi="s">
 
-            <!-- =================== TAB: VIDEO =================== -->
-            <LinearLayout
-                android:id="@+id/tabVideo"
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/drawerContentList"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drawer_tab_video"
-                    android:textColor="?attr/mpvAccentHot" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="14dp"
-                    android:text="@string/drawer_section_video"
-                    android:textColor="@color/tv_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/drawerDecoderBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_decoder"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerAspectBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/aspect_ratio"
-                    android:textAllCaps="false" />
-
-                <LinearLayout
-                    android:id="@+id/drawerRowVideoAdjust1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/drawerContrastBtn"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:layout_weight="1"
-                        android:text="@string/contrast"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerBrightnessBtn"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:layout_weight="1"
-                        android:maxLines="1"
-                        android:text="@string/btn_brightness"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:id="@+id/drawerRowVideoAdjust2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/drawerGammaBtn"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="6dp"
-                        android:layout_weight="1"
-                        android:text="@string/gamma"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerSaturationBtn"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="6dp"
-                        android:layout_weight="1"
-                        android:text="@string/saturation"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-                <Button
-                    android:id="@+id/drawerScreenshotBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_screenshot"
-                    android:textAllCaps="false" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="12dp" />
-
-                <include
-                    android:id="@+id/drawerPrefAutoRefreshRate"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefDecoderAutoFallback"
-                    layout="@layout/drawer_pref_row" />
-            </LinearLayout>
-
-            <!-- =================== TAB: AUDIO =================== -->
-            <LinearLayout
-                android:id="@+id/tabAudio"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drawer_tab_audio"
-                    android:textColor="?attr/mpvAccentHot" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="14dp"
-                    android:text="@string/drawer_section_audio"
-                    android:textColor="@color/tv_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/drawerAudioTrackBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/btn_audio_filters"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerOpenAudioBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/open_external_audio"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerAudioDelayBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/audio_delay"
-                    android:textAllCaps="false" />
-            </LinearLayout>
-
-            <!-- =================== TAB: SUBTITLES =================== -->
-            <LinearLayout
-                android:id="@+id/tabSubtitles"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drawer_tab_subtitles"
-                    android:textColor="?attr/mpvAccentHot" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="14dp"
-                    android:text="@string/drawer_section_subtitles"
-                    android:textColor="@color/tv_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/drawerOpenSubBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/open_external_sub"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerSubDelayBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/sub_delay"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerSubTrackBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_sub_track"
-                    android:textAllCaps="false" />
-
-                <LinearLayout
-                    android:id="@+id/drawerRowSubSeek"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/drawerSubSeekPrev"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="4dp"
-                        android:layout_weight="1"
-                        android:text="@string/btn_sub_seek_prev"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerSubSeekNext"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:layout_weight="1"
-                        android:text="@string/btn_sub_seek_next"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- =================== TAB: PLAYBACK =================== -->
-            <LinearLayout
-                android:id="@+id/tabPlayback"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drawer_tab_playback"
-                    android:textColor="?attr/mpvAccentHot" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="14dp"
-                    android:text="@string/drawer_section_playback"
-                    android:textColor="@color/tv_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/drawerBackgroundBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/resume_bg_playback"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerPlaylistBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/action_playlist"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerPlaybackSpeedBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/btn_play_speed"
-                    android:textAllCaps="false" />
-
-                <Button
-                    android:id="@+id/drawerChapterBtn"
-                    style="@style/Mpv.SurfaceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="@string/chapter_button"
-                    android:textAllCaps="false" />
-
-                <LinearLayout
-                    android:id="@+id/drawerRowChapter"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/drawerChapterPrev"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginEnd="4dp"
-                        android:layout_weight="1"
-                        android:maxLines="1"
-                        android:text="@string/btn_chapter_prev"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerChapterNext"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:layout_weight="1"
-                        android:maxLines="1"
-                        android:text="@string/btn_chapter_next"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:orientation="horizontal">
-
-                    <Button
-                        android:id="@+id/drawerStatsBtn"
-                        style="@style/Mpv.SurfaceButton"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/toggle_stats"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerStatsBtn1"
-                        style="@style/Mpv.SurfaceButton.Compact"
-                        android:layout_width="44dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="1"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerStatsBtn2"
-                        style="@style/Mpv.SurfaceButton.Compact"
-                        android:layout_width="44dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="2"
-                        android:textAllCaps="false" />
-
-                    <Button
-                        android:id="@+id/drawerStatsBtn3"
-                        style="@style/Mpv.SurfaceButton.Compact"
-                        android:layout_width="44dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="8dp"
-                        android:text="3"
-                        android:textAllCaps="false" />
-                </LinearLayout>
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="12dp" />
-
-                <include
-                    android:id="@+id/drawerPrefSavePosition"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefPlaylistExitWarning"
-                    layout="@layout/drawer_pref_row" />
-            </LinearLayout>
-
-            <!-- =================== TAB: INTERFACE =================== -->
-            <LinearLayout
-                android:id="@+id/tabInterface"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <TextView
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/drawer_tab_interface"
-                    android:textColor="?attr/mpvAccentHot" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:layout_marginBottom="14dp"
-                    android:text="@string/drawer_section_interface"
-                    android:textColor="@color/tv_text"
-                    android:textSize="22sp"
-                    android:textStyle="bold" />
-
-                <include
-                    android:id="@+id/drawerPrefAutopauseControls"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefAutopauseShield"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefKeepControlsVisible"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefShowMediaTitle"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefShowClock"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefBottomControls"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefExitDoubleBack"
-                    layout="@layout/drawer_pref_row" />
-
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="8dp" />
-
-                <include
-                    android:id="@+id/drawerPrefDpadUpJumpsTop"
-                    layout="@layout/drawer_pref_row" />
-            </LinearLayout>
-
+                android:layout_height="match_parent"
+                android:layout_marginEnd="20dp"
+                android:clipToPadding="false"
+                android:descendantFocusability="afterDescendants"
+                android:focusable="true"
+                android:nextFocusRight="@id/tabBtnVideo"
+                android:overScrollMode="never"
+                android:paddingStart="20.5dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="9.5dp"
+                android:paddingBottom="20dp"
+                android:scrollbars="none"
+                app:layoutManager="LinearLayoutManager"
+                tools:ignore="RtlSymmetry"
+                tools:listitem="@layout/drawer_row_full_button" />
+
+            <View
+                android:id="@+id/drawerContentScrollbarThumb"
+                android:layout_width="3dp"
+                android:layout_height="48dp"
+                android:layout_gravity="end|top"
+                android:layout_marginTop="10dp"
+                android:layout_marginEnd="8dp"
+                android:layout_marginBottom="12dp"
+                android:alpha="0"
+                android:background="@drawable/bg_tv_scrollbar_thumb"
+                android:focusable="false"
+                android:importantForAccessibility="no"
+                android:visibility="invisible" />
         </FrameLayout>
-        </ScrollView>
-
-        <View
-            android:id="@+id/drawerContentScrollbarThumb"
-            android:layout_width="3dp"
-            android:layout_height="48dp"
-            android:layout_gravity="end|top"
-            android:layout_marginTop="20dp"
-            android:layout_marginEnd="8dp"
-            android:layout_marginBottom="20dp"
-            android:background="@drawable/bg_tv_scrollbar_thumb"
-            android:focusable="false"
-            android:importantForAccessibility="no"
-            android:visibility="gone" />
-    </FrameLayout>
+    </LinearLayout>
 
     <View
+        android:id="@+id/drawerDivider"
         android:layout_width="1dp"
         android:layout_height="match_parent"
-        android:background="@color/tv_text_dim"
-        android:alpha="0.18" />
+        android:alpha="0.18"
+        android:background="@color/tv_text_dim" />
 
-    <!-- ============= RIGHT: TAB LIST ============= -->
     <LinearLayout
+        android:id="@+id/drawerTabColumn"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1.1"
@@ -581,7 +116,7 @@
             style="@style/Mpv.DrawerTabButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nextFocusLeft="@+id/drawerContentScroll"
+            android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_video" />
 
         <Button
@@ -590,7 +125,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:nextFocusLeft="@+id/drawerContentScroll"
+            android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_audio" />
 
         <Button
@@ -599,7 +134,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:nextFocusLeft="@+id/drawerContentScroll"
+            android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_subtitles" />
 
         <Button
@@ -608,7 +143,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:nextFocusLeft="@+id/drawerContentScroll"
+            android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_playback" />
 
         <Button
@@ -617,7 +152,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:nextFocusLeft="@+id/drawerContentScroll"
+            android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_interface" />
     </LinearLayout>
 </LinearLayout>

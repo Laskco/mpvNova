@@ -4,11 +4,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <androidx.recyclerview.widget.RecyclerView
+    <app.mpvnova.player.TvNativeScrollbarRecyclerView
         android:id="@android:id/list"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginEnd="20dp"
+        android:layout_marginEnd="8dp"
         android:clipToPadding="true"
         android:descendantFocusability="afterDescendants"
         android:fitsSystemWindows="true"
@@ -18,21 +18,14 @@
         android:paddingTop="2dp"
         android:paddingEnd="10dp"
         android:paddingBottom="12dp"
-        android:scrollbars="none"
+        android:scrollbarDefaultDelayBeforeFade="1200"
+        android:scrollbarFadeDuration="240"
+        android:scrollbarSize="3dp"
+        android:scrollbarStyle="insideInset"
+        android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+        android:scrollbars="vertical"
         tools:ignore="RtlSymmetry"
         tools:listitem="@layout/nnf_filepicker_listitem_dir" />
-
-    <View
-        android:id="@+id/filePickerScrollbarThumb"
-        android:layout_width="3dp"
-        android:layout_height="48dp"
-        android:layout_gravity="end|top"
-        android:layout_marginTop="2dp"
-        android:layout_marginEnd="8dp"
-        android:layout_marginBottom="12dp"
-        android:background="@drawable/bg_tv_scrollbar_thumb"
-        android:focusable="false"
-        android:importantForAccessibility="no"
-        android:visibility="gone" />
 
 </FrameLayout>

@@ -14,6 +14,7 @@ import android.view.KeyEvent
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsets
 import android.widget.ImageButton
 import android.widget.PopupMenu
@@ -30,7 +31,6 @@ import androidx.core.view.children
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
-import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import `is`.xyz.filepicker.DocumentPickerFragment
 import `is`.xyz.filepicker.FilePickerFragment
@@ -38,12 +38,6 @@ import app.mpvnova.player.databinding.ActivityFilepickerBinding
 import app.mpvnova.player.databinding.FragmentFilepickerChoiceBinding
 import java.io.File
 import java.io.FileFilter
-
-private val TOOLBAR_STORAGE_SELECTOR_KEYS = intArrayOf(
-    KeyEvent.KEYCODE_DPAD_CENTER,
-    KeyEvent.KEYCODE_ENTER,
-    KeyEvent.KEYCODE_NUMPAD_ENTER,
-)
 
 @Suppress("TooManyFunctions")
 class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFilePickedListener {
@@ -71,12 +65,14 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         supportActionBar?.setDisplayShowTitleEnabled(false)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.hide()
-        binding.toolbar.isClickable = true
-        binding.toolbar.isFocusable = true
+        // Keep the toolbar itself non-focusable. Its children (the nav-up
+        // ImageButton + the External/Filter action buttons) are individually
+        // focusable and have visible focus drawables. Making the toolbar
+        // ViewGroup focusable lets the framework park focus on a target with
+        // no visible focus state after fast D-pad navigation.
+        binding.toolbar.isClickable = false
+        binding.toolbar.isFocusable = false
         binding.toolbar.setNavigationOnClickListener {
-            onBackPressedImpl()
-        }
-        binding.toolbar.setOnClickListener {
             onBackPressedImpl()
         }
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -156,25 +152,16 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
-        val selectFocusedToolbar = ev.action == KeyEvent.ACTION_DOWN &&
-            window.currentFocus === binding.toolbar &&
-            fragment != null &&
-            ev.keyCode in TOOLBAR_STORAGE_SELECTOR_KEYS
         val moveFocusToToolbar = ev.action == KeyEvent.ACTION_DOWN &&
             ev.keyCode == KeyEvent.KEYCODE_DPAD_UP &&
             isFileListTopRowFocused()
-        return when {
-            selectFocusedToolbar -> {
-                FilePickerMenuActions.openExternalStorage(this)
-                true
+        return if (moveFocusToToolbar) {
+            if (!focusToolbarNavigation()) {
+                showFilePickerOptionsPopup()
             }
-            moveFocusToToolbar -> {
-                if (!focusToolbarNavigation()) {
-                    showFilePickerOptionsPopup()
-                }
-                true
-            }
-            else -> super.dispatchKeyEvent(ev)
+            true
+        } else {
+            super.dispatchKeyEvent(ev)
         }
     }
 
@@ -191,6 +178,17 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
     fun setPickerLocation(location: String) {
         binding.filePickerLocation.text = location.ifEmpty { getString(R.string.file_picker_title) }
+        // On a path change from an external volume dialog or toolbar action,
+        // focus may be outside the list; land visibly on the first row. If
+        // the user clicked a folder row, let RecyclerView preserve row focus
+        // through the data swap to avoid a visible highlight jump.
+        val recycler = runCatching { findViewById<RecyclerView>(android.R.id.list) }.getOrNull()
+            ?: return
+        val focused = window.currentFocus
+        if (focused != null && recycler.findContainingViewHolder(focused) != null) {
+            return
+        }
+        refocusFirstRow(recycler)
     }
 
     fun onFilePermissionGranted() {
@@ -342,6 +340,10 @@ internal object FilePickerMenuActions {
     }
 }
 
+// Hard-fallback timeout if no list row ever attaches (empty folder, perm
+// dialog blocking, etc.) so we still want SOMETHING highlighted.
+private const val INITIAL_FOCUS_FALLBACK_MS = 1000L
+
 private fun FilePickerActivity.doUiTweaks() {
     WindowCompat.setDecorFitsSystemWindows(window, false)
 
@@ -349,6 +351,43 @@ private fun FilePickerActivity.doUiTweaks() {
     // take them into account.
     val recycler: RecyclerView = findViewById(android.R.id.list)
     lastSeenInsets?.let { recycler.onApplyWindowInsets(lastSeenInsets) }
+
+    // Initial-layout focus: only claim if nothing else has it. The user
+    // may have already pressed DOWN before we got here.
+    if (window.currentFocus == null) {
+        refocusFirstRow(recycler)
+    }
+}
+
+// Focuses the first row of the picker's RecyclerView. If items haven't
+// attached yet, registers a one-shot OnChildAttachStateChangeListener that
+// focuses the first row the moment it lands. Hard-fallback lands focus on
+// the toolbar's nav button if no row attaches inside INITIAL_FOCUS_FALLBACK_MS
+// (covers empty folders + permission-blocking edge cases).
+private fun FilePickerActivity.refocusFirstRow(recycler: RecyclerView) {
+    val existingFirstRow = (0 until recycler.childCount)
+        .asSequence()
+        .mapNotNull { recycler.getChildAt(it) }
+        .firstOrNull { it.isFocusable && it.visibility == View.VISIBLE }
+    if (existingFirstRow != null) {
+        existingFirstRow.requestFocus()
+        return
+    }
+    val attachListener = object : RecyclerView.OnChildAttachStateChangeListener {
+        override fun onChildViewAttachedToWindow(view: View) {
+            recycler.removeOnChildAttachStateChangeListener(this)
+            if (view.isFocusable) view.requestFocus()
+        }
+
+        override fun onChildViewDetachedFromWindow(view: View) = Unit
+    }
+    recycler.addOnChildAttachStateChangeListener(attachListener)
+    recycler.postDelayed({
+        recycler.removeOnChildAttachStateChangeListener(attachListener)
+        if (window.currentFocus == null) {
+            focusToolbarNavigation()
+        }
+    }, INITIAL_FOCUS_FALLBACK_MS)
 }
 
 private fun FilePickerActivity.getFilterState(): Boolean {
@@ -371,7 +410,10 @@ private fun FilePickerActivity.inflateOptionsMenu(menu: Menu) {
         menu.findItem(R.id.action_external_storage).isVisible = false
 }
 
+@Suppress("ReturnCount")
 private fun FilePickerActivity.focusToolbarNavigation(): Boolean {
+    // Prefer the back-nav button when one is rendered (ImageButton or a
+    // child whose contentDescription matches the toolbar's nav description).
     findToolbarNavigationButton()?.let {
         it.isFocusable = true
         it.isFocusableInTouchMode = false
@@ -379,11 +421,31 @@ private fun FilePickerActivity.focusToolbarNavigation(): Boolean {
             return true
         }
     }
-    val focusTarget = intArrayOf(R.id.action_external_storage, R.id.action_file_filter)
-        .asSequence()
-        .mapNotNull { findViewById<View?>(it) }
-        .firstOrNull { it.visibility == View.VISIBLE && it.isFocusable }
-    return focusTarget?.requestFocus() == true || binding.toolbar.requestFocus()
+    // Otherwise grab the first focusable view inside the toolbar subtree.
+    // The action buttons live inside an ActionMenuView, not as direct
+    // toolbar children.
+    findFirstFocusableInToolbar()?.let {
+        if (it.requestFocus()) return true
+    }
+    return false
+}
+
+private fun FilePickerActivity.findFirstFocusableInToolbar(): View? {
+    return findFirstFocusableDescendant(binding.toolbar, skip = binding.toolbar)
+}
+
+@Suppress("ReturnCount")
+private fun findFirstFocusableDescendant(view: View, skip: View): View? {
+    @Suppress("ComplexCondition")
+    if (view !== skip && view.isFocusable && view.isShown && view.visibility == View.VISIBLE) {
+        return view
+    }
+    if (view is ViewGroup) {
+        for (i in 0 until view.childCount) {
+            findFirstFocusableDescendant(view.getChildAt(i), skip)?.let { return it }
+        }
+    }
+    return null
 }
 
 private fun FilePickerActivity.findToolbarNavigationButton(): View? {
@@ -399,19 +461,32 @@ private fun FilePickerActivity.isFileListTopRowFocused(): Boolean {
         return false
     val recycler = runCatching { findViewById<RecyclerView>(android.R.id.list) }.getOrNull()
         ?: return false
-    val focused = window.currentFocus ?: return false
-    if (focused === recycler) {
-        return !recycler.canScrollVertically(-1)
+    val focused = window.currentFocus
+    // Focus completely lost (for example, a focused row was recycled during
+    // a fast UP-press cascade). Redirect to toolbar so the user is not left
+    // without a visible focus target.
+    if (focused == null) return true
+    if (focused === recycler) return true
+    val holder = recycler.findContainingViewHolder(focused)
+    if (holder != null) {
+        // Only intercept UP when the focused row is truly the first adapter
+        // row. A short list can have no scroll room above even when focus is
+        // on a lower row, so canScrollVertically(-1) is the wrong signal.
+        return holder.bindingAdapterPosition <= 0
     }
-    val holder = recycler.findContainingViewHolder(focused) ?: return false
-    val firstVisiblePosition = (recycler.layoutManager as? LinearLayoutManager)
-        ?.findFirstVisibleItemPosition()
-        ?: RecyclerView.NO_POSITION
-    return !recycler.canScrollVertically(-1) &&
-        (
-            holder is AbstractFilePickerFragment<*>.HeaderViewHolder ||
-                holder.bindingAdapterPosition <= maxOf(firstVisiblePosition, 1)
-        )
+    // Focus exists but is not tracked by the recycler. If it is already in
+    // the toolbar subtree, let UP fall through; otherwise treat it as stale
+    // and redirect to the toolbar.
+    return !isDescendantOfToolbar(focused)
+}
+
+private fun FilePickerActivity.isDescendantOfToolbar(view: View): Boolean {
+    var current: View? = view
+    while (current != null) {
+        if (current === binding.toolbar) return true
+        current = current.parent as? View
+    }
+    return false
 }
 
 private fun FilePickerActivity.showFilePickerOptionsPopup() {

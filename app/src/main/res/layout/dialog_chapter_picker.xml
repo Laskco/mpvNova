@@ -54,8 +54,7 @@
             tools:text="#03 / 12" />
     </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/list"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="20dp"
@@ -63,22 +62,37 @@
         android:background="@drawable/bg_tv_panel_card"
         android:clipChildren="true"
         android:clipToOutline="true"
-        tools:targetApi="s"
-        android:clipToPadding="true"
-        android:overScrollMode="never"
-        android:paddingStart="12dp"
-        android:paddingTop="12dp"
-        android:paddingEnd="12dp"
-        android:paddingBottom="12dp"
-        android:scrollbarDefaultDelayBeforeFade="1200"
-        android:scrollbarFadeDuration="240"
-        android:scrollbarSize="3dp"
-        android:scrollbarStyle="insideInset"
-        android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
-        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
-        android:scrollbars="vertical"
-        app:layoutManager="LinearLayoutManager"
-        tools:listitem="@layout/dialog_chapter_item" />
+        tools:targetApi="s">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/list"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="14dp"
+            android:clipToPadding="true"
+            android:overScrollMode="never"
+            android:paddingStart="12dp"
+            android:paddingTop="12dp"
+            android:paddingEnd="8dp"
+            android:paddingBottom="12dp"
+            android:scrollbars="none"
+            app:layoutManager="LinearLayoutManager"
+            tools:listitem="@layout/dialog_chapter_item" />
+
+        <View
+            android:id="@+id/chapterScrollbarThumb"
+            android:layout_width="3dp"
+            android:layout_height="48dp"
+            android:layout_gravity="end|top"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="8dp"
+            android:layout_marginBottom="12dp"
+            android:alpha="0"
+            android:background="@drawable/bg_tv_scrollbar_thumb"
+            android:focusable="false"
+            android:importantForAccessibility="no"
+            android:visibility="invisible" />
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:orientation="horizontal">
+
+    <Button
+        android:id="@+id/drawerStatsButton"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/toggle_stats"
+        android:textAllCaps="false" />
+
+    <Button
+        android:id="@+id/drawerStatsPage1Button"
+        style="@style/Mpv.SurfaceButton.Compact"
+        android:layout_width="44dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="1"
+        android:textAllCaps="false"
+        tools:ignore="HardcodedText" />
+
+    <Button
+        android:id="@+id/drawerStatsPage2Button"
+        style="@style/Mpv.SurfaceButton.Compact"
+        android:layout_width="44dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="2"
+        android:textAllCaps="false"
+        tools:ignore="HardcodedText" />
+
+    <Button
+        android:id="@+id/drawerStatsPage3Button"
+        style="@style/Mpv.SurfaceButton.Compact"
+        android:layout_width="44dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:nextFocusRight="@id/tabBtnVideo"
+        android:text="3"
+        android:textAllCaps="false"
+        tools:ignore="HardcodedText" />
+</LinearLayout>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    android:baselineAligned="false"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <Button
+        android:id="@+id/drawerRowLeftButton"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:maxLines="1"
+        android:textAllCaps="false"
+        tools:text="Contrast" />
+
+    <Button
+        android:id="@+id/drawerRowRightButton"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_weight="1"
+        android:layout_gravity="center_vertical"
+        android:maxLines="1"
+        android:nextFocusRight="@id/tabBtnVideo"
+        android:textAllCaps="false"
+        tools:text="Brightness" />
+</LinearLayout>

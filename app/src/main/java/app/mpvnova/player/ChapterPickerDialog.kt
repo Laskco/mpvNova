@@ -22,6 +22,7 @@ internal class ChapterPickerDialog(
         binding.cancelBtn.setOnClickListener { onCancelClick?.invoke() }
         binding.list.adapter = Adapter(this)
         binding.list.setHasFixedSize(true)
+        TvScrollbars.bind(binding.list, binding.chapterScrollbarThumb)
         scrollToSelectedChapter()
         handleInsetsAsPadding(binding.root)
         return binding.root

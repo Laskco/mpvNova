@@ -12,11 +12,21 @@ import kotlin.math.roundToInt
 private const val MIN_THUMB_HEIGHT_DP = 48
 private const val SCROLLBAR_FADE_DELAY_MS = 1200L
 private const val SCROLLBAR_FADE_DURATION_MS = 240L
-// Re-sync passes scheduled after a layout pass — covers the initial layout
+// Re-sync passes scheduled after a layout pass: covers the initial layout
 // (post), settle-after-measure (100ms), and post-anim reveal (180/300ms).
 private const val SYNC_RESCHEDULE_SHORT_MS = 100L
 private const val SYNC_RESCHEDULE_MEDIUM_MS = 180L
 private const val SYNC_RESCHEDULE_LONG_MS = 300L
+
+internal data class StableScrollbarMetrics(
+    val range: Int,
+    val extent: Int,
+    val offset: Int,
+)
+
+internal interface StableScrollbarMetricsProvider {
+    fun stableScrollbarMetrics(recyclerView: RecyclerView): StableScrollbarMetrics?
+}
 
 @Suppress("TooManyFunctions")
 object TvScrollbars {
@@ -118,15 +128,20 @@ object TvScrollbars {
     }
 
     private fun updateRecyclerThumb(thumb: View, recyclerView: RecyclerView, reveal: Boolean) {
-        val range = recyclerView.computeVerticalScrollRange()
-        val extent = recyclerView.computeVerticalScrollExtent()
+        val stableMetrics = (recyclerView.adapter as? StableScrollbarMetricsProvider)
+            ?.stableScrollbarMetrics(recyclerView)
+        val range = stableMetrics?.range ?: recyclerView.computeVerticalScrollRange()
+        val extent = stableMetrics?.extent ?: recyclerView.computeVerticalScrollExtent()
+        val offset = stableMetrics?.offset ?: recyclerView.computeVerticalScrollOffset()
+        val maxOffset = max(0, range - extent)
         updateThumb(
             thumb = thumb,
             range = range,
             extent = extent,
-            offset = recyclerView.computeVerticalScrollOffset(),
-            maxOffset = max(0, range - extent),
-            isScrollable = recyclerView.canScrollVertically(-1) || recyclerView.canScrollVertically(1),
+            offset = offset.coerceIn(0, maxOffset),
+            maxOffset = maxOffset,
+            isScrollable = maxOffset > 0 &&
+                (recyclerView.canScrollVertically(-1) || recyclerView.canScrollVertically(1) || stableMetrics != null),
             reveal = reveal
         )
     }
