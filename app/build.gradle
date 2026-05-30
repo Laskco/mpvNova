@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'dev.detekt'
 import java.util.Properties
 
-ext.appVersionCode = 8106
+ext.appVersionCode = 8107
 
 def releaseKeystoreProperties = new Properties()
 def releaseKeystorePropertiesFile = rootProject.file("keystore.properties")
@@ -26,7 +26,7 @@ android {
         applicationId = 'app.mpvnova.player'
 
         versionCode = project.ext.appVersionCode
-        versionName = "2026-05-29"
+        versionName = "2026-05-29-hotfix1"
 
         vectorDrawables.useSupportLibrary = true
     }

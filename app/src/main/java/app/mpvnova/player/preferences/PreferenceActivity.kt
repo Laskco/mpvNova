@@ -120,6 +120,8 @@ private const val ROSE_GREEN = 27
 private const val ROSE_BLUE = 96
 private const val NOVA_BORDER_CHANNEL = 210
 private const val THEME_LABEL_CHANNEL = 188
+private const val STATE_HERO_TITLE = "hero_title"
+private const val STATE_HERO_SUBTITLE = "hero_subtitle"
 
 class PreferenceActivity : AppCompatActivity(),
     PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
@@ -127,6 +129,7 @@ class PreferenceActivity : AppCompatActivity(),
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var preferences: SharedPreferences
     private val updateManager by lazy { AppUpdateManager(this) }
+    private var currentTitle: CharSequence? = null
     private var currentSubtitle: CharSequence? = null
     private var lastNavigatedPosition: Int = -1
 
@@ -164,13 +167,16 @@ class PreferenceActivity : AppCompatActivity(),
                 .replace(R.id.main, SettingsFragment())
                 .commit()
         }
-        currentSubtitle = savedInstanceState?.getCharSequence("subtitle")
+        currentTitle = savedInstanceState?.getCharSequence(STATE_HERO_TITLE)
+            ?: getString(R.string.settings_hero_title)
+        currentSubtitle = savedInstanceState?.getCharSequence(STATE_HERO_SUBTITLE)
             ?: getString(R.string.settings_root_subtitle)
         updateChrome()
     }
 
     override fun onBackStackChanged() {
         if (supportFragmentManager.backStackEntryCount == 0) {
+            currentTitle = getString(R.string.settings_hero_title)
             currentSubtitle = getString(R.string.settings_root_subtitle)
             val position = lastNavigatedPosition
             if (position >= 0) {
@@ -193,7 +199,8 @@ class PreferenceActivity : AppCompatActivity(),
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putCharSequence("subtitle", currentSubtitle)
+        outState.putCharSequence(STATE_HERO_TITLE, currentTitle)
+        outState.putCharSequence(STATE_HERO_SUBTITLE, currentSubtitle)
         supportFragmentManager.removeOnBackStackChangedListener(this)
     }
 
@@ -242,12 +249,14 @@ class PreferenceActivity : AppCompatActivity(),
         supportFragmentManager.beginTransaction().replace(R.id.main, fragment).addToBackStack(null)
             .commit()
 
+        currentTitle = pref.title ?: getString(R.string.settings_hero_title)
         currentSubtitle = pref.summary ?: pref.title
         updateChrome()
         return true
     }
 
     private fun updateChrome() {
+        binding.heroTitle.text = currentTitle ?: getString(R.string.settings_hero_title)
         binding.heroSubtitle.text = currentSubtitle ?: getString(R.string.settings_root_subtitle)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
