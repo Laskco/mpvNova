@@ -4,11 +4,11 @@ import android.content.SharedPreferences
 import android.os.Build
 
 internal fun defaultVo(sharedPreferences: SharedPreferences): String {
-    return if (sharedPreferences.getBoolean("gpu_next", false)) "gpu-next" else "gpu"
+    return if (sharedPreferences.getBoolean("gpu_next", false)) MPV_VIEW_VO_GPU_NEXT else MPV_VIEW_VO_GPU
 }
 
 internal fun defaultHwdec(sharedPreferences: SharedPreferences): String {
-    return if (sharedPreferences.getBoolean("hardware_decoding", true)) MPV_VIEW_HWDECS else "no"
+    return if (sharedPreferences.getBoolean("hardware_decoding", true)) MPV_VIEW_HWDECS else MPV_VIEW_HWDEC_NONE
 }
 
 internal fun MPVView.defaultVideoSync(sharedPreferences: SharedPreferences): String {

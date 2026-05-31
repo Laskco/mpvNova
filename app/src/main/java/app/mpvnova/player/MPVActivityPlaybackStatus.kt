@@ -64,11 +64,12 @@ internal fun MPVActivity.updateDecoderButton() {
         eventUiHandler.post { updateDecoderButton() }
         return
     }
-    val decoderText = when (player.currentDecoderMode) {
+    val decoderText = when (currentDecoderUiMode()) {
         MPVView.DECODER_MODE_HW_PLUS -> "HW+"
         MPVView.DECODER_MODE_HW -> "HW"
         MPVView.DECODER_MODE_GNEXT, MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
         MPVView.DECODER_MODE_SW -> "SW"
+        MPVView.DECODER_MODE_MPV_CONF -> "CFG"
         else -> "HW"
     }
     binding.cycleDecoderBtn.setTextIfChanged(decoderText)
@@ -84,7 +85,10 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
         shieldDecoderModeEnabled &&
         isNvidiaShieldDevice() &&
         player.isHi10pH264Video() &&
-        (currentMode == MPVView.DECODER_MODE_HW || currentMode == MPVView.DECODER_MODE_HW_PLUS)
+        (
+            currentMode == MPVView.DECODER_MODE_HW ||
+                currentMode == MPVView.DECODER_MODE_HW_PLUS
+        )
     if (!shouldFallback) return
 
     // Pause around the swap so audio can't drain → no underrun → no drift.
@@ -101,13 +105,19 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
 }
 
 internal fun MPVActivity.applySessionDecoderModeIfNeeded() {
-    val mode = sessionDecoderMode ?: preferredDecoderMode.takeIf {
+    val sessionMode = sessionDecoderMode
+    val mode = sessionMode ?: preferredDecoderMode.takeIf {
         !autoDecoderFallback && it.isNotBlank()
-    } ?: return
-    if (mode == MPVView.DECODER_MODE_SHIELD_H10P && !shieldDecoderModeEnabled)
+    }
+    val blockedShieldMode = mode == MPVView.DECODER_MODE_SHIELD_H10P && !shieldDecoderModeEnabled
+    if (mode == null || blockedShieldMode) {
         return
-    player.applyDecoderMode(mode)
-    updateDecoderButton()
+    } else if (mode == MPVView.DECODER_MODE_MPV_CONF && sessionMode == null) {
+        updateDecoderButton()
+    } else {
+        player.applyDecoderMode(mode)
+        updateDecoderButton()
+    }
 }
 
 internal fun MPVActivity.isNvidiaShieldDevice(): Boolean {

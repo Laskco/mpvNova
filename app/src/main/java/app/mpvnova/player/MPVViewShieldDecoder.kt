@@ -31,15 +31,15 @@ private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreference
 }
 
 private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPreferences) {
-    applyStandardDecoderTuning(sharedPreferences, "gpu-next")
-    setRuntimeOption("hwdec", "mediacodec-copy")
+    applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
+    setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
     setRuntimeOption("vd-lavc-skiploopfilter", "nonref")
     setRuntimeOption("audio-buffer", "1.0")
 }
 
 private fun MPVView.applyShieldHi10pSoftwareFallback() {
-    setRuntimeVo("gpu-next")
-    setRuntimeOption("hwdec", "no")
+    setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
+    setRuntimeOption("hwdec", MPV_VIEW_HWDEC_NONE)
     setRuntimeOption("vd-lavc-threads", "6")
     setRuntimeOption("vd-lavc-skiploopfilter", "nonref")
     setRuntimeOption("framedrop", "vo")

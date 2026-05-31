@@ -71,15 +71,18 @@ abstract class BaseMPVView(
         this.filePath = filePath
     }
 
-    private var voInUse: String = "gpu"
+    private var voInUse: String? = null
+    private var detachedVoInUse: String? = null
 
     /**
      * Sets the VO to use.
      * It is automatically disabled/enabled when the surface dis-/appears.
      */
-    fun setVo(vo: String) {
+    fun setVo(vo: String?) {
         voInUse = vo
-        mpvSetOptionString("vo", vo)
+        detachedVoInUse = null
+        if (vo != null)
+            mpvSetOptionString("vo", vo)
     }
 
     // Surface callbacks
@@ -104,7 +107,7 @@ abstract class BaseMPVView(
             filePath = null
         } else {
             // We disable video output when the context disappears, enable it back
-            mpvSetPropertyString("vo", voInUse)
+            (voInUse ?: detachedVoInUse)?.let { mpvSetPropertyString("vo", it) }
         }
     }
 
@@ -112,6 +115,8 @@ abstract class BaseMPVView(
         Log.w(TAG, "detaching surface")
         lastSurfaceWidth = -1
         lastSurfaceHeight = -1
+        if (voInUse == null)
+            detachedVoInUse = currentVoForSurfaceRestore()
         mpvSetPropertyString("vo", "null")
         mpvSetPropertyString("force-window", "no")
         // detachSurface() assumes libmpv is done using the surface; setting
@@ -122,6 +127,18 @@ abstract class BaseMPVView(
     companion object {
         private const val TAG = "mpv"
     }
+}
+
+private fun currentVoForSurfaceRestore(): String? {
+    return mpvGetPropertyString("current-vo")
+        ?.takeIf { it.isValidVoForRestore() }
+        ?: mpvGetPropertyString("options/vo")
+            ?.takeIf { it.isValidVoForRestore() }
+}
+
+private fun String.isValidVoForRestore(): Boolean {
+    val value = trim()
+    return value.isNotEmpty() && value != "null"
 }
 
 private object BundledFfmpegVersionLogger {

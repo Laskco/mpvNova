@@ -18,6 +18,11 @@ private data class PreferredOption(val preferenceName: String, val mpvOption: St
 
 internal const val MPV_VIEW_LOG_TAG = "mpv"
 internal const val MPV_VIEW_HWDECS = "mediacodec,mediacodec-copy"
+internal const val MPV_VIEW_HWDEC_MEDIACODEC = "mediacodec"
+internal const val MPV_VIEW_HWDEC_MEDIACODEC_COPY = "mediacodec-copy"
+internal const val MPV_VIEW_HWDEC_NONE = "no"
+internal const val MPV_VIEW_VO_GPU = "gpu"
+internal const val MPV_VIEW_VO_GPU_NEXT = "gpu-next"
 internal const val MPV_VIEW_SHIELD_H10P_DEMUXER_BYTES = 50 * 1024 * 1024
 internal const val MPV_VIEW_MIN_VALID_ASPECT = 0.001
 internal const val MPV_VIEW_HALF_ROTATION_DEGREES = 180
@@ -45,10 +50,11 @@ internal val MPV_VIEW_PLAYBACK_SPEED_STEPS = doubleArrayOf(
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val startupDecoderMode = startupPreferredDecoderMode(sharedPreferences)
 
         mpvSetOptionString("profile", "fast")
-        setVo(defaultVo(sharedPreferences))
-        val hwdec = defaultHwdec(sharedPreferences)
+        startupVo(sharedPreferences, startupDecoderMode)?.let(::setVo)
+        val hwdec = startupHwdec(sharedPreferences, startupDecoderMode)
         applyDisplayRefreshRate()
         applyPreferredOptions(sharedPreferences)
         applyVideoPreferenceOptions(sharedPreferences)
@@ -117,10 +123,11 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         }
     }
 
-    private fun applyCorePlaybackOptions(hwdec: String) {
+    private fun applyCorePlaybackOptions(hwdec: String?) {
         mpvSetOptionString("gpu-context", "android")
         mpvSetOptionString("opengl-es", "yes")
-        mpvSetOptionString("hwdec", hwdec)
+        if (hwdec != null)
+            mpvSetOptionString("hwdec", hwdec)
         mpvSetOptionString("hwdec-codecs", "h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1")
         mpvSetOptionString("ao", "audiotrack,opensles")
         mpvSetOptionString("audio-set-media-role", "yes")
@@ -212,6 +219,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         const val DECODER_MODE_SW = "sw"
         const val DECODER_MODE_GNEXT = "g_next"
         const val DECODER_MODE_SHIELD_H10P = "shield_h10p"
+        const val DECODER_MODE_MPV_CONF = "mpv_conf"
         const val SHIELD_DECODER_FALLBACK_COPY = "g_next_copy"
         const val SHIELD_DECODER_FALLBACK_SW = "g_next_sw"
     }

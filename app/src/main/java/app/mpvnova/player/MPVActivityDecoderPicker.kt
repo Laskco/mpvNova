@@ -11,7 +11,7 @@ import java.util.Locale
 
 internal fun MPVActivity.pickDecoder() {
     val restore = keepPlaybackForDialog()
-    val currentMode = player.currentDecoderMode
+    val currentMode = currentDecoderUiMode()
     val rawItems = decoderRawItems(currentMode)
     val items = rawItems.toDecoderPickerItems(currentMode)
     val impl = MediaPickerDialog()
@@ -50,12 +50,13 @@ internal fun MPVActivity.cycleDecoderMode() {
         MPVView.DECODER_MODE_HW,
         MPVView.DECODER_MODE_SW,
         MPVView.DECODER_MODE_GNEXT,
+        MPVView.DECODER_MODE_MPV_CONF,
     )
     if (shieldDecoderModeEnabled)
         modes.add(MPVView.DECODER_MODE_SHIELD_H10P)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         modes.add(0, MPVView.DECODER_MODE_HW_PLUS)
-    val currentMode = player.currentDecoderMode
+    val currentMode = currentDecoderUiMode()
     val currentIndex = modes.indexOf(currentMode).takeIf { it >= 0 } ?: 0
     val nextMode = modes[(currentIndex + 1) % modes.size]
     sessionDecoderMode = nextMode
@@ -65,6 +66,14 @@ internal fun MPVActivity.cycleDecoderMode() {
 
 internal fun MPVActivity.cycleSpeed() {
     player.cycleSpeed()
+}
+
+internal fun MPVActivity.currentDecoderUiMode(): String {
+    return sessionDecoderMode
+        ?: preferredDecoderMode.takeIf {
+            !autoDecoderFallback && it == MPVView.DECODER_MODE_MPV_CONF
+        }
+        ?: player.currentDecoderMode
 }
 
 internal fun MPVActivity.currentGpuNextPathLabel(useActivePath: Boolean): String {
@@ -136,6 +145,8 @@ internal fun MPVActivity.decoderMenuLabel(mode: String, isCurrentMode: Boolean):
             )
         MPVView.DECODER_MODE_SHIELD_H10P ->
             highlightDecoderLabel(getString(R.string.decoder_mode_shield_h10p), "Hi10P", isCurrentMode)
+        MPVView.DECODER_MODE_MPV_CONF ->
+            highlightDecoderLabel(getString(R.string.decoder_mode_mpv_conf), "mpv.conf", isCurrentMode)
         else -> mode
     }
 }

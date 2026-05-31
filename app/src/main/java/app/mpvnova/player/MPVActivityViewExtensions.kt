@@ -21,8 +21,8 @@ internal fun MPVActivity.activeFilterColor(): Int {
     cachedActiveFilterColor?.let { return it }
     val color = AppearanceTheme.resolveColor(
         this,
-        R.attr.mpvFilterActiveIcon,
-        ContextCompat.getColor(this, R.color.tv_filter_active_icon)
+        R.attr.mpvAccentHot,
+        ContextCompat.getColor(this, R.color.tv_purple_hot)
     )
     cachedActiveFilterColor = color
     return color

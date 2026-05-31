@@ -8,6 +8,7 @@ internal fun MPVActivity.decoderRawItems(currentMode: String): MutableList<Pair<
         decoderItem(MPVView.DECODER_MODE_HW, currentMode),
         decoderItem(MPVView.DECODER_MODE_SW, currentMode),
         decoderItem(MPVView.DECODER_MODE_GNEXT, currentMode),
+        decoderItem(MPVView.DECODER_MODE_MPV_CONF, currentMode),
     )
     if (shieldDecoderModeEnabled)
         items.add(decoderItem(MPVView.DECODER_MODE_SHIELD_H10P, currentMode))

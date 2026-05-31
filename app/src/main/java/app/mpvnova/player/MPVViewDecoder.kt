@@ -6,21 +6,29 @@ import androidx.preference.PreferenceManager
 internal val MPVView.currentDecoderMode: String
     get() {
         val requestedHwdec = getOptionString("hwdec").trim().lowercase()
-        val requestedVo = requestedVideoOutput.trim().lowercase()
+        val requestedVo = requestedVideoOutput.primaryVideoOutput()
+        val effectiveHwdec = when {
+            requestedHwdec == MPV_VIEW_HWDECS -> hwdecActive.trim().lowercase()
+            requestedHwdec.isNotBlank() -> requestedHwdec
+            else -> hwdecActive.trim().lowercase()
+        }
         return when {
             isShieldH10pSoftwareModeActive() -> MPVView.DECODER_MODE_SHIELD_H10P
-            requestedVo.startsWith("gpu-next") && requestedHwdec == "mediacodec-copy" -> MPVView.DECODER_MODE_GNEXT
-            requestedHwdec == "mediacodec" -> MPVView.DECODER_MODE_HW_PLUS
-            requestedHwdec == "mediacodec-copy" -> MPVView.DECODER_MODE_HW
-            requestedHwdec == MPV_VIEW_HWDECS -> if (hwdecActive == "mediacodec") {
+            requestedVo.startsWith(MPV_VIEW_VO_GPU_NEXT) &&
+                requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC_COPY -> MPVView.DECODER_MODE_GNEXT
+            requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC -> MPVView.DECODER_MODE_HW_PLUS
+            requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC_COPY -> MPVView.DECODER_MODE_HW
+            requestedHwdec == MPV_VIEW_HWDECS -> if (hwdecActive == MPV_VIEW_HWDEC_MEDIACODEC) {
                 MPVView.DECODER_MODE_HW_PLUS
             } else {
                 MPVView.DECODER_MODE_HW
             }
-            requestedHwdec == "no" && requestedVo.startsWith("gpu-next") -> MPVView.DECODER_MODE_GNEXT
-            requestedHwdec == "no" -> MPVView.DECODER_MODE_SW
-            hwdecActive == "mediacodec" -> MPVView.DECODER_MODE_HW_PLUS
-            hwdecActive == "mediacodec-copy" -> MPVView.DECODER_MODE_HW
+            requestedHwdec == MPV_VIEW_HWDEC_NONE &&
+                requestedVo.startsWith(MPV_VIEW_VO_GPU_NEXT) -> MPVView.DECODER_MODE_GNEXT
+            requestedHwdec == MPV_VIEW_HWDEC_NONE -> MPVView.DECODER_MODE_SW
+            hwdecActive == MPV_VIEW_HWDEC_MEDIACODEC -> MPVView.DECODER_MODE_HW_PLUS
+            hwdecActive == MPV_VIEW_HWDEC_MEDIACODEC_COPY -> MPVView.DECODER_MODE_HW
+            requestedVo.isNotBlank() || requestedHwdec.isNotBlank() -> MPVView.DECODER_MODE_MPV_CONF
             else -> MPVView.DECODER_MODE_SW
         }
     }
@@ -43,39 +51,42 @@ internal fun MPVView.applyDecoderMode(mode: String) {
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     when (mode) {
         MPVView.DECODER_MODE_HW_PLUS -> {
-            applyStandardDecoderTuning(sharedPreferences, "gpu")
-            setRuntimeOption("hwdec", "mediacodec")
+            applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU)
+            setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC)
         }
         MPVView.DECODER_MODE_HW -> {
-            applyStandardDecoderTuning(sharedPreferences, "gpu")
-            setRuntimeOption("hwdec", "mediacodec-copy")
+            applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU)
+            setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
         }
         MPVView.DECODER_MODE_SW -> {
-            applyStandardDecoderTuning(sharedPreferences, "gpu")
-            setRuntimeOption("hwdec", "no")
+            applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU)
+            setRuntimeOption("hwdec", MPV_VIEW_HWDEC_NONE)
         }
         MPVView.DECODER_MODE_GNEXT -> {
-            applyStandardDecoderTuning(sharedPreferences, "gpu-next")
-            setRuntimeVo("gpu-next")
-            setRuntimeOption("hwdec", "mediacodec-copy")
+            applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
+            setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
+            setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
         }
         MPVView.DECODER_MODE_SHIELD_H10P -> {
             applyShieldHi10pFallback(sharedPreferences)
+        }
+        MPVView.DECODER_MODE_MPV_CONF -> {
+            applyMpvConfDecoderOptions()
         }
     }
 }
 
 internal fun MPVView.fallbackGpuNextToGpu() {
-    if (!requestedVideoOutput.trim().lowercase().startsWith("gpu-next"))
+    if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
-    setRuntimeVo("gpu")
+    setRuntimeVo(MPV_VIEW_VO_GPU)
 }
 
 internal fun MPVView.fallbackGpuNextToCopyHwdec() {
-    if (!requestedVideoOutput.trim().lowercase().startsWith("gpu-next"))
+    if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
-    setRuntimeVo("gpu-next")
-    setRuntimeOption("hwdec", "mediacodec-copy")
+    setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
+    setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
 }
 
 internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPreferences, vo: String) {
@@ -105,6 +116,19 @@ internal fun MPVView.setRuntimeVo(vo: String) {
 internal fun setRuntimeOption(name: String, value: String) {
     mpvSetOptionString(name, value)
     mpvSetPropertyString(name, value)
+}
+
+internal fun MPVView.applyMpvConfDecoderOptions() {
+    setVo(null)
+    context.mpvConfOption("vo")?.let(::setRuntimeVo)
+    context.mpvConfOption("hwdec")?.let { setRuntimeOption("hwdec", it) }
+}
+
+private fun String.primaryVideoOutput(): String {
+    return trim()
+        .lowercase()
+        .substringBefore(",")
+        .trim()
 }
 
 private fun selectedVideoTrackString(name: String): String {

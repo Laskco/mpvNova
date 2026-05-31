@@ -18,10 +18,12 @@ private const val GPU_NEXT_ERROR_WINDOW_THRESHOLD = 3
 
 internal fun MPVActivity.canApplyGpuNextRenderFallback(level: Int): Boolean {
     // Gates: auto-fallback on, error-level log, VO is gpu-next, user didn't
-    // explicitly pick gpu-next/Shield-Hi10P (else we'd override their choice).
+    // explicitly pick a gpu-next/custom path (else we'd override their choice).
     val chosen = sessionDecoderMode ?: preferredDecoderMode
     val userPickedGpuNextMode =
-        chosen == MPVView.DECODER_MODE_GNEXT || chosen == MPVView.DECODER_MODE_SHIELD_H10P
+        chosen == MPVView.DECODER_MODE_GNEXT ||
+            chosen == MPVView.DECODER_MODE_SHIELD_H10P ||
+            chosen == MPVView.DECODER_MODE_MPV_CONF
     val gatesPassed = autoDecoderFallback &&
         level <= MpvLogLevel.MPV_LOG_LEVEL_ERROR &&
         player.requestedVideoOutput.trim().lowercase(Locale.US).startsWith("gpu-next") &&

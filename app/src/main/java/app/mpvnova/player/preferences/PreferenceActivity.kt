@@ -640,6 +640,8 @@ class PreferenceActivity : AppCompatActivity(),
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_SW)
             entries.add(getString(R.string.decoder_mode_gnext_settings))
             values.add(app.mpvnova.player.MPVView.DECODER_MODE_GNEXT)
+            entries.add(getString(R.string.decoder_mode_mpv_conf_settings))
+            values.add(app.mpvnova.player.MPVView.DECODER_MODE_MPV_CONF)
             if (includeShieldMode) {
                 entries.add(getString(R.string.decoder_mode_shield_h10p_settings))
                 values.add(app.mpvnova.player.MPVView.DECODER_MODE_SHIELD_H10P)
@@ -659,6 +661,8 @@ class PreferenceActivity : AppCompatActivity(),
                     getString(R.string.decoder_mode_gnext_description)
                 app.mpvnova.player.MPVView.DECODER_MODE_SHIELD_H10P ->
                     getString(R.string.decoder_mode_shield_h10p_description)
+                app.mpvnova.player.MPVView.DECODER_MODE_MPV_CONF ->
+                    getString(R.string.decoder_mode_mpv_conf_description)
                 else -> getString(R.string.pref_preferred_decoder_mode_summary)
             }
         }
