@@ -12,6 +12,7 @@ if [ ! -d mbedtls ]; then
 	mkdir mbedtls
 	$WGET https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-$v_mbedtls/mbedtls-$v_mbedtls.tar.bz2 -O - | \
 		tar -xj -C mbedtls --strip-components=1
+	patch -d mbedtls -p1 < ../patches/mbedtls-android-getrandom.patch
 fi
 
 # dav1d

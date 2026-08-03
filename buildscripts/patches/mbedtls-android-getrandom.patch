@@ -1,0 +1,14 @@
+diff --git a/library/entropy_poll.c b/library/entropy_poll.c
+index d41735efa..d3c4fa781 100644
+--- a/library/entropy_poll.c
++++ b/library/entropy_poll.c
+@@ -75,7 +75,8 @@ int mbedtls_platform_entropy_poll(void *data,
+  * Since there is no wrapper in the libc yet, use the generic syscall wrapper
+  * available in GNU libc and compatible libc's (eg uClibc).
+  */
+-#if ((defined(__linux__) && defined(__GLIBC__)) || defined(__midipix__))
++#if ((defined(__linux__) && (defined(__GLIBC__) || defined(__BIONIC__))) || \
++    defined(__midipix__))
+ #include <unistd.h>
+ #include <sys/syscall.h>
+ #if defined(SYS_getrandom)

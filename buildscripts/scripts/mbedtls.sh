@@ -18,5 +18,8 @@ else
 	./scripts/config.py set MBEDTLS_AESNI_C
 fi
 
+# The Android patch enables getrandom(); keep urandom for ENOSYS fallback only.
+./scripts/config.py set MBEDTLS_PLATFORM_DEV_RANDOM '"/dev/urandom"'
+
 make -j$cores no_test
 make DESTDIR="$prefix_dir" install
