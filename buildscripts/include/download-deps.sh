@@ -82,10 +82,14 @@ if [ ! -d libplacebo ]; then
 	git -C libplacebo checkout v7.360.1
 fi
 
-# mpv (post-v0.41.0, matching upstream mpv-android)
-if [ ! -d mpv ]; then
-	git clone https://github.com/mpv-player/mpv
-	git -C mpv checkout 9ce79bc
+# curl
+if [ ! -d curl ]; then
+	mkdir curl
+	$WGET https://curl.se/download/curl-$v_curl.tar.gz -O - | \
+		tar -xz -C curl --strip-components=1
 fi
+
+# mpv
+[ ! -d mpv ] && git clone https://github.com/mpv-player/mpv
 
 cd ..

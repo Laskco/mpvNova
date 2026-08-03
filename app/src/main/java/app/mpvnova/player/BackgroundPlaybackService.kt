@@ -87,15 +87,17 @@ private fun Service.buildBackgroundNotification(
 
     // With an active media session, the media style will override everything
     // (including the thumbnail) and we can skip doing this.
-    if (BackgroundPlaybackService.mediaToken != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    if (BackgroundPlaybackService.mediaToken == null || Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
         BackgroundPlaybackService.thumbnail?.let {
             builder.setLargeIcon(it)
 
-            builder.setColorized(true)
-            val b1 = Bitmap.createScaledBitmap(it, THUMBNAIL_SAMPLE_SIZE, THUMBNAIL_SAMPLE_SIZE, true)
-            val b2 = Bitmap.createScaledBitmap(b1, 1, 1, true)
-            builder.setColor(b2.getPixel(0, 0))
-            b2.recycle(); b1.recycle()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                builder.setColorized(true)
+                val b1 = Bitmap.createScaledBitmap(it, THUMBNAIL_SAMPLE_SIZE, THUMBNAIL_SAMPLE_SIZE, true)
+                val b2 = Bitmap.createScaledBitmap(b1, 1, 1, true)
+                builder.setColor(b2.getPixel(0, 0))
+                b2.recycle(); b1.recycle()
+            }
         }
     }
 

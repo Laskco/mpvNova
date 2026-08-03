@@ -14,9 +14,10 @@ v_unibreak=7.0
 v_harfbuzz=14.2.1
 v_fribidi=1.0.16
 v_freetype=2.14.3
-v_mbedtls=3.6.5
+v_mbedtls=3.6.7
 v_libxml2=2.15.3
-v_fontconfig=2.18.1
+v_fontconfig=2.18.2
+v_curl=8.21.0
 
 
 ## Dependency tree
@@ -33,7 +34,8 @@ dep_unibreak=()
 dep_libass=(freetype2 fontconfig fribidi harfbuzz unibreak)
 dep_lua=()
 dep_libplacebo=()
-dep_mpv=(ffmpeg libass lua libplacebo)
+dep_curl=(mbedtls)
+dep_mpv=(ffmpeg libass lua libplacebo curl)
 dep_mpvnova=(mpv)
 
 
@@ -45,4 +47,4 @@ v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-ffmpeg-${v_ci_ffmpeg}.tgz"
+ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}.tgz"
