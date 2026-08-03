@@ -89,18 +89,23 @@
                 android:padding="16dp">
 
                 <HorizontalScrollView
+                    android:id="@+id/aboutHorizontalScroll"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content">
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/bg_list_row"
+                    android:descendantFocusability="blocksDescendants"
+                    android:focusable="true"
+                    android:requiresFadingEdge="horizontal">
 
                     <TextView
                         android:id="@+id/logs"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_text_field_surface"
+                        android:duplicateParentState="true"
+                        android:focusable="false"
                         android:fontFamily="monospace"
                         android:padding="16dp"
                         android:textColor="@color/tv_text"
-                        android:textIsSelectable="true"
                         android:textSize="13sp"
                         tools:text="mpvNova 2026-03-22-release / 45 (debug)" />
 
