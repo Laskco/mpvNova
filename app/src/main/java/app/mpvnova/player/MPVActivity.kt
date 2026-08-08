@@ -511,14 +511,13 @@ open class MPVActivity : AppCompatActivity() {
         suppressPlayerActivityTransition()
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         Log.v(MPV_ACTIVITY_TAG, "onNewIntent($intent)")
         super.onNewIntent(intent)
-        if (intent != null)
-            setIntent(intent)
+        setIntent(intent)
         pendingResumeToastMs = 0L
 
-        val filepath = intent?.let { parsePathFromIntent(it) }
+        val filepath = parsePathFromIntent(intent)
         if (filepath == null) {
             return
         }

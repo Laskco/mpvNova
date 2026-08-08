@@ -24,10 +24,9 @@ class ExternalPlayerActivity : Activity() {
             startPlayer(intent)
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent != null)
-            startPlayer(intent)
+        startPlayer(intent)
     }
 
     private fun startPlayer(source: Intent) {

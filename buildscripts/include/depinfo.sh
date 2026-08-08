@@ -6,17 +6,19 @@
 v_sdk=11076708_latest
 v_ndk=r29
 v_ndk_n=29.0.14206865
-v_sdk_platform=36
+v_sdk_platform=37
 v_sdk_build_tools=36.0.0
 
 v_lua=5.2.4
 v_unibreak=7.0
-v_harfbuzz=14.2.1
+v_harfbuzz=14.3.0
 v_fribidi=1.0.16
 v_freetype=2.14.3
 v_mbedtls=3.6.7
+v_dav1d=1.5.4
 v_libxml2=2.15.3
-v_fontconfig=2.18.2
+v_fontconfig=2.18.3
+v_libass=0.17.5
 v_curl=8.21.0
 
 
@@ -47,4 +49,4 @@ v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}.tgz"
+ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-${v_libass}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}.tgz"

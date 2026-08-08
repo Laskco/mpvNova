@@ -18,7 +18,7 @@ def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias
 
 android {
     namespace = 'app.mpvnova.player'
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 23
@@ -131,16 +131,16 @@ if (!hasReleaseSigning) {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'androidx.activity:activity:1.8.0'
-    implementation 'androidx.annotation:annotation:1.8.1'
+    implementation 'androidx.activity:activity:1.13.0'
+    implementation 'androidx.annotation:annotation:1.10.0'
     implementation 'androidx.appcompat:appcompat:1.7.1'
     implementation 'androidx.appcompat:appcompat-resources:1.7.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.0'
-    implementation 'androidx.core:core:1.13.0'
-    implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.fragment:fragment:1.5.4'
-    implementation 'androidx.lifecycle:lifecycle-common:2.6.2'
-    implementation 'androidx.loader:loader:1.0.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.2'
+    implementation 'androidx.core:core:1.19.0'
+    implementation 'androidx.core:core-ktx:1.19.0'
+    implementation 'androidx.fragment:fragment:1.8.9'
+    implementation 'androidx.lifecycle:lifecycle-common:2.11.0'
+    implementation 'androidx.loader:loader:1.2.0'
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'com.google.android.material:material:1.14.0'

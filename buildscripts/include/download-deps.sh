@@ -18,7 +18,7 @@ fi
 # dav1d
 if [ ! -d dav1d ]; then
 	git clone https://github.com/videolan/dav1d
-	git -C dav1d checkout 1.5.3
+	git -C dav1d checkout "$v_dav1d"
 fi
 
 # ffmpeg (always pin to stable release)
@@ -67,7 +67,7 @@ fi
 # libass
 if [ ! -d libass ]; then
 	git clone https://github.com/libass/libass
-	git -C libass checkout 0.17.4
+	git -C libass checkout "$v_libass"
 fi
 
 # lua
