@@ -85,3 +85,13 @@ internal fun mpvSubtitleColor(rgb: Int, opacityPercent: Int): String {
     val alpha = (opacity * ALPHA_MAX + PERCENT_HALF) / PERCENT_MAX
     return "#%02X%06X".format(alpha, rgb and RGB_MASK)
 }
+
+// ASS stores color as inverted alpha followed by BGR, unlike mpv's AARRGGBB option format.
+internal fun assSubtitleColor(rgb: Int, opacityPercent: Int): String {
+    val opacity = opacityPercent.coerceIn(0, PERCENT_MAX)
+    val alpha = ALPHA_MAX - (opacity * ALPHA_MAX + PERCENT_HALF) / PERCENT_MAX
+    val red = rgb shr 16 and 0xFF
+    val green = rgb shr 8 and 0xFF
+    val blue = rgb and 0xFF
+    return "&H%02X%02X%02X%02X".format(alpha, blue, green, red)
+}

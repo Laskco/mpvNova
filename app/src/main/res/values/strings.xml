@@ -270,8 +270,8 @@
     <string name="sub_style_override_ass_summary">Force this style onto ASS/SSA subtitles. May change signs and typesetting.</string>
     <string name="sub_style_force_all_ass">Force on all subtitles</string>
     <string name="sub_style_force_all_ass_summary">Strips the subtitle\'s own styling so your style applies everywhere. Use if Apply doesn\'t change them. Removes signs and positioning.</string>
-    <string name="sub_style_selective_ass">Keep signs &amp; typesetting</string>
-    <string name="sub_style_selective_ass_summary">Restyle dialogue only. Bold/Italic can also affect signs that share the dialogue style.</string>
+    <string name="sub_style_selective_ass">Keep inline typesetting</string>
+    <string name="sub_style_selective_ass_summary">Keep authored positioning and inline tags while applying your style definitions. Named sign styles may also inherit the selected font and colors.</string>
 
     <!-- App chrome -->
     <string name="tv_brand">mpvNova</string>

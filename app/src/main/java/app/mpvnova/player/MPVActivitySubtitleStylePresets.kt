@@ -124,6 +124,11 @@ internal fun MPVActivity.cycleSubtitleStylePreset(delta: Int): String {
         if (nextCycleIndex == 0) {
             customSubStyleEnabled = false
             applyCustomSubtitleStyle()
+            subScaleLevel = DEFAULT_SUB_SCALE_INDEX
+            subPosLevel = DEFAULT_SUB_POSITION_INDEX
+            applySubScaleProperty()
+            applySubPosProperty()
+            writeSettings()
             writeSubtitleStyleSettings()
             getString(R.string.sub_style_preset_none)
         } else {

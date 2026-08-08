@@ -385,12 +385,12 @@ open class MPVActivity : AppCompatActivity() {
     // Strip: removes the script's own styling so our style hits every line, even
     // releases that use named styles instead of "Default" (loses signs/typesetting).
     internal var subStyleForceAllAss = false
-    // Selective ("yes"): libass overrides only the default dialogue style, leaving signs and
-    // typesetting/positioning intact. Mutually exclusive with the two override modes above.
+    // Selective: updates ASS style definitions while retaining inline tags and positioning.
+    // Mutually exclusive with the two override modes above.
     internal var subStyleSelectiveAss = false
-    // Last-applied dialogue Bold/Italic force-style override (selective mode only), so we re-push
-    // sub-ass-style-overrides + sub-reload only when it actually changes.
-    internal var subStyleAppliedAssOverrides = ""
+    // Last style-override signature sent to libass. Style overrides are parsed when a subtitle
+    // track loads, so changed values require one sub-reload before they become visible.
+    internal var subStyleAppliedAssOverrides: String? = null
     // Quick-cycle index into the saved presets, and the preset currently being edited.
     internal var subStylePresetIndex = 0
     internal var editingSubtitleStylePreset: SubtitleStylePreset? = null

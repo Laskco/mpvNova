@@ -19,6 +19,7 @@ private val SUB_STYLE_PROPS = listOf(
     "sub-bold",
     "sub-italic",
     "sub-ass-override",
+    "sub-ass-style-overrides",
 )
 
 private const val SUB_SHADOW_OFFSET_OFF = 0.0
@@ -32,28 +33,57 @@ internal fun MPVActivity.applyCustomSubtitleStyle() {
     } else {
         restoreSubStyleBaseline()
     }
-    applyDialogueAttributeOverride()
+    applyAssStyleOverrides()
 }
 
-// mpv's selective override ("yes") restyles the dialogue's font/colors but NOT bold/italic, so
-// in that mode push Bold/Italic onto just the script's "Default" style via a force-style override
-// (signs live on other styles, so they're untouched). Style overrides apply at parse time, so we
-// clear+reapply the list and sub-reload — but only when the target value actually changes, to
-// avoid reloading on every unrelated adjustment.
-private fun MPVActivity.applyDialogueAttributeOverride() {
-    val active = customSubStyleEnabled && subStyleSelectiveAss && (subStyleBold || subStyleItalic)
-    val boldVal = if (subStyleBold) "-1" else "0"
-    val italicVal = if (subStyleItalic) "-1" else "0"
-    val desired = if (active) "Default.Bold=$boldVal,Default.Italic=$italicVal" else ""
-    if (desired == subStyleAppliedAssOverrides)
-        return
-    subStyleAppliedAssOverrides = desired
-    mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "clr", ""))
-    if (active) {
-        mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "append", "Default.Bold=$boldVal"))
-        mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "append", "Default.Italic=$italicVal"))
+// ASS style overrides are parsed as the track loads. Omitting a style name applies the value to
+// every style definition, which also covers releases that call dialogue "Main" or "Dialogue"
+// instead of "Default". Inline tags and positioning remain authored by the subtitle script.
+private fun MPVActivity.applyAssStyleOverrides() {
+    val overrides = when {
+        customSubStyleEnabled && subStyleSelectiveAss -> buildAssStyleOverrides(
+            AssStyleOverrideSpec(
+                fontFamily = subStyleFontFamily.ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY },
+                textRgb = SUBTITLE_COLOR_OPTIONS[subStyleTextColorIndex].rgb,
+                textOpacity = SUBTITLE_OPACITY_PERCENT_STEPS[subStyleTextOpacityIndex],
+                borderRgb = SUBTITLE_COLOR_OPTIONS[subStyleBorderColorIndex].rgb,
+                borderSize = SUBTITLE_BORDER_SIZE_STEPS[subStyleBorderSizeIndex],
+                backgroundRgb = SUBTITLE_COLOR_OPTIONS[subStyleBgColorIndex].rgb,
+                backgroundOpacity = SUBTITLE_OPACITY_PERCENT_STEPS[subStyleBgOpacityIndex],
+                shadowRgb = SUBTITLE_COLOR_OPTIONS[subStyleShadowColorIndex].rgb,
+                shadowSize = SUBTITLE_SHADOW_SIZE_STEPS[subStyleShadowSizeIndex],
+                edge = subStyleEdge,
+                bold = subStyleBold,
+                italic = subStyleItalic,
+                spacing = SUBTITLE_SPACING_STEPS[subStyleSpacingIndex],
+                blur = SUBTITLE_BLUR_STEPS[subStyleBlurIndex],
+            ),
+        )
+        customSubStyleEnabled && subStyleOverrideAss -> buildAssAttributeOverrides(
+            bold = subStyleBold,
+            italic = subStyleItalic,
+        )
+        else -> null
     }
-    mpvCommand(arrayOf("sub-reload"))
+    val baseline = subStyleSavedDefaults?.get("sub-ass-style-overrides").orEmpty()
+    val signature = overrides?.joinToString(prefix = "custom:", separator = "\u0000")
+        ?: "baseline:$baseline"
+    val previous = subStyleAppliedAssOverrides
+    if (signature == previous)
+        return
+    subStyleAppliedAssOverrides = signature
+
+    if (overrides != null) {
+        mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "clr", ""))
+        overrides.forEach { value ->
+            mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "append", value))
+        }
+    } else if (previous?.startsWith("custom:") == true) {
+        mpvSetPropertyString("sub-ass-style-overrides", baseline)
+    }
+
+    if (overrides != null || previous?.startsWith("custom:") == true)
+        mpvCommand(arrayOf("sub-reload"))
 }
 
 // Only carries to the next file when persist is on; the saved design sticks around either way.
@@ -108,14 +138,14 @@ private fun MPVActivity.writeCustomSubtitleStyle() {
     mpvSetPropertyString("sub-italic", if (subStyleItalic) "yes" else "no")
     // Mutually-exclusive ASS override levels (at most one is on):
     //  "force" = restyle every ASS style, signs included (positioning kept).
-    //  "yes"   = libass selective override: restyle only the default dialogue style, leaving
-    //            signs and typesetting/positioning intact — italics on dialogue, signs safe.
+    //  "scale" = preserve inline ASS tags/positioning while our style-definition overrides
+    //            restyle named styles; also keeps the user's subtitle scale active.
     //  "strip" = remove the script's own styling so our style lands on EVERY line, even releases
     //            that put dialogue on named styles instead of "Default" (also flattens typesetting).
     val assOverride = when {
         subStyleForceAllAss -> "strip"
         subStyleOverrideAss -> "force"
-        subStyleSelectiveAss -> "yes"
+        subStyleSelectiveAss -> "scale"
         else -> "scale"
     }
     mpvSetPropertyString("sub-ass-override", assOverride)

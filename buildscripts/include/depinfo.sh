@@ -6,8 +6,8 @@
 v_sdk=11076708_latest
 v_ndk=r29
 v_ndk_n=29.0.14206865
-v_sdk_platform=35
-v_sdk_build_tools=35.0.0
+v_sdk_platform=36
+v_sdk_build_tools=36.0.0
 
 v_lua=5.2.4
 v_unibreak=7.0
@@ -42,7 +42,7 @@ dep_mpvnova=(mpv)
 ## for CI workflow
 
 # pinned ffmpeg revision
-v_ci_ffmpeg=n8.1.2
+v_ci_ffmpeg=n9.0
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 

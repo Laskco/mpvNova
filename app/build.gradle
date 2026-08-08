@@ -18,11 +18,11 @@ def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias
 
 android {
     namespace = 'app.mpvnova.player'
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         applicationId = 'app.mpvnova.player'
 
         versionCode = project.ext.appVersionCode

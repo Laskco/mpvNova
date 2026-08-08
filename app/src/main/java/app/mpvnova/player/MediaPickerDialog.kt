@@ -272,13 +272,11 @@ internal class MediaPickerDialog {
             persistSubFiltersEnabled = options.persistSubFiltersOn
             binding.subStyleValue.text = options.subStyleStateText
             binding.subStyleRow.setOnClickListener { onSubStyleClick?.invoke() }
-            binding.subPresetValue.text = options.initialSubPresetName
-            binding.subPresetMinusBtn.setOnClickListener {
-                onSubPresetAdjust?.invoke(-1)?.let(binding::syncSubPresetState)
-            }
-            binding.subPresetPlusBtn.setOnClickListener {
-                onSubPresetAdjust?.invoke(1)?.let(binding::syncSubPresetState)
-            }
+            binding.configureSubPresetCycler(
+                options.initialSubPresetName,
+                onSubPresetAdjust,
+                ::refreshSubFilterStates,
+            )
             syncSubFilterChecks()
 
             binding.subScaleMinusBtn.setOnClickListener {
@@ -485,9 +483,26 @@ private fun DialogMediaPickerBinding.configureDelay(
     }
 }
 
-private fun DialogMediaPickerBinding.syncSubPresetState(state: MediaPickerDialog.SubPresetState) {
-    subPresetValue.text = state.presetName
-    subStyleValue.text = state.subStyleStateText
+private fun DialogMediaPickerBinding.configureSubPresetCycler(
+    initialName: String,
+    adjust: ((Int) -> MediaPickerDialog.SubPresetState)?,
+    refreshSubFilterStates: () -> Unit,
+) {
+    subPresetValue.text = initialName
+    subPresetMinusBtn.setOnClickListener {
+        adjust?.invoke(-1)?.let { state ->
+            subPresetValue.text = state.presetName
+            subStyleValue.text = state.subStyleStateText
+            refreshSubFilterStates()
+        }
+    }
+    subPresetPlusBtn.setOnClickListener {
+        adjust?.invoke(1)?.let { state ->
+            subPresetValue.text = state.presetName
+            subStyleValue.text = state.subStyleStateText
+            refreshSubFilterStates()
+        }
+    }
 }
 
 private fun DialogMediaPickerBinding.configureResponsiveSizing(
