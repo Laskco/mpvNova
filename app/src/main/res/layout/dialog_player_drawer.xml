@@ -120,6 +120,15 @@
             android:text="@string/drawer_tab_video" />
 
         <Button
+            android:id="@+id/tabBtnProcessing"
+            style="@style/Mpv.DrawerTabButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:nextFocusLeft="@id/drawerContentList"
+            android:text="@string/drawer_tab_processing" />
+
+        <Button
             android:id="@+id/tabBtnAudio"
             style="@style/Mpv.DrawerTabButton"
             android:layout_width="match_parent"

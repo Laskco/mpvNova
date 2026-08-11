@@ -12,9 +12,25 @@ internal fun MPVActivity.handleDrawerAction(
 ) {
     when (action.group) {
         PlayerDrawerActionGroup.VIDEO -> handleVideoDrawerAction(action, dismiss)
+        PlayerDrawerActionGroup.PROCESSING -> handleProcessingDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.AUDIO_SUBTITLE -> handleAudioSubtitleDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.PLAYBACK -> handlePlaybackDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.STATS -> handleStatsDrawerAction(action)
+    }
+}
+
+private fun MPVActivity.handleProcessingDrawerAction(
+    action: PlayerDrawerAction,
+    dismiss: () -> Unit,
+) {
+    dismissDrawerExpectingReopen(dismiss)
+    when (action) {
+        PlayerDrawerAction.UPSCALING_FILTER -> pickVideoScaler(VideoScalerSetting.UPSCALING)
+        PlayerDrawerAction.DOWNSCALING_FILTER -> pickVideoScaler(VideoScalerSetting.DOWNSCALING)
+        PlayerDrawerAction.DEBANDING -> pickVideoDebanding()
+        PlayerDrawerAction.INTERPOLATION -> pickVideoInterpolation()
+        PlayerDrawerAction.TEMPORAL_FILTER -> pickVideoScaler(VideoScalerSetting.TEMPORAL)
+        else -> Unit
     }
 }
 

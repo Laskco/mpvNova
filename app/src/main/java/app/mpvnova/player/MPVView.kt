@@ -103,7 +103,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         val debandMode = sharedPreferences.getString("video_debanding", "")
         if (debandMode == "gradfun") {
             // lower the default radius (16) to improve performance
-            mpvSetOptionString("vf", "gradfun=radius=12")
+            mpvSetOptionString("vf", "@mpvnova-deband:gradfun=radius=12")
         } else if (debandMode == "gpu") {
             mpvSetOptionString("deband", "yes")
         }

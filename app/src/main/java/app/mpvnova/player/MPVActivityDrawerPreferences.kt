@@ -10,8 +10,19 @@ internal fun MPVActivity.handleDrawerPreferenceChange(
         PlayerDrawerPreferenceGroup.AUTOPAUSE -> handleDrawerAutopausePreference(preference, newValue)
         PlayerDrawerPreferenceGroup.INTERFACE -> handleDrawerInterfacePreference(preference, newValue)
         PlayerDrawerPreferenceGroup.VIDEO -> handleDrawerVideoPreference(preference, newValue)
+        PlayerDrawerPreferenceGroup.PROCESSING -> handleDrawerProcessingPreference(preference, newValue)
         PlayerDrawerPreferenceGroup.PLAYBACK -> handleDrawerPlaybackPreference(preference, newValue)
         PlayerDrawerPreferenceGroup.SUBTITLES -> handleDrawerSubtitlePreference(preference, newValue)
+    }
+}
+
+private fun MPVActivity.handleDrawerProcessingPreference(
+    preference: PlayerDrawerPreference,
+    newValue: Boolean,
+) {
+    when (preference) {
+        PlayerDrawerPreference.LOW_QUALITY_DECODING -> player.applyFastDecodePreference(newValue)
+        else -> Unit
     }
 }
 

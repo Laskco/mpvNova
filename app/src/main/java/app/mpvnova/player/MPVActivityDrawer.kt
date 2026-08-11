@@ -96,6 +96,7 @@ internal fun MPVActivity.reopenDrawerIfPending() {
 private fun MPVActivity.bindDrawerTabSwitching(binding: DialogPlayerDrawerBinding) {
     val pairs = listOf(
         DrawerTab.VIDEO to binding.tabBtnVideo,
+        DrawerTab.PROCESSING to binding.tabBtnProcessing,
         DrawerTab.AUDIO to binding.tabBtnAudio,
         DrawerTab.SUBTITLES to binding.tabBtnSubtitles,
         DrawerTab.PLAYBACK to binding.tabBtnPlayback,
@@ -124,6 +125,7 @@ internal fun MPVActivity.selectDrawerTab(
     val active = drawerTabButton(binding, tab)
     listOf(
         binding.tabBtnVideo,
+        binding.tabBtnProcessing,
         binding.tabBtnAudio,
         binding.tabBtnSubtitles,
         binding.tabBtnPlayback,
@@ -132,6 +134,7 @@ internal fun MPVActivity.selectDrawerTab(
 
     val titleRes = when (tab) {
         DrawerTab.VIDEO -> R.string.drawer_section_video
+        DrawerTab.PROCESSING -> R.string.drawer_section_processing
         DrawerTab.AUDIO -> R.string.drawer_section_audio
         DrawerTab.SUBTITLES -> R.string.drawer_section_subtitles
         DrawerTab.PLAYBACK -> R.string.drawer_section_playback
@@ -156,6 +159,7 @@ internal fun MPVActivity.refreshDrawerRowsIfVisible(tab: DrawerTab? = null) {
 
 private fun drawerTabButton(binding: DialogPlayerDrawerBinding, tab: DrawerTab): Button = when (tab) {
     DrawerTab.VIDEO -> binding.tabBtnVideo
+    DrawerTab.PROCESSING -> binding.tabBtnProcessing
     DrawerTab.AUDIO -> binding.tabBtnAudio
     DrawerTab.SUBTITLES -> binding.tabBtnSubtitles
     DrawerTab.PLAYBACK -> binding.tabBtnPlayback

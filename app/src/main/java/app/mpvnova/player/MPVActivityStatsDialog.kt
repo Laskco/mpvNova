@@ -19,6 +19,7 @@ internal fun MPVActivity.toggleStatsPage(page: Int) {
     if (activeStatsPage == statsPage) {
         mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
         activeStatsPage = 0
+        refreshTimeInfoPanelVisibility()
         return
     }
     val previousPage = activeStatsPage.takeIf { it in STATS_PAGE_FIRST..STATS_PAGE_LAST }
@@ -26,12 +27,14 @@ internal fun MPVActivity.toggleStatsPage(page: Int) {
         mpvCommand(arrayOf("script-binding", "stats/display-page-$previousPage-toggle"))
     mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
     activeStatsPage = statsPage
+    refreshTimeInfoPanelVisibility()
 }
 
 internal fun MPVActivity.showConfiguredStatsPage() {
     val statsPage = statsLuaMode.takeIf { it in STATS_PAGE_FIRST..STATS_PAGE_LAST } ?: return
     mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
     activeStatsPage = statsPage
+    refreshTimeInfoPanelVisibility()
 }
 
 internal fun MPVActivity.showStatsPickerDialog() {

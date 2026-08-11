@@ -4,7 +4,8 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
-import android.widget.EditText
+import androidx.core.view.isVisible
+import androidx.core.widget.doOnTextChanged
 import androidx.preference.Preference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import app.mpvnova.player.R
@@ -17,7 +18,6 @@ class ConfigEditDialogPreference(
 ) : Preference(context, attrs) {
     private var configFile: File
     private lateinit var binding: ConfEditorBinding
-    private lateinit var editText: EditText
     private var dialogMessage: String?
 
     init {
@@ -37,12 +37,19 @@ class ConfigEditDialogPreference(
         binding.confTitle.text = title
         binding.confMessage.text = dialogMessage
         binding.confMessage.visibility = if (dialogMessage.isNullOrBlank()) View.GONE else View.VISIBLE
-        setupViews()
+        val originalContent = configFile.takeIf(File::exists)?.readText().orEmpty()
+        binding.editText.setText(originalContent)
         // Buttons live in the layout (pinned below the bounded editor), matching the app's
         // other dialogs, so a long config can never push them off-screen (issue #23).
         val dialog = MaterialAlertDialogBuilder(context)
             .setView(binding.root)
             .create()
+        binding.editText.doOnTextChanged { text, _, _, _ ->
+            val hasUnsavedChanges = text.toString() != originalContent
+            binding.unsavedText.isVisible = hasUnsavedChanges
+            dialog.setCancelable(!hasUnsavedChanges)
+            dialog.setCanceledOnTouchOutside(!hasUnsavedChanges)
+        }
         binding.cancelBtn.setOnClickListener { dialog.dismiss() }
         // Clear the editor in place; the empty content is persisted (file deleted) on Save.
         binding.clearBtn.setOnClickListener { binding.editText.setText("") }
@@ -50,14 +57,8 @@ class ConfigEditDialogPreference(
         dialog.show()
     }
 
-    private fun setupViews() {
-        editText = binding.editText
-        if (configFile.exists())
-            editText.setText(configFile.readText())
-    }
-
     private fun save() {
-        val content = editText.text.toString()
+        val content = binding.editText.text.toString()
         if (content.isEmpty())
             configFile.delete()
         else

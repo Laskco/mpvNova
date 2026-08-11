@@ -2,9 +2,9 @@ package app.mpvnova.player
 
 private const val DRAWER_SECTION_SPACER_DP = 4
 
-internal enum class DrawerTab { VIDEO, AUDIO, SUBTITLES, PLAYBACK, INTERFACE }
+internal enum class DrawerTab { VIDEO, PROCESSING, AUDIO, SUBTITLES, PLAYBACK, INTERFACE }
 
-internal enum class PlayerDrawerActionGroup { VIDEO, AUDIO_SUBTITLE, PLAYBACK, STATS }
+internal enum class PlayerDrawerActionGroup { VIDEO, PROCESSING, AUDIO_SUBTITLE, PLAYBACK, STATS }
 
 internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     DECODER(PlayerDrawerActionGroup.VIDEO),
@@ -16,6 +16,11 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     GAMMA(PlayerDrawerActionGroup.VIDEO),
     SATURATION(PlayerDrawerActionGroup.VIDEO),
     SCREENSHOT(PlayerDrawerActionGroup.VIDEO),
+    UPSCALING_FILTER(PlayerDrawerActionGroup.PROCESSING),
+    DOWNSCALING_FILTER(PlayerDrawerActionGroup.PROCESSING),
+    DEBANDING(PlayerDrawerActionGroup.PROCESSING),
+    INTERPOLATION(PlayerDrawerActionGroup.PROCESSING),
+    TEMPORAL_FILTER(PlayerDrawerActionGroup.PROCESSING),
     AUDIO_TRACK(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
     OPEN_AUDIO(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
     AUDIO_DELAY(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
@@ -40,7 +45,14 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     STATS_PAGE_3(PlayerDrawerActionGroup.STATS),
 }
 
-internal enum class PlayerDrawerPreferenceGroup { AUTOPAUSE, INTERFACE, VIDEO, PLAYBACK, SUBTITLES }
+internal enum class PlayerDrawerPreferenceGroup {
+    AUTOPAUSE,
+    INTERFACE,
+    VIDEO,
+    PROCESSING,
+    PLAYBACK,
+    SUBTITLES,
+}
 
 internal enum class PlayerDrawerPreference(
     val group: PlayerDrawerPreferenceGroup,
@@ -158,6 +170,13 @@ internal enum class PlayerDrawerPreference(
         PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK,
         true,
     ),
+    LOW_QUALITY_DECODING(
+        PlayerDrawerPreferenceGroup.PROCESSING,
+        R.string.pref_video_fastdecode_title,
+        R.string.pref_video_fastdecode_summary,
+        "video_fastdecode",
+        false,
+    ),
     SAVE_POSITION(
         PlayerDrawerPreferenceGroup.PLAYBACK,
         R.string.pref_save_position_title,
@@ -215,6 +234,31 @@ internal enum class PlayerDrawerOption(
         R.string.pref_shield_decoder_fallback_title,
         R.string.pref_shield_decoder_fallback_summary,
     ),
+    UPSCALING_FILTER(
+        PlayerDrawerAction.UPSCALING_FILTER,
+        R.string.pref_video_upscale_title,
+        R.string.pref_video_upscale_summary,
+    ),
+    DOWNSCALING_FILTER(
+        PlayerDrawerAction.DOWNSCALING_FILTER,
+        R.string.pref_video_downscale_title,
+        R.string.pref_video_downscale_summary,
+    ),
+    DEBANDING(
+        PlayerDrawerAction.DEBANDING,
+        R.string.pref_video_debanding_title,
+        R.string.pref_video_debanding_summary,
+    ),
+    INTERPOLATION(
+        PlayerDrawerAction.INTERPOLATION,
+        R.string.pref_video_interpolation_title,
+        R.string.pref_video_interpolation_message,
+    ),
+    TEMPORAL_FILTER(
+        PlayerDrawerAction.TEMPORAL_FILTER,
+        R.string.pref_video_tscale_title,
+        R.string.pref_video_tscale_summary,
+    ),
     SKIP_MODE(
         PlayerDrawerAction.SKIP_MODE,
         R.string.pref_skip_segments_mode_title,
@@ -253,12 +297,22 @@ internal fun MPVActivity.buildPlayerDrawerRows(tab: DrawerTab): List<PlayerDrawe
     val rows = mutableListOf<PlayerDrawerRow>()
     when (tab) {
         DrawerTab.VIDEO -> addVideoRows(rows)
+        DrawerTab.PROCESSING -> addProcessingRows(rows)
         DrawerTab.AUDIO -> addAudioRows(rows)
         DrawerTab.SUBTITLES -> addSubtitleRows(rows)
         DrawerTab.PLAYBACK -> addPlaybackRows(rows)
         DrawerTab.INTERFACE -> addInterfaceRows(rows)
     }
     return rows
+}
+
+private fun addProcessingRows(rows: MutableList<PlayerDrawerRow>) {
+    rows.addOption(PlayerDrawerOption.UPSCALING_FILTER)
+    rows.addOption(PlayerDrawerOption.DOWNSCALING_FILTER)
+    rows.addOption(PlayerDrawerOption.DEBANDING)
+    rows.addOption(PlayerDrawerOption.INTERPOLATION)
+    rows.addOption(PlayerDrawerOption.TEMPORAL_FILTER)
+    rows.addPref(PlayerDrawerPreference.LOW_QUALITY_DECODING)
 }
 
 private fun MPVActivity.addVideoRows(rows: MutableList<PlayerDrawerRow>) {

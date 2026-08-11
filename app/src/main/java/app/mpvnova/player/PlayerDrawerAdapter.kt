@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.content.SharedPreferences
 import android.text.TextUtils
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -207,10 +208,14 @@ internal class PlayerDrawerAdapter(
         fun bind(option: PlayerDrawerOption) = with(binding) {
             prefRowTitle.setText(option.titleRes)
             prefRowSummary.setText(option.summaryRes)
-            activity.applyOptionValueLayout(prefRowValue)
             prefRowValue.text = activity.drawerOptionValue(option)
+            activity.applyOptionValueLayout(prefRowValue)
             prefRowValue.alpha = 1f
+            prefRowValue.isSelected = root.hasFocus()
             root.alpha = 1f
+            root.setOnFocusChangeListener { _, hasFocus ->
+                prefRowValue.isSelected = hasFocus
+            }
             root.setOnClickListener { activity.handleDrawerAction(option.action, dismiss) }
         }
     }
@@ -349,13 +354,19 @@ private fun MPVActivity.applyPreferenceValueLayout(valueView: TextView) {
 }
 
 private fun MPVActivity.applyOptionValueLayout(valueView: TextView) {
+    val width = Utils.convertDp(this@applyOptionValueLayout, OPTION_ROW_VALUE_MAX_WIDTH_DP)
     valueView.updateLayoutParams<LinearLayout.LayoutParams> {
-        width = ViewGroup.LayoutParams.WRAP_CONTENT
+        this.width = width
     }
     valueView.minWidth = Utils.convertDp(this@applyOptionValueLayout, OPTION_ROW_VALUE_MIN_WIDTH_DP)
-    valueView.maxWidth = Utils.convertDp(this@applyOptionValueLayout, OPTION_ROW_VALUE_MAX_WIDTH_DP)
+    valueView.maxWidth = width
     valueView.maxLines = 1
-    valueView.ellipsize = TextUtils.TruncateAt.END
+    valueView.setHorizontallyScrolling(true)
+    valueView.ellipsize = TextUtils.TruncateAt.MARQUEE
+    valueView.marqueeRepeatLimit = -1
+    val availableTextWidth = width - valueView.paddingStart - valueView.paddingEnd
+    val overflows = valueView.paint.measureText(valueView.text.toString()) > availableTextWidth
+    valueView.gravity = Gravity.CENTER_VERTICAL or if (overflows) Gravity.START else Gravity.END
 }
 
 private fun refreshPrefRowValue(valueView: TextView, on: Boolean) {

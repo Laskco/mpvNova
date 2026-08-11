@@ -35,7 +35,7 @@ internal fun MPVActivity.startDimScreensaver() {
 
 // Lift the clock panel above the scrim and keep it ticking, if the user shows the clock on pause.
 private fun MPVActivity.raiseDimClock() {
-    if (!showClockOnPause) return
+    if (!shouldShowClockWhileControlsHidden()) return
     val panel = binding.timeInfoPanel
     panel.translationZ = Utils.convertDp(this, SCREENSAVER_CLOCK_Z_DP).toFloat()
     panel.animate().cancel()

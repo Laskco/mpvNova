@@ -6,6 +6,11 @@ internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String =
         decoderModeCompactLabel(mode)
     }
     PlayerDrawerOption.SHIELD_FALLBACK -> shieldFallbackOption(shieldDecoderFallback).compactLabel
+    PlayerDrawerOption.UPSCALING_FILTER -> videoScalerDrawerValue(VideoScalerSetting.UPSCALING)
+    PlayerDrawerOption.DOWNSCALING_FILTER -> videoScalerDrawerValue(VideoScalerSetting.DOWNSCALING)
+    PlayerDrawerOption.DEBANDING -> videoDebandingDrawerValue()
+    PlayerDrawerOption.INTERPOLATION -> videoInterpolationDrawerValue()
+    PlayerDrawerOption.TEMPORAL_FILTER -> videoScalerDrawerValue(VideoScalerSetting.TEMPORAL)
     PlayerDrawerOption.SKIP_MODE -> skipSegmentsModeLabel(skipSegmentsMode)
     PlayerDrawerOption.SKIP_BUTTON_DISPLAY -> skipButtonDisplayModeCompactLabel(
         skipButtonDisplayMode

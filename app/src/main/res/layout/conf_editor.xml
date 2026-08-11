@@ -49,6 +49,16 @@
         android:textColor="@color/tv_text"
         android:textSize="16sp" />
 
+    <TextView
+        android:id="@+id/unsavedText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/unsaved_changes"
+        android:textColor="?attr/colorError"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

@@ -46,6 +46,12 @@ internal val SCREENSAVER_LOGO_DIALOG_LAYOUT = PlayerDialogLayout(
     widthFraction = 0.5f,
     maxWidthDp = 560f,
 )
+internal val VIDEO_PROCESSING_DIALOG_LAYOUT = PlayerDialogLayout(
+    widthFraction = 0.54f,
+    maxWidthDp = 580f,
+    heightFraction = 0.82f,
+    maxHeightDp = 560f,
+)
 internal const val CLOCK_TICK_INTERVAL_MS = 30_000L
 internal const val MIN_CLOCK_TICK_DELAY_MS = 1_000L
 internal const val BACKGROUND_SERVICE_STOP_DELAY_MS = 1_000L

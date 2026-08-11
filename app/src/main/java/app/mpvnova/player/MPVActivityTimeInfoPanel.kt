@@ -3,7 +3,7 @@ package app.mpvnova.player
 import android.view.View
 
 internal fun MPVActivity.shouldShowClockWhileControlsHidden(): Boolean {
-    return showClockOnPause && psc.pause
+    return !isStatsOverlayVisible() && showClockOnPause && psc.pause
 }
 
 internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
@@ -20,7 +20,11 @@ internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
 }
 
 private fun MPVActivity.shouldShowTimeInfoPanel(): Boolean {
-    if (inPictureInPicture()) return false
+    if (inPictureInPicture() || isStatsOverlayVisible()) return false
     return (binding.controls.visibility == View.VISIBLE && showClockOverlay) ||
         shouldShowClockWhileControlsHidden()
+}
+
+private fun MPVActivity.isStatsOverlayVisible(): Boolean {
+    return activeStatsPage in STATS_PAGE_FIRST..STATS_PAGE_LAST
 }

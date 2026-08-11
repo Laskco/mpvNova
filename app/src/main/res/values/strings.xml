@@ -547,8 +547,10 @@
     <string name="pref_playlist_exit_warning_summary">Show a confirmation dialog before exiting when a playlist is loaded.</string>
 
     <string name="pref_video_upscale_title">Upscaling filter</string>
+    <string name="pref_video_upscale_summary">Choose the filter used when video is enlarged.</string>
 
     <string name="pref_video_downscale_title">Downscaling filter</string>
+    <string name="pref_video_downscale_summary">Choose the filter used when video is reduced.</string>
 
     <string name="pref_video_debanding_title">Debanding</string>
     <string name="pref_video_debanding_summary">Select video debanding mode.</string>
@@ -618,15 +620,28 @@
          which feature. -->
     <string name="action_pip">Picture-in-picture</string>
     <string name="drawer_tab_video">Video</string>
+    <string name="drawer_tab_processing">Processing</string>
     <string name="drawer_tab_audio">Audio</string>
     <string name="drawer_tab_subtitles">Subtitles</string>
     <string name="drawer_tab_playback">Playback</string>
     <string name="drawer_tab_interface">Interface</string>
     <string name="drawer_section_video">Video</string>
+    <string name="drawer_section_processing">Video Processing</string>
     <string name="drawer_section_audio">Audio</string>
     <string name="drawer_section_subtitles">Subtitles</string>
     <string name="drawer_section_playback">Playback</string>
     <string name="drawer_section_interface">Interface</string>
+    <string name="video_processing_default">Default</string>
+    <string name="video_processing_default_detail">Use mpv.conf or mpvNova\'s fast playback profile.</string>
+    <string name="video_processing_disabled">Disabled</string>
+    <string name="video_processing_deband_disabled_detail">Show the decoded image without additional debanding.</string>
+    <string name="video_processing_deband_cpu">CPU</string>
+    <string name="video_processing_deband_cpu_detail">Use the gradfun video filter. This may be expensive during software decoding.</string>
+    <string name="video_processing_deband_gpu">GPU</string>
+    <string name="video_processing_deband_gpu_detail">Use mpv\'s renderer debanding. Recommended when the active video output supports it.</string>
+    <string name="video_processing_interpolation_disabled_detail">Keep the current video sync mode without generating intermediate frames.</string>
+    <string name="video_processing_interpolation_mode_detail">Enable interpolation with this display synchronized mode.</string>
+    <string name="unsaved_changes">Unsaved changes</string>
     <!-- Drawer action labels for the entries that open dedicated pickers. -->
     <!-- Shorter label for the drawer Video tab where two buttons share a row;
          the full "Video brightness" wraps to two lines and breaks alignment
