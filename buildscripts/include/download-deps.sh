@@ -79,8 +79,9 @@ fi
 
 # libplacebo
 if [ ! -d libplacebo ]; then
-	git clone --recursive https://github.com/haasn/libplacebo
-	git -C libplacebo checkout v7.360.1
+	git clone https://github.com/haasn/libplacebo
+	git -C libplacebo checkout $v_ci_libplacebo
+	git -C libplacebo submodule update --init --recursive
 fi
 
 # curl

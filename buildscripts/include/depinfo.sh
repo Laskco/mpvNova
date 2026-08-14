@@ -19,6 +19,7 @@ v_dav1d=1.5.4
 v_libxml2=2.15.3
 v_fontconfig=2.18.3
 v_libass=0.17.5
+v_libplacebo=7.371.0
 v_curl=8.21.0
 
 
@@ -45,8 +46,9 @@ dep_mpvnova=(mpv)
 
 # pinned ffmpeg revision
 v_ci_ffmpeg=n9.0
+v_ci_libplacebo=22ee762e8e0890fc54068beb670310f0edce7263
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-${v_libass}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}.tgz"
+ci_tarball="prefix-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-${v_libass}-libplacebo-${v_libplacebo}-${v_ci_libplacebo:0:8}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}.tgz"
