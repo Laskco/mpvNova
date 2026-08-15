@@ -83,6 +83,7 @@ private fun MPVActivity.performFirstShowSetup() {
         insetsController.show(WindowInsetsCompat.Type.navigationBars())
     }
     updatePlaybackTimeline(psc.position, forceTextUpdate = true)
+    scheduleSubtitleControlsPositionUpdate()
     updatePlayerToastPlacement()
     refreshSkipButtonVisibility()
 }
@@ -124,6 +125,7 @@ internal fun MPVActivity.hideControls() {
     binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
     binding.controlsScrim.setVisibilityIfChanged(View.GONE)
     binding.statsTextView.setVisibilityIfChanged(View.GONE)
+    updateSubtitleControlsPosition()
     refreshTimeInfoPanelVisibility()
     updatePlayerToastPlacement()
     refreshSkipButtonVisibility()

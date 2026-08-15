@@ -297,6 +297,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var preferExternalForwardedSubtitles = false
 
     internal var controlsAtBottom = true
+    internal var subtitleControlsOffsetPercent = 0
     internal var showMediaTitle = false
     internal var showClockOverlay = true
     internal var showClockDate = false
@@ -685,6 +686,7 @@ open class MPVActivity : AppCompatActivity() {
             }
             rightMargin = leftMargin
         }
+        scheduleSubtitleControlsPositionUpdate()
         updateSkipButtonPlacement()
     }
 

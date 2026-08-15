@@ -1,12 +1,13 @@
 package app.mpvnova.player
 
-
 internal fun MPVActivity.applySubScaleProperty() {
     mpvSetPropertyDouble("sub-scale", subScaleSteps[subScaleLevel])
 }
 
 internal fun MPVActivity.applySubPosProperty() {
-    mpvSetPropertyInt("sub-pos", subPosSteps[subPosLevel])
+    val position = (subPosSteps[subPosLevel] - subtitleControlsOffsetPercent)
+        .coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT)
+    mpvSetPropertyInt("sub-pos", position)
 }
 
 internal fun MPVActivity.applySecondaryPosProperty() {
