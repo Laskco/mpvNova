@@ -113,11 +113,10 @@ private fun MPVActivity.refreshStreamLoadingCover() {
         cover.visibility = View.VISIBLE
         cover.alpha = 1f
     } else if (cover.visibility == View.VISIBLE) {
-        cover.animate()
-            .alpha(0f)
-            .setDuration(LOADING_OVERLAY_FADE_MS)
-            .withLayer()
-            .withEndAction { cover.visibility = View.GONE }
+        // The first decoded frames are the most timing-sensitive. Fading a full-screen
+        // black layer over the SurfaceView forces expensive composition exactly then.
+        cover.alpha = 0f
+        cover.visibility = View.GONE
     }
 }
 

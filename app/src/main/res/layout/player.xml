@@ -598,7 +598,7 @@
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
-            android:background="@drawable/bg_player_toast"
+            android:background="@drawable/bg_glass_panel"
             android:elevation="8dp"
             android:gravity="center_horizontal"
             android:orientation="vertical"

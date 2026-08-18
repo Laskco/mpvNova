@@ -14,4 +14,22 @@
         android:title="@string/pref_export_config_bundle_title"
         app:iconSpaceReserved="false" />
 
+    <PreferenceCategory
+        android:title="@string/pref_full_backup_header"
+        app:iconSpaceReserved="false">
+
+        <Preference
+            android:key="export_full_backup"
+            android:summary="@string/pref_export_full_backup_summary"
+            android:title="@string/pref_export_full_backup_title"
+            app:iconSpaceReserved="false" />
+
+        <Preference
+            android:key="import_full_backup"
+            android:summary="@string/pref_import_full_backup_summary"
+            android:title="@string/pref_import_full_backup_title"
+            app:iconSpaceReserved="false" />
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

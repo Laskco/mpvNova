@@ -9,5 +9,7 @@ internal fun MPVActivity.applyNightModeDecoderDrcScale() {
     } else {
         drcDecoderScaleOff
     }
+    if (decoderScale == lastAppliedDecoderDrcScale) return
     setRuntimeOption("ad-lavc-ac3drc", decoderScale)
+    lastAppliedDecoderDrcScale = decoderScale
 }

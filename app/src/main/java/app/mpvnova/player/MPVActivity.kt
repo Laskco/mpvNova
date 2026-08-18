@@ -215,29 +215,18 @@ open class MPVActivity : AppCompatActivity() {
         private val accelerate = androidx.interpolator.view.animation.FastOutLinearInInterpolator()
 
         override fun run() {
-            // All overlays share duration + curve + withLayer() → one GPU texture.
-            binding.topControls.animate()
-                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
-            binding.playerTitleOverlay.animate()
-                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
-            binding.controlsScrim.animate()
-                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
-            if (shouldShowClockWhileControlsHidden()) {
-                binding.timeInfoPanel.animate().cancel()
-                binding.timeInfoPanel.alpha = 1f
-            } else {
-                binding.timeInfoPanel.animate()
-                    .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
-            }
-            binding.statsTextView.animate()
-                .alpha(0f).setDuration(CONTROLS_FADE_DURATION).setInterpolator(accelerate).withLayer()
-            // Main bar drives the listener so hideControls() fires once.
+            // Only animate the compact bar. Creating hardware layers for every
+            // overlay, including the full-width scrim, competes with video output.
+            binding.topControls.visibility = View.GONE
+            binding.playerTitleOverlay.visibility = View.GONE
+            binding.controlsScrim.visibility = View.GONE
+            if (!shouldShowClockWhileControlsHidden()) binding.timeInfoPanel.visibility = View.GONE
+            binding.statsTextView.visibility = View.GONE
             binding.controls.animate()
                 .alpha(0f)
                 .setDuration(CONTROLS_FADE_DURATION)
                 .setInterpolator(accelerate)
                 .setListener(listener)
-                .withLayer()
         }
     }
 
@@ -698,6 +687,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var audioNormLevel = 0
     internal var downmixLevel = 0
     internal var centerBoostLevel = 0
+    internal var lastAppliedAudioFilterChain: String? = null
+    internal var lastAppliedDecoderDrcScale: String? = null
 
     // Subtitle filter state. subPosSteps spans -25..125% in 5% steps so the
     // user can click past edges without focus bouncing (mpv soft-clamps).

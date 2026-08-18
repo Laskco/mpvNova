@@ -867,6 +867,15 @@ class PreferenceActivity : AppCompatActivity(),
     }
 
     class SupportPreference : StyledPreferenceFragment(R.xml.pref_support) {
+        private val backupExporter =
+            registerForActivityResult(ActivityResultContracts.CreateDocument(FullBackupActions.MIME_TYPE)) { uri ->
+                if (uri != null) activity?.let { FullBackupActions.export(it, uri) }
+            }
+        private val backupImporter =
+            registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                if (uri != null) activity?.let { FullBackupActions.confirmImport(it, uri) }
+            }
+
         override fun onPreferencesLoaded() {
             findPreference<Preference>("copy_debug_info")?.setOnPreferenceClickListener {
                 activity?.let(SupportActions::copyDebugInfo)
@@ -874,6 +883,14 @@ class PreferenceActivity : AppCompatActivity(),
             }
             findPreference<Preference>("export_config_bundle")?.setOnPreferenceClickListener {
                 activity?.let(SupportActions::exportConfigBundle)
+                true
+            }
+            findPreference<Preference>("export_full_backup")?.setOnPreferenceClickListener {
+                backupExporter.launch(FullBackupActions.suggestedFilename())
+                true
+            }
+            findPreference<Preference>("import_full_backup")?.setOnPreferenceClickListener {
+                backupImporter.launch(arrayOf(FullBackupActions.MIME_TYPE, "application/octet-stream"))
                 true
             }
         }

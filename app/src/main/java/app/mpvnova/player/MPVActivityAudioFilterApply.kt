@@ -35,11 +35,15 @@ internal fun MPVActivity.applySavedAudioFilterDefaults() {
     applyNightModeDecoderDrcScale()
     val filterChain = if (persistAudioFilters) buildAudioFilterChain() else ""
     mpvSetOptionString("af", filterChain)
+    lastAppliedAudioFilterChain = filterChain
 }
 
 internal fun MPVActivity.applyAudioFilterState() {
     applyNightModeDecoderDrcScale()
-    mpvSetPropertyString("af", buildAudioFilterChain())
+    val filterChain = buildAudioFilterChain()
+    if (filterChain == lastAppliedAudioFilterChain) return
+    mpvSetPropertyString("af", filterChain)
+    lastAppliedAudioFilterChain = filterChain
 }
 
 internal fun MPVActivity.rebuildAudioFilters() {

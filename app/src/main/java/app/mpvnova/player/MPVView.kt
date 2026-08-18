@@ -153,7 +153,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
         screenshotDir.mkdirs()
         mpvSetOptionString("screenshot-directory", screenshotDir.path)
-        mpvSetOptionString("vd-lavc-film-grain", "cpu")
     }
 
     override fun postInitOptions() {

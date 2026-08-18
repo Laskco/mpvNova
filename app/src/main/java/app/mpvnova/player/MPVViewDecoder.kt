@@ -38,7 +38,9 @@ internal fun MPVView.isHi10pH264Video(): Boolean {
         mpvGetPropertyString("video-codec") ?: ""
     }.trim().lowercase()
     val profile = selectedVideoTrackString("codec-profile").trim().lowercase()
-    val pixelFormat = getOptionString("video-params/pixelformat").trim().lowercase()
+    val pixelFormat = (mpvGetPropertyString("video-params/pixelformat") ?: "")
+        .trim()
+        .lowercase()
     return codec == "h264" && (
             profile.contains("10") ||
             profile.contains("hi10") ||
