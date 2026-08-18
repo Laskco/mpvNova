@@ -30,6 +30,9 @@ args=(
 
 	--enable-{jni,mediacodec,mbedtls,libdav1d,libxml2} --disable-vulkan
 	--disable-static --enable-shared --enable-{gpl,version3}
+	# Profile 7 FEL splitting opens a second HEVC decoder. On Android devices
+	# such as Shield TV this can fail MediaCodec setup or fall back to software.
+	--disable-bsf=dovi_split
 
 	# disable unneeded parts
 	--disable-{stripping,doc,programs}
