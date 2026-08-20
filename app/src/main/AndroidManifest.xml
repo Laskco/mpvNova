@@ -57,6 +57,10 @@
         android:localeConfig="@xml/locales_config"
         tools:targetApi="tiramisu">
 
+        <profileable
+            android:shell="true"
+            tools:targetApi="q" />
+
         <activity
             android:name=".ExternalPlayerActivity"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenLayout|uiMode|screenSize|smallestScreenSize"
