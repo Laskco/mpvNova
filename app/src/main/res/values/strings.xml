@@ -634,7 +634,7 @@
          which feature. -->
     <string name="action_pip">Picture-in-picture</string>
     <string name="drawer_tab_video">Video</string>
-    <string name="drawer_tab_processing">Processing</string>
+    <string name="drawer_tab_processing">Filters</string>
     <string name="drawer_tab_audio">Audio</string>
     <string name="drawer_tab_subtitles">Subtitles</string>
     <string name="drawer_tab_playback">Playback</string>
