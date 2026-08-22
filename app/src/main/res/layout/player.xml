@@ -75,7 +75,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:fontFamily="sans"
+            android:fontFamily="sans-serif"
             android:letterSpacing="0.08"
             android:text="@string/player_loading_stream"
             android:textAllCaps="true"
@@ -212,7 +212,7 @@
                     android:gravity="center_vertical|start"
                     android:orientation="horizontal">
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/playBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -221,10 +221,10 @@
                         app:tint="@color/tv_text"
                         tools:src="@drawable/ic_play_arrow_black_24dp">
                         <requestFocus />
-                    </ImageButton>
+                    </app.mpvnova.player.ShadowImageButton>
 
                     <!-- Next Chapter: press = skip to next chapter, hold = chapter picker -->
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/nextChapterBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -234,7 +234,7 @@
                         app:srcCompat="@drawable/ic_next_chapter_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/prevBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -243,7 +243,7 @@
                         app:srcCompat="@drawable/ic_skip_previous_black_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/nextBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -252,7 +252,7 @@
                         app:srcCompat="@drawable/ic_skip_next_black_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/cycleSubsBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -261,7 +261,7 @@
                         app:srcCompat="@drawable/ic_subtitles_black_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/cycleAudioBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -277,6 +277,10 @@
                         android:layout_height="wrap_content"
                         android:minWidth="56dp"
                         android:minHeight="48dp"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
                         android:textColor="@color/tv_text"
                         tools:text="1.00X" />
 
@@ -287,10 +291,14 @@
                         android:layout_height="wrap_content"
                         android:minWidth="56dp"
                         android:minHeight="48dp"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
                         android:textColor="@color/tv_text"
                         tools:text="HW+" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/statsToggleBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -299,7 +307,7 @@
                         app:srcCompat="@drawable/round_code_24"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/voiceBoostBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -308,7 +316,7 @@
                         app:srcCompat="@drawable/ic_voice_boost_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/volumeBoostBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -317,7 +325,7 @@
                         app:srcCompat="@drawable/ic_volume_boost_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/nightModeBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -326,7 +334,7 @@
                         app:srcCompat="@drawable/ic_night_mode_24dp"
                         app:tint="@color/tv_text" />
 
-                    <ImageButton
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/audioNormBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
@@ -351,8 +359,12 @@
                         android:id="@+id/playbackPositionTxt"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="monospace"
+                        android:fontFamily="sans-serif"
                         android:gravity="center"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
                         android:textColor="@color/tv_text"
                         android:textSize="13sp"
                         android:textStyle="bold"
@@ -362,9 +374,13 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="monospace"
+                        android:fontFamily="sans-serif"
                         android:paddingStart="4dp"
                         android:paddingEnd="4dp"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
                         android:text=" / "
                         android:textColor="@color/tv_text_mute"
                         android:textSize="13sp"
@@ -374,8 +390,12 @@
                         android:id="@+id/playbackDurationTxt"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:fontFamily="monospace"
+                        android:fontFamily="sans-serif"
                         android:gravity="center"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
                         android:textColor="@color/tv_text_dim"
                         android:textSize="13sp"
                         android:textStyle="bold"
@@ -486,11 +506,15 @@
                 android:layout_marginBottom="10dp"
                 android:background="@drawable/bg_player_toast"
                 android:elevation="8dp"
-                android:fontFamily="monospace"
+                android:fontFamily="sans-serif"
                 android:paddingStart="12dp"
                 android:paddingTop="6dp"
                 android:paddingEnd="12dp"
                 android:paddingBottom="6dp"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"
                 android:textColor="@color/tv_text"
                 android:textSize="14sp"
                 android:textStyle="bold"
@@ -535,7 +559,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
-                android:fontFamily="monospace"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -547,7 +574,10 @@
                 android:id="@+id/clockTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"
                 android:textColor="@color/tv_text"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -558,7 +588,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:fontFamily="monospace"
+                android:shadowColor="#CC000000"
+                android:shadowDx="0"
+                android:shadowDy="1"
+                android:shadowRadius="2"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -575,7 +608,7 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="12dp"
             android:background="@drawable/bg_glass_panel"
-            android:fontFamily="monospace"
+            android:fontFamily="sans-serif"
             android:paddingStart="14dp"
             android:paddingTop="10dp"
             android:paddingEnd="14dp"
@@ -725,7 +758,7 @@
             android:orientation="horizontal"
             android:padding="6dp">
 
-            <ImageButton
+            <app.mpvnova.player.ShadowImageButton
                 android:id="@+id/topPiPBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
                 android:layout_width="wrap_content"
@@ -735,7 +768,7 @@
                 app:srcCompat="@drawable/ic_picture_in_picture_24dp"
                 app:tint="@color/tv_text" />
 
-            <ImageButton
+            <app.mpvnova.player.ShadowImageButton
                 android:id="@+id/topMenuBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
                 android:layout_width="wrap_content"
