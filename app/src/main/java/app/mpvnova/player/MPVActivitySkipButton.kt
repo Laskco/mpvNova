@@ -50,6 +50,7 @@ internal fun MPVActivity.hideSkipButton() {
 internal fun MPVActivity.skipFromButton() {
     val seg = currentSkipButtonSegment ?: return
     autoSkippedSegmentKeys.add(seg.key())
+    rewoundSkipSegmentKeys.remove(seg.key())
     performSegmentSkip(seg)
     hideSkipButton()
 }
@@ -80,7 +81,7 @@ internal fun MPVActivity.refreshSkipButtonVisibility() {
     val seg = currentSkipButtonSegment ?: return
     val controlsVisible = binding.controls.visibility == View.VISIBLE
     val key = seg.key()
-    val shouldShow = key !in autoSkippedSegmentKeys &&
+    val shouldShow = (key !in autoSkippedSegmentKeys || key in rewoundSkipSegmentKeys) &&
         (controlsVisible ||
             (key !in dismissedSkipSegmentKeys && key !in autoHiddenSkipSegmentKeys))
 
@@ -103,7 +104,10 @@ internal fun MPVActivity.refreshSkipButtonVisibility() {
 
 internal fun MPVActivity.updateSkipButtonPlacement() {
     currentSkipButtonSegment?.let { seg ->
-        if (seg.key() in autoSkippedSegmentKeys) {
+        if (
+            seg.key() in autoSkippedSegmentKeys &&
+            seg.key() !in rewoundSkipSegmentKeys
+        ) {
             binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
         }
     }

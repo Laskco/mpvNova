@@ -74,12 +74,14 @@ open class MPVActivity : AppCompatActivity() {
     @DrawableRes
     internal var lastPlayButtonIconRes = 0
 
-    // Intro/outro skip segments passed by the launching app (e.g. Nuvio), and the segments
-    // we've already auto-skipped so we don't fight the user if they seek back into one.
+    // Intro/outro skip segments passed by the launching app (e.g. Nuvio), plus handled and
+    // rewind-rearmed state so replaying a segment offers the button instead of auto-skipping again.
     internal var skipSegments: List<SkipSegment> = emptyList()
     internal val autoSkippedSegmentKeys = HashSet<String>()
+    internal val rewoundSkipSegmentKeys = HashSet<String>()
     internal val dismissedSkipSegmentKeys = HashSet<String>()
     internal val autoHiddenSkipSegmentKeys = HashSet<String>()
+    internal var lastSkipSegmentPlaybackPositionSec = Double.NaN
     internal val skipButtonAutoHideRunnable = Runnable { autoHideSkipButton() }
 
     // Paused-inactivity DVD-style screensaver.

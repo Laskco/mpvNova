@@ -7,6 +7,7 @@ import org.json.JSONException
 
 // Stop skipping a hair before the segment end so playback lands cleanly past it.
 private const val SKIP_SEGMENT_END_GUARD_SEC = 1.0
+private const val SKIP_SEGMENT_REWIND_MIN_DELTA_SEC = 1.0
 
 /**
  * Reads the `skip_segments` launch extra (a JSON array of `{type,start,end}`, seconds) set by the
@@ -15,8 +16,10 @@ private const val SKIP_SEGMENT_END_GUARD_SEC = 1.0
 internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
     skipSegments = emptyList()
     autoSkippedSegmentKeys.clear()
+    rewoundSkipSegmentKeys.clear()
     dismissedSkipSegmentKeys.clear()
     autoHiddenSkipSegmentKeys.clear()
+    lastSkipSegmentPlaybackPositionSec = Double.NaN
     hideSkipButton()
 
     val json = extras?.getString("skip_segments")?.takeIf { it.isNotBlank() } ?: return
@@ -41,10 +44,11 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
 /**
  * Called on each playback time tick. Depending on [MPVActivity.skipSegmentsMode]:
  *  - OFF: do nothing.
- *  - AUTO: when inside a not-yet-handled segment, seek past it once and flash a toast.
- *  - BUTTON: when inside a not-yet-skipped segment, show or refresh the Skip button.
+ *  - AUTO: seek past a new segment once; after rewinding across it, offer the Skip button.
+ *  - BUTTON: show the Skip button for a new or rewind-rearmed segment.
  */
 internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
+    rearmSkippedSegmentsAfterRewind(posSec)
     if (skipSegmentsMode == SkipSegmentsMode.OFF || skipSegments.isEmpty()) {
         hideSkipButton()
         return
@@ -52,7 +56,8 @@ internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
     val seg = skipSegments.firstOrNull { segment ->
         posSec >= segment.start &&
             posSec < segment.end - SKIP_SEGMENT_END_GUARD_SEC &&
-            segment.key() !in autoSkippedSegmentKeys
+            (segment.key() !in autoSkippedSegmentKeys ||
+                segment.key() in rewoundSkipSegmentKeys)
     }
     if (seg == null) {
         hideSkipButton() // left the active window (or it was handled)
@@ -60,12 +65,54 @@ internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
     }
     when (skipSegmentsMode) {
         SkipSegmentsMode.AUTO -> {
-            autoSkippedSegmentKeys.add(seg.key()) // each segment is auto-skipped only once
-            performSegmentSkip(seg)
+            if (seg.key() in rewoundSkipSegmentKeys) {
+                showSkipButton(seg)
+            } else {
+                autoSkippedSegmentKeys.add(seg.key()) // each segment is auto-skipped only once
+                performSegmentSkip(seg)
+            }
         }
         SkipSegmentsMode.BUTTON -> showSkipButton(seg)
         SkipSegmentsMode.OFF -> Unit
     }
+}
+
+private fun MPVActivity.rearmSkippedSegmentsAfterRewind(posSec: Double) {
+    val previousPosSec = lastSkipSegmentPlaybackPositionSec
+    lastSkipSegmentPlaybackPositionSec = posSec
+    if (!previousPosSec.isFinite() || !posSec.isFinite()) return
+
+    skipSegments.forEach { segment ->
+        val key = segment.key()
+        if (
+            key in autoSkippedSegmentKeys &&
+            rewoundIntoOrBeforeSkippedSegment(previousPosSec, posSec, segment)
+        ) {
+            rewoundSkipSegmentKeys.add(key)
+            dismissedSkipSegmentKeys.remove(key)
+            autoHiddenSkipSegmentKeys.remove(key)
+            Log.d(MPV_ACTIVITY_TAG, "Rearmed skip button for $key after rewind")
+        }
+    }
+}
+
+internal fun rewoundIntoOrBeforeSkippedSegment(
+    previousPosSec: Double,
+    currentPosSec: Double,
+    segment: SkipSegment,
+): Boolean {
+    if (
+        !previousPosSec.isFinite() ||
+        !currentPosSec.isFinite() ||
+        previousPosSec - currentPosSec < SKIP_SEGMENT_REWIND_MIN_DELTA_SEC ||
+        currentPosSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC
+    ) {
+        return false
+    }
+
+    val landedInsideSegment = currentPosSec >= segment.start
+    val crossedEntireSegment = previousPosSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC
+    return landedInsideSegment || crossedEntireSegment
 }
 
 /** Seek past [seg] and flash the chapter-style toast. Shared by auto-skip and the Skip button. */
