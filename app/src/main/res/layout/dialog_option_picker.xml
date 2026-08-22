@@ -46,7 +46,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="18dp"
             android:background="@drawable/bg_glass_panel"
-            android:fontFamily="monospace"
+            android:fontFamily="sans-serif"
             android:paddingStart="12dp"
             android:paddingTop="7dp"
             android:paddingEnd="12dp"

@@ -2,6 +2,8 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="FilePickerTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="nnf_separator_color">@color/tv_stroke_strong</item>
         <item name="colorPrimary">@color/tv_purple</item>
         <item name="colorPrimaryDark">@color/tv_purple_deep</item>
@@ -668,6 +670,8 @@
     </style>
 
     <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="android:windowTranslucentNavigation">true</item>
@@ -1312,6 +1316,8 @@
          episode-flash on exit. If this fixes Stremio, replace the opaque-stop with a black
          exit cover that masks the flash without stopping the caller. -->
     <style name="AppTheme.ExternalPlayer" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
@@ -1340,6 +1346,8 @@
     </style>
 
     <style name="AppTheme.Preference" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="fontFamily">sans-serif</item>
         <item name="android:windowBackground">@drawable/bg_tv_launcher</item>
         <item name="colorPrimary">?attr/mpvAccent</item>
         <item name="colorPrimaryInverse">@color/tv_purple_hot</item>

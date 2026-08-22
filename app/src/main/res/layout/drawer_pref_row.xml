@@ -54,7 +54,7 @@
         android:layout_width="48dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:fontFamily="monospace"
+        android:fontFamily="sans-serif"
         android:gravity="end"
         android:textColor="?attr/mpvAccentHot"
         android:textSize="13sp"

@@ -61,7 +61,7 @@
                 style="@style/MpvTv.TextSmallCaps"
                 android:layout_width="42dp"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
+                android:fontFamily="sans-serif"
                 android:text="@string/stats_page_1_number"
                 android:textColor="@color/tv_text_mute" />
 
@@ -117,7 +117,7 @@
                 style="@style/MpvTv.TextSmallCaps"
                 android:layout_width="42dp"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
+                android:fontFamily="sans-serif"
                 android:text="@string/stats_page_2_number"
                 android:textColor="@color/tv_text_mute" />
 
@@ -173,7 +173,7 @@
                 style="@style/MpvTv.TextSmallCaps"
                 android:layout_width="42dp"
                 android:layout_height="wrap_content"
-                android:fontFamily="monospace"
+                android:fontFamily="sans-serif"
                 android:text="@string/stats_page_3_number"
                 android:textColor="@color/tv_text_mute" />
 

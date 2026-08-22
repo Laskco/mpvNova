@@ -103,7 +103,7 @@
                         android:layout_height="wrap_content"
                         android:duplicateParentState="true"
                         android:focusable="false"
-                        android:fontFamily="monospace"
+                        android:fontFamily="sans-serif"
                         android:padding="16dp"
                         android:textColor="@color/tv_text"
                         android:textSize="13sp"
