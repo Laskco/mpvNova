@@ -7,10 +7,15 @@ import java.nio.charset.StandardCharsets
 import java.util.Locale
 
 object VlcTitleResolver {
-    fun itemTitleFromExtra(title: String?): String? {
+    fun titleSourceFromExtra(title: String?): String? {
         return title
             ?.takeIf { it.isNotBlank() }
             ?.let { percentDecode(it).trim() }
+            ?.takeIf { it.isNotBlank() }
+    }
+
+    fun itemTitleFromExtra(title: String?): String? {
+        return titleSourceFromExtra(title)
             ?.let(::displayTitleFromCandidate)
             ?.takeIf { it.isNotBlank() }
     }
@@ -158,7 +163,7 @@ object VlcTitleResolver {
 
     private val RELEASE_TAG_PATTERN = Regex(
         "(?i)(?:^|[ ._\\-\\[(])(?:" +
-            "2160p|1080p|720p|480p|web[-_. ]?dl|webrip|bluray|bdrip|hdrip|" +
+            "2160p|1080p|720p|480p|web[-_. ]?dl|webrip|blu[-_. ]?ray|bluray|bd|bdrip|hdrip|remux|" +
             "nf|cr|amzn|hulu|dsnp|multi|repack|proper|x264|x265|" +
             "h[ ._-]?264|h[ ._-]?265|hevc|av1|aac|eac3|ddp?5[ ._-]?1|flac" +
             ")(?=$|[ ._\\-\\])])"

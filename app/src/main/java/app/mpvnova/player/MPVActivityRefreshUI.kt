@@ -154,13 +154,55 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
         return
     }
 
-    binding.playerTitlePrimary.setTextIfChanged(title)
-    binding.playerTitleSecondary.setVisibilityIfChanged(View.GONE)
+    val presentation = PlayerTitleResolver.resolve(
+        displayTitle = title,
+        sourceTitle = currentPlayerTitleSource,
+        mediaTitle = psc.meta.mediaTitle,
+        fileName = currentFileName,
+    ) ?: PlayerTitlePresentation(title)
+    val context = playerTitleContext(presentation)
+    val wasHidden = binding.playerTitleOverlay.visibility != View.VISIBLE
+    val contentChanged = playerTitleContentChanged(presentation, context)
+    binding.playerTitleContext.setTextIfChanged(context)
+    binding.playerTitleContext.setVisibilityIfChanged(
+        if (context.isNullOrBlank()) View.GONE else View.VISIBLE
+    )
+    binding.playerTitlePrimary.setTextIfChanged(presentation.title)
+    binding.playerTitleSecondary.setTextIfChanged(presentation.episodeTitle)
+    binding.playerTitleSecondary.setVisibilityIfChanged(
+        if (presentation.episodeTitle.isNullOrBlank()) View.GONE else View.VISIBLE
+    )
     updatePlayerTitleWidth()
     if (binding.playerTitleOverlay.alpha != 1f)
         binding.playerTitleOverlay.alpha = 1f
-    val wasHidden = binding.playerTitleOverlay.visibility != View.VISIBLE
     binding.playerTitleOverlay.setVisibilityIfChanged(View.VISIBLE)
     if (wasHidden)
         updatePlayerToastPlacement()
+    if (wasHidden || contentChanged) {
+        binding.playerTitleOverlay.post {
+            if (binding.playerTitleOverlay.visibility == View.VISIBLE)
+                updatePlayerToastPlacement()
+        }
+    }
+}
+
+private fun MPVActivity.playerTitleContext(presentation: PlayerTitlePresentation): String? {
+    val season = presentation.season
+    val episode = presentation.episode
+    return if (season != null && episode != null) {
+        getString(R.string.player_title_episode_context, season, episode)
+    } else {
+        null
+    }
+}
+
+private fun MPVActivity.playerTitleContentChanged(
+    presentation: PlayerTitlePresentation,
+    context: String?,
+): Boolean {
+    return binding.playerTitleContext.text.toString() != context.orEmpty() ||
+        binding.playerTitlePrimary.text.toString() != presentation.title ||
+        binding.playerTitleSecondary.text.toString() != presentation.episodeTitle.orEmpty() ||
+        binding.playerTitleContext.isVisible != !context.isNullOrBlank() ||
+        binding.playerTitleSecondary.isVisible != !presentation.episodeTitle.isNullOrBlank()
 }

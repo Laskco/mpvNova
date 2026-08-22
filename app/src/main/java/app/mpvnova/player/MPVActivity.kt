@@ -338,10 +338,16 @@ open class MPVActivity : AppCompatActivity() {
     internal var rememberVideoSaturation = false
     internal var videoSaturationValue = VIDEO_ADJUSTMENT_DEFAULT_INT
     internal var useTimeRemaining = false
+    internal var pendingPlayerTitleSource: String? = null
     internal var pendingItemTitle: String? = null
     internal var pendingFileName: String? = null
+    internal var currentPlayerTitleSource: String? = null
     internal var currentItemTitle: String? = null
+    internal var currentFileName: String? = null
     internal var currentVideoTitle: String? = null
+    internal var fittedPlayerTitleText: String? = null
+    internal var fittedPlayerTitleWidth = 0
+    internal var fittedPlayerTitleFontScale = 0f
     internal var cachedActiveFilterColor: Int? = null
 
     internal var ignoreAudioFocus = false

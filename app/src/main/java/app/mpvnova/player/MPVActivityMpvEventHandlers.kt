@@ -63,8 +63,11 @@ private fun MPVActivity.handleMpvStartFile() {
     controlsOverlayAutoPaused = false
     cachedChapters = emptyList()
     pendingChapterSeekTime = null
+    currentPlayerTitleSource = pendingPlayerTitleSource
     currentItemTitle = pendingItemTitle
+    currentFileName = pendingFileName ?: VlcTitleResolver.fileNameFromPathLike(currentMpvPath())
     currentVideoTitle = resolveVlcStyleVideoTitle()
+    pendingPlayerTitleSource = null
     pendingItemTitle = null
     pendingFileName = null
     streamOpenLoading = isNetworkStreamPath(currentMpvPath())

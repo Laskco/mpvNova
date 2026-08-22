@@ -29,6 +29,144 @@ class VlcTitleResolverTest {
     }
 
     @Test
+    fun compactNuvioTitleBecomesBroadcastPresentation() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Gals Cant be Kind to Otaku",
+                season = 1,
+                episode = 3,
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Gals Cant be Kind to Otaku S01E03",
+                sourceTitle = "Gals Cant be Kind to Otaku - S01E03",
+                mediaTitle = null,
+                fileName = null,
+            )
+        )
+    }
+
+    @Test
+    fun richNuvioTitleIncludesEpisodeName() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Gals Cant be Kind to Otaku",
+                season = 1,
+                episode = 3,
+                episodeTitle = "Do You Want to Come Over",
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Gals Cant be Kind to Otaku S01E03",
+                sourceTitle = "Gals Cant be Kind to Otaku - S01E03 - Do You Want to Come Over",
+                mediaTitle = null,
+                fileName = null,
+            )
+        )
+    }
+
+    @Test
+    fun episodeNameCanComeFromMatchingLoadedFile() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Gals Cant be Kind to Otaku",
+                season = 1,
+                episode = 3,
+                episodeTitle = "Do You Want to Come Over",
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Gals Cant be Kind to Otaku S01E03",
+                sourceTitle = "Gals Cant be Kind to Otaku - S01E03",
+                mediaTitle = null,
+                fileName = "Gals.Cant.be.Kind.to.Otaku.S01E03.Do.You.Want.to.Come.Over.1080p.CR.WEB-DL.mkv",
+            )
+        )
+    }
+
+    @Test
+    fun episodeNameCanComeFromMatchingContainerMetadata() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = RICH_GIRL_TITLE,
+                season = 1,
+                episode = 8,
+                episodeTitle = "嘘はなし",
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = RICH_GIRL_TITLE_WITH_EPISODE,
+                sourceTitle = "$RICH_GIRL_TITLE - S01E08",
+                mediaTitle = "$RICH_GIRL_TITLE - S01E08 - 嘘はなし",
+                fileName = RICH_GIRL_FILE_NAME,
+            )
+        )
+    }
+
+    @Test
+    fun bdRemuxLabelIsNotUsedAsEpisodeName() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Frieren: Beyond Journey's End",
+                season = 1,
+                episode = 1,
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Frieren: Beyond Journey's End S01E01",
+                sourceTitle = "Frieren: Beyond Journey's End - S01E01 - (BD Remux)",
+                mediaTitle = null,
+                fileName = null,
+            )
+        )
+    }
+
+    @Test
+    fun bdRemuxFilenameDoesNotBecomeEpisodeName() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Frieren: Beyond Journey's End",
+                season = 1,
+                episode = 1,
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Frieren: Beyond Journey's End S01E01",
+                sourceTitle = "Frieren: Beyond Journey's End - S01E01",
+                mediaTitle = null,
+                fileName = "Frieren Beyond Journey's End - S01E01 " +
+                    "(BD Remux 1080p AVC FLAC AAC) [Dual Audio] [PMR].mkv",
+            )
+        )
+    }
+
+    @Test
+    fun episodeNameBeforeReleaseTagsIsPreserved() {
+        assertEquals(
+            PlayerTitlePresentation(
+                title = "Frieren: Beyond Journey's End",
+                season = 1,
+                episode = 1,
+                episodeTitle = "The Journey's End",
+            ),
+            PlayerTitleResolver.resolve(
+                displayTitle = "Frieren: Beyond Journey's End S01E01",
+                sourceTitle = "Frieren: Beyond Journey's End - S01E01",
+                mediaTitle = null,
+                fileName = "Frieren Beyond Journey's End - S01E01 - " +
+                    "The Journey's End (BD Remux 1080p).mkv",
+            )
+        )
+    }
+
+    @Test
+    fun movieTitleKeepsSingleLinePresentation() {
+        assertEquals(
+            PlayerTitlePresentation(title = "The Movie"),
+            PlayerTitleResolver.resolve(
+                displayTitle = "The Movie",
+                sourceTitle = "The Movie",
+                mediaTitle = null,
+                fileName = "The.Movie.2026.1080p.mkv",
+            )
+        )
+    }
+
+    @Test
     fun releaseStyleExternalItemTitleIsCleaned() {
         val title = "Gals.Cant.be.Kind.to.Otaku.S01E05.So.You.like.our.swimsuits.1080p.CR.WEB"
 
@@ -141,5 +279,14 @@ class VlcTitleResolverTest {
         assertNull(VlcTitleResolver.fileNameFromPathLike(""))
         assertNull(VlcTitleResolver.titleFromFileName(null))
         assertNull(VlcTitleResolver.metaTitle(null, "video.mkv", true))
+    }
+
+    private companion object {
+        const val RICH_GIRL_TITLE =
+            "Rich Girl Caretaker: I'm Secretly the Caregiver of the Most Popular Girl in This Rich Kid School"
+        const val RICH_GIRL_TITLE_WITH_EPISODE = "$RICH_GIRL_TITLE S01E08"
+        const val RICH_GIRL_FILE_NAME =
+            "Rich.Girl.Caretaker.Im.Secretly.the.Caregiver.of.the.Most.Popular.Girl.in.This.Rich.Kid.School." +
+                "2026.S01E08.1080p.CR.WEB-DL.AAC2.0.H.264-AnoZu.mkv"
     }
 }

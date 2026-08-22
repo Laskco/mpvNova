@@ -60,12 +60,13 @@ internal fun MPVActivity.resolvedToastDuration(
 }
 
 internal fun MPVActivity.updatePlayerToastPlacement() {
-    val topMarginDp = if (binding.playerTitleOverlay.isVisible) {
-        TOAST_TOP_WITH_TITLE_DP
+    val topMarginPx = if (binding.playerTitleOverlay.isVisible && binding.playerTitleOverlay.height > 0) {
+        binding.playerTitleOverlay.bottom + Utils.convertDp(activityContext, TOAST_TITLE_GAP_DP)
+    } else if (binding.playerTitleOverlay.isVisible) {
+        Utils.convertDp(activityContext, TOAST_TOP_WITH_TITLE_DP)
     } else {
-        TOAST_TOP_NO_TITLE_DP
+        Utils.convertDp(activityContext, TOAST_TOP_NO_TITLE_DP)
     }
-    val topMarginPx = Utils.convertDp(activityContext, topMarginDp)
     if ((binding.playerToast.layoutParams as? MarginLayoutParams)?.topMargin == topMarginPx)
         return
     binding.playerToast.updateLayoutParams<MarginLayoutParams> { topMargin = topMarginPx }

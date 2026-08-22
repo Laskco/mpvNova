@@ -7,11 +7,14 @@ import android.os.Bundle
 import java.io.FileNotFoundException
 
 internal fun MPVActivity.prepareMediaTitleFromIntent(intent: Intent?, filepath: String?) {
-    pendingItemTitle = titleFromIntentExtras(intent) ?: VlcTitleResolver.queryTitleFromPathLike(filepath)
+    pendingPlayerTitleSource = titleSourceFromIntentExtras(intent)
+    pendingItemTitle = pendingPlayerTitleSource
+        ?.let(VlcTitleResolver::itemTitleFromExtra)
+        ?: VlcTitleResolver.queryTitleFromPathLike(filepath)
     pendingFileName = VlcTitleResolver.fileNameFromPathLike(filepath)
 }
 
-internal fun MPVActivity.titleFromIntentExtras(intent: Intent?): String? {
+internal fun MPVActivity.titleSourceFromIntentExtras(intent: Intent?): String? {
     val extras = intent?.extras ?: return null
     return VLC_TITLE_EXTRA_KEYS.firstNotNullOfOrNull { key ->
         val title = if (extras.containsKey(key)) {
@@ -19,8 +22,12 @@ internal fun MPVActivity.titleFromIntentExtras(intent: Intent?): String? {
         } else {
             null
         }
-        title?.let(VlcTitleResolver::itemTitleFromExtra)
+        VlcTitleResolver.titleSourceFromExtra(title)
     }
+}
+
+internal fun MPVActivity.titleFromIntentExtras(intent: Intent?): String? {
+    return titleSourceFromIntentExtras(intent)?.let(VlcTitleResolver::itemTitleFromExtra)
 }
 
 internal fun MPVActivity.resolveVlcStyleVideoTitle(): String? {

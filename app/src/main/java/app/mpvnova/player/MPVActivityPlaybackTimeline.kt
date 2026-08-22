@@ -1,16 +1,72 @@
 package app.mpvnova.player
 
 import android.os.SystemClock
+import android.text.Layout
+import android.text.StaticLayout
+import android.util.TypedValue
 import android.view.KeyEvent
+import android.widget.TextView
 
 internal fun MPVActivity.updatePlayerTitleWidth() {
     val horizontalMargin = Utils.convertDp(activityContext, PLAYER_TITLE_HORIZONTAL_MARGIN_DP)
     val width = resources.displayMetrics.widthPixels
-    val maxWidth = (width - horizontalMargin * 2)
-        .coerceAtLeast(Utils.convertDp(activityContext, PLAYER_TITLE_MIN_WIDTH_DP))
-    val cappedWidth = minOf(maxWidth, Utils.convertDp(activityContext, PLAYER_TITLE_MAX_WIDTH_DP))
-    if (binding.playerTitlePrimary.maxWidth != cappedWidth)
-        binding.playerTitlePrimary.maxWidth = cappedWidth
+    val availableWidth = (width - horizontalMargin * 2).coerceAtLeast(1)
+    val cappedWidth = minOf(availableWidth, Utils.convertDp(activityContext, PLAYER_TITLE_MAX_WIDTH_DP))
+    listOf(
+        binding.playerTitleContext,
+        binding.playerTitlePrimary,
+        binding.playerTitleSecondary,
+    ).forEach { textView ->
+        if (textView.maxWidth != cappedWidth)
+            textView.maxWidth = cappedWidth
+    }
+    val title = binding.playerTitlePrimary.text.toString()
+    val fontScale = resources.configuration.fontScale
+    if (
+        fittedPlayerTitleText == title &&
+        fittedPlayerTitleWidth == cappedWidth &&
+        fittedPlayerTitleFontScale == fontScale
+    ) {
+        return
+    }
+    binding.playerTitlePrimary.fitPlayerTitleText(cappedWidth)
+    fittedPlayerTitleText = title
+    fittedPlayerTitleWidth = cappedWidth
+    fittedPlayerTitleFontScale = fontScale
+}
+
+private fun TextView.fitPlayerTitleText(availableWidth: Int) {
+    val value = text ?: return
+    if (value.isBlank() || availableWidth <= 0) return
+
+    val originalTextSize = paint.textSize
+    val chosenSizeSp = (PLAYER_TITLE_MAX_TEXT_SIZE_SP downTo PLAYER_TITLE_MIN_TEXT_SIZE_SP)
+        .firstOrNull { sizeSp ->
+            paint.textSize = TypedValue.applyDimension(
+                TypedValue.COMPLEX_UNIT_SP,
+                sizeSp.toFloat(),
+                resources.displayMetrics,
+            )
+            StaticLayout.Builder.obtain(value, 0, value.length, paint, availableWidth)
+                .setAlignment(Layout.Alignment.ALIGN_CENTER)
+                .setBreakStrategy(breakStrategy)
+                .setHyphenationFrequency(hyphenationFrequency)
+                .setIncludePad(includeFontPadding)
+                .setLineSpacing(lineSpacingExtra, lineSpacingMultiplier)
+                .build()
+                .lineCount <= maxLines
+        }
+        ?: PLAYER_TITLE_MIN_TEXT_SIZE_SP
+    paint.textSize = originalTextSize
+
+    val chosenSizePx = TypedValue.applyDimension(
+        TypedValue.COMPLEX_UNIT_SP,
+        chosenSizeSp.toFloat(),
+        resources.displayMetrics,
+    )
+    if (kotlin.math.abs(textSize - chosenSizePx) >= PLAYER_TITLE_TEXT_SIZE_TOLERANCE_PX) {
+        setTextSize(TypedValue.COMPLEX_UNIT_PX, chosenSizePx)
+    }
 }
 
 internal fun MPVActivity.seekbarProgressFromMillis(positionMs: Long): Int {

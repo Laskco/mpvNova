@@ -519,6 +519,7 @@
 
     <string name="pref_display_media_title_title">Display media title (videos)</string>
     <string name="pref_display_media_title_summary">Display a media title at the top of the player UI when the launcher or file path provides one.</string>
+    <string name="player_title_episode_context">Season %1$d • Episode %2$d</string>
 
     <string name="pref_bottom_controls_title">Show controls at bottom of screen</string>
     <string name="pref_bottom_controls_summary">When on, the player controls dock to the bottom of the screen. When off, they float as a centered overlay above the bottom edge.</string>
