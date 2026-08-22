@@ -38,7 +38,7 @@ internal fun MPVActivity.updateClockInfo(force: Boolean = false) {
         return
     lastClockInfoTick = tick
 
-    val is24Hour = android.text.format.DateFormat.is24HourFormat(this)
+    val is24Hour = force24HourClock || android.text.format.DateFormat.is24HourFormat(this)
     if (clockFormatter == null || clockFormatterIs24 != is24Hour) {
         val pattern = if (is24Hour) "HH:mm" else "h:mm a"
         clockFormatter = SimpleDateFormat(pattern, Locale.getDefault())

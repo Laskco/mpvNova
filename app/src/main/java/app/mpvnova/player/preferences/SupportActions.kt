@@ -49,6 +49,7 @@ object SupportActions {
         "display_clock_overlay",
         "display_clock_date",
         "display_clock_on_pause",
+        "display_clock_24_hour",
         "bottom_controls",
         "player_controls_timeout",
         "keep_controls_visible_paused",

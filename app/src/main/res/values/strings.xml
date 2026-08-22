@@ -685,6 +685,8 @@
     <string name="pref_display_clock_date_summary">Add the current date above the clock whenever the clock panel is visible.</string>
     <string name="pref_display_clock_on_pause_title">Show clock while paused</string>
     <string name="pref_display_clock_on_pause_summary">Keep the clock visible while playback is paused, even after the player controls hide.</string>
+    <string name="pref_display_clock_24_hour_title">Use 24-hour time</string>
+    <string name="pref_display_clock_24_hour_summary">Use 24-hour time for the player clock and "ends at" estimate. When off, follow the device time format.</string>
 
     <string name="pref_dpad_up_jumps_top_title">D-pad up jumps to top controls</string>
     <string name="pref_dpad_up_jumps_top_summary">When on, pressing Up from the seekbar jumps to the top-right PiP / Settings icons instead of hiding the overlay. When off (default), pressing Up from the seekbar hides the overlay.</string>

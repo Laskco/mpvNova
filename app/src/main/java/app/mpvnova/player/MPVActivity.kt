@@ -293,6 +293,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var showClockOverlay = true
     internal var showClockDate = false
     internal var showClockOnPause = false
+    internal var force24HourClock = false
     internal var controlsDisplayTimeoutMs = DEFAULT_CONTROLS_DISPLAY_TIMEOUT
     internal var keepControlsVisibleWhilePaused = false
     internal var exitWithDoubleBack = false

@@ -65,6 +65,12 @@ private fun MPVActivity.handleDrawerInterfacePreference(
             showClockOnPause = newValue
             refreshTimeInfoPanelVisibility()
         }
+        PlayerDrawerPreference.CLOCK_24_HOUR -> {
+            force24HourClock = newValue
+            clockFormatter = null
+            clockFormatterIs24 = null
+            updateClockInfo(force = true)
+        }
         PlayerDrawerPreference.BOTTOM_CONTROLS -> {
             controlsAtBottom = newValue
             onConfigurationChanged(resources.configuration)

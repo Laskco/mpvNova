@@ -112,6 +112,13 @@ internal enum class PlayerDrawerPreference(
         "display_clock_on_pause",
         false,
     ),
+    CLOCK_24_HOUR(
+        PlayerDrawerPreferenceGroup.INTERFACE,
+        R.string.pref_display_clock_24_hour_title,
+        R.string.pref_display_clock_24_hour_summary,
+        "display_clock_24_hour",
+        false,
+    ),
     BOTTOM_CONTROLS(
         PlayerDrawerPreferenceGroup.INTERFACE,
         R.string.pref_bottom_controls_title,
@@ -397,6 +404,7 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_DATE)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE)
+    rows.addPref(PlayerDrawerPreference.CLOCK_24_HOUR)
     rows.addPref(PlayerDrawerPreference.BOTTOM_CONTROLS)
     rows.addPref(PlayerDrawerPreference.EXIT_DOUBLE_BACK)
     rows.addPref(PlayerDrawerPreference.DPAD_UP_JUMPS_TOP)
