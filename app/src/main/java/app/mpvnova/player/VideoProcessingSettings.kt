@@ -124,8 +124,12 @@ internal fun MPVActivity.setVideoInterpolation(value: String) {
         if (enabled) putString("video_sync", value)
     }.apply()
 
-    if (enabled)
-        setRuntimeOption("video-sync", value)
+    val syncMode = resolveVideoSync(
+        interpolationEnabled = enabled,
+        configuredSync = value,
+        defaultSync = getString(R.string.pref_video_interpolation_sync_default),
+    )
+    setRuntimeOption("video-sync", syncMode)
     setRuntimeOption("interpolation", if (enabled) "yes" else "no")
     refreshDrawerRowsIfVisible(DrawerTab.PROCESSING)
 }

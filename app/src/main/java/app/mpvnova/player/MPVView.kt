@@ -101,17 +101,17 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     private fun applyVideoPreferenceOptions(sharedPreferences: android.content.SharedPreferences) {
         val debandMode = sharedPreferences.getString("video_debanding", "")
+        mpvSetOptionString("deband", if (debandMode == "gpu") "yes" else "no")
         if (debandMode == "gradfun") {
             // lower the default radius (16) to improve performance
             mpvSetOptionString("vf", "@mpvnova-deband:gradfun=radius=12")
-        } else if (debandMode == "gpu") {
-            mpvSetOptionString("deband", "yes")
         }
 
         mpvSetOptionString("video-sync", defaultVideoSync(sharedPreferences))
-
-        if (sharedPreferences.getBoolean("video_interpolation", false))
-            mpvSetOptionString("interpolation", "yes")
+        mpvSetOptionString(
+            "interpolation",
+            if (sharedPreferences.getBoolean("video_interpolation", false)) "yes" else "no",
+        )
 
         if (sharedPreferences.getBoolean("gpudebug", false))
             mpvSetOptionString("gpu-debug", "yes")

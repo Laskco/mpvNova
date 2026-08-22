@@ -653,7 +653,7 @@
     <string name="video_processing_deband_cpu_detail">Use the gradfun video filter. This may be expensive during software decoding.</string>
     <string name="video_processing_deband_gpu">GPU</string>
     <string name="video_processing_deband_gpu_detail">Use mpv\'s renderer debanding. Recommended when the active video output supports it.</string>
-    <string name="video_processing_interpolation_disabled_detail">Keep the current video sync mode without generating intermediate frames.</string>
+    <string name="video_processing_interpolation_disabled_detail">Disable interpolation and use normal audio-synchronized playback.</string>
     <string name="video_processing_interpolation_mode_detail">Enable interpolation with this display synchronized mode.</string>
     <string name="unsaved_changes">Unsaved changes</string>
     <!-- Drawer action labels for the entries that open dedicated pickers. -->

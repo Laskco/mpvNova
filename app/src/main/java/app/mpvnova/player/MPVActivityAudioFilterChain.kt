@@ -64,7 +64,7 @@ internal fun MPVActivity.buildDrcPlusAudioStageFilter(): String {
     if (!currentAudioCodecName().isEac3CodecName())
         stageFilters += drcPlusCompressorFilterBody
     stageFilters += drcPlusLimiterFilterBody
-    stageFilters += "aformat=sample_fmts=${currentAudioFilterOutputSampleFormat()}"
+    stageFilters += "aformat=sample_fmts=$AUDIO_FILTER_OUTPUT_SAMPLE_FORMAT"
     return "$drcAudioStageFilterLabel:lavfi=[${stageFilters.joinToString(",")}]"
 }
 

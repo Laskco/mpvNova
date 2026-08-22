@@ -12,10 +12,24 @@ internal fun defaultHwdec(sharedPreferences: SharedPreferences): String {
 }
 
 internal fun MPVView.defaultVideoSync(sharedPreferences: SharedPreferences): String {
-    return sharedPreferences.getString(
-        "video_sync",
-        resources.getString(R.string.pref_video_interpolation_sync_default)
-    ) ?: resources.getString(R.string.pref_video_interpolation_sync_default)
+    val defaultSync = resources.getString(R.string.pref_video_interpolation_sync_default)
+    return resolveVideoSync(
+        interpolationEnabled = sharedPreferences.getBoolean("video_interpolation", false),
+        configuredSync = sharedPreferences.getString("video_sync", defaultSync),
+        defaultSync = defaultSync,
+    )
+}
+
+internal fun resolveVideoSync(
+    interpolationEnabled: Boolean,
+    configuredSync: String?,
+    defaultSync: String,
+): String {
+    return if (interpolationEnabled) {
+        configuredSync?.takeIf(String::isNotBlank) ?: defaultSync
+    } else {
+        defaultSync
+    }
 }
 
 internal fun defaultDemuxerCacheBytes(): Int {

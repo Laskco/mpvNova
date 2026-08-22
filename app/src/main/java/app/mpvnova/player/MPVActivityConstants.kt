@@ -109,7 +109,6 @@ internal const val GPU_NEXT_FALLBACK_TOAST_MS = 5_200L
 // Wait for decoder + VO to settle after the Shield Hi10p fallback before
 // firing the resync seek.
 internal const val SHIELD_FALLBACK_RESYNC_DELAY_MS = 900L
-internal const val DEFAULT_AUDIO_SAMPLE_RATE = 48_000
 internal const val DB_TO_LINEAR_BASE = 10.0
 internal const val DB_POWER_DIVISOR = 20.0
 internal const val PERCENT_SCALE_DOUBLE = 100.0

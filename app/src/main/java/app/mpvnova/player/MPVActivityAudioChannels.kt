@@ -67,16 +67,3 @@ internal fun MPVActivity.surroundDialogueDownmixFilter(): String? {
     val body = surroundDialogueDownmixBody() ?: return null
     return "$downmixFilterLabel:lavfi=[pan=stereo|$body]"
 }
-
-internal fun MPVActivity.mapMpvAudioFormatToFfmpeg(format: String?): String? {
-    return when (format?.trim()?.lowercase(Locale.US)) {
-        null, "" -> null
-        "u8" -> "u8"
-        "s16" -> "s16"
-        "s32" -> "s32"
-        "s64" -> "s64"
-        "float", "flt", "floatle", "floatbe" -> "flt"
-        "double", "dbl", "doublele", "doublebe" -> "dbl"
-        else -> null
-    }
-}
