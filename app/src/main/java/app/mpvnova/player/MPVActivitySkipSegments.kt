@@ -101,18 +101,19 @@ internal fun rewoundIntoOrBeforeSkippedSegment(
     currentPosSec: Double,
     segment: SkipSegment,
 ): Boolean {
-    if (
-        !previousPosSec.isFinite() ||
-        !currentPosSec.isFinite() ||
-        previousPosSec - currentPosSec < SKIP_SEGMENT_REWIND_MIN_DELTA_SEC ||
-        currentPosSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC
-    ) {
+    val positionsAreFinite = previousPosSec.isFinite() && currentPosSec.isFinite()
+    if (!positionsAreFinite) {
         return false
     }
 
+    val rewindDeltaSec = previousPosSec - currentPosSec
+    val segmentWindowEndSec = segment.end - SKIP_SEGMENT_END_GUARD_SEC
+    val rewoundEnough = rewindDeltaSec >= SKIP_SEGMENT_REWIND_MIN_DELTA_SEC
+    val landedBeforeWindowEnd = currentPosSec < segmentWindowEndSec
     val landedInsideSegment = currentPosSec >= segment.start
-    val crossedEntireSegment = previousPosSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC
-    return landedInsideSegment || crossedEntireSegment
+    val crossedEntireSegment = previousPosSec >= segmentWindowEndSec
+    val landedInRearmRange = landedInsideSegment || crossedEntireSegment
+    return rewoundEnough && landedBeforeWindowEnd && landedInRearmRange
 }
 
 /** Seek past [seg] and flash the chapter-style toast. Shared by auto-skip and the Skip button. */
