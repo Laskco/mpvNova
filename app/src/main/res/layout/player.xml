@@ -712,7 +712,7 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="22dp"
             android:alpha="0"
-            android:background="@drawable/bg_player_toast"
+            android:background="@drawable/bg_glass_panel"
             android:elevation="10dp"
             android:gravity="center"
             android:orientation="vertical"
@@ -724,9 +724,10 @@
 
             <TextView
                 android:id="@+id/playerToastTitle"
-                style="@style/MpvTv.TextSmallCaps"
+                style="@style/MpvTv.PlayerToastTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
                 android:textColor="?attr/mpvAccentHot"
                 android:visibility="gone"
                 tools:text="Voice boost"
@@ -734,14 +735,11 @@
 
             <TextView
                 android:id="@+id/playerToastMessage"
+                style="@style/MpvTv.PlayerToastMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:gravity="center"
                 android:maxWidth="420dp"
-                android:textColor="@color/tv_text"
-                android:textSize="16sp"
-                android:textStyle="bold"
                 tools:text="Clear" />
         </LinearLayout>
 
