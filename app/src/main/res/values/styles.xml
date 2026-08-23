@@ -1292,18 +1292,18 @@
     </style>
 
     <style name="MpvThemeOverlay.PureBlackSurfaces">
-        <item name="mpvSurfaceStart">#E6000000</item>
-        <item name="mpvSurfaceEnd">#F0000000</item>
-        <item name="mpvSurfaceAltStart">#A0000000</item>
-        <item name="mpvSurfaceAltEnd">#86000000</item>
-        <item name="mpvSurfaceSoft">#70000000</item>
-        <item name="mpvSurfaceStrongStart">#F0000000</item>
-        <item name="mpvSurfaceStrongEnd">#F0000000</item>
-        <item name="mpvHeroStart">#E8000000</item>
-        <item name="mpvHeroEnd">#DC000000</item>
-        <item name="mpvOverlayStart">#CC000000</item>
-        <item name="mpvOverlayCenter">#B8000000</item>
-        <item name="mpvOverlayEnd">#AC000000</item>
+        <item name="mpvSurfaceStart">#F0000000</item>
+        <item name="mpvSurfaceEnd">#F6000000</item>
+        <item name="mpvSurfaceAltStart">#B8000000</item>
+        <item name="mpvSurfaceAltEnd">#A8000000</item>
+        <item name="mpvSurfaceSoft">#88000000</item>
+        <item name="mpvSurfaceStrongStart">#F6000000</item>
+        <item name="mpvSurfaceStrongEnd">#F6000000</item>
+        <item name="mpvHeroStart">#F2000000</item>
+        <item name="mpvHeroEnd">#E8000000</item>
+        <item name="mpvOverlayStart">#DC000000</item>
+        <item name="mpvOverlayCenter">#CC000000</item>
+        <item name="mpvOverlayEnd">#C0000000</item>
         <item name="mpvChipStart">#18FFFFFF</item>
         <item name="mpvChipEnd">#0EFFFFFF</item>
         <item name="mpvStroke">#26FFFFFF</item>
