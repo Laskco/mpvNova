@@ -51,19 +51,29 @@ internal fun MPVActivity.addIntentSubtitles(launchExtras: Bundle) {
 }
 
 internal fun MPVActivity.applyIntentStartPosition(launchExtras: Bundle) {
-    val intentPositionMs = launchExtras.externalStartPositionMs()
-    val effectivePositionMs = effectiveIntentStartPosition(launchExtras, intentPositionMs)
+    val startRequest = launchExtras.externalStartPositionRequest()
+    val savedPositionMs = if (startRequest.isExplicit) null else loadResumePosition()
+    val effectivePositionMs = effectiveIntentStartPosition(
+        request = startRequest,
+        savedPositionMs = savedPositionMs,
+        durationMs = launchExtras.externalDurationMs(),
+    )
     pendingStartPositionMs = effectivePositionMs
-    if (effectivePositionMs <= 0L)
+    if (effectivePositionMs <= 0L) {
+        if (startRequest.isExplicit) {
+            addOnloadOption("start", "0")
+            Log.v(MPV_ACTIVITY_TAG, "resume: launcher requested playback from beginning")
+        }
         return
+    }
 
     addOnloadOption("start", "${effectivePositionMs / MPV_MILLIS_PER_SECOND_FLOAT}")
-    if (intentPositionMs > 0L || effectivePositionMs >= RESUME_TOAST_MIN_POSITION_MS) {
+    if (startRequest.positionMs > 0L || effectivePositionMs >= RESUME_TOAST_MIN_POSITION_MS) {
         pendingResumeToastMs = effectivePositionMs
         Log.v(
             MPV_ACTIVITY_TAG,
             "resume: queued toast for ${effectivePositionMs}ms " +
-                "(source=${if (intentPositionMs > 0L) "intent" else "table"})"
+                "(source=${if (startRequest.positionMs > 0L) "intent" else "table"})"
         )
     }
 }
@@ -115,30 +125,6 @@ private val AUTOMATIC_SUBTITLE_EXTENSIONS = setOf(
     "vtt",
 )
 
-@Suppress("DEPRECATION")
-private fun Bundle.externalStartPositionMs(): Long {
-    if (getBoolean("from_start", false))
-        return 0L
-    val positionMs: (String) -> Long = { key ->
-        when (val value = get(key)) {
-            is Number -> value.toLong()
-            is String -> value.toLongOrNull() ?: 0L
-            else -> 0L
-        }
-    }
-    val startFrom = positionMs("startfrom")
-    val position = positionMs("position")
-    val extraPosition = positionMs("extra_position")
-    val resumePosition = positionMs("resume_position")
-    val startPosition = when {
-        startFrom > 1 -> startFrom
-        position > 0 -> position
-        extraPosition > 0 -> extraPosition
-        else -> resumePosition.coerceAtLeast(0)
-    }
-    return startPosition
-}
-
 private fun automaticSubtitleSearchDirs(parent: File): List<File> {
     val canonicalParent = parent.canonicalFileOrNull() ?: return emptyList()
     return buildList {
@@ -178,25 +164,4 @@ private val AUTOMATIC_SUBTITLE_SEPARATORS = setOf('.', '-', '_', ' ', '[', '(')
 
 private fun matchingSubtitleRank(videoBase: String, subtitleBase: String): Int {
     return if (subtitleBase.equals(videoBase, ignoreCase = true)) 0 else 1
-}
-
-@Suppress("DEPRECATION")
-private fun MPVActivity.effectiveIntentStartPosition(launchExtras: Bundle, intentPositionMs: Long): Long {
-    val durationMs: (String) -> Long = { key ->
-        when (val value = launchExtras.get(key)) {
-            is Number -> value.toLong()
-            is String -> value.toLongOrNull() ?: 0L
-            else -> 0L
-        }
-    }
-    val intentDurationMs = durationMs("duration")
-        .takeIf { it > 0L }
-        ?: durationMs("extra_duration")
-    val intentNearEnd = intentDurationMs > 0L &&
-        intentPositionMs >= intentDurationMs - RESUME_NEAR_END_MS
-    return when {
-        intentPositionMs >= RESUME_MIN_POSITION_MS && !intentNearEnd -> intentPositionMs
-        intentPositionMs <= 0L -> loadResumePosition() ?: 0L
-        else -> 0L
-    }
 }
