@@ -571,10 +571,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="4dp"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -586,13 +583,9 @@
                 android:id="@+id/clockTextView"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif-black"
                 android:textColor="@color/tv_text"
                 android:textSize="18.75sp"
-                android:textStyle="bold"
                 tools:text="01:02 AM" />
 
             <TextView
@@ -600,10 +593,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
                 android:textStyle="bold"
@@ -611,7 +601,7 @@
         </LinearLayout>
 
         <!-- =============== TOP-LEFT: STATS FOR NERDS =============== -->
-        <TextView
+        <android.widget.TextView
             android:id="@+id/statsTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -663,10 +653,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:maxWidth="464dp"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif"
                 android:textAllCaps="true"
                 android:textColor="?attr/mpvAccentHot"
                 android:textSize="13.75sp"
@@ -685,13 +672,9 @@
                 android:includeFontPadding="false"
                 android:maxLines="3"
                 android:maxWidth="464dp"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif-black"
                 android:textColor="@color/tv_text"
                 android:textSize="18.75sp"
-                android:textStyle="bold"
                 tools:text="Attack on Titan" />
 
             <TextView
@@ -704,10 +687,7 @@
                 android:includeFontPadding="false"
                 android:maxLines="2"
                 android:maxWidth="464dp"
-                android:shadowColor="#CC000000"
-                android:shadowDx="0"
-                android:shadowDy="1"
-                android:shadowRadius="2"
+                android:fontFamily="sans-serif"
                 android:textColor="@color/tv_text"
                 android:textSize="13.75sp"
                 android:textStyle="bold"
@@ -798,7 +778,7 @@
         android:background="@android:color/black"
         android:visibility="gone">
 
-        <ImageView
+        <androidx.appcompat.widget.AppCompatImageView
             android:id="@+id/screensaverLogo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

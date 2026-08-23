@@ -46,6 +46,7 @@ import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
+import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
 import app.mpvnova.player.R
@@ -59,7 +60,17 @@ import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
+import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.databinding.ActivitySettingsBinding
+
+private fun View.applyPreferenceTextTreatment() {
+    when (this) {
+        is TextView -> applyUiTextShadow()
+        is ViewGroup -> for (index in 0 until childCount) {
+            getChildAt(index).applyPreferenceTextTreatment()
+        }
+    }
+}
 
 private val THEME_RECREATE_KEYS = setOf(
     "material_you_theming",
@@ -325,6 +336,7 @@ class PreferenceActivity : AppCompatActivity(),
                     } else {
                         null
                     }
+                    holder.itemView.applyPreferenceTextTreatment()
                 }
             }
         }
@@ -555,7 +567,7 @@ class PreferenceActivity : AppCompatActivity(),
             }
             tile.addView(swatch, LinearLayout.LayoutParams(dp(THEME_SWATCH_SIZE_DP), dp(THEME_SWATCH_SIZE_DP)))
 
-            val label = TextView(context).apply {
+            val label = OutlinedTextView(context).apply {
                 text = getString(choice.labelRes)
                 setTextColor(Color.rgb(THEME_LABEL_CHANNEL, THEME_LABEL_CHANNEL, THEME_LABEL_CHANNEL))
                 textSize = THEME_LABEL_TEXT_SIZE_SP

@@ -4,6 +4,7 @@
     <style name="FilePickerTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
+        <item name="viewInflaterClass">app.mpvnova.player.OutlinedAppCompatViewInflater</item>
         <item name="nnf_separator_color">@color/tv_stroke_strong</item>
         <item name="colorPrimary">@color/tv_purple</item>
         <item name="colorPrimaryDark">@color/tv_purple_deep</item>
@@ -672,6 +673,7 @@
     <style name="AppTheme" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
+        <item name="viewInflaterClass">app.mpvnova.player.OutlinedAppCompatViewInflater</item>
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
         <item name="android:windowTranslucentNavigation">true</item>
@@ -1348,6 +1350,7 @@
     <style name="AppTheme.Preference" parent="Theme.Material3.Dark.NoActionBar">
         <item name="android:fontFamily">sans-serif</item>
         <item name="fontFamily">sans-serif</item>
+        <item name="viewInflaterClass">app.mpvnova.player.OutlinedAppCompatViewInflater</item>
         <item name="android:windowBackground">@drawable/bg_tv_launcher</item>
         <item name="colorPrimary">?attr/mpvAccent</item>
         <item name="colorPrimaryInverse">@color/tv_purple_hot</item>

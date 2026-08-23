@@ -5,63 +5,114 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.util.AttributeSet
+import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageButton
+import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.roundToInt
 
-/** Draws a compact shadow behind the icon without allocating during playback UI redraws. */
-class ShadowImageButton @JvmOverloads constructor(
+private class OutlinedIconPainter(private val view: ImageView) {
+    private val outlineOffsetPx = (view.resources.displayMetrics.density * OUTLINE_OFFSET_DP)
+        .roundToInt()
+        .coerceAtLeast(1)
+        .toFloat()
+    private val shadowOffsetPx = (view.resources.displayMetrics.density * SHADOW_OFFSET_DP)
+        .roundToInt()
+        .coerceAtLeast(1)
+        .toFloat()
+    private var source: Drawable? = null
+    private var silhouette: Drawable? = null
+
+    fun draw(canvas: Canvas) {
+        val icon = view.drawable
+        if (icon == null || icon.alpha <= 0) return
+        val decoration = silhouetteFor(icon) ?: return
+
+        decoration.bounds = icon.bounds
+        decoration.level = icon.level
+        decoration.state = icon.state
+        drawAt(canvas, decoration, -outlineOffsetPx, 0f, icon.alpha, OUTLINE_ALPHA)
+        drawAt(canvas, decoration, outlineOffsetPx, 0f, icon.alpha, OUTLINE_ALPHA)
+        drawAt(canvas, decoration, 0f, -outlineOffsetPx, icon.alpha, OUTLINE_ALPHA)
+        drawAt(canvas, decoration, 0f, outlineOffsetPx, icon.alpha, OUTLINE_ALPHA)
+        drawAt(canvas, decoration, 0f, shadowOffsetPx, icon.alpha, SHADOW_ALPHA)
+    }
+
+    private fun drawAt(
+        canvas: Canvas,
+        decoration: Drawable,
+        offsetX: Float,
+        offsetY: Float,
+        sourceAlpha: Int,
+        alpha: Float,
+    ) {
+        decoration.alpha = (sourceAlpha * alpha).toInt()
+        val saveCount = canvas.save()
+        if (view.cropToPadding) {
+            canvas.clipRect(
+                view.scrollX + view.paddingLeft,
+                view.scrollY + view.paddingTop,
+                view.scrollX + view.width - view.paddingRight,
+                view.scrollY + view.height - view.paddingBottom,
+            )
+        }
+        canvas.translate(
+            view.paddingLeft.toFloat() + offsetX,
+            view.paddingTop.toFloat() + offsetY,
+        )
+        canvas.concat(view.imageMatrix)
+        decoration.draw(canvas)
+        canvas.restoreToCount(saveCount)
+    }
+
+    private fun silhouetteFor(icon: Drawable): Drawable? {
+        if (source !== icon) {
+            source = icon
+            silhouette = icon.constantState
+                ?.newDrawable(view.resources)
+                ?.mutate()
+                ?.also { DrawableCompat.setTint(it, Color.BLACK) }
+        }
+        return silhouette
+    }
+
+    private companion object {
+        const val OUTLINE_ALPHA = 0.52f
+        const val SHADOW_ALPHA = 0.48f
+        const val OUTLINE_OFFSET_DP = 0.55f
+        const val SHADOW_OFFSET_DP = 1.1f
+    }
+}
+
+/** Draws a crisp silhouette and compact shadow without allocating during UI redraws. */
+open class ShadowImageButton @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = androidx.appcompat.R.attr.imageButtonStyle,
 ) : AppCompatImageButton(context, attrs, defStyleAttr) {
-    private val shadowOffsetPx = (resources.displayMetrics.density * SHADOW_OFFSET_DP)
-        .roundToInt()
-        .coerceAtLeast(1)
-        .toFloat()
-    private var shadowSource: Drawable? = null
-    private var shadowDrawable: Drawable? = null
+    private val iconPainter = OutlinedIconPainter(this)
 
     override fun onDraw(canvas: Canvas) {
-        val icon = drawable
-        val shadow = shadowFor(icon)
-        if (icon != null && shadow != null && icon.alpha > 0) {
-            shadow.bounds = icon.bounds
-            shadow.level = icon.level
-            shadow.state = icon.state
-            shadow.alpha = (icon.alpha * SHADOW_ALPHA).toInt()
-
-            val saveCount = canvas.save()
-            if (cropToPadding) {
-                canvas.clipRect(
-                    scrollX + paddingLeft,
-                    scrollY + paddingTop,
-                    scrollX + width - paddingRight,
-                    scrollY + height - paddingBottom,
-                )
-            }
-            canvas.translate(paddingLeft.toFloat(), paddingTop.toFloat() + shadowOffsetPx)
-            canvas.concat(imageMatrix)
-            shadow.draw(canvas)
-            canvas.restoreToCount(saveCount)
-        }
+        iconPainter.draw(canvas)
         super.onDraw(canvas)
     }
+}
 
-    private fun shadowFor(icon: Drawable?): Drawable? {
-        if (icon == null) return null
-        if (shadowSource !== icon) {
-            shadowSource = icon
-            shadowDrawable = icon.constantState
-                ?.newDrawable(resources)
-                ?.mutate()
-                ?.also { DrawableCompat.setTint(it, Color.BLACK) }
-        }
-        return shadowDrawable
-    }
+class OutlinedImageButton @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = androidx.appcompat.R.attr.imageButtonStyle,
+) : ShadowImageButton(context, attrs, defStyleAttr)
 
-    private companion object {
-        const val SHADOW_ALPHA = 0.55f
-        const val SHADOW_OFFSET_DP = 0.75f
+class OutlinedImageView @JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyleAttr: Int = 0,
+) : AppCompatImageView(context, attrs, defStyleAttr) {
+    private val iconPainter = OutlinedIconPainter(this)
+
+    override fun onDraw(canvas: Canvas) {
+        iconPainter.draw(canvas)
+        super.onDraw(canvas)
     }
 }

@@ -33,7 +33,7 @@
             android:orientation="horizontal"
             android:padding="20dp">
 
-            <ImageView
+            <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:contentDescription="@string/mpv_activity"
