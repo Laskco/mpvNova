@@ -40,11 +40,14 @@ private fun TextView.fitPlayerTitleText(availableWidth: Int) {
     if (value.isBlank() || availableWidth <= 0) return
 
     val originalTextSize = paint.textSize
-    val chosenSizeSp = (PLAYER_TITLE_MAX_TEXT_SIZE_SP downTo PLAYER_TITLE_MIN_TEXT_SIZE_SP)
+    val chosenSizeSp = generateSequence(PLAYER_TITLE_MAX_TEXT_SIZE_SP) { sizeSp ->
+        (sizeSp - PLAYER_TITLE_TEXT_SIZE_STEP_SP)
+            .takeIf { it >= PLAYER_TITLE_MIN_TEXT_SIZE_SP }
+    }
         .firstOrNull { sizeSp ->
             paint.textSize = TypedValue.applyDimension(
                 TypedValue.COMPLEX_UNIT_SP,
-                sizeSp.toFloat(),
+                sizeSp,
                 resources.displayMetrics,
             )
             StaticLayout.Builder.obtain(value, 0, value.length, paint, availableWidth)
@@ -61,7 +64,7 @@ private fun TextView.fitPlayerTitleText(availableWidth: Int) {
 
     val chosenSizePx = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_SP,
-        chosenSizeSp.toFloat(),
+        chosenSizeSp,
         resources.displayMetrics,
     )
     if (kotlin.math.abs(textSize - chosenSizePx) >= PLAYER_TITLE_TEXT_SIZE_TOLERANCE_PX) {
