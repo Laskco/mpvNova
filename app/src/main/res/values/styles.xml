@@ -81,7 +81,7 @@
         <item name="mpvSurfaceEnd">#F207111C</item>
         <item name="mpvSurfaceAltStart">#B010202F</item>
         <item name="mpvSurfaceAltEnd">#A0101A25</item>
-        <item name="mpvSurfaceSoft">#502A8FDB</item>
+        <item name="mpvSurfaceSoft">#142A8FDB</item>
         <item name="mpvSurfaceStrongStart">#F20D1F30</item>
         <item name="mpvSurfaceStrongEnd">#EC091522</item>
         <item name="mpvHeroStart">#EA162F46</item>
@@ -117,7 +117,7 @@
         <item name="mpvSurfaceEnd">#F2110708</item>
         <item name="mpvSurfaceAltStart">#B0311416</item>
         <item name="mpvSurfaceAltEnd">#A01C0C0E</item>
-        <item name="mpvSurfaceSoft">#50E53935</item>
+        <item name="mpvSurfaceSoft">#14E53935</item>
         <item name="mpvSurfaceStrongStart">#F2321014</item>
         <item name="mpvSurfaceStrongEnd">#EC16090B</item>
         <item name="mpvHeroStart">#EA451519</item>
@@ -153,7 +153,7 @@
         <item name="mpvSurfaceEnd">#F20F0717</item>
         <item name="mpvSurfaceAltStart">#B02A1335</item>
         <item name="mpvSurfaceAltEnd">#A0190920</item>
-        <item name="mpvSurfaceSoft">#508E24AA</item>
+        <item name="mpvSurfaceSoft">#148E24AA</item>
         <item name="mpvSurfaceStrongStart">#F22E123C</item>
         <item name="mpvSurfaceStrongEnd">#EC140820</item>
         <item name="mpvHeroStart">#EA3E1950</item>
@@ -189,7 +189,7 @@
         <item name="mpvSurfaceEnd">#F2061209</item>
         <item name="mpvSurfaceAltStart">#B0112E18</item>
         <item name="mpvSurfaceAltEnd">#A00B1B10</item>
-        <item name="mpvSurfaceSoft">#5043A047</item>
+        <item name="mpvSurfaceSoft">#1443A047</item>
         <item name="mpvSurfaceStrongStart">#F20E3218</item>
         <item name="mpvSurfaceStrongEnd">#EC08180C</item>
         <item name="mpvHeroStart">#EA174324</item>
@@ -225,7 +225,7 @@
         <item name="mpvSurfaceEnd">#F2140B03</item>
         <item name="mpvSurfaceAltStart">#B038200A</item>
         <item name="mpvSurfaceAltEnd">#A0201206</item>
-        <item name="mpvSurfaceSoft">#50FB8C00</item>
+        <item name="mpvSurfaceSoft">#14FB8C00</item>
         <item name="mpvSurfaceStrongStart">#F23B230A</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0F04</item>
         <item name="mpvHeroStart">#EA502F0D</item>
@@ -261,7 +261,7 @@
         <item name="mpvSurfaceEnd">#F2140610</item>
         <item name="mpvSurfaceAltStart">#B0361322</item>
         <item name="mpvSurfaceAltEnd">#A01F0A14</item>
-        <item name="mpvSurfaceSoft">#50D81B60</item>
+        <item name="mpvSurfaceSoft">#14D81B60</item>
         <item name="mpvSurfaceStrongStart">#F23D1125</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0711</item>
         <item name="mpvHeroStart">#EA501730</item>
@@ -297,7 +297,7 @@
         <item name="mpvSurfaceEnd">#F2041113</item>
         <item name="mpvSurfaceAltStart">#B020383B</item>
         <item name="mpvSurfaceAltEnd">#A0102022</item>
-        <item name="mpvSurfaceSoft">#5000ACC1</item>
+        <item name="mpvSurfaceSoft">#1400ACC1</item>
         <item name="mpvSurfaceStrongStart">#F20A3034</item>
         <item name="mpvSurfaceStrongEnd">#EC05181A</item>
         <item name="mpvHeroStart">#EA0D4248</item>
@@ -333,7 +333,7 @@
         <item name="mpvSurfaceEnd">#F2121205</item>
         <item name="mpvSurfaceAltStart">#B0333313</item>
         <item name="mpvSurfaceAltEnd">#A01D1D09</item>
-        <item name="mpvSurfaceSoft">#509E9D24</item>
+        <item name="mpvSurfaceSoft">#149E9D24</item>
         <item name="mpvSurfaceStrongStart">#F2363610</item>
         <item name="mpvSurfaceStrongEnd">#EC181807</item>
         <item name="mpvHeroStart">#EA474614</item>
@@ -369,7 +369,7 @@
         <item name="mpvSurfaceEnd">#F2151304</item>
         <item name="mpvSurfaceAltStart">#B038320A</item>
         <item name="mpvSurfaceAltEnd">#A0201C06</item>
-        <item name="mpvSurfaceSoft">#50FDD835</item>
+        <item name="mpvSurfaceSoft">#14FDD835</item>
         <item name="mpvSurfaceStrongStart">#F23C3508</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1703</item>
         <item name="mpvHeroStart">#EA50450A</item>
@@ -405,7 +405,7 @@
         <item name="mpvSurfaceEnd">#F2140C06</item>
         <item name="mpvSurfaceAltStart">#B0382313</item>
         <item name="mpvSurfaceAltEnd">#A020140B</item>
-        <item name="mpvSurfaceSoft">#50B87333</item>
+        <item name="mpvSurfaceSoft">#14B87333</item>
         <item name="mpvSurfaceStrongStart">#F23D2512</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1008</item>
         <item name="mpvHeroStart">#EA523218</item>
@@ -441,7 +441,7 @@
         <item name="mpvSurfaceEnd">#F2070A16</item>
         <item name="mpvSurfaceAltStart">#B0141A38</item>
         <item name="mpvSurfaceAltEnd">#A00B0F20</item>
-        <item name="mpvSurfaceSoft">#503949AB</item>
+        <item name="mpvSurfaceSoft">#143949AB</item>
         <item name="mpvSurfaceStrongStart">#F211183D</item>
         <item name="mpvSurfaceStrongEnd">#EC090D1B</item>
         <item name="mpvHeroStart">#EA182452</item>
@@ -477,7 +477,7 @@
         <item name="mpvSurfaceEnd">#F20B0F11</item>
         <item name="mpvSurfaceAltStart">#B0202A2E</item>
         <item name="mpvSurfaceAltEnd">#A012181B</item>
-        <item name="mpvSurfaceSoft">#5078909C</item>
+        <item name="mpvSurfaceSoft">#1478909C</item>
         <item name="mpvSurfaceStrongStart">#F2222D32</item>
         <item name="mpvSurfaceStrongEnd">#EC0F1518</item>
         <item name="mpvHeroStart">#EA2D3A40</item>
@@ -513,7 +513,7 @@
         <item name="mpvSurfaceEnd">#F20D1116</item>
         <item name="mpvSurfaceAltStart">#B029323D</item>
         <item name="mpvSurfaceAltEnd">#A0171D24</item>
-        <item name="mpvSurfaceSoft">#50B8C1CC</item>
+        <item name="mpvSurfaceSoft">#14B8C1CC</item>
         <item name="mpvSurfaceStrongStart">#F2303A45</item>
         <item name="mpvSurfaceStrongEnd">#EC141A20</item>
         <item name="mpvHeroStart">#EA3D4A57</item>
@@ -549,7 +549,7 @@
         <item name="mpvSurfaceEnd">#F2140F0C</item>
         <item name="mpvSurfaceAltStart">#B0362B22</item>
         <item name="mpvSurfaceAltEnd">#A01F1914</item>
-        <item name="mpvSurfaceSoft">#50C8B6A6</item>
+        <item name="mpvSurfaceSoft">#14C8B6A6</item>
         <item name="mpvSurfaceStrongStart">#F23C3026</item>
         <item name="mpvSurfaceStrongEnd">#EC1A1410</item>
         <item name="mpvHeroStart">#EA4F4032</item>
@@ -585,7 +585,7 @@
         <item name="mpvSurfaceEnd">#F2141107</item>
         <item name="mpvSurfaceAltStart">#B0382F15</item>
         <item name="mpvSurfaceAltEnd">#A0201A0B</item>
-        <item name="mpvSurfaceSoft">#50D8C690</item>
+        <item name="mpvSurfaceSoft">#14D8C690</item>
         <item name="mpvSurfaceStrongStart">#F23F3518</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1609</item>
         <item name="mpvHeroStart">#EA55471F</item>
@@ -761,7 +761,7 @@
         <item name="mpvSurfaceEnd">#F207111C</item>
         <item name="mpvSurfaceAltStart">#B010202F</item>
         <item name="mpvSurfaceAltEnd">#A0101A25</item>
-        <item name="mpvSurfaceSoft">#502A8FDB</item>
+        <item name="mpvSurfaceSoft">#142A8FDB</item>
         <item name="mpvSurfaceStrongStart">#F20D1F30</item>
         <item name="mpvSurfaceStrongEnd">#EC091522</item>
         <item name="mpvHeroStart">#EA162F46</item>
@@ -797,7 +797,7 @@
         <item name="mpvSurfaceEnd">#F2110708</item>
         <item name="mpvSurfaceAltStart">#B0311416</item>
         <item name="mpvSurfaceAltEnd">#A01C0C0E</item>
-        <item name="mpvSurfaceSoft">#50E53935</item>
+        <item name="mpvSurfaceSoft">#14E53935</item>
         <item name="mpvSurfaceStrongStart">#F2321014</item>
         <item name="mpvSurfaceStrongEnd">#EC16090B</item>
         <item name="mpvHeroStart">#EA451519</item>
@@ -833,7 +833,7 @@
         <item name="mpvSurfaceEnd">#F20F0717</item>
         <item name="mpvSurfaceAltStart">#B02A1335</item>
         <item name="mpvSurfaceAltEnd">#A0190920</item>
-        <item name="mpvSurfaceSoft">#508E24AA</item>
+        <item name="mpvSurfaceSoft">#148E24AA</item>
         <item name="mpvSurfaceStrongStart">#F22E123C</item>
         <item name="mpvSurfaceStrongEnd">#EC140820</item>
         <item name="mpvHeroStart">#EA3E1950</item>
@@ -869,7 +869,7 @@
         <item name="mpvSurfaceEnd">#F2061209</item>
         <item name="mpvSurfaceAltStart">#B0112E18</item>
         <item name="mpvSurfaceAltEnd">#A00B1B10</item>
-        <item name="mpvSurfaceSoft">#5043A047</item>
+        <item name="mpvSurfaceSoft">#1443A047</item>
         <item name="mpvSurfaceStrongStart">#F20E3218</item>
         <item name="mpvSurfaceStrongEnd">#EC08180C</item>
         <item name="mpvHeroStart">#EA174324</item>
@@ -905,7 +905,7 @@
         <item name="mpvSurfaceEnd">#F2140B03</item>
         <item name="mpvSurfaceAltStart">#B038200A</item>
         <item name="mpvSurfaceAltEnd">#A0201206</item>
-        <item name="mpvSurfaceSoft">#50FB8C00</item>
+        <item name="mpvSurfaceSoft">#14FB8C00</item>
         <item name="mpvSurfaceStrongStart">#F23B230A</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0F04</item>
         <item name="mpvHeroStart">#EA502F0D</item>
@@ -941,7 +941,7 @@
         <item name="mpvSurfaceEnd">#F2140610</item>
         <item name="mpvSurfaceAltStart">#B0361322</item>
         <item name="mpvSurfaceAltEnd">#A01F0A14</item>
-        <item name="mpvSurfaceSoft">#50D81B60</item>
+        <item name="mpvSurfaceSoft">#14D81B60</item>
         <item name="mpvSurfaceStrongStart">#F23D1125</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0711</item>
         <item name="mpvHeroStart">#EA501730</item>
@@ -977,7 +977,7 @@
         <item name="mpvSurfaceEnd">#F2041113</item>
         <item name="mpvSurfaceAltStart">#B020383B</item>
         <item name="mpvSurfaceAltEnd">#A0102022</item>
-        <item name="mpvSurfaceSoft">#5000ACC1</item>
+        <item name="mpvSurfaceSoft">#1400ACC1</item>
         <item name="mpvSurfaceStrongStart">#F20A3034</item>
         <item name="mpvSurfaceStrongEnd">#EC05181A</item>
         <item name="mpvHeroStart">#EA0D4248</item>
@@ -1013,7 +1013,7 @@
         <item name="mpvSurfaceEnd">#F2121205</item>
         <item name="mpvSurfaceAltStart">#B0333313</item>
         <item name="mpvSurfaceAltEnd">#A01D1D09</item>
-        <item name="mpvSurfaceSoft">#509E9D24</item>
+        <item name="mpvSurfaceSoft">#149E9D24</item>
         <item name="mpvSurfaceStrongStart">#F2363610</item>
         <item name="mpvSurfaceStrongEnd">#EC181807</item>
         <item name="mpvHeroStart">#EA474614</item>
@@ -1049,7 +1049,7 @@
         <item name="mpvSurfaceEnd">#F2151304</item>
         <item name="mpvSurfaceAltStart">#B038320A</item>
         <item name="mpvSurfaceAltEnd">#A0201C06</item>
-        <item name="mpvSurfaceSoft">#50FDD835</item>
+        <item name="mpvSurfaceSoft">#14FDD835</item>
         <item name="mpvSurfaceStrongStart">#F23C3508</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1703</item>
         <item name="mpvHeroStart">#EA50450A</item>
@@ -1085,7 +1085,7 @@
         <item name="mpvSurfaceEnd">#F2140C06</item>
         <item name="mpvSurfaceAltStart">#B0382313</item>
         <item name="mpvSurfaceAltEnd">#A020140B</item>
-        <item name="mpvSurfaceSoft">#50B87333</item>
+        <item name="mpvSurfaceSoft">#14B87333</item>
         <item name="mpvSurfaceStrongStart">#F23D2512</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1008</item>
         <item name="mpvHeroStart">#EA523218</item>
@@ -1121,7 +1121,7 @@
         <item name="mpvSurfaceEnd">#F2070A16</item>
         <item name="mpvSurfaceAltStart">#B0141A38</item>
         <item name="mpvSurfaceAltEnd">#A00B0F20</item>
-        <item name="mpvSurfaceSoft">#503949AB</item>
+        <item name="mpvSurfaceSoft">#143949AB</item>
         <item name="mpvSurfaceStrongStart">#F211183D</item>
         <item name="mpvSurfaceStrongEnd">#EC090D1B</item>
         <item name="mpvHeroStart">#EA182452</item>
@@ -1157,7 +1157,7 @@
         <item name="mpvSurfaceEnd">#F20B0F11</item>
         <item name="mpvSurfaceAltStart">#B0202A2E</item>
         <item name="mpvSurfaceAltEnd">#A012181B</item>
-        <item name="mpvSurfaceSoft">#5078909C</item>
+        <item name="mpvSurfaceSoft">#1478909C</item>
         <item name="mpvSurfaceStrongStart">#F2222D32</item>
         <item name="mpvSurfaceStrongEnd">#EC0F1518</item>
         <item name="mpvHeroStart">#EA2D3A40</item>
@@ -1193,7 +1193,7 @@
         <item name="mpvSurfaceEnd">#F20D1116</item>
         <item name="mpvSurfaceAltStart">#B029323D</item>
         <item name="mpvSurfaceAltEnd">#A0171D24</item>
-        <item name="mpvSurfaceSoft">#50B8C1CC</item>
+        <item name="mpvSurfaceSoft">#14B8C1CC</item>
         <item name="mpvSurfaceStrongStart">#F2303A45</item>
         <item name="mpvSurfaceStrongEnd">#EC141A20</item>
         <item name="mpvHeroStart">#EA3D4A57</item>
@@ -1229,7 +1229,7 @@
         <item name="mpvSurfaceEnd">#F2140F0C</item>
         <item name="mpvSurfaceAltStart">#B0362B22</item>
         <item name="mpvSurfaceAltEnd">#A01F1914</item>
-        <item name="mpvSurfaceSoft">#50C8B6A6</item>
+        <item name="mpvSurfaceSoft">#14C8B6A6</item>
         <item name="mpvSurfaceStrongStart">#F23C3026</item>
         <item name="mpvSurfaceStrongEnd">#EC1A1410</item>
         <item name="mpvHeroStart">#EA4F4032</item>
@@ -1265,7 +1265,7 @@
         <item name="mpvSurfaceEnd">#F2141107</item>
         <item name="mpvSurfaceAltStart">#B0382F15</item>
         <item name="mpvSurfaceAltEnd">#A0201A0B</item>
-        <item name="mpvSurfaceSoft">#50D8C690</item>
+        <item name="mpvSurfaceSoft">#14D8C690</item>
         <item name="mpvSurfaceStrongStart">#F23F3518</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1609</item>
         <item name="mpvHeroStart">#EA55471F</item>
@@ -1419,7 +1419,7 @@
         <item name="mpvSurfaceEnd">#F207111C</item>
         <item name="mpvSurfaceAltStart">#B010202F</item>
         <item name="mpvSurfaceAltEnd">#A0101A25</item>
-        <item name="mpvSurfaceSoft">#502A8FDB</item>
+        <item name="mpvSurfaceSoft">#142A8FDB</item>
         <item name="mpvSurfaceStrongStart">#F20D1F30</item>
         <item name="mpvSurfaceStrongEnd">#EC091522</item>
         <item name="mpvHeroStart">#EA162F46</item>
@@ -1455,7 +1455,7 @@
         <item name="mpvSurfaceEnd">#F2110708</item>
         <item name="mpvSurfaceAltStart">#B0311416</item>
         <item name="mpvSurfaceAltEnd">#A01C0C0E</item>
-        <item name="mpvSurfaceSoft">#50E53935</item>
+        <item name="mpvSurfaceSoft">#14E53935</item>
         <item name="mpvSurfaceStrongStart">#F2321014</item>
         <item name="mpvSurfaceStrongEnd">#EC16090B</item>
         <item name="mpvHeroStart">#EA451519</item>
@@ -1491,7 +1491,7 @@
         <item name="mpvSurfaceEnd">#F20F0717</item>
         <item name="mpvSurfaceAltStart">#B02A1335</item>
         <item name="mpvSurfaceAltEnd">#A0190920</item>
-        <item name="mpvSurfaceSoft">#508E24AA</item>
+        <item name="mpvSurfaceSoft">#148E24AA</item>
         <item name="mpvSurfaceStrongStart">#F22E123C</item>
         <item name="mpvSurfaceStrongEnd">#EC140820</item>
         <item name="mpvHeroStart">#EA3E1950</item>
@@ -1527,7 +1527,7 @@
         <item name="mpvSurfaceEnd">#F2061209</item>
         <item name="mpvSurfaceAltStart">#B0112E18</item>
         <item name="mpvSurfaceAltEnd">#A00B1B10</item>
-        <item name="mpvSurfaceSoft">#5043A047</item>
+        <item name="mpvSurfaceSoft">#1443A047</item>
         <item name="mpvSurfaceStrongStart">#F20E3218</item>
         <item name="mpvSurfaceStrongEnd">#EC08180C</item>
         <item name="mpvHeroStart">#EA174324</item>
@@ -1563,7 +1563,7 @@
         <item name="mpvSurfaceEnd">#F2140B03</item>
         <item name="mpvSurfaceAltStart">#B038200A</item>
         <item name="mpvSurfaceAltEnd">#A0201206</item>
-        <item name="mpvSurfaceSoft">#50FB8C00</item>
+        <item name="mpvSurfaceSoft">#14FB8C00</item>
         <item name="mpvSurfaceStrongStart">#F23B230A</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0F04</item>
         <item name="mpvHeroStart">#EA502F0D</item>
@@ -1599,7 +1599,7 @@
         <item name="mpvSurfaceEnd">#F2140610</item>
         <item name="mpvSurfaceAltStart">#B0361322</item>
         <item name="mpvSurfaceAltEnd">#A01F0A14</item>
-        <item name="mpvSurfaceSoft">#50D81B60</item>
+        <item name="mpvSurfaceSoft">#14D81B60</item>
         <item name="mpvSurfaceStrongStart">#F23D1125</item>
         <item name="mpvSurfaceStrongEnd">#EC1B0711</item>
         <item name="mpvHeroStart">#EA501730</item>
@@ -1635,7 +1635,7 @@
         <item name="mpvSurfaceEnd">#F2041113</item>
         <item name="mpvSurfaceAltStart">#B020383B</item>
         <item name="mpvSurfaceAltEnd">#A0102022</item>
-        <item name="mpvSurfaceSoft">#5000ACC1</item>
+        <item name="mpvSurfaceSoft">#1400ACC1</item>
         <item name="mpvSurfaceStrongStart">#F20A3034</item>
         <item name="mpvSurfaceStrongEnd">#EC05181A</item>
         <item name="mpvHeroStart">#EA0D4248</item>
@@ -1671,7 +1671,7 @@
         <item name="mpvSurfaceEnd">#F2121205</item>
         <item name="mpvSurfaceAltStart">#B0333313</item>
         <item name="mpvSurfaceAltEnd">#A01D1D09</item>
-        <item name="mpvSurfaceSoft">#509E9D24</item>
+        <item name="mpvSurfaceSoft">#149E9D24</item>
         <item name="mpvSurfaceStrongStart">#F2363610</item>
         <item name="mpvSurfaceStrongEnd">#EC181807</item>
         <item name="mpvHeroStart">#EA474614</item>
@@ -1707,7 +1707,7 @@
         <item name="mpvSurfaceEnd">#F2151304</item>
         <item name="mpvSurfaceAltStart">#B038320A</item>
         <item name="mpvSurfaceAltEnd">#A0201C06</item>
-        <item name="mpvSurfaceSoft">#50FDD835</item>
+        <item name="mpvSurfaceSoft">#14FDD835</item>
         <item name="mpvSurfaceStrongStart">#F23C3508</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1703</item>
         <item name="mpvHeroStart">#EA50450A</item>
@@ -1743,7 +1743,7 @@
         <item name="mpvSurfaceEnd">#F2140C06</item>
         <item name="mpvSurfaceAltStart">#B0382313</item>
         <item name="mpvSurfaceAltEnd">#A020140B</item>
-        <item name="mpvSurfaceSoft">#50B87333</item>
+        <item name="mpvSurfaceSoft">#14B87333</item>
         <item name="mpvSurfaceStrongStart">#F23D2512</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1008</item>
         <item name="mpvHeroStart">#EA523218</item>
@@ -1779,7 +1779,7 @@
         <item name="mpvSurfaceEnd">#F2070A16</item>
         <item name="mpvSurfaceAltStart">#B0141A38</item>
         <item name="mpvSurfaceAltEnd">#A00B0F20</item>
-        <item name="mpvSurfaceSoft">#503949AB</item>
+        <item name="mpvSurfaceSoft">#143949AB</item>
         <item name="mpvSurfaceStrongStart">#F211183D</item>
         <item name="mpvSurfaceStrongEnd">#EC090D1B</item>
         <item name="mpvHeroStart">#EA182452</item>
@@ -1815,7 +1815,7 @@
         <item name="mpvSurfaceEnd">#F20B0F11</item>
         <item name="mpvSurfaceAltStart">#B0202A2E</item>
         <item name="mpvSurfaceAltEnd">#A012181B</item>
-        <item name="mpvSurfaceSoft">#5078909C</item>
+        <item name="mpvSurfaceSoft">#1478909C</item>
         <item name="mpvSurfaceStrongStart">#F2222D32</item>
         <item name="mpvSurfaceStrongEnd">#EC0F1518</item>
         <item name="mpvHeroStart">#EA2D3A40</item>
@@ -1851,7 +1851,7 @@
         <item name="mpvSurfaceEnd">#F20D1116</item>
         <item name="mpvSurfaceAltStart">#B029323D</item>
         <item name="mpvSurfaceAltEnd">#A0171D24</item>
-        <item name="mpvSurfaceSoft">#50B8C1CC</item>
+        <item name="mpvSurfaceSoft">#14B8C1CC</item>
         <item name="mpvSurfaceStrongStart">#F2303A45</item>
         <item name="mpvSurfaceStrongEnd">#EC141A20</item>
         <item name="mpvHeroStart">#EA3D4A57</item>
@@ -1887,7 +1887,7 @@
         <item name="mpvSurfaceEnd">#F2140F0C</item>
         <item name="mpvSurfaceAltStart">#B0362B22</item>
         <item name="mpvSurfaceAltEnd">#A01F1914</item>
-        <item name="mpvSurfaceSoft">#50C8B6A6</item>
+        <item name="mpvSurfaceSoft">#14C8B6A6</item>
         <item name="mpvSurfaceStrongStart">#F23C3026</item>
         <item name="mpvSurfaceStrongEnd">#EC1A1410</item>
         <item name="mpvHeroStart">#EA4F4032</item>
@@ -1923,7 +1923,7 @@
         <item name="mpvSurfaceEnd">#F2141107</item>
         <item name="mpvSurfaceAltStart">#B0382F15</item>
         <item name="mpvSurfaceAltEnd">#A0201A0B</item>
-        <item name="mpvSurfaceSoft">#50D8C690</item>
+        <item name="mpvSurfaceSoft">#14D8C690</item>
         <item name="mpvSurfaceStrongStart">#F23F3518</item>
         <item name="mpvSurfaceStrongEnd">#EC1B1609</item>
         <item name="mpvHeroStart">#EA55471F</item>

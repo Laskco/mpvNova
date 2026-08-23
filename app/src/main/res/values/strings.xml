@@ -64,8 +64,8 @@
     <string name="toast_no_chapters_in_file">No chapter markers in this file</string>
     <string name="toast_audio_norm_surround_hint">Surround track is heavy to process. Try Channel Downmix for smoother playback.</string>
     <string name="player_ends_at">Ends at %1$s</string>
-    <string name="player_loading_stream">Opening stream...</string>
-    <string name="player_buffering_stream">Buffering stream...</string>
+    <string name="player_loading_stream">Opening stream</string>
+    <string name="player_buffering_stream">Buffering stream</string>
     <string name="dialog_delay_label">Delay</string>
     <string name="dialog_title_subs">Subtitles</string>
     <string name="dialog_title_audio">Audio</string>
