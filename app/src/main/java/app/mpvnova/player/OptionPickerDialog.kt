@@ -1,6 +1,5 @@
 package app.mpvnova.player
 
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -88,10 +87,7 @@ internal class OptionPickerDialog(
                 optionDetailText.text = item.detail
                 optionDetailText.isVisible = item.detail.isNotBlank()
                 optionCheck.isVisible = item.selected
-                optionTitleText.setTypeface(
-                    null,
-                    if (item.selected) Typeface.BOLD else Typeface.NORMAL,
-                )
+                UiFont.applyWeight(optionTitleText, bold = item.selected)
             }
         }
 

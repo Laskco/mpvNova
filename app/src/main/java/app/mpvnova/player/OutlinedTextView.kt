@@ -8,8 +8,11 @@ import android.util.AttributeSet
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatViewInflater
 import androidx.appcompat.widget.AppCompatButton
+import androidx.appcompat.widget.AppCompatCheckBox
+import androidx.appcompat.widget.AppCompatEditText
 import androidx.appcompat.widget.AppCompatImageButton
 import androidx.appcompat.widget.AppCompatImageView
+import androidx.appcompat.widget.AppCompatRadioButton
 import androidx.appcompat.widget.AppCompatTextView
 
 private object OutlinedTextPainter {
@@ -105,10 +108,19 @@ class OutlinedButton @JvmOverloads constructor(
 
 class OutlinedAppCompatViewInflater : AppCompatViewInflater() {
     override fun createTextView(context: Context, attrs: AttributeSet): AppCompatTextView =
-        OutlinedTextView(context, attrs)
+        OutlinedTextView(context, attrs).also(UiFont::applyToTextView)
 
     override fun createButton(context: Context, attrs: AttributeSet): AppCompatButton =
-        OutlinedButton(context, attrs)
+        OutlinedButton(context, attrs).also(UiFont::applyToTextView)
+
+    override fun createEditText(context: Context, attrs: AttributeSet): AppCompatEditText =
+        AppCompatEditText(context, attrs).also(UiFont::applyToTextView)
+
+    override fun createCheckBox(context: Context, attrs: AttributeSet): AppCompatCheckBox =
+        AppCompatCheckBox(context, attrs).also(UiFont::applyToTextView)
+
+    override fun createRadioButton(context: Context, attrs: AttributeSet): AppCompatRadioButton =
+        AppCompatRadioButton(context, attrs).also(UiFont::applyToTextView)
 
     override fun createImageView(context: Context, attrs: AttributeSet): AppCompatImageView =
         OutlinedImageView(context, attrs)

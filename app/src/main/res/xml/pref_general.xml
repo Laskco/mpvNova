@@ -1,112 +1,30 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <EditTextPreference
-        android:defaultValue="/sdcard"
-        android:key="default_file_manager_path"
-        app:useSimpleSummaryProvider="true"
-        app:iconSpaceReserved="false"
-        android:hint=""
-        android:title="@string/pref_default_file_manager_path_title" />
+    <PreferenceCategory android:title="@string/settings_category_files_languages" app:iconSpaceReserved="false">
+        <EditTextPreference android:defaultValue="/sdcard" android:hint="" android:key="default_file_manager_path" android:title="@string/pref_default_file_manager_path_title" app:iconSpaceReserved="false" app:useSimpleSummaryProvider="true" />
+        <EditTextPreference android:defaultValue="eng" android:dialogMessage="@string/pref_default_audio_language_message" android:key="default_audio_language" android:title="@string/pref_default_audio_language_title" app:iconSpaceReserved="false" app:useSimpleSummaryProvider="true" />
+        <EditTextPreference android:defaultValue="eng" android:dialogMessage="@string/pref_default_subtitle_language_message" android:key="default_subtitle_language" android:title="@string/pref_default_subtitle_language_title" app:iconSpaceReserved="false" app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="prefer_external_forwarded_subtitles" android:summary="@string/pref_prefer_external_forwarded_subtitles_summary" android:title="@string/pref_prefer_external_forwarded_subtitles_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <EditTextPreference
-        android:defaultValue="eng"
-        android:key="default_audio_language"
-        app:iconSpaceReserved="false"
-        app:useSimpleSummaryProvider="true"
-        android:dialogMessage="@string/pref_default_audio_language_message"
-        android:title="@string/pref_default_audio_language_title" />
+    <PreferenceCategory android:title="@string/settings_category_playback_behavior" app:iconSpaceReserved="false">
+        <ListPreference android:defaultValue="@string/pref_background_play_default" android:entries="@array/background_play_entries" android:entryValues="@array/background_play_values" android:key="background_play" android:summary="@string/pref_background_play_summary" android:title="@string/pref_background_play_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="save_position" android:summary="@string/pref_save_position_summary" android:title="@string/pref_save_position_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="new_intent_replace" android:summary="@string/pref_new_intent_replace_summary" android:title="@string/pref_new_intent_replace_title" app:iconSpaceReserved="false" />
+        <ListPreference android:defaultValue="@string/pref_no_ui_pause_default" android:entries="@array/background_play_entries" android:entryValues="@array/background_play_values" android:key="no_ui_pause" android:summary="@string/pref_no_ui_pause_summary" android:title="@string/pref_no_ui_pause_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="playlist_exit_warning" android:summary="@string/pref_playlist_exit_warning_summary" android:title="@string/pref_playlist_exit_warning_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <EditTextPreference
-        android:defaultValue="eng"
-        app:iconSpaceReserved="false"
-        android:key="default_subtitle_language"
-        app:useSimpleSummaryProvider="true"
-        android:dialogMessage="@string/pref_default_subtitle_language_message"
-        android:title="@string/pref_default_subtitle_language_title" />
+    <PreferenceCategory android:title="@string/settings_category_skipping_seeking" app:iconSpaceReserved="false">
+        <ListPreference android:defaultValue="auto" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" android:key="skip_segments_mode" android:summary="@string/pref_skip_segments_mode_summary" android:title="@string/pref_skip_segments_mode_title" app:iconSpaceReserved="false" />
+        <ListPreference android:defaultValue="segment" android:entries="@array/skip_button_display_entries" android:entryValues="@array/skip_button_display_values" android:key="skip_button_display" android:summary="@string/pref_skip_button_display_summary" android:title="@string/pref_skip_button_display_title" app:iconSpaceReserved="false" />
+        <ListPreference android:defaultValue="10" android:entries="@array/seek_step_entries" android:entryValues="@array/seek_step_values" android:key="seek_step_seconds" android:summary="@string/pref_seek_step_summary" android:title="@string/pref_seek_step_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="fast_seek_enabled" android:summary="@string/pref_fast_seek_summary" android:title="@string/pref_fast_seek_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="seek_keys_use_inputconf" android:summary="@string/pref_seek_keys_inputconf_summary" android:title="@string/pref_seek_keys_inputconf_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="prefer_external_forwarded_subtitles"
-        android:summary="@string/pref_prefer_external_forwarded_subtitles_summary"
-        android:title="@string/pref_prefer_external_forwarded_subtitles_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        android:key="material_you_theming"
-        android:summary="@string/pref_material_you_theming_summary"
-        android:title="@string/pref_material_you_theming_title"
-        app:iconSpaceReserved="false" />
-
-    <ListPreference
-        android:defaultValue="@string/pref_background_play_default"
-        app:iconSpaceReserved="false"
-        android:key="background_play"
-        android:summary="@string/pref_background_play_summary"
-        android:entries="@array/background_play_entries"
-        android:entryValues="@array/background_play_values"
-        android:title="@string/pref_background_play_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="true"
-        app:iconSpaceReserved="false"
-        android:key="save_position"
-        android:summary="@string/pref_save_position_summary"
-        android:title="@string/pref_save_position_title" />
-
-    <ListPreference
-        android:defaultValue="auto"
-        app:iconSpaceReserved="false"
-        android:key="skip_segments_mode"
-        android:entries="@array/skip_segments_mode_entries"
-        android:entryValues="@array/skip_segments_mode_values"
-        android:summary="@string/pref_skip_segments_mode_summary"
-        android:title="@string/pref_skip_segments_mode_title" />
-
-    <ListPreference
-        android:defaultValue="segment"
-        app:iconSpaceReserved="false"
-        android:key="skip_button_display"
-        android:entries="@array/skip_button_display_entries"
-        android:entryValues="@array/skip_button_display_values"
-        android:summary="@string/pref_skip_button_display_summary"
-        android:title="@string/pref_skip_button_display_title" />
-
-    <ListPreference
-        android:defaultValue="10"
-        app:iconSpaceReserved="false"
-        android:key="seek_step_seconds"
-        android:entries="@array/seek_step_entries"
-        android:entryValues="@array/seek_step_values"
-        android:summary="@string/pref_seek_step_summary"
-        android:title="@string/pref_seek_step_title" />
-
-    <Preference
-        app:fragment="app.mpvnova.player.preferences.PreferenceActivity$ScreensaverPreference"
-        app:iconSpaceReserved="false"
-        android:summary="@string/pref_screensaver_summary"
-        android:title="@string/pref_screensaver_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="fast_seek_enabled"
-        android:summary="@string/pref_fast_seek_summary"
-        android:title="@string/pref_fast_seek_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="seek_keys_use_inputconf"
-        android:summary="@string/pref_seek_keys_inputconf_summary"
-        android:title="@string/pref_seek_keys_inputconf_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="new_intent_replace"
-        android:summary="@string/pref_new_intent_replace_summary"
-        android:title="@string/pref_new_intent_replace_title" />
-
+    <PreferenceCategory android:title="@string/settings_category_idle" app:iconSpaceReserved="false">
+        <Preference android:summary="@string/pref_screensaver_summary" android:title="@string/pref_screensaver_title" app:fragment="app.mpvnova.player.preferences.PreferenceActivity$ScreensaverPreference" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 </PreferenceScreen>

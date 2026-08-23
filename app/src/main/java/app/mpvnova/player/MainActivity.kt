@@ -12,6 +12,7 @@ private val HOME_RECREATE_PREF_KEYS = setOf(
     AppearanceTheme.PREF_KEY,
     AppearanceTheme.PREF_AMOLED_MODE,
     AppearanceTheme.PREF_PURE_BLACK_SURFACES,
+    UiFont.PREF_KEY,
     UiScale.PREF_KEY
 )
 

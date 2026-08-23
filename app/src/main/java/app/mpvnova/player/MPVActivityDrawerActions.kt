@@ -15,6 +15,7 @@ internal fun MPVActivity.handleDrawerAction(
         PlayerDrawerActionGroup.PROCESSING -> handleProcessingDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.AUDIO_SUBTITLE -> handleAudioSubtitleDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.PLAYBACK -> handlePlaybackDrawerAction(action, dismiss)
+        PlayerDrawerActionGroup.INTERFACE -> handleInterfaceDrawerAction(action, dismiss)
         PlayerDrawerActionGroup.STATS -> handleStatsDrawerAction(action)
     }
 }
@@ -140,9 +141,18 @@ private fun MPVActivity.handlePlaybackDrawerAction(
         PlayerDrawerAction.SEEK_STEP -> {
             dismissDrawerExpectingReopen(dismiss); pickSeekStep()
         }
-        PlayerDrawerAction.SCREENSAVER -> {
-            dismissDrawerExpectingReopen(dismiss); openScreensaverPanel()
-        }
+        else -> Unit
+    }
+}
+
+private fun MPVActivity.handleInterfaceDrawerAction(
+    action: PlayerDrawerAction,
+    dismiss: () -> Unit,
+) {
+    dismissDrawerExpectingReopen(dismiss)
+    when (action) {
+        PlayerDrawerAction.UI_FONT -> pickUiFont()
+        PlayerDrawerAction.SCREENSAVER -> openScreensaverPanel()
         else -> Unit
     }
 }

@@ -2,7 +2,6 @@ package app.mpvnova.player
 
 import app.mpvnova.player.databinding.DialogPlaylistBinding
 import android.content.res.ColorStateList
-import android.graphics.Typeface
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
@@ -121,7 +120,7 @@ internal class PlaylistDialog(private val player: MPVView) {
             fun bind(item: MPVView.PlaylistItem, selected: Boolean) {
                 textView.text = item.title ?: Utils.fileBasename(item.filename)
                 itemView.isActivated = selected
-                textView.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+                UiFont.applyWeight(textView, bold = selected)
                 val subtitle = if (item.title.isNullOrBlank()) {
                     "#${item.index + 1}"
                 } else {

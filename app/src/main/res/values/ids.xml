@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="settings_back_focus_target" type="id" />
+    <item name="ui_font_original_typeface" type="id" />
+</resources>

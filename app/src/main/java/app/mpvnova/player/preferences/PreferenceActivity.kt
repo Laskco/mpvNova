@@ -13,12 +13,14 @@ import android.net.Uri
 import android.text.InputType
 import android.util.TypedValue
 import android.view.LayoutInflater
+import android.view.KeyEvent
 import android.view.View
 import android.view.MenuItem
 import android.view.ViewTreeObserver
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageButton
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -57,6 +59,7 @@ import app.mpvnova.player.SEEK_STEP_DEFAULT_SEC
 import app.mpvnova.player.SEEK_STEP_MAX_SEC
 import app.mpvnova.player.SEEK_STEP_MIN_SEC
 import app.mpvnova.player.TvScrollbars
+import app.mpvnova.player.UiFont
 import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
@@ -65,7 +68,10 @@ import app.mpvnova.player.databinding.ActivitySettingsBinding
 
 private fun View.applyPreferenceTextTreatment() {
     when (this) {
-        is TextView -> applyUiTextShadow()
+        is TextView -> {
+            applyUiTextShadow()
+            UiFont.applyToTextView(this)
+        }
         is ViewGroup -> for (index in 0 until childCount) {
             getChildAt(index).applyPreferenceTextTreatment()
         }
@@ -77,6 +83,7 @@ private val THEME_RECREATE_KEYS = setOf(
     AppearanceTheme.PREF_KEY,
     AppearanceTheme.PREF_AMOLED_MODE,
     AppearanceTheme.PREF_PURE_BLACK_SURFACES,
+    UiFont.PREF_KEY,
     app.mpvnova.player.UiScale.PREF_KEY
 )
 
@@ -314,6 +321,15 @@ class PreferenceActivity : AppCompatActivity(),
         binding.heroTitle.text = currentTitle ?: getString(R.string.settings_hero_title)
         binding.heroSubtitle.text = currentSubtitle ?: getString(R.string.settings_root_subtitle)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        binding.toolbar.post {
+            val navigationButton = (0 until binding.toolbar.childCount)
+                .map(binding.toolbar::getChildAt)
+                .filterIsInstance<ImageButton>()
+                .firstOrNull { it.drawable != null }
+                ?: return@post
+            navigationButton.id = R.id.settings_back_focus_target
+            navigationButton.isFocusable = true
+        }
     }
 
     abstract class StyledPreferenceFragment(
@@ -336,8 +352,31 @@ class PreferenceActivity : AppCompatActivity(),
                     } else {
                         null
                     }
+                    holder.itemView.nextFocusUpId = if (position == firstSelectablePosition()) {
+                        R.id.settings_back_focus_target
+                    } else {
+                        View.NO_ID
+                    }
+                    holder.itemView.setOnKeyListener(
+                        if (position == firstSelectablePosition()) {
+                            View.OnKeyListener { _, keyCode, event ->
+                                if (keyCode != KeyEvent.KEYCODE_DPAD_UP || event.action != KeyEvent.ACTION_DOWN) {
+                                    return@OnKeyListener false
+                                }
+                                requireActivity()
+                                    .findViewById<View>(R.id.settings_back_focus_target)
+                                    ?.requestFocus() == true
+                            }
+                        } else {
+                            null
+                        }
+                    )
                     holder.itemView.applyPreferenceTextTreatment()
                 }
+
+                private fun firstSelectablePosition(): Int =
+                    (0 until itemCount).firstOrNull { getItem(it)?.isSelectable == true }
+                        ?: RecyclerView.NO_POSITION
             }
         }
 
@@ -456,6 +495,13 @@ class PreferenceActivity : AppCompatActivity(),
             preferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
             populateColorThemes(view.findViewById(R.id.colorThemeRow))
             bindColorThemeScrollbar(view)
+            bindFontRow(view.findViewById(R.id.fontRow), view.findViewById(R.id.fontValue))
+            view.findViewById<View>(R.id.materialYouRow).apply {
+                visibility = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) View.VISIBLE else View.GONE
+                if (visibility == View.VISIBLE) {
+                    bindSwitchRow(this, findViewById(R.id.materialYouSwitch), "material_you_theming")
+                }
+            }
             bindSwitchRow(
                 view.findViewById(R.id.amoledRow),
                 view.findViewById(R.id.amoledSwitch),
@@ -574,6 +620,7 @@ class PreferenceActivity : AppCompatActivity(),
                 typeface = if (selected) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
                 gravity = android.view.Gravity.CENTER
                 includeFontPadding = false
+                UiFont.applyToTextView(this)
             }
             tile.addView(label, LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -602,6 +649,23 @@ class PreferenceActivity : AppCompatActivity(),
             }
         }
 
+        private fun bindFontRow(row: View, valueView: TextView) {
+            valueView.text = UiFont.currentLabel(requireContext())
+            row.setOnClickListener {
+                val selected = UiFont.currentValue(requireContext())
+                val items = UiFont.choices.map { choice ->
+                    SettingsChoiceItem(
+                        title = getString(choice.titleRes),
+                        detail = getString(choice.detailRes),
+                        checked = choice.value == selected,
+                    ) {
+                        preferences.edit().putString(UiFont.PREF_KEY, choice.value).apply()
+                    }
+                }
+                showSettingsChoiceDialog(getString(R.string.appearance_ui_font_title), items)
+            }
+        }
+
         private fun dp(value: Int): Int = TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP,
             value.toFloat(),
@@ -611,8 +675,6 @@ class PreferenceActivity : AppCompatActivity(),
 
     class GeneralPreference : StyledPreferenceFragment(R.xml.pref_general) {
         override fun onPreferencesLoaded() {
-            preferenceManager.findPreference<Preference>("material_you_theming")?.isVisible =
-                (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             bindSkipButtonDisplayVisibility()
             bindSeekStepPreference()
         }

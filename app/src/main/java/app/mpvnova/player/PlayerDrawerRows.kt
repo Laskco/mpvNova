@@ -4,7 +4,7 @@ private const val DRAWER_SECTION_SPACER_DP = 4
 
 internal enum class DrawerTab { VIDEO, PROCESSING, AUDIO, SUBTITLES, PLAYBACK, INTERFACE }
 
-internal enum class PlayerDrawerActionGroup { VIDEO, PROCESSING, AUDIO_SUBTITLE, PLAYBACK, STATS }
+internal enum class PlayerDrawerActionGroup { VIDEO, PROCESSING, AUDIO_SUBTITLE, PLAYBACK, INTERFACE, STATS }
 
 internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     DECODER(PlayerDrawerActionGroup.VIDEO),
@@ -38,7 +38,8 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     SKIP_MODE(PlayerDrawerActionGroup.PLAYBACK),
     SKIP_BUTTON_DISPLAY(PlayerDrawerActionGroup.PLAYBACK),
     SEEK_STEP(PlayerDrawerActionGroup.PLAYBACK),
-    SCREENSAVER(PlayerDrawerActionGroup.PLAYBACK),
+    UI_FONT(PlayerDrawerActionGroup.INTERFACE),
+    SCREENSAVER(PlayerDrawerActionGroup.INTERFACE),
     STATS_TOGGLE(PlayerDrawerActionGroup.STATS),
     STATS_PAGE_1(PlayerDrawerActionGroup.STATS),
     STATS_PAGE_2(PlayerDrawerActionGroup.STATS),
@@ -286,6 +287,11 @@ internal enum class PlayerDrawerOption(
         R.string.pref_screensaver_title,
         R.string.pref_screensaver_summary,
     ),
+    UI_FONT(
+        PlayerDrawerAction.UI_FONT,
+        R.string.appearance_ui_font_title,
+        R.string.appearance_ui_font_summary,
+    ),
 }
 
 internal sealed class PlayerDrawerRow {
@@ -346,6 +352,7 @@ private fun MPVActivity.addVideoRows(rows: MutableList<PlayerDrawerRow>) {
         rows.addOption(PlayerDrawerOption.SHIELD_FALLBACK)
     }
     rows.addPref(PlayerDrawerPreference.SHIELD_MPEG2_SOFTWARE_FALLBACK)
+    rows.addPref(PlayerDrawerPreference.AUTOPAUSE_SHIELD)
 }
 
 private fun MPVActivity.addAudioRows(rows: MutableList<PlayerDrawerRow>) {
@@ -389,7 +396,6 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
         rows.addOption(PlayerDrawerOption.SKIP_BUTTON_DISPLAY)
     }
     rows.addOption(PlayerDrawerOption.SEEK_STEP)
-    rows.addOption(PlayerDrawerOption.SCREENSAVER)
     rows.addPref(PlayerDrawerPreference.FAST_SEEK)
     rows.addPref(PlayerDrawerPreference.SEEK_KEYS_INPUTCONF)
     rows.addPref(PlayerDrawerPreference.SAVE_POSITION)
@@ -397,9 +403,10 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
 }
 
 private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
+    rows.addOption(PlayerDrawerOption.UI_FONT)
     rows.addPref(PlayerDrawerPreference.AUTOPAUSE_CONTROLS)
-    rows.addPref(PlayerDrawerPreference.AUTOPAUSE_SHIELD)
     rows.addPref(PlayerDrawerPreference.KEEP_CONTROLS_VISIBLE)
+    rows.addOption(PlayerDrawerOption.SCREENSAVER)
     rows.addPref(PlayerDrawerPreference.SHOW_MEDIA_TITLE)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_DATE)

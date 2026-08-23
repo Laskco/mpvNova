@@ -1,141 +1,35 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <SwitchPreferenceCompat
-        app:iconSpaceReserved="false"
-        android:defaultValue="true"
-        android:key="display_media_title"
-        android:summary="@string/pref_display_media_title_summary"
-        android:title="@string/pref_display_media_title_title" />
+    <PreferenceCategory android:title="@string/settings_category_layout" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="display_media_title" android:summary="@string/pref_display_media_title_summary" android:title="@string/pref_display_media_title_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="bottom_controls" android:summary="" android:title="@string/pref_bottom_controls_title" app:iconSpaceReserved="false" />
+        <ListPreference android:defaultValue="100" android:entries="@array/ui_scale_entries" android:entryValues="@array/ui_scale_values" android:key="ui_scale_percent" android:summary="@string/pref_ui_scale_summary" android:title="@string/pref_ui_scale_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <SwitchPreferenceCompat
-        app:iconSpaceReserved="false"
-        android:defaultValue="true"
-        android:key="bottom_controls"
-        android:summary=""
-        android:title="@string/pref_bottom_controls_title" />
+    <PreferenceCategory android:title="@string/settings_category_controls" app:iconSpaceReserved="false">
+        <ListPreference android:defaultValue="@string/pref_player_controls_timeout_default" android:entries="@array/player_controls_timeout_entries" android:entryValues="@array/player_controls_timeout_values" android:key="player_controls_timeout" android:summary="@string/pref_player_controls_timeout_summary" android:title="@string/pref_player_controls_timeout_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="keep_controls_visible_paused" android:summary="@string/pref_keep_controls_visible_paused_summary" android:title="@string/pref_keep_controls_visible_paused_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="autopause_controls_overlay" android:summary="@string/pref_autopause_controls_overlay_summary" android:title="@string/pref_autopause_controls_overlay_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="exit_with_double_back" android:summary="@string/pref_exit_with_double_back_summary" android:title="@string/pref_exit_with_double_back_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="dpad_up_jumps_to_top_controls" android:summary="@string/pref_dpad_up_jumps_top_summary" android:title="@string/pref_dpad_up_jumps_top_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <ListPreference
-        app:iconSpaceReserved="false"
-        android:defaultValue="100"
-        android:key="ui_scale_percent"
-        android:entries="@array/ui_scale_entries"
-        android:entryValues="@array/ui_scale_values"
-        android:summary="@string/pref_ui_scale_summary"
-        android:title="@string/pref_ui_scale_title" />
+    <PreferenceCategory android:title="@string/settings_category_clock" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="display_clock_overlay" android:summary="@string/pref_display_clock_overlay_summary" android:title="@string/pref_display_clock_overlay_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_date" android:summary="@string/pref_display_clock_date_summary" android:title="@string/pref_display_clock_date_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_on_pause" android:summary="@string/pref_display_clock_on_pause_summary" android:title="@string/pref_display_clock_on_pause_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_24_hour" android:summary="@string/pref_display_clock_24_hour_summary" android:title="@string/pref_display_clock_24_hour_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <ListPreference
-        app:iconSpaceReserved="false"
-        android:defaultValue="@string/pref_player_controls_timeout_default"
-        android:key="player_controls_timeout"
-        android:summary="@string/pref_player_controls_timeout_summary"
-        android:entries="@array/player_controls_timeout_entries"
-        android:entryValues="@array/player_controls_timeout_values"
-        android:title="@string/pref_player_controls_timeout_title" />
+    <PreferenceCategory android:title="@string/settings_category_seek_display" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="hide_controls_while_seeking" android:summary="@string/pref_hide_controls_while_seeking_summary" android:title="@string/pref_hide_controls_while_seeking_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="minimal_seekbar_while_seeking" android:summary="@string/pref_minimal_seekbar_while_seeking_summary" android:title="@string/pref_minimal_seekbar_while_seeking_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <SwitchPreferenceCompat
-        app:iconSpaceReserved="false"
-        android:defaultValue="false"
-        android:key="keep_controls_visible_paused"
-        android:summary="@string/pref_keep_controls_visible_paused_summary"
-        android:title="@string/pref_keep_controls_visible_paused_title" />
+    <PreferenceCategory android:title="@string/settings_category_remote" app:iconSpaceReserved="false">
+        <app.mpvnova.player.preferences.RemoteButtonPreference android:defaultValue="@string/pref_remote_button_unassigned_value" android:key="remote_next_chapter_button" android:title="@string/pref_remote_next_chapter_button_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="autopause_controls_overlay"
-        android:summary="@string/pref_autopause_controls_overlay_summary"
-        android:title="@string/pref_autopause_controls_overlay_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="true"
-        app:iconSpaceReserved="false"
-        android:key="autopause_shield_hi10p"
-        android:summary="@string/pref_autopause_shield_hi10p_summary"
-        android:title="@string/pref_autopause_shield_hi10p_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="true"
-        app:iconSpaceReserved="false"
-        android:key="display_clock_overlay"
-        android:summary="@string/pref_display_clock_overlay_summary"
-        android:title="@string/pref_display_clock_overlay_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="display_clock_date"
-        android:summary="@string/pref_display_clock_date_summary"
-        android:title="@string/pref_display_clock_date_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="display_clock_on_pause"
-        android:summary="@string/pref_display_clock_on_pause_summary"
-        android:title="@string/pref_display_clock_on_pause_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="display_clock_24_hour"
-        android:summary="@string/pref_display_clock_24_hour_summary"
-        android:title="@string/pref_display_clock_24_hour_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="exit_with_double_back"
-        android:summary="@string/pref_exit_with_double_back_summary"
-        android:title="@string/pref_exit_with_double_back_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="dpad_up_jumps_to_top_controls"
-        android:summary="@string/pref_dpad_up_jumps_top_summary"
-        android:title="@string/pref_dpad_up_jumps_top_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="hide_controls_while_seeking"
-        android:summary="@string/pref_hide_controls_while_seeking_summary"
-        android:title="@string/pref_hide_controls_while_seeking_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="false"
-        app:iconSpaceReserved="false"
-        android:key="minimal_seekbar_while_seeking"
-        android:summary="@string/pref_minimal_seekbar_while_seeking_summary"
-        android:title="@string/pref_minimal_seekbar_while_seeking_title" />
-
-    <app.mpvnova.player.preferences.RemoteButtonPreference
-        app:iconSpaceReserved="false"
-        android:defaultValue="@string/pref_remote_button_unassigned_value"
-        android:key="remote_next_chapter_button"
-        android:title="@string/pref_remote_next_chapter_button_title" />
-
-    <ListPreference
-        android:defaultValue="@string/pref_no_ui_pause_default"
-        app:iconSpaceReserved="false"
-        android:key="no_ui_pause"
-        android:summary="@string/pref_no_ui_pause_summary"
-        android:entries="@array/background_play_entries"
-        android:entryValues="@array/background_play_values"
-        android:title="@string/pref_no_ui_pause_title" />
-
-    <SwitchPreferenceCompat
-        android:defaultValue="true"
-        app:iconSpaceReserved="false"
-        android:key="playlist_exit_warning"
-        android:summary="@string/pref_playlist_exit_warning_summary"
-        android:title="@string/pref_playlist_exit_warning_title" />
-
-    <Preference
-        app:iconSpaceReserved="false"
-        android:key="reset_player_ui_settings"
-        android:summary="@string/pref_reset_player_ui_summary"
-        android:title="@string/pref_reset_player_ui_title" />
-
+    <Preference android:key="reset_player_ui_settings" android:summary="@string/pref_reset_player_ui_summary" android:title="@string/pref_reset_player_ui_title" app:iconSpaceReserved="false" />
 </PreferenceScreen>
