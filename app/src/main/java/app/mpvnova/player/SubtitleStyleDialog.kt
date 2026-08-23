@@ -75,7 +75,6 @@ internal class SubtitleStyleDialog {
         if (!::binding.isInitialized) {
             binding = DialogSubtitleStyleBinding.inflate(layoutInflater)
             bindControls()
-            TvScrollbars.bind(binding.styleScroll, binding.styleScrollbarThumb)
         } else {
             binding.root.detachFromParent()
             binding.styleScroll.scrollTo(0, 0)

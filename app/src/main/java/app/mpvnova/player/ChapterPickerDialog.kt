@@ -2,7 +2,6 @@ package app.mpvnova.player
 
 import app.mpvnova.player.databinding.DialogChapterItemBinding
 import app.mpvnova.player.databinding.DialogChapterPickerBinding
-import android.graphics.Typeface
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -22,7 +21,6 @@ internal class ChapterPickerDialog(
         binding.cancelBtn.setOnClickListener { onCancelClick?.invoke() }
         binding.list.adapter = Adapter(this)
         binding.list.setHasFixedSize(true)
-        TvScrollbars.bind(binding.list, binding.chapterScrollbarThumb)
         scrollToSelectedChapter()
         handleInsetsAsPadding(binding.root)
         return binding.root
@@ -50,6 +48,7 @@ internal class ChapterPickerDialog(
             binding.list.findViewHolderForAdapterPosition(selectedPosition)
                 ?.itemView
                 ?.requestFocus()
+            binding.list.revealNativeScrollbar()
         }
     }
 
@@ -84,7 +83,7 @@ internal class ChapterPickerDialog(
                 chapterNumberText.text = "#${item.index + 1}"
                 chapterTitleText.text = item.title
                 chapterTimeText.text = item.timecode
-                chapterTitleText.setTypeface(null, if (selected) Typeface.BOLD else Typeface.NORMAL)
+                UiFont.applyWeight(chapterTitleText, bold = selected)
             }
         }
 

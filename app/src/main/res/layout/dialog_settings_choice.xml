@@ -24,7 +24,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="14dp"
-        android:clipToPadding="false"
+        android:clipToPadding="true"
         android:scrollbarDefaultDelayBeforeFade="1200"
         android:scrollbarFadeDuration="240"
         android:scrollbarSize="3dp"
