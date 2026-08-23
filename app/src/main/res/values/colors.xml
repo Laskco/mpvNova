@@ -10,10 +10,10 @@
 
     <!-- Surfaces -->
     <color name="tv_charcoal">#FF0A0B0D</color>
-    <color name="tv_surface">#B30E1115</color>
-    <color name="tv_surface_alt">#7A111419</color>
-    <color name="tv_surface_soft">#12FFFFFF</color>
-    <color name="tv_surface_strong">#B0111418</color>
+    <color name="tv_surface">#E80E1115</color>
+    <color name="tv_surface_alt">#B0111419</color>
+    <color name="tv_surface_soft">#50FFFFFF</color>
+    <color name="tv_surface_strong">#EC111418</color>
 
     <!-- Text -->
     <color name="tv_text">#FFF7F7F7</color>

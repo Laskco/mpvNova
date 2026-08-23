@@ -7,7 +7,7 @@
 
     <Button
         android:id="@+id/drawerRowButton"
-        style="@style/Mpv.SurfaceButton"
+        style="@style/Mpv.DrawerPillButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:nextFocusRight="@id/tabBtnVideo"

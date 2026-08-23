@@ -8,7 +8,7 @@
 
     <Button
         android:id="@+id/drawerStatsButton"
-        style="@style/Mpv.SurfaceButton"
+        style="@style/Mpv.DrawerPillButton"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
@@ -17,7 +17,7 @@
 
     <Button
         android:id="@+id/drawerStatsPage1Button"
-        style="@style/Mpv.SurfaceButton.Compact"
+        style="@style/Mpv.DrawerPillButton.Compact"
         android:layout_width="44dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -27,7 +27,7 @@
 
     <Button
         android:id="@+id/drawerStatsPage2Button"
-        style="@style/Mpv.SurfaceButton.Compact"
+        style="@style/Mpv.DrawerPillButton.Compact"
         android:layout_width="44dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
@@ -37,7 +37,7 @@
 
     <Button
         android:id="@+id/drawerStatsPage3Button"
-        style="@style/Mpv.SurfaceButton.Compact"
+        style="@style/Mpv.DrawerPillButton.Compact"
         android:layout_width="44dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
