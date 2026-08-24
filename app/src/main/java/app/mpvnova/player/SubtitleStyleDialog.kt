@@ -10,6 +10,7 @@ internal class SubtitleStyleDialog {
 
     enum class Control {
         MASTER,
+        IMAGE_SUB_GRAYSCALE,
         TEXT_COLOR,
         TEXT_OPACITY,
         EDGE,
@@ -35,6 +36,7 @@ internal class SubtitleStyleDialog {
     data class State(
         val title: String,
         val masterOn: Boolean,
+        val imageSubtitleGrayOn: Boolean,
         val textColor: Row,
         val textOpacity: Row,
         val edge: Row,
@@ -86,6 +88,7 @@ internal class SubtitleStyleDialog {
     private fun bindControls() {
         val b = binding
         b.masterRow.setOnClickListener { adjust(Control.MASTER, 1) }
+        b.imageSubtitleGrayRow.setOnClickListener { adjust(Control.IMAGE_SUB_GRAYSCALE, 1) }
         b.textColorMinusBtn.setOnClickListener { adjust(Control.TEXT_COLOR, -1) }
         b.textColorPlusBtn.setOnClickListener { adjust(Control.TEXT_COLOR, 1) }
         b.textOpacityMinusBtn.setOnClickListener { adjust(Control.TEXT_OPACITY, -1) }
@@ -134,6 +137,12 @@ internal class SubtitleStyleDialog {
         b.styleTitle.text = state.title
         b.stylePreview.setSpec(state.preview)
         b.masterCheck.visibility = checkVisibility(state.masterOn)
+        renderToggle(
+            b.imageSubtitleGrayRow,
+            b.imageSubtitleGrayCheck,
+            state.imageSubtitleGrayOn,
+            enabled = true,
+        )
 
         renderStepper(
             b.textColorRow, b.textColorValue, b.textColorMinusBtn, b.textColorPlusBtn, state.textColor,

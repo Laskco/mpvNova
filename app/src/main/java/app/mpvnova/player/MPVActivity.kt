@@ -379,6 +379,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var subStyleFontFamily = SUBTITLE_FONT_DEFAULT_FAMILY
     internal var subStyleBold = false
     internal var subStyleItalic = false
+    internal var subStyleGrayImageSubs = false
     // Forces our style onto ASS subs too; off so their signs and typesetting survive.
     internal var subStyleOverrideAss = false
     // Strip: removes the script's own styling so our style hits every line, even

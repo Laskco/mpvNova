@@ -107,6 +107,7 @@ internal fun MPVActivity.subtitleStyleState(): SubtitleStyleDialog.State {
             getString(R.string.sub_style_preset_editing, it)
         } ?: getString(R.string.sub_style_title),
         masterOn = on,
+        imageSubtitleGrayOn = subStyleGrayImageSubs,
         textColor = colorRow(subStyleTextColorIndex, on),
         textOpacity = SubtitleStyleDialog.Row(
             percentLabel(SUBTITLE_OPACITY_PERCENT_STEPS[subStyleTextOpacityIndex]),

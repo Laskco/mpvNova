@@ -7,8 +7,30 @@ internal fun MPVActivity.adjustSubtitleStyle(
     if (!adjustSubtitleColorControl(control, delta) && !adjustSubtitleToggleControl(control))
         adjustSubtitleValueControl(control, delta)
     applyCustomSubtitleStyle()
+    if (control == SubtitleStyleDialog.Control.IMAGE_SUB_GRAYSCALE)
+        rebuildSelectedImageSubtitleTracks()
     writeSubtitleStyleSettings()
     return subtitleStyleState()
+}
+
+// mpv applies sub-gray while decoding each bitmap subtitle palette. The option does not request a
+// decoder rebuild by itself, and sub-reload only reloads external subtitle files. Re-selecting the
+// active tracks rebuilds embedded PGS/DVD subtitle decoders without changing the user's choices.
+internal fun MPVActivity.rebuildSelectedImageSubtitleTracks() {
+    val primarySid = player.sid
+    val secondarySid = player.secondarySid
+    if (primarySid == -1 && secondarySid == -1)
+        return
+
+    if (secondarySid != -1)
+        player.secondarySid = -1
+    if (primarySid != -1)
+        player.sid = -1
+
+    if (primarySid != -1)
+        player.sid = primarySid
+    if (secondarySid != -1)
+        player.secondarySid = secondarySid
 }
 
 // Colors and the cycling enums (edge, justify). Returns false for anything else.
@@ -42,6 +64,7 @@ private fun MPVActivity.adjustSubtitleColorControl(
 private fun MPVActivity.adjustSubtitleToggleControl(control: SubtitleStyleDialog.Control): Boolean {
     when (control) {
         SubtitleStyleDialog.Control.MASTER -> customSubStyleEnabled = !customSubStyleEnabled
+        SubtitleStyleDialog.Control.IMAGE_SUB_GRAYSCALE -> subStyleGrayImageSubs = !subStyleGrayImageSubs
         SubtitleStyleDialog.Control.BOLD -> subStyleBold = !subStyleBold
         SubtitleStyleDialog.Control.ITALIC -> subStyleItalic = !subStyleItalic
         SubtitleStyleDialog.Control.OVERRIDE_ASS -> setAssOverrideMode(AssOverrideMode.OVERRIDE)

@@ -24,6 +24,7 @@ internal data class SubtitleStylePreset(
     val overrideAss: Boolean,
     val selectiveAss: Boolean,
     val forceAll: Boolean,
+    val grayImageSubs: Boolean,
     val includeLayout: Boolean,
     val scaleLevel: Int,
     val posPct: Int,
@@ -65,6 +66,7 @@ private fun presetToJson(p: SubtitleStylePreset): JSONObject = JSONObject().appl
     put("overrideAss", p.overrideAss)
     put("selectiveAss", p.selectiveAss)
     put("forceAll", p.forceAll)
+    put("grayImageSubs", p.grayImageSubs)
     put("includeLayout", p.includeLayout)
     put("scaleLevel", p.scaleLevel)
     put("scaleStepsVersion", SUB_SCALE_STEPS_VERSION)
@@ -93,6 +95,7 @@ private fun presetFromJson(o: JSONObject): SubtitleStylePreset? {
         overrideAss = o.optBoolean("overrideAss", false),
         selectiveAss = o.optBoolean("selectiveAss", false),
         forceAll = o.optBoolean("forceAll", false),
+        grayImageSubs = o.optBoolean("grayImageSubs", false),
         includeLayout = o.optBoolean("includeLayout", false),
         scaleLevel = migrateSubScaleLevel(
             o.optInt("scaleLevel", DEFAULT_SUB_SCALE_INDEX),

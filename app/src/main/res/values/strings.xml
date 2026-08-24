@@ -199,6 +199,8 @@
     <string name="sub_style_row_summary">Colors, outline, background, and font.</string>
     <string name="sub_style_summary">Customize how subtitles look. Applies to text subtitles; advanced (ASS) subtitles only change when override is on.</string>
     <string name="sub_style_use_custom">Use custom subtitle style</string>
+    <string name="sub_style_gray_image_subs">Grayscale image subtitles</string>
+    <string name="sub_style_gray_image_subs_summary">Convert PGS, DVD, and other image subtitles to grayscale. Text subtitles are unchanged.</string>
     <string name="sub_style_text_color">Text color</string>
     <string name="sub_style_text_color_summary">Color of the subtitle text.</string>
     <string name="sub_style_text_opacity">Text opacity</string>

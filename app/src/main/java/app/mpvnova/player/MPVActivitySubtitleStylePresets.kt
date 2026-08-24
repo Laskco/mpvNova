@@ -122,8 +122,12 @@ internal fun MPVActivity.cycleSubtitleStylePreset(delta: Int): String {
         }
         val nextCycleIndex = wrapPresetCycleIndex(currentCycleIndex, delta, presetCycleSize)
         if (nextCycleIndex == 0) {
+            val grayImageSubsChanged = subStyleGrayImageSubs
             customSubStyleEnabled = false
+            subStyleGrayImageSubs = false
             applyCustomSubtitleStyle()
+            if (grayImageSubsChanged)
+                rebuildSelectedImageSubtitleTracks()
             subScaleLevel = DEFAULT_SUB_SCALE_INDEX
             subPosLevel = DEFAULT_SUB_POSITION_INDEX
             applySubScaleProperty()
@@ -254,12 +258,14 @@ private fun MPVActivity.captureSubtitleStylePreset(
     overrideAss = overrideAss,
     selectiveAss = selectiveAss,
     forceAll = forceAll,
+    grayImageSubs = subStyleGrayImageSubs,
     includeLayout = includeLayout,
     scaleLevel = scaleLevel.coerceIn(0, subScaleSteps.lastIndex),
     posPct = posPct.coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT),
 )
 
 private fun MPVActivity.applySubtitleStylePreset(p: SubtitleStylePreset) {
+    val grayImageSubsChanged = subStyleGrayImageSubs != p.grayImageSubs
     subStyleTextColorIndex = subtitleColorOptionIndex(p.textColorId)
     subStyleTextOpacityIndex = nearestOpacityIndex(p.textOpacity)
     subStyleBorderColorIndex = subtitleColorOptionIndex(p.borderColorId)
@@ -278,6 +284,7 @@ private fun MPVActivity.applySubtitleStylePreset(p: SubtitleStylePreset) {
     subStyleOverrideAss = p.overrideAss
     subStyleSelectiveAss = p.selectiveAss
     subStyleForceAllAss = p.forceAll
+    subStyleGrayImageSubs = p.grayImageSubs
     normalizeAssOverrideModes()
     customSubStyleEnabled = true
     if (p.includeLayout) {
@@ -285,6 +292,8 @@ private fun MPVActivity.applySubtitleStylePreset(p: SubtitleStylePreset) {
         subPosLevel = nearestSubPositionIndex(subPosSteps, p.posPct)
     }
     applyCustomSubtitleStyle()
+    if (grayImageSubsChanged)
+        rebuildSelectedImageSubtitleTracks()
     if (p.includeLayout) {
         applySubScaleProperty()
         applySubPosProperty()

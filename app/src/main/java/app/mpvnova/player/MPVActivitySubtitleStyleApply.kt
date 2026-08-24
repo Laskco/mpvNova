@@ -34,6 +34,7 @@ internal fun MPVActivity.applyCustomSubtitleStyle() {
         restoreSubStyleBaseline()
     }
     applyAssStyleOverrides()
+    mpvSetPropertyString("sub-gray", if (subStyleGrayImageSubs) "yes" else "no")
 }
 
 // ASS style overrides are parsed as the track loads. Omitting a style name applies the value to
@@ -90,6 +91,8 @@ private fun MPVActivity.applyAssStyleOverrides() {
 internal fun MPVActivity.applyCustomSubtitleStyleOnFileLoad() {
     if (!persistSubFilters && customSubStyleEnabled)
         customSubStyleEnabled = false
+    if (!persistSubFilters && subStyleGrayImageSubs)
+        subStyleGrayImageSubs = false
     applyCustomSubtitleStyle()
 }
 
@@ -210,6 +213,7 @@ internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences) {
         ?: SUBTITLE_FONT_DEFAULT_FAMILY).ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY }
     subStyleBold = prefs.getBoolean("sub_style_bold", false)
     subStyleItalic = prefs.getBoolean("sub_style_italic", false)
+    subStyleGrayImageSubs = persistSubFilters && prefs.getBoolean("sub_style_gray_image_subs", false)
     subStyleOverrideAss = prefs.getBoolean("sub_style_override_ass", false)
     subStyleSelectiveAss = prefs.getBoolean("sub_style_selective_ass", false)
     subStyleForceAllAss = prefs.getBoolean("sub_style_force_all_ass", false)
@@ -244,6 +248,7 @@ internal fun MPVActivity.writeSubtitleStyleSettings() {
         putString("sub_style_font_family", subStyleFontFamily)
         putBoolean("sub_style_bold", subStyleBold)
         putBoolean("sub_style_italic", subStyleItalic)
+        putBoolean("sub_style_gray_image_subs", subStyleGrayImageSubs)
         putBoolean("sub_style_override_ass", subStyleOverrideAss)
         putBoolean("sub_style_selective_ass", subStyleSelectiveAss)
         putBoolean("sub_style_force_all_ass", subStyleForceAllAss)
