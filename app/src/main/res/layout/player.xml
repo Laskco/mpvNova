@@ -117,9 +117,9 @@
             android:background="@drawable/bg_player_controls"
             android:orientation="vertical"
             android:paddingStart="18dp"
-            android:paddingTop="16dp"
+            android:paddingTop="10dp"
             android:paddingEnd="18dp"
-            android:paddingBottom="12dp">
+            android:paddingBottom="8dp">
 
             <!-- Title row (left-aligned) -->
             <LinearLayout
@@ -183,7 +183,7 @@
             <app.mpvnova.player.ChapterSeekBar
                 android:id="@+id/playbackSeekbar"
                 android:layout_width="match_parent"
-                android:layout_height="42dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="2dp"
                 android:layout_marginEnd="2dp"
                 android:focusable="true"
@@ -199,7 +199,7 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="4dp"
                 android:baselineAligned="false"
                 android:gravity="center_vertical"
                 android:layoutDirection="ltr"
