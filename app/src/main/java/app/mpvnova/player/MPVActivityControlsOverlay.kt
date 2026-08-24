@@ -14,18 +14,23 @@ internal fun MPVActivity.shouldAutoHideControls(): Boolean {
             !(keepControlsVisibleWhilePaused && psc.pause)
 }
 
+private fun MPVActivity.controlsOverlayIsFullyVisible(): Boolean {
+    return binding.controls.visibility == View.VISIBLE &&
+        binding.topControls.visibility == View.VISIBLE &&
+        !fadeRunnable.hasStarted
+}
+
 internal fun MPVActivity.showControls() {
-    val controlsWereVisible = binding.controls.visibility == View.VISIBLE
+    val overlayNeedsRestore = !controlsOverlayIsFullyVisible()
     fadeHandler.removeCallbacks(fadeRunnable)
-    resetControlsAlphaIfNeeded(controlsWereVisible)
-    if (!controlsWereVisible) {
+    resetControlsAlphaIfNeeded(overlayNeedsRestore)
+    if (overlayNeedsRestore) {
         performFirstShowSetup()
     }
-    updateClockInfo(force = !controlsWereVisible)
-    // Defer dpad-focus update only on first show — pre-layout. Skipping the
-    // post when already visible is critical during fast dpad nav (each
-    // ACTION_DOWN/UP would starve SW Hi10p decode).
-    if (!controlsWereVisible && btnSelected != -1) {
+    updateClockInfo(force = overlayNeedsRestore)
+    // Defer the dpad selection refresh only when layout visibility changed.
+    // Posting for every key event would starve SW Hi10p decode during fast navigation.
+    if (overlayNeedsRestore && btnSelected != -1) {
         binding.controls.post {
             if (btnSelected != -1 && binding.controls.visibility == View.VISIBLE) {
                 updateSelectedDpadButton()
@@ -36,9 +41,8 @@ internal fun MPVActivity.showControls() {
         fadeHandler.postDelayed(fadeRunnable, controlsDisplayTimeoutMs)
 }
 
-private fun MPVActivity.resetControlsAlphaIfNeeded(controlsWereVisible: Boolean) {
-    val needReset = !controlsWereVisible ||
-        fadeRunnable.hasStarted ||
+private fun MPVActivity.resetControlsAlphaIfNeeded(overlayNeedsRestore: Boolean) {
+    val needReset = overlayNeedsRestore ||
         binding.controls.alpha < 1f ||
         binding.topControls.alpha < 1f ||
         binding.playerTitleOverlay.alpha < 1f ||
@@ -97,13 +101,12 @@ internal fun MPVActivity.refreshVisibleControlsTimeout() {
 }
 
 internal fun MPVActivity.keepVisibleControlsFresh() {
-    val controlsAreVisible = binding.controls.visibility == View.VISIBLE
     val controlsAreOpaque =
         binding.controls.alpha >= 1f &&
         binding.topControls.alpha >= 1f &&
         binding.playerTitleOverlay.alpha >= 1f &&
         (isTvUiMode || binding.controlsScrim.alpha >= 1f)
-    if (controlsAreVisible && controlsAreOpaque && !fadeRunnable.hasStarted) {
+    if (controlsOverlayIsFullyVisible() && controlsAreOpaque) {
         refreshVisibleControlsTimeout()
     } else {
         showControls()
@@ -147,7 +150,7 @@ internal fun MPVActivity.hideControlsFade() {
 internal fun MPVActivity.toggleControls(): Boolean {
     return if (controlsShouldBeVisible()) {
         true
-    } else if (binding.controls.visibility == View.VISIBLE && !fadeRunnable.hasStarted) {
+    } else if (controlsOverlayIsFullyVisible()) {
             hideControlsFade()
             false
     } else {
