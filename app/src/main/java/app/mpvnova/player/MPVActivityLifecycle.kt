@@ -50,6 +50,7 @@ internal fun MPVActivity.startPlayerForFile(filepath: String) {
     val initialized = player.initialize(filesDir.path, cacheDir.path) {
         player.addObserver(mpvEventObserver)
         addMpvLogObserver(mpvLogObserver)
+        applyInitialAudioFilterDefaults()
     }
     if (!initialized) {
         Log.e(MPV_ACTIVITY_TAG, "Another screen already owns the libmpv runtime")
@@ -57,7 +58,6 @@ internal fun MPVActivity.startPlayerForFile(filepath: String) {
         finishWithResult(RESULT_CANCELED)
         return
     }
-    applySavedAudioFilterDefaults()
     applySavedSubFilterDefaults()
     applySavedDelayDefaults()
     prepareStreamLoading(filepath)

@@ -60,6 +60,7 @@ private fun MPVActivity.handleMpvStartFile() {
     gpuNextCopyRetryDisplayedFrame = false
     pendingShieldFallbackResync = false
     shieldFallbackResumeAfter = false
+    audioFiltersAwaitingPostLoadReconcile = true
     controlsOverlayAutoPaused = false
     cachedChapters = emptyList()
     pendingChapterSeekTime = null
@@ -139,19 +140,20 @@ private fun MPVActivity.anyAudioFilterOn(): Boolean =
         isDownmixOn() || isCenterBoostOn()
 
 private fun MPVActivity.refreshAudioFiltersAfterFileLoad() {
-    if (persistAudioFilters) {
-        rebuildAudioFilters()
-        eventUiHandler.post { refreshAllFilterTints() }
-    } else if (anyAudioFilterOn()) {
+    val filterStateChanged = !persistAudioFilters && anyAudioFilterOn()
+    if (!persistAudioFilters) {
         voiceBoostLevel = 0
         volumeBoostDb = 0
         nightModeLevel = 0
         audioNormLevel = 0
         downmixLevel = 0
         centerBoostLevel = 0
-        rebuildAudioFilters()
+    }
+    rebuildAudioFilters(force = true)
+    if (persistAudioFilters || filterStateChanged) {
         eventUiHandler.post { refreshAllFilterTints() }
     }
+    audioFiltersAwaitingPostLoadReconcile = false
 }
 
 private fun MPVActivity.clearStreamLoading() {

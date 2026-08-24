@@ -81,7 +81,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         when (property) {
             "current-tracks/audio/selected" -> {
                 updateAudioPresence()
-                if (persistAudioFilters) {
+                if (persistAudioFilters && !audioFiltersAwaitingPostLoadReconcile) {
                     rebuildAudioFilters()
                     eventUiHandler.post { refreshAllFilterTints() }
                 }

@@ -1,5 +1,7 @@
 package app.mpvnova.player
 
+import android.util.Log
+
 
 internal fun MPVActivity.refreshAllFilterTints() {
     refreshFilterTint(binding.voiceBoostBtn, isVoiceBoostOn())
@@ -31,23 +33,35 @@ internal fun MPVActivity.buildAudioFilterChain(): String {
     return filters.joinToString(",")
 }
 
+internal fun MPVActivity.applyInitialAudioFilterDefaults() {
+    applyNightModeDecoderDrcScale()
+    val filterChain = if (persistAudioFilters) buildAudioFilterChain() else ""
+    val result = mpvSetOptionString("af", filterChain)
+    if (result < 0) {
+        Log.w(MPV_ACTIVITY_TAG, "Failed to configure initial audio filters: $result")
+    }
+    // Track metadata is unavailable before initialization. The post-load pass
+    // must still reconcile codec- and channel-dependent filters at runtime.
+    lastAppliedAudioFilterChain = null
+}
+
 internal fun MPVActivity.applySavedAudioFilterDefaults() {
     applyNightModeDecoderDrcScale()
     val filterChain = if (persistAudioFilters) buildAudioFilterChain() else ""
-    mpvSetOptionString("af", filterChain)
-    lastAppliedAudioFilterChain = filterChain
-}
-
-internal fun MPVActivity.applyAudioFilterState() {
-    applyNightModeDecoderDrcScale()
-    val filterChain = buildAudioFilterChain()
-    if (filterChain == lastAppliedAudioFilterChain) return
     mpvSetPropertyString("af", filterChain)
     lastAppliedAudioFilterChain = filterChain
 }
 
-internal fun MPVActivity.rebuildAudioFilters() {
-    applyAudioFilterState()
+internal fun MPVActivity.applyAudioFilterState(force: Boolean = false) {
+    applyNightModeDecoderDrcScale()
+    val filterChain = buildAudioFilterChain()
+    if (!force && filterChain == lastAppliedAudioFilterChain) return
+    mpvSetPropertyString("af", filterChain)
+    lastAppliedAudioFilterChain = filterChain
+}
+
+internal fun MPVActivity.rebuildAudioFilters(force: Boolean = false) {
+    applyAudioFilterState(force)
 }
 
 internal fun MPVActivity.adjustVoiceBoost(delta: Int, wrap: Boolean = false): MediaPickerDialog.ValueState {

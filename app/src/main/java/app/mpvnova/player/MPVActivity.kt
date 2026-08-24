@@ -699,6 +699,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var centerBoostLevel = 0
     internal var lastAppliedAudioFilterChain: String? = null
     internal var lastAppliedDecoderDrcScale: String? = null
+    internal var audioFiltersAwaitingPostLoadReconcile = false
 
     // Subtitle filter state. subPosSteps spans -25..125% in 5% steps so the
     // user can click past edges without focus bouncing (mpv soft-clamps).
