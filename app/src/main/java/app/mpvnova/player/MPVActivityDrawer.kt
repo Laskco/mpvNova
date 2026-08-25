@@ -37,10 +37,14 @@ internal fun MPVActivity.openPlayerDrawer() {
     }
     selectDrawerTab(binding, lastDrawerTab, revealScrollbar = false)
 
-    val onDrawerClosed = {
-        currentDrawerDialog = null
-        restoreState()
-        highlightTopMenuAfterDrawerClose()
+    var drawerCloseHandled = false
+    val onDrawerClosed: () -> Unit = {
+        if (!drawerCloseHandled) {
+            drawerCloseHandled = true
+            currentDrawerDialog = null
+            restoreState()
+            highlightTopMenuAfterDrawerClose()
+        }
     }
 
     val dialog: AlertDialog = with(AlertDialog.Builder(this)) {
@@ -70,6 +74,10 @@ private fun MPVActivity.highlightTopMenuAfterDrawerClose() {
     if (drawerReopenPending) return
     // Post so the window teardown finishes before we walk dpadButtons().
     eventUiHandler.post {
+        // Dialog focus can otherwise remain on the cog while btnSelected moves
+        // through the player bar, producing two simultaneous highlights.
+        binding.outside.isFocusable = true
+        binding.outside.requestFocus()
         val controls = dpadButtons()
         val gearIdx = controls.indexOf(binding.topMenuBtn)
         if (gearIdx >= 0) {

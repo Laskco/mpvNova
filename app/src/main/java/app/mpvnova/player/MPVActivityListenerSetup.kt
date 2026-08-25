@@ -11,11 +11,7 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     nextBtn.setOnClickListener { playlistNext() }
     cycleAudioBtn.setOnClickListener { pickAudio() }
     cycleSubsBtn.setOnClickListener { pickSub() }
-    playBtn.setOnClickListener {
-        // Manual cycle wins — clear the overlay autopause flag.
-        controlsOverlayAutoPaused = false
-        player.cyclePause()
-    }
+    playBtn.setOnClickListener { togglePauseFromUser() }
     cycleDecoderBtn.setOnClickListener { pickDecoder() }
     statsToggleBtn.setOnClickListener { toggleStatsFromButton() }
     cycleSpeedBtn.setOnClickListener { cycleSpeed() }

@@ -82,8 +82,8 @@ internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
         KeyEvent.KEYCODE_INFO -> toggleControls()
         KeyEvent.KEYCODE_MENU -> openPlayerDrawer()
         KeyEvent.KEYCODE_GUIDE -> openPlayerDrawer()
-        KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> player.cyclePause()
-        KeyEvent.KEYCODE_ENTER -> player.cyclePause()
+        KeyEvent.KEYCODE_NUMPAD_ENTER, KeyEvent.KEYCODE_DPAD_CENTER -> togglePauseFromUser()
+        KeyEvent.KEYCODE_ENTER -> togglePauseFromUser()
         else -> unhandled++
     }
 

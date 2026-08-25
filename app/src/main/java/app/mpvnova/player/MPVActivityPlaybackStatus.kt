@@ -37,6 +37,19 @@ internal fun MPVActivity.handlePauseUi(paused: Boolean) {
     onScreensaverPauseChanged(paused)
 }
 
+internal fun MPVActivity.togglePauseFromUser() {
+    controlsOverlayAutoPaused = false
+    val currentlyPaused = player.paused ?: psc.pause
+    if (!currentlyPaused && keepControlsVisibleWhilePaused) {
+        // Set pause directly before composing the overlay. Waiting for mpv's
+        // property callback made the pause and persistent controls arrive late.
+        player.paused = true
+        showControls()
+    } else {
+        player.cyclePause()
+    }
+}
+
 internal fun MPVActivity.updatePlaybackStatus(paused: Boolean) {
     val r = if (paused) R.drawable.ic_play_arrow_black_24dp else R.drawable.ic_pause_black_24dp
     if (lastPlayButtonIconRes != r) {
