@@ -69,6 +69,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastSeekbarUiUpdateMs = 0L
     internal var lastDpadSeekApplyMs = 0L
     internal var lastAppliedSeekMs = Long.MIN_VALUE
+    internal var firstPlaybackRestartMs = 0L
     internal var lastClockInfoTick = Long.MIN_VALUE
     internal var lastDisplayedSpeed = Float.NaN
     @DrawableRes
@@ -177,6 +178,7 @@ open class MPVActivity : AppCompatActivity() {
 
         override fun onStartTrackingTouch(seekBar: SeekBar) {
             userIsOperatingSeekbar = true
+            lastAppliedSeekMs = Long.MIN_VALUE
         }
 
         override fun onStopTrackingTouch(seekBar: SeekBar) {

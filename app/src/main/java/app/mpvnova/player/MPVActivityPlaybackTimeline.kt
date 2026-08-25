@@ -109,8 +109,10 @@ internal fun MPVActivity.seekPlaybackFromDpad(deltaMs: Long, baseOnVisibleSeekba
             ?: displayedPositionMs
     ).coerceAtLeast(0L)
     val newPositionMs = (currentPositionMs + deltaMs).coerceIn(0L, durationMs)
-    if (isNewDpadSeek)
+    if (isNewDpadSeek) {
         lastDpadSeekApplyMs = 0L
+        lastAppliedSeekMs = Long.MIN_VALUE
+    }
     pendingDpadSeekPreviewMs = newPositionMs
     pendingSeekbarSeekMs = newPositionMs
     eventUiHandler.removeCallbacks(commitSeekbarSeekRunnable)
@@ -119,11 +121,13 @@ internal fun MPVActivity.seekPlaybackFromDpad(deltaMs: Long, baseOnVisibleSeekba
     updatePlaybackTimeline(newPositionMs, forceTextUpdate = true)
 
     val now = SystemClock.uptimeMillis()
-    if (now - lastDpadSeekApplyMs >= DPAD_SEEK_APPLY_INTERVAL_MS) {
+    val playbackHasSettled = firstPlaybackRestartMs > 0L &&
+        now - firstPlaybackRestartMs >= PLAYBACK_START_SEEK_SETTLE_MS
+    if (playbackHasSettled && now - lastDpadSeekApplyMs >= DPAD_SEEK_APPLY_INTERVAL_MS) {
         lastDpadSeekApplyMs = now
         if (lastAppliedSeekMs != newPositionMs) {
             lastAppliedSeekMs = newPositionMs
-            player.timePos = newPositionMs / MPV_MILLIS_PER_SECOND_DOUBLE
+            applyPlaybackSeek(newPositionMs)
         }
     }
 }
@@ -146,7 +150,7 @@ internal fun MPVActivity.commitPendingSeekbarSeek() {
     lastDpadSeekApplyMs = 0L
     if (lastAppliedSeekMs != positionMs) {
         lastAppliedSeekMs = positionMs
-        player.timePos = positionMs / MPV_MILLIS_PER_SECOND_DOUBLE
+        applyPlaybackSeek(positionMs)
     }
 }
 

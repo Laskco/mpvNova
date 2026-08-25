@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.os.SystemClock
 import android.util.Log
 
 internal fun MPVActivity.handleMpvEvent(eventId: Int) {
@@ -18,6 +19,9 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
 }
 
 private fun MPVActivity.handleMpvPlaybackRestart() {
+    if (firstPlaybackRestartMs == 0L) {
+        firstPlaybackRestartMs = SystemClock.uptimeMillis()
+    }
     // First frame from the rebuilt decoder — flush A/V/subs via tiny seek, then unpause.
     if (pendingShieldFallbackResync) {
         pendingShieldFallbackResync = false
@@ -62,6 +66,7 @@ private fun MPVActivity.handleMpvStartFile() {
     shieldFallbackResumeAfter = false
     audioFiltersAwaitingPostLoadReconcile = true
     controlsOverlayAutoPaused = false
+    resetPlaybackSeekState()
     cachedChapters = emptyList()
     pendingChapterSeekTime = null
     currentPlayerTitleSource = pendingPlayerTitleSource

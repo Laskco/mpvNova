@@ -85,6 +85,7 @@ internal const val TIME_POS_UI_COALESCE_DELAY_MS = 200L
 internal const val SEEKBAR_SEEK_DEBOUNCE_MS = 90L
 internal const val DPAD_SEEK_DEBOUNCE_MS = 140L
 internal const val DPAD_SEEK_APPLY_INTERVAL_MS = 250L
+internal const val PLAYBACK_START_SEEK_SETTLE_MS = 1_500L
 internal const val SEEK_BAR_DPAD_STEP_MS = 1000L
 internal const val SEEK_DEFAULT_DPAD_STEP_MS = 10_000L
 internal const val SEEK_SLOW_STEP_MS = 8_000L
