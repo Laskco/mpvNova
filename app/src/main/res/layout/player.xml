@@ -634,6 +634,8 @@
             android:layout_centerHorizontal="true"
             android:layout_marginTop="20dp"
             android:background="@drawable/bg_glass_panel"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:elevation="8dp"
             android:gravity="center_horizontal"
             android:orientation="vertical"
@@ -644,22 +646,63 @@
             android:visibility="gone"
             tools:visibility="visible">
 
-            <TextView
-                android:id="@+id/playerTitleContext"
-                style="@style/MpvTv.PlayerToastTitle"
+            <LinearLayout
+                android:id="@+id/playerTitleContextRow"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:ellipsize="end"
                 android:gravity="center"
-                android:includeFontPadding="false"
-                android:letterSpacing="0.06"
-                android:maxLines="1"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:maxWidth="464dp"
-                android:textColor="?attr/mpvAccentHot"
-                android:textSize="14sp"
+                android:orientation="horizontal"
                 android:visibility="gone"
-                tools:text="Season 1 • Episode 3"
-                tools:visibility="visible" />
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/playerTitleSeason"
+                    style="@style/MpvTv.PlayerToastTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.06"
+                    android:maxLines="1"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:textColor="?attr/mpvAccentHot"
+                    android:textSize="14sp"
+                    tools:text="Season 1" />
+
+                <TextView
+                    android:id="@+id/playerTitleContextSeparator"
+                    style="@style/MpvTv.PlayerToastTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:paddingStart="5dp"
+                    android:paddingEnd="5dp"
+                    android:text="•"
+                    android:textColor="@color/tv_text_dim"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/playerTitleEpisodeNumber"
+                    style="@style/MpvTv.PlayerToastTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:letterSpacing="0.06"
+                    android:maxLines="1"
+                    android:paddingStart="3dp"
+                    android:paddingEnd="3dp"
+                    android:textColor="?attr/mpvAccentHot"
+                    android:textSize="14sp"
+                    tools:text="Episode 3" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/playerTitlePrimary"
@@ -673,6 +716,8 @@
                 android:letterSpacing="0"
                 android:maxLines="3"
                 android:maxWidth="464dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:textAllCaps="false"
                 android:textColor="@color/tv_text"
                 android:textSize="18.75sp"
@@ -690,6 +735,8 @@
                 android:letterSpacing="0"
                 android:maxLines="2"
                 android:maxWidth="464dp"
+                android:paddingStart="4dp"
+                android:paddingEnd="4dp"
                 android:textAllCaps="false"
                 android:textColor="@color/tv_text"
                 android:textSize="13.75sp"

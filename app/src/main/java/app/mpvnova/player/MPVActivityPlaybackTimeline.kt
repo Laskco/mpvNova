@@ -13,7 +13,8 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
     val availableWidth = (width - horizontalMargin * 2).coerceAtLeast(1)
     val cappedWidth = minOf(availableWidth, Utils.convertDp(activityContext, PLAYER_TITLE_MAX_WIDTH_DP))
     listOf(
-        binding.playerTitleContext,
+        binding.playerTitleSeason,
+        binding.playerTitleEpisodeNumber,
         binding.playerTitlePrimary,
         binding.playerTitleSecondary,
     ).forEach { textView ->
@@ -22,27 +23,38 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
     }
     val title = binding.playerTitlePrimary.text.toString()
     val fontScale = resources.configuration.fontScale
-    if (
-        fittedPlayerTitleText == title &&
-        fittedPlayerTitleWidth == cappedWidth &&
-        fittedPlayerTitleFontScale == fontScale
-    ) {
+    val preferredSizeSp = playerTitleStyle.title.sizeSp
+    val contentMatches = fittedPlayerTitleText == title &&
+        fittedPlayerTitleWidth == cappedWidth
+    val sizingMatches = fittedPlayerTitleFontScale == fontScale &&
+        fittedPlayerTitlePreferredSizeSp == preferredSizeSp
+    if (contentMatches && sizingMatches) {
         return
     }
-    binding.playerTitlePrimary.fitPlayerTitleText(cappedWidth)
+    binding.playerTitlePrimary.fitPlayerTitleText(
+        availableWidth = cappedWidth,
+        preferredSizeSp = preferredSizeSp,
+        minimumSizeSp = (preferredSizeSp - PLAYER_TITLE_AUTO_FIT_RANGE_SP)
+            .coerceAtLeast(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP),
+    )
     fittedPlayerTitleText = title
     fittedPlayerTitleWidth = cappedWidth
     fittedPlayerTitleFontScale = fontScale
+    fittedPlayerTitlePreferredSizeSp = preferredSizeSp
 }
 
-private fun TextView.fitPlayerTitleText(availableWidth: Int) {
+private fun TextView.fitPlayerTitleText(
+    availableWidth: Int,
+    preferredSizeSp: Float,
+    minimumSizeSp: Float,
+) {
     val value = text ?: return
     if (value.isBlank() || availableWidth <= 0) return
 
     val originalTextSize = paint.textSize
-    val chosenSizeSp = generateSequence(PLAYER_TITLE_MAX_TEXT_SIZE_SP) { sizeSp ->
+    val chosenSizeSp = generateSequence(preferredSizeSp) { sizeSp ->
         (sizeSp - PLAYER_TITLE_TEXT_SIZE_STEP_SP)
-            .takeIf { it >= PLAYER_TITLE_MIN_TEXT_SIZE_SP }
+            .takeIf { it >= minimumSizeSp }
     }
         .firstOrNull { sizeSp ->
             paint.textSize = TypedValue.applyDimension(
@@ -59,7 +71,7 @@ private fun TextView.fitPlayerTitleText(availableWidth: Int) {
                 .build()
                 .lineCount <= maxLines
         }
-        ?: PLAYER_TITLE_MIN_TEXT_SIZE_SP
+        ?: minimumSizeSp
     paint.textSize = originalTextSize
 
     val chosenSizePx = TypedValue.applyDimension(

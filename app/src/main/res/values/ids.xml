@@ -2,4 +2,5 @@
 <resources>
     <item name="settings_back_focus_target" type="id" />
     <item name="ui_font_original_typeface" type="id" />
+    <item name="player_title_style_controls" type="id" />
 </resources>

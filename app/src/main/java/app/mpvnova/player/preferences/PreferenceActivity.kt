@@ -64,6 +64,8 @@ import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
+import app.mpvnova.player.AppearanceColorChoice
+import app.mpvnova.player.appearanceColorChoices
 import app.mpvnova.player.databinding.ActivitySettingsBinding
 
 private fun View.applyPreferenceTextTreatment() {
@@ -109,51 +111,6 @@ private const val THEME_LABEL_TEXT_SIZE_SP = 12f
 private const val THEME_LABEL_TOP_MARGIN_DP = 8
 private const val THEME_SCROLLBAR_MIN_THUMB_DP = 48
 
-private const val CRIMSON_RED = 244
-private const val CRIMSON_GREEN = 67
-private const val CRIMSON_BLUE = 54
-private const val OCEAN_RED = 33
-private const val OCEAN_GREEN = 150
-private const val OCEAN_BLUE = 243
-private const val CYAN_RED = 0
-private const val CYAN_GREEN = 172
-private const val CYAN_BLUE = 193
-private const val VIOLET_RED = 156
-private const val VIOLET_GREEN = 39
-private const val VIOLET_BLUE = 176
-private const val EMERALD_RED = 76
-private const val EMERALD_GREEN = 175
-private const val EMERALD_BLUE = 80
-private const val LIME_RED = 158
-private const val LIME_GREEN = 157
-private const val LIME_BLUE = 36
-private const val AMBER_RED = 255
-private const val AMBER_GREEN = 152
-private const val AMBER_BLUE = 0
-private const val GOLD_RED = 253
-private const val GOLD_GREEN = 216
-private const val GOLD_BLUE = 53
-private const val COPPER_RED = 184
-private const val COPPER_GREEN = 106
-private const val COPPER_BLUE = 44
-private const val INDIGO_RED = 57
-private const val INDIGO_GREEN = 73
-private const val INDIGO_BLUE = 171
-private const val SLATE_RED = 120
-private const val SLATE_GREEN = 144
-private const val SLATE_BLUE = 156
-private const val CHROME_RED = 184
-private const val CHROME_GREEN = 193
-private const val CHROME_BLUE = 204
-private const val OYSTER_RED = 200
-private const val OYSTER_GREEN = 182
-private const val OYSTER_BLUE = 166
-private const val IVORY_RED = 216
-private const val IVORY_GREEN = 198
-private const val IVORY_BLUE = 144
-private const val ROSE_RED = 216
-private const val ROSE_GREEN = 27
-private const val ROSE_BLUE = 96
 private const val NOVA_BORDER_CHANNEL = 210
 private const val THEME_LABEL_CHANNEL = 188
 private const val STATE_HERO_TITLE = "hero_title"
@@ -446,39 +403,6 @@ class PreferenceActivity : AppCompatActivity(),
     }
 
     class AppearancePreference : Fragment() {
-        private data class ThemeChoice(
-            val value: String,
-            val labelRes: Int,
-            val color: Int
-        )
-
-        private val themeChoices = listOf(
-            ThemeChoice("nova", R.string.appearance_theme_white, Color.WHITE),
-            ThemeChoice(
-                "crimson",
-                R.string.appearance_theme_crimson,
-                Color.rgb(CRIMSON_RED, CRIMSON_GREEN, CRIMSON_BLUE)
-            ),
-            ThemeChoice("ocean", R.string.appearance_theme_ocean, Color.rgb(OCEAN_RED, OCEAN_GREEN, OCEAN_BLUE)),
-            ThemeChoice("cyan", R.string.appearance_theme_cyan, Color.rgb(CYAN_RED, CYAN_GREEN, CYAN_BLUE)),
-            ThemeChoice("violet", R.string.appearance_theme_violet, Color.rgb(VIOLET_RED, VIOLET_GREEN, VIOLET_BLUE)),
-            ThemeChoice(
-                "emerald",
-                R.string.appearance_theme_emerald,
-                Color.rgb(EMERALD_RED, EMERALD_GREEN, EMERALD_BLUE)
-            ),
-            ThemeChoice("lime", R.string.appearance_theme_lime, Color.rgb(LIME_RED, LIME_GREEN, LIME_BLUE)),
-            ThemeChoice("amber", R.string.appearance_theme_amber, Color.rgb(AMBER_RED, AMBER_GREEN, AMBER_BLUE)),
-            ThemeChoice("gold", R.string.appearance_theme_gold, Color.rgb(GOLD_RED, GOLD_GREEN, GOLD_BLUE)),
-            ThemeChoice("copper", R.string.appearance_theme_copper, Color.rgb(COPPER_RED, COPPER_GREEN, COPPER_BLUE)),
-            ThemeChoice("indigo", R.string.appearance_theme_indigo, Color.rgb(INDIGO_RED, INDIGO_GREEN, INDIGO_BLUE)),
-            ThemeChoice("rose", R.string.appearance_theme_rose, Color.rgb(ROSE_RED, ROSE_GREEN, ROSE_BLUE)),
-            ThemeChoice("slate", R.string.appearance_theme_slate, Color.rgb(SLATE_RED, SLATE_GREEN, SLATE_BLUE)),
-            ThemeChoice("chrome", R.string.appearance_theme_chrome, Color.rgb(CHROME_RED, CHROME_GREEN, CHROME_BLUE)),
-            ThemeChoice("oyster", R.string.appearance_theme_oyster, Color.rgb(OYSTER_RED, OYSTER_GREEN, OYSTER_BLUE)),
-            ThemeChoice("ivory", R.string.appearance_theme_ivory, Color.rgb(IVORY_RED, IVORY_GREEN, IVORY_BLUE)),
-        )
-
         private lateinit var preferences: SharedPreferences
 
         override fun onCreateView(
@@ -561,7 +485,7 @@ class PreferenceActivity : AppCompatActivity(),
         private fun populateColorThemes(row: LinearLayout) {
             row.removeAllViews()
             val selectedTheme = AppearanceTheme.currentValue(requireContext())
-            themeChoices.forEachIndexed { _, choice ->
+            appearanceColorChoices.forEach { choice ->
                 val isSelected = selectedTheme == choice.value
                 row.addView(createThemeTile(choice, isSelected).apply {
                     if (isSelected) requestFocus()
@@ -569,7 +493,7 @@ class PreferenceActivity : AppCompatActivity(),
             }
         }
 
-        private fun createThemeTile(choice: ThemeChoice, selected: Boolean): View {
+        private fun createThemeTile(choice: AppearanceColorChoice, selected: Boolean): View {
             val context = requireContext()
             val tile = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL

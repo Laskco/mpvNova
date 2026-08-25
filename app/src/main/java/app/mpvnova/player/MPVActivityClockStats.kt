@@ -64,6 +64,7 @@ internal fun MPVActivity.updateClockInfo(force: Boolean = false) {
     } else {
         binding.endsAtTextView.visibility = View.GONE
     }
+    applyPlayerTitleStyle()
 }
 
 private fun MPVActivity.updateClockDate(nowDate: Date) {

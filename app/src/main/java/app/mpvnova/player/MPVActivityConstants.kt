@@ -53,6 +53,16 @@ internal val VIDEO_PROCESSING_DIALOG_LAYOUT = PlayerDialogLayout(
     heightFraction = 0.82f,
     maxHeightDp = 560f,
 )
+internal val PLAYER_TITLE_STYLE_DIALOG_LAYOUT = PlayerDialogLayout(
+    widthFraction = 0.84f,
+    maxWidthDp = 1100f,
+    heightFraction = PLAYER_TITLE_STYLE_DIALOG_HEIGHT_FRACTION,
+    maxHeightDp = PLAYER_TITLE_STYLE_DIALOG_MAX_HEIGHT_DP,
+    gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL,
+    verticalOffsetDp = 28f,
+)
+internal const val PLAYER_TITLE_STYLE_DIALOG_HEIGHT_FRACTION = 0.70f
+internal const val PLAYER_TITLE_STYLE_DIALOG_MAX_HEIGHT_DP = 540f
 internal const val CLOCK_TICK_INTERVAL_MS = 30_000L
 internal const val MIN_CLOCK_TICK_DELAY_MS = 1_000L
 internal const val BACKGROUND_SERVICE_STOP_DELAY_MS = 1_000L
@@ -134,6 +144,7 @@ internal const val PLAYER_TITLE_MAX_TEXT_SIZE_SP = 18.75f
 internal const val PLAYER_TITLE_MIN_TEXT_SIZE_SP = 14.75f
 internal const val PLAYER_TITLE_TEXT_SIZE_STEP_SP = 0.25f
 internal const val PLAYER_TITLE_TEXT_SIZE_TOLERANCE_PX = 0.5f
+internal const val PLAYER_TITLE_AUTO_FIT_RANGE_SP = 4f
 internal const val DPAD_LONG_PRESS_MS = 500L
 internal const val DPAD_CONTROLS_SCRATCH_CAPACITY = 24
 internal const val FLOATING_CONTROLS_BOTTOM_MARGIN_DP = 60f

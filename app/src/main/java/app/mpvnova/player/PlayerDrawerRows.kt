@@ -39,6 +39,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     SKIP_BUTTON_DISPLAY(PlayerDrawerActionGroup.PLAYBACK),
     SEEK_STEP(PlayerDrawerActionGroup.PLAYBACK),
     UI_FONT(PlayerDrawerActionGroup.INTERFACE),
+    TITLE_STYLE(PlayerDrawerActionGroup.INTERFACE),
     SCREENSAVER(PlayerDrawerActionGroup.INTERFACE),
     STATS_TOGGLE(PlayerDrawerActionGroup.STATS),
     STATS_PAGE_1(PlayerDrawerActionGroup.STATS),
@@ -292,6 +293,11 @@ internal enum class PlayerDrawerOption(
         R.string.appearance_ui_font_title,
         R.string.appearance_ui_font_summary,
     ),
+    TITLE_STYLE(
+        PlayerDrawerAction.TITLE_STYLE,
+        R.string.player_title_style_title,
+        R.string.player_title_style_summary,
+    ),
 }
 
 internal sealed class PlayerDrawerRow {
@@ -404,6 +410,7 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
 
 private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addOption(PlayerDrawerOption.UI_FONT)
+    rows.addOption(PlayerDrawerOption.TITLE_STYLE)
     rows.addPref(PlayerDrawerPreference.AUTOPAUSE_CONTROLS)
     rows.addPref(PlayerDrawerPreference.KEEP_CONTROLS_VISIBLE)
     rows.addOption(PlayerDrawerOption.SCREENSAVER)

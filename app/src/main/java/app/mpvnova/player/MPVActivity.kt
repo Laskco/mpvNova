@@ -345,9 +345,13 @@ open class MPVActivity : AppCompatActivity() {
     internal var currentItemTitle: String? = null
     internal var currentFileName: String? = null
     internal var currentVideoTitle: String? = null
+    internal var playerTitleStyle = PlayerTitleStyle.DEFAULT
+    internal var appliedPlayerTitleStyle: PlayerTitleStyle? = null
+    internal var playerTextStylePreviewActive = false
     internal var fittedPlayerTitleText: String? = null
     internal var fittedPlayerTitleWidth = 0
     internal var fittedPlayerTitleFontScale = 0f
+    internal var fittedPlayerTitlePreferredSizeSp = 0f
     internal var cachedActiveFilterColor: Int? = null
 
     internal var ignoreAudioFocus = false

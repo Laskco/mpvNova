@@ -20,5 +20,6 @@ internal fun MPVActivity.pickUiFont() {
     ) { value ->
         prefs.edit().putString(UiFont.PREF_KEY, value).apply()
         UiFont.applyToViewTree(window.decorView)
+        applyPlayerTitleStyle(force = true)
     }
 }

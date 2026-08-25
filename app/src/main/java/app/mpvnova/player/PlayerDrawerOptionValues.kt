@@ -18,6 +18,7 @@ internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String =
     PlayerDrawerOption.SEEK_STEP -> seekStepLabel(seekStepMs)
     PlayerDrawerOption.SCREENSAVER -> screensaverDrawerSummary()
     PlayerDrawerOption.UI_FONT -> UiFont.currentLabel(this)
+    PlayerDrawerOption.TITLE_STYLE -> getString(R.string.player_title_style_drawer_value)
 }
 
 private fun MPVActivity.skipButtonDisplayModeCompactLabel(

@@ -170,6 +170,30 @@ internal object UiFont {
         return context.getString(choices.first { it.value == selected }.titleRes)
     }
 
+    fun hasChoice(value: String): Boolean = choices.any { it.value == value }
+
+    fun typeface(
+        context: Context,
+        value: String,
+        weight: Int,
+        italic: Boolean,
+        fallback: Typeface = Typeface.DEFAULT,
+    ): Typeface {
+        val choice = choices.firstOrNull { it.value == value }
+            ?: choices.first { it.value == DEFAULT_VALUE }
+        val fontRes = if (weight >= FONT_WEIGHT_SEMIBOLD) {
+            choice.boldFontRes
+        } else {
+            choice.regularFontRes
+        }
+        val base = when {
+            choice.value == DEFAULT_VALUE -> Typeface.create("sans-serif", Typeface.NORMAL)
+            fontRes != null -> ResourcesCompat.getFont(context, fontRes) ?: fallback
+            else -> fallback
+        }
+        return weightedTypeface(base, weight, italic)
+    }
+
     fun applyToViewTree(root: View) {
         when (root) {
             is TextView -> applyToTextView(root)
@@ -220,12 +244,19 @@ internal object UiFont {
     }
 
     private fun styledTypeface(base: Typeface, bold: Boolean, italic: Boolean): Typeface {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            return Typeface.create(base, if (bold) FONT_WEIGHT_SEMIBOLD else FONT_WEIGHT_MEDIUM, italic)
-        }
+        return weightedTypeface(
+            base,
+            if (bold) FONT_WEIGHT_SEMIBOLD else FONT_WEIGHT_MEDIUM,
+            italic,
+        )
+    }
+
+    private fun weightedTypeface(base: Typeface, weight: Int, italic: Boolean): Typeface {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+            return Typeface.create(base, weight, italic)
         val style = when {
-            bold && italic -> Typeface.BOLD_ITALIC
-            bold -> Typeface.BOLD
+            weight >= FONT_WEIGHT_SEMIBOLD && italic -> Typeface.BOLD_ITALIC
+            weight >= FONT_WEIGHT_SEMIBOLD -> Typeface.BOLD
             italic -> Typeface.ITALIC
             else -> Typeface.NORMAL
         }

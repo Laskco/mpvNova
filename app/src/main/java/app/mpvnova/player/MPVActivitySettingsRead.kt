@@ -27,6 +27,7 @@ internal fun MPVActivity.readPlaybackSettings(
     readScreensaverSettings(prefs)
     controlsAtBottom = prefs.getBoolean("bottom_controls", true)
     showMediaTitle = prefs.getBoolean("display_media_title", true)
+    playerTitleStyle = PlayerTitleStyleStore.read(prefs)
     showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     showClockDate = prefs.getBoolean("display_clock_date", false)
     showClockOnPause = prefs.getBoolean("display_clock_on_pause", false)
