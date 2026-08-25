@@ -56,6 +56,10 @@ For mobile-focused Android mpv options, use projects such as [mpvEx](https://git
 </div>
 
 <div align="center">
+  <img src="docs/screenshots/player-clock-title-customization.png" alt="Clock and title customization with live player preview" width="96%" />
+</div>
+
+<div align="center">
   <img src="docs/screenshots/player-audio.png" alt="Audio panel" width="96%" />
 </div>
 
@@ -112,6 +116,7 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 
 - Android TV, Google TV, and Fire OS launcher support with leanback entry points, TV banner assets, and a couch-first home screen
 - Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
+- Live clock and title customization for layout, fonts, sizing, weight, spacing, colors, text case, outlines, shadows, background plates, and visibility
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
 - Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
 - Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file

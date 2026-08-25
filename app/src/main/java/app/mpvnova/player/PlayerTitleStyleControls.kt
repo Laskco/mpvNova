@@ -15,6 +15,11 @@ internal enum class PlayerTitleStyleControl(@StringRes val labelRes: Int) {
     COLOR(R.string.player_title_style_color),
     OPACITY(R.string.player_title_style_opacity),
     SHADOW(R.string.player_title_style_shadow),
+    SHADOW_STRENGTH(R.string.player_title_style_shadow_strength),
+    OUTLINE_THICKNESS(R.string.player_title_style_outline_thickness),
+    OUTLINE_COLOR(R.string.player_title_style_outline_color),
+    BACKGROUND_PLATE(R.string.player_title_style_background_plate),
+    BACKGROUND_STRENGTH(R.string.player_title_style_background_strength),
     ITALIC(R.string.player_title_style_italic),
     TEXT_CASE(R.string.player_title_style_text_case),
     POSITION(R.string.player_title_style_position),
@@ -33,6 +38,7 @@ internal fun MPVActivity.buildPlayerTitleStyleControls(
         panel.titleStyleControlsRowTop,
         panel.titleStyleControlsRowMiddle,
         panel.titleStyleControlsRowBottom,
+        panel.titleStyleControlsRowFourth,
     )
     return PlayerTitleStyleControl.entries.mapIndexed { index, control ->
         val binding = DialogPlayerTitleStyleControlBinding.inflate(
@@ -108,18 +114,19 @@ internal fun MPVActivity.adjustPlayerTitleStyle(
         letterSpacing = (style.letterSpacing + delta * PLAYER_TITLE_LETTER_SPACING_STEP)
             .coerceIn(PLAYER_TITLE_MIN_LETTER_SPACING, PLAYER_TITLE_MAX_LETTER_SPACING),
     )
-    PlayerTitleStyleControl.COLOR -> style.copy(
-        color = cyclePlayerTitleValue(PlayerTitleColor.entries, style.color, delta),
-    )
-    PlayerTitleStyleControl.OPACITY -> style.copy(
-        opacityPercent = (style.opacityPercent + delta * PLAYER_TITLE_OPACITY_STEP_PERCENT)
-            .coerceIn(PLAYER_TITLE_MIN_OPACITY_PERCENT, PLAYER_TITLE_MAX_OPACITY_PERCENT),
-    )
-    PlayerTitleStyleControl.SHADOW -> style.copy(
-        shadow = cyclePlayerTitleValue(PlayerTitleShadow.entries, style.shadow, delta),
-    )
+    PlayerTitleStyleControl.COLOR,
+    PlayerTitleStyleControl.OPACITY,
+    PlayerTitleStyleControl.SHADOW,
+    PlayerTitleStyleControl.SHADOW_STRENGTH,
+    PlayerTitleStyleControl.OUTLINE_THICKNESS,
+    PlayerTitleStyleControl.OUTLINE_COLOR,
+    PlayerTitleStyleControl.BACKGROUND_PLATE,
+    PlayerTitleStyleControl.BACKGROUND_STRENGTH,
+    -> adjustPlayerTitleEffects(style, control, delta)
     PlayerTitleStyleControl.ITALIC -> style.copy(italic = !style.italic)
-    PlayerTitleStyleControl.TEXT_CASE -> style.copy(uppercase = !style.uppercase)
+    PlayerTitleStyleControl.TEXT_CASE -> style.copy(
+        textCase = cyclePlayerTitleValue(PlayerTitleTextCase.entries, style.textCase, delta),
+    )
     PlayerTitleStyleControl.POSITION -> style
 }
 

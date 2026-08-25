@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
 import android.widget.TextView
@@ -55,9 +56,16 @@ internal enum class PlayerTitleColor(val appearanceValue: String?) {
 internal enum class PlayerTitleShadow(val radius: Float, val dy: Float, val alpha: Int) {
     OFF(0f, 0f, 0),
     SUBTLE(1f, 0.5f, 0x78),
-    SOFT(1.5f, 1f, 0xA8),
+    SOFT(1.25f, 0.75f, 0xB3),
     STRONG(2.5f, 1f, 0xD8),
     HEAVY(3.5f, 1.5f, 0xEE),
+}
+
+internal enum class PlayerTitleTextCase {
+    ORIGINAL,
+    UPPERCASE,
+    LOWERCASE,
+    TITLE_CASE,
 }
 
 internal enum class PlayerTitleSeparator(val text: String) {
@@ -90,7 +98,12 @@ internal data class PlayerTitleTextStyle(
     val italic: Boolean,
     val opacityPercent: Int,
     val visible: Boolean,
-    val uppercase: Boolean,
+    val textCase: PlayerTitleTextCase,
+    val outlineWidthDp: Float,
+    val outlineColor: PlayerTitleColor,
+    val shadowStrengthPercent: Int,
+    val backgroundEnabled: Boolean,
+    val backgroundStrengthPercent: Int,
 )
 
 internal data class PlayerTitleStyle(
@@ -139,7 +152,12 @@ internal data class PlayerTitleStyle(
                 italic = false,
                 opacityPercent = 100,
                 visible = true,
-                uppercase = false,
+                textCase = PlayerTitleTextCase.ORIGINAL,
+                outlineWidthDp = PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP,
+                outlineColor = PlayerTitleColor.APP_COLOR,
+                shadowStrengthPercent = PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+                backgroundEnabled = false,
+                backgroundStrengthPercent = PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT,
             ),
             episodeNumber = PlayerTitleTextStyle(
                 font = INHERIT_FONT,
@@ -151,7 +169,12 @@ internal data class PlayerTitleStyle(
                 italic = false,
                 opacityPercent = 100,
                 visible = true,
-                uppercase = false,
+                textCase = PlayerTitleTextCase.ORIGINAL,
+                outlineWidthDp = PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP,
+                outlineColor = PlayerTitleColor.APP_COLOR,
+                shadowStrengthPercent = PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+                backgroundEnabled = false,
+                backgroundStrengthPercent = PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT,
             ),
             title = PlayerTitleTextStyle(
                 font = INHERIT_FONT,
@@ -163,7 +186,12 @@ internal data class PlayerTitleStyle(
                 italic = false,
                 opacityPercent = 100,
                 visible = true,
-                uppercase = false,
+                textCase = PlayerTitleTextCase.ORIGINAL,
+                outlineWidthDp = PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP,
+                outlineColor = PlayerTitleColor.APP_COLOR,
+                shadowStrengthPercent = PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+                backgroundEnabled = false,
+                backgroundStrengthPercent = PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT,
             ),
             episodeTitle = PlayerTitleTextStyle(
                 font = INHERIT_FONT,
@@ -175,7 +203,12 @@ internal data class PlayerTitleStyle(
                 italic = false,
                 opacityPercent = 100,
                 visible = true,
-                uppercase = false,
+                textCase = PlayerTitleTextCase.ORIGINAL,
+                outlineWidthDp = PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP,
+                outlineColor = PlayerTitleColor.APP_COLOR,
+                shadowStrengthPercent = PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+                backgroundEnabled = false,
+                backgroundStrengthPercent = PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT,
             ),
             date = clockTextDefault(
                 sizeSp = 12f,
@@ -213,7 +246,12 @@ internal data class PlayerTitleStyle(
             italic = false,
             opacityPercent = 100,
             visible = true,
-            uppercase = false,
+            textCase = PlayerTitleTextCase.ORIGINAL,
+            outlineWidthDp = PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP,
+            outlineColor = PlayerTitleColor.APP_COLOR,
+            shadowStrengthPercent = PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+            backgroundEnabled = false,
+            backgroundStrengthPercent = PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT,
         )
     }
 }
@@ -259,7 +297,16 @@ internal object PlayerTitleStyleStore {
             .putBoolean("${PREFIX}_${key}_italic", style.italic)
             .putInt("${PREFIX}_${key}_opacity", style.opacityPercent)
             .putBoolean("${PREFIX}_${key}_visible", style.visible)
-            .putBoolean("${PREFIX}_${key}_uppercase", style.uppercase)
+            .putString("${PREFIX}_${key}_text_case", style.textCase.name)
+            .putBoolean(
+                "${PREFIX}_${key}_uppercase",
+                style.textCase == PlayerTitleTextCase.UPPERCASE,
+            )
+            .putFloat("${PREFIX}_${key}_outline_width", style.outlineWidthDp)
+            .putString("${PREFIX}_${key}_outline_color", style.outlineColor.name)
+            .putInt("${PREFIX}_${key}_shadow_strength", style.shadowStrengthPercent)
+            .putBoolean("${PREFIX}_${key}_background_enabled", style.backgroundEnabled)
+            .putInt("${PREFIX}_${key}_background_strength", style.backgroundStrengthPercent)
             .apply()
     }
 
@@ -290,6 +337,7 @@ internal object PlayerTitleStyleStore {
     ): PlayerTitleTextStyle {
         val defaults = PlayerTitleStyle.defaultFor(part)
         val key = part.keySegment()
+        val effects = readStoredPlayerTitleEffects(prefs, "${PREFIX}_${key}", defaults)
         return PlayerTitleTextStyle(
             font = prefs.getString("${PREFIX}_${key}_font", defaults.font)
                 ?.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) }
@@ -315,7 +363,19 @@ internal object PlayerTitleStyleStore {
             opacityPercent = prefs.getInt("${PREFIX}_${key}_opacity", defaults.opacityPercent)
                 .coerceIn(PLAYER_TITLE_MIN_OPACITY_PERCENT, PLAYER_TITLE_MAX_OPACITY_PERCENT),
             visible = prefs.getBoolean("${PREFIX}_${key}_visible", defaults.visible),
-            uppercase = prefs.getBoolean("${PREFIX}_${key}_uppercase", defaults.uppercase),
+            textCase = enumValueOrDefault(
+                prefs.getString("${PREFIX}_${key}_text_case", null),
+                if (prefs.getBoolean("${PREFIX}_${key}_uppercase", false)) {
+                    PlayerTitleTextCase.UPPERCASE
+                } else {
+                    defaults.textCase
+                },
+            ),
+            outlineWidthDp = effects.outlineWidthDp,
+            outlineColor = effects.outlineColor,
+            shadowStrengthPercent = effects.shadowStrengthPercent,
+            backgroundEnabled = effects.backgroundEnabled,
+            backgroundStrengthPercent = effects.backgroundStrengthPercent,
         )
     }
 
@@ -352,6 +412,46 @@ internal object PlayerTitleStyleStore {
     private const val CLOCK_ORDER_KEY = "${PREFIX}_clock_order"
 }
 
+private data class StoredPlayerTitleEffects(
+    val outlineWidthDp: Float,
+    val outlineColor: PlayerTitleColor,
+    val shadowStrengthPercent: Int,
+    val backgroundEnabled: Boolean,
+    val backgroundStrengthPercent: Int,
+)
+
+private fun readStoredPlayerTitleEffects(
+    prefs: SharedPreferences,
+    key: String,
+    defaults: PlayerTitleTextStyle,
+) = StoredPlayerTitleEffects(
+    outlineWidthDp = prefs.getFloat(
+        "${key}_outline_width",
+        defaults.outlineWidthDp,
+    ).coerceIn(PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP, PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP),
+    outlineColor = prefs.getString("${key}_outline_color", defaults.outlineColor.name)
+        ?.let { raw -> PlayerTitleColor.entries.firstOrNull { it.name == raw } }
+        ?: defaults.outlineColor,
+    shadowStrengthPercent = prefs.getInt(
+        "${key}_shadow_strength",
+        defaults.shadowStrengthPercent,
+    ).coerceIn(
+        PLAYER_TITLE_MIN_EFFECT_STRENGTH_PERCENT,
+        PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+    ),
+    backgroundEnabled = prefs.getBoolean(
+        "${key}_background_enabled",
+        defaults.backgroundEnabled,
+    ),
+    backgroundStrengthPercent = prefs.getInt(
+        "${key}_background_strength",
+        defaults.backgroundStrengthPercent,
+    ).coerceIn(
+        PLAYER_TITLE_MIN_EFFECT_STRENGTH_PERCENT,
+        PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+    ),
+)
+
 internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
     applyPlayerTitleVisibility()
     if (!force && appliedPlayerTitleStyle == playerTitleStyle)
@@ -367,6 +467,8 @@ internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
             letterSpacing = 0f,
             color = PlayerTitleColor.CHROME,
             italic = false,
+            textCase = PlayerTitleTextCase.ORIGINAL,
+            backgroundEnabled = false,
         ),
     )
     applyPlayerTitleTextStyle(binding.playerTitlePrimary, playerTitleStyle.title)
@@ -420,7 +522,8 @@ private fun MPVActivity.applyPlayerTitleTextStyle(
 ) {
     view.setTextSize(TypedValue.COMPLEX_UNIT_SP, style.sizeSp)
     view.letterSpacing = style.letterSpacing
-    view.isAllCaps = style.uppercase
+    view.isAllCaps = false
+    view.transformationMethod = playerTitleCaseTransformation(style.textCase)
     view.typeface = UiFont.typeface(
         context = this,
         value = style.font.takeUnless { it == PlayerTitleStyle.INHERIT_FONT }
@@ -438,16 +541,54 @@ private fun MPVActivity.applyPlayerTitleTextStyle(
             Color.blue(baseColor),
         ),
     )
-    if (style.shadow == PlayerTitleShadow.OFF) {
-        view.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+    val shadowAlpha = style.shadow.alpha * style.shadowStrengthPercent /
+        PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT
+    val outlineColor = resolvePlayerOutlineColor(style.outlineColor)
+    (view as? OutlinedTextView)?.setTextEffects(
+        outlineWidthDp = style.outlineWidthDp,
+        outlineColor = outlineColor,
+        shadowRadiusDp = style.shadow.radius,
+        shadowOffsetYDp = style.shadow.dy,
+        shadowColor = Color.argb(shadowAlpha, 0, 0, 0),
+    ) ?: view.setShadowLayer(
+        style.shadow.radius,
+        0f,
+        style.shadow.dy,
+        Color.argb(shadowAlpha, 0, 0, 0),
+    )
+    view.applyPlayerTitleBackground(style)
+}
+
+private fun MPVActivity.resolvePlayerOutlineColor(color: PlayerTitleColor): Int =
+    if (color == PlayerTitleColor.APP_COLOR) {
+        PLAYER_TITLE_DEFAULT_OUTLINE_COLOR
     } else {
-        view.setShadowLayer(
-            style.shadow.radius,
-            0f,
-            style.shadow.dy,
-            Color.argb(style.shadow.alpha, 0, 0, 0),
-        )
+        resolvePlayerTitleColor(color)
     }
+
+private fun TextView.applyPlayerTitleBackground(style: PlayerTitleTextStyle) {
+    val left = paddingLeft
+    val top = paddingTop
+    val right = paddingRight
+    val bottom = paddingBottom
+    background = if (style.backgroundEnabled && style.backgroundStrengthPercent > 0) {
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = resources.displayMetrics.density * PLAYER_TITLE_BACKGROUND_RADIUS_DP
+            setColor(
+                Color.argb(
+                    PLAYER_TITLE_MAX_COLOR_CHANNEL * style.backgroundStrengthPercent /
+                        PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
+                    0,
+                    0,
+                    0,
+                ),
+            )
+        }
+    } else {
+        null
+    }
+    setPadding(left, top, right, bottom)
 }
 
 private fun MPVActivity.resolvePlayerTitleColor(color: PlayerTitleColor): Int {
@@ -477,4 +618,14 @@ internal const val PLAYER_TITLE_LETTER_SPACING_STEP = 0.01f
 internal const val PLAYER_TITLE_MIN_OPACITY_PERCENT = 40
 internal const val PLAYER_TITLE_MAX_OPACITY_PERCENT = 100
 internal const val PLAYER_TITLE_OPACITY_STEP_PERCENT = 10
+internal const val PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP = 0f
+internal const val PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP = 3f
+internal const val PLAYER_TITLE_DEFAULT_OUTLINE_WIDTH_DP = 0.5f
+internal const val PLAYER_TITLE_OUTLINE_WIDTH_STEP_DP = 0.5f
+internal const val PLAYER_TITLE_MIN_EFFECT_STRENGTH_PERCENT = 0
+internal const val PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT = 100
+internal const val PLAYER_TITLE_EFFECT_STRENGTH_STEP_PERCENT = 10
+internal const val PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT = 40
+private const val PLAYER_TITLE_BACKGROUND_RADIUS_DP = 6f
 private const val PLAYER_TITLE_MAX_COLOR_CHANNEL = 255
+private const val PLAYER_TITLE_DEFAULT_OUTLINE_COLOR = 0xB8000000.toInt()

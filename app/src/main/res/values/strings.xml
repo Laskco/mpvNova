@@ -766,6 +766,11 @@
     <string name="player_title_style_color">Color</string>
     <string name="player_title_style_opacity">Opacity</string>
     <string name="player_title_style_shadow">Shadow</string>
+    <string name="player_title_style_shadow_strength">Shadow strength</string>
+    <string name="player_title_style_outline_thickness">Outline thickness</string>
+    <string name="player_title_style_outline_color">Outline color</string>
+    <string name="player_title_style_background_plate">Background plate</string>
+    <string name="player_title_style_background_strength">Background strength</string>
     <string name="player_title_style_italic">Italic</string>
     <string name="player_title_style_text_case">Text case</string>
     <string name="player_title_style_position">Position</string>
@@ -779,6 +784,7 @@
     <string name="player_title_style_value_size">%1$.1f sp</string>
     <string name="player_title_style_value_spacing">%1$.2f</string>
     <string name="player_title_style_value_opacity">%1$d%%</string>
+    <string name="player_title_style_value_outline_thickness">%1$.1f dp</string>
     <string name="player_title_style_value_light">Light</string>
     <string name="player_title_style_value_regular">Regular</string>
     <string name="player_title_style_value_medium">Medium</string>
@@ -795,6 +801,8 @@
     <string name="player_title_style_value_on">On</string>
     <string name="player_title_style_value_as_provided">As provided</string>
     <string name="player_title_style_value_uppercase">Uppercase</string>
+    <string name="player_title_style_value_lowercase">Lowercase</string>
+    <string name="player_title_style_value_title_case">Title Case</string>
     <string name="player_title_style_position_top">Top</string>
     <string name="player_title_style_position_middle">Middle</string>
     <string name="player_title_style_position_bottom">Bottom</string>

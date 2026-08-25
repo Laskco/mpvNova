@@ -32,20 +32,20 @@ internal fun MPVActivity.playerTitleControlValue(
         R.string.player_title_style_value_spacing,
         normalizedPlayerTitleSpacing(style.letterSpacing),
     )
-    PlayerTitleStyleControl.COLOR -> playerTitleColorLabel(style.color)
-    PlayerTitleStyleControl.OPACITY -> getString(
-        R.string.player_title_style_value_opacity,
-        style.opacityPercent,
-    )
-    PlayerTitleStyleControl.SHADOW -> playerTitleShadowLabel(style.shadow)
+    PlayerTitleStyleControl.COLOR,
+    PlayerTitleStyleControl.OPACITY,
+    PlayerTitleStyleControl.SHADOW,
+    PlayerTitleStyleControl.SHADOW_STRENGTH,
+    PlayerTitleStyleControl.OUTLINE_THICKNESS,
+    PlayerTitleStyleControl.OUTLINE_COLOR,
+    PlayerTitleStyleControl.BACKGROUND_PLATE,
+    PlayerTitleStyleControl.BACKGROUND_STRENGTH,
+    -> playerTitleEffectControlValue(control, style)
     PlayerTitleStyleControl.ITALIC -> getString(
         if (style.italic) R.string.player_title_style_value_on
         else R.string.player_title_style_value_off,
     )
-    PlayerTitleStyleControl.TEXT_CASE -> getString(
-        if (style.uppercase) R.string.player_title_style_value_uppercase
-        else R.string.player_title_style_value_as_provided,
-    )
+    PlayerTitleStyleControl.TEXT_CASE -> getString(playerTitleTextCaseLabelRes(style.textCase))
     PlayerTitleStyleControl.POSITION -> playerTitlePositionLabel(part)
 }
 
@@ -82,7 +82,7 @@ private fun MPVActivity.playerTitleWeightLabel(weight: PlayerTitleWeight): Strin
     },
 )
 
-private fun MPVActivity.playerTitleColorLabel(color: PlayerTitleColor): String {
+internal fun MPVActivity.playerTitleColorLabel(color: PlayerTitleColor): String {
     val appearanceValue = color.appearanceValue
         ?: return getString(R.string.player_title_style_value_app_color)
     val choice = appearanceColorChoices.firstOrNull { it.value == appearanceValue }
@@ -90,7 +90,7 @@ private fun MPVActivity.playerTitleColorLabel(color: PlayerTitleColor): String {
         ?: getString(R.string.appearance_theme_white)
 }
 
-private fun MPVActivity.playerTitleShadowLabel(shadow: PlayerTitleShadow): String = getString(
+internal fun MPVActivity.playerTitleShadowLabel(shadow: PlayerTitleShadow): String = getString(
     when (shadow) {
         PlayerTitleShadow.OFF -> R.string.player_title_style_value_off
         PlayerTitleShadow.SUBTLE -> R.string.player_title_style_value_subtle
