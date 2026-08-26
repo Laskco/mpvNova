@@ -50,14 +50,35 @@ internal fun MPVActivity.requestFirstControlFocusIfNeeded() {
 }
 
 internal fun MPVActivity.interceptDpadActivation(ev: KeyEvent, controls: List<View>): Boolean {
-    if (ev.keyCode != KeyEvent.KEYCODE_DPAD_UP && ev.keyCode != KeyEvent.KEYCODE_DPAD_DOWN)
-        return false
-    if (ev.action == KeyEvent.ACTION_DOWN) {
-        activateDpadSelection(ev, controls)
-        requestFirstControlFocusIfNeeded()
-        showControls()
+    val activatesPausedSeekbar =
+        (ev.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || ev.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) &&
+            keepControlsVisibleWhilePaused &&
+            (player.paused ?: psc.pause) &&
+            !seekKeysUseInputConf &&
+            controls.firstOrNull() === binding.playbackSeekbar
+    return when {
+        activatesPausedSeekbar -> {
+            if (ev.action == KeyEvent.ACTION_DOWN) {
+                btnSelected = 0
+                updateSelectedDpadButton()
+                seekPlaybackFromDpad(
+                    seekDeltaFromDpadEvent(ev),
+                    baseOnVisibleSeekbar = true,
+                )
+                keepVisibleControlsFresh()
+            }
+            true
+        }
+        ev.keyCode != KeyEvent.KEYCODE_DPAD_UP && ev.keyCode != KeyEvent.KEYCODE_DPAD_DOWN -> false
+        else -> {
+            if (ev.action == KeyEvent.ACTION_DOWN) {
+                activateDpadSelection(ev, controls)
+                requestFirstControlFocusIfNeeded()
+                showControls()
+            }
+            true
+        }
     }
-    return true
 }
 
 internal fun MPVActivity.interceptActiveDpad(ev: KeyEvent, controls: List<View>): Boolean {
