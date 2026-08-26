@@ -80,7 +80,13 @@ internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
 private fun MPVActivity.rearmSkippedSegmentsAfterRewind(posSec: Double) {
     val previousPosSec = lastSkipSegmentPlaybackPositionSec
     lastSkipSegmentPlaybackPositionSec = posSec
-    if (!previousPosSec.isFinite() || !posSec.isFinite()) return
+    if (!posSec.isFinite()) return
+    if (!previousPosSec.isFinite()) {
+        skipSegments
+            .filter { segment -> posSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC }
+            .forEach { segment -> autoSkippedSegmentKeys.add(segment.key()) }
+        return
+    }
 
     skipSegments.forEach { segment ->
         val key = segment.key()

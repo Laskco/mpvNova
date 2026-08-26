@@ -63,6 +63,7 @@ internal fun MPVActivity.startScreensaver() {
     // Being idle inside a menu/panel still triggers it: close any open player dialogs (without
     // bouncing the drawer back) so the overlay sits on top of everything.
     drawerReopenPending = false
+    drawerReopenScheduled = false
     playerDialogStack.toList().forEach { it.dismiss() }
     playerDialogStack.clear()
     hideControls()

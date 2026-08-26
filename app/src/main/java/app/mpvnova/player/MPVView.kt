@@ -49,6 +49,7 @@ internal val MPV_VIEW_PLAYBACK_SPEED_STEPS = doubleArrayOf(
 
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
     internal var configuredHwdecCodecs = MPV_VIEW_HWDEC_CODECS
+    private val appliedManagedShaderPaths = linkedSetOf<String>()
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -162,6 +163,21 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             preferences.getBoolean(PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK, true)
         )
         mpvSetOptionString("save-position-on-quit", "no")
+        reconcileManagedShaders()
+    }
+
+    internal fun reconcileManagedShaders() {
+        val requestedPaths = UserShaderManager.enabledPaths(context)
+        if (requestedPaths == appliedManagedShaderPaths.toList()) return
+
+        appliedManagedShaderPaths.forEach { path ->
+            mpvCommand(arrayOf("change-list", "glsl-shaders", "remove", path))
+        }
+        appliedManagedShaderPaths.clear()
+        requestedPaths.forEach { path ->
+            mpvCommand(arrayOf("change-list", "glsl-shaders", "append", path))
+            appliedManagedShaderPaths += path
+        }
     }
 
     override fun observeProperties() {

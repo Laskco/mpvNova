@@ -12,6 +12,7 @@ import android.media.AudioFocusRequest
 import android.media.AudioDeviceCallback
 import android.media.AudioManager
 import android.media.session.MediaSession
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -306,6 +307,7 @@ open class MPVActivity : AppCompatActivity() {
     // Drawer state: remembered tab, reopen-after-subdialog flag, cached binding.
     internal var lastDrawerTab: DrawerTab = DrawerTab.VIDEO
     internal var drawerReopenPending = false
+    internal var drawerReopenScheduled = false
     internal var drawerBinding: app.mpvnova.player.databinding.DialogPlayerDrawerBinding? = null
     internal var playerPickerBinding: app.mpvnova.player.databinding.DialogPlayerPickerBinding? = null
     internal var speedPickerDialog: SpeedPickerDialog? = null
@@ -316,6 +318,9 @@ open class MPVActivity : AppCompatActivity() {
     internal var decoderPickerDialog: MediaPickerDialog? = null
     internal var preferredDecoderPickerDialog: MediaPickerDialog? = null
     internal var subtitleStyleDialog: SubtitleStyleDialog? = null
+    internal var trackPanelChildTransition = false
+    internal var subtitleStyleReturnAction: (() -> Unit)? = null
+    internal var subtitleStyleNavigationPending = false
     internal var playlistDialog: PlaylistDialog? = null
     internal val videoAdjustmentDialogs = mutableMapOf<String, VideoAdjustmentDialog>()
     internal var playerBrightnessDialog: VideoAdjustmentDialog? = null
@@ -325,6 +330,7 @@ open class MPVActivity : AppCompatActivity() {
     // they render above the panel instead of behind it.
     internal var topPlayerDialog: android.app.Dialog? = null
     internal val playerDialogStack = mutableListOf<android.app.Dialog>()
+    internal var playerChromeSnapshot: PlayerChromeSnapshot? = null
     internal var overlayToastView: android.view.View? = null
     internal var overlayToastHideRunnable: Runnable? = null
     internal var playerToastState: PlayerToastState? = null
@@ -727,6 +733,30 @@ open class MPVActivity : AppCompatActivity() {
                 result
             )
             pendingActivityResultCallback = null
+        }
+    internal var pendingShaderImportCallback: ((List<Uri>) -> Unit)? = null
+    internal val shaderFilesResultLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val data = result.data.takeIf { result.resultCode == RESULT_OK }
+            val uris = data?.selectedDocumentUris().orEmpty()
+            pendingShaderImportCallback?.invoke(uris)
+            pendingShaderImportCallback = null
+        }
+    internal val shaderFolderResultLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            val uri = result.data?.data.takeIf { result.resultCode == RESULT_OK }
+            if (uri != null) {
+                val permissionPersisted = runCatching {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }.isSuccess
+                if (permissionPersisted) UserShaderManager.rememberFolder(this, uri)
+            }
+            val uris = uri?.let { UserShaderManager.shaderUrisInTree(this, it) }.orEmpty()
+            pendingShaderImportCallback?.invoke(uris)
+            pendingShaderImportCallback = null
         }
 
     internal val mediaSessionCallback = object : MediaSession.Callback() {

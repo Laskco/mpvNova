@@ -1,7 +1,10 @@
 package app.mpvnova.player.preferences
 
 import android.app.Dialog
+import android.app.Activity
+import android.text.InputType
 import android.util.TypedValue
+import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
@@ -15,6 +18,9 @@ import app.mpvnova.player.screensaverInputToSeconds
 import app.mpvnova.player.databinding.DialogScreensaverLogoBinding
 import app.mpvnova.player.databinding.DialogScreensaverTimeInputBinding
 import app.mpvnova.player.databinding.DialogSettingsChoiceBinding
+import app.mpvnova.player.databinding.DialogSettingsConfirmationBinding
+import app.mpvnova.player.databinding.DialogSettingsInputBinding
+import app.mpvnova.player.databinding.DialogSettingsProgressBinding
 
 private const val DIALOG_WIDTH_FRACTION = 0.5f
 private const val DIALOG_MAX_WIDTH_DP = 560f
@@ -23,15 +29,28 @@ private const val CHOICE_LIST_MAX_HEIGHT_DP = 300f
 // A single-choice dialog styled like the mpv.conf editor (app-themed shell, styled rows),
 // so the screensaver settings match the rest of the app instead of the default picker.
 internal fun Fragment.showSettingsChoiceDialog(title: CharSequence, items: List<SettingsChoiceItem>) {
-    val binding = DialogSettingsChoiceBinding.inflate(layoutInflater)
+    showSettingsChoiceDialog(requireActivity(), layoutInflater, title, items)
+}
+
+internal fun Activity.showSettingsChoiceDialog(title: CharSequence, items: List<SettingsChoiceItem>) {
+    showSettingsChoiceDialog(this, layoutInflater, title, items)
+}
+
+private fun showSettingsChoiceDialog(
+    activity: Activity,
+    inflater: LayoutInflater,
+    title: CharSequence,
+    items: List<SettingsChoiceItem>,
+) {
+    val binding = DialogSettingsChoiceBinding.inflate(inflater)
     binding.choiceTitle.text = title
     binding.choiceScroll.maxHeightPx = TypedValue.applyDimension(
-        TypedValue.COMPLEX_UNIT_DIP, CHOICE_LIST_MAX_HEIGHT_DP, resources.displayMetrics
+        TypedValue.COMPLEX_UNIT_DIP, CHOICE_LIST_MAX_HEIGHT_DP, activity.resources.displayMetrics
     ).toInt()
-    val dialog = AlertDialog.Builder(requireActivity()).setView(binding.root).create()
+    val dialog = AlertDialog.Builder(activity).setView(binding.root).create()
     var selectedRow: View? = null
     for (item in items) {
-        val row = layoutInflater.inflate(R.layout.dialog_setting_option_item, binding.choiceRows, false)
+        val row = inflater.inflate(R.layout.dialog_setting_option_item, binding.choiceRows, false)
         row.findViewById<TextView>(R.id.optionTitleText).text = item.title
         val detailView = row.findViewById<TextView>(R.id.optionDetailText)
         if (item.detail.isNullOrEmpty()) detailView.isVisible = false else detailView.text = item.detail
@@ -49,6 +68,85 @@ internal fun Fragment.showSettingsChoiceDialog(title: CharSequence, items: List<
     dialog.styleAsTvPanel()
     val focusRow = selectedRow ?: binding.choiceRows.getChildAt(0)
     focusRow?.post { focusRow.requestFocus() }
+}
+
+internal fun Fragment.showSettingsInputDialog(
+    title: CharSequence,
+    message: CharSequence?,
+    initialValue: String,
+    inputType: Int = InputType.TYPE_CLASS_TEXT,
+    onConfirm: (String) -> Unit,
+) {
+    val binding = DialogSettingsInputBinding.inflate(layoutInflater)
+    binding.inputTitle.text = title
+    binding.inputMessage.text = message ?: ""
+    binding.inputMessage.isVisible = !message.isNullOrBlank()
+    binding.inputValue.inputType = inputType
+    binding.inputValue.setText(initialValue)
+    binding.inputValue.selectAll()
+    val dialog = AlertDialog.Builder(requireActivity()).setView(binding.root).create()
+    binding.inputCancelBtn.setOnClickListener { dialog.dismiss() }
+    binding.inputOkBtn.setOnClickListener {
+        onConfirm(binding.inputValue.text?.toString().orEmpty())
+        dialog.dismiss()
+    }
+    dialog.show()
+    dialog.styleAsTvPanel()
+    binding.inputValue.requestFocus()
+}
+
+internal fun Fragment.showSettingsConfirmationDialog(
+    title: CharSequence,
+    message: CharSequence,
+    confirmText: CharSequence,
+    onConfirm: () -> Unit,
+) {
+    showSettingsConfirmationDialog(requireActivity(), layoutInflater, title, message, confirmText, onConfirm)
+}
+
+internal fun Activity.showSettingsConfirmationDialog(
+    title: CharSequence,
+    message: CharSequence,
+    confirmText: CharSequence,
+    onConfirm: () -> Unit,
+) {
+    showSettingsConfirmationDialog(this, layoutInflater, title, message, confirmText, onConfirm)
+}
+
+internal fun Activity.showSettingsProgressDialog(message: CharSequence): AlertDialog {
+    val binding = DialogSettingsProgressBinding.inflate(layoutInflater)
+    binding.progressMessage.text = message
+    return AlertDialog.Builder(this)
+        .setView(binding.root)
+        .create()
+        .also { dialog ->
+            dialog.setCancelable(false)
+            dialog.show()
+            dialog.styleAsTvPanel()
+        }
+}
+
+private fun showSettingsConfirmationDialog(
+    activity: Activity,
+    inflater: LayoutInflater,
+    title: CharSequence,
+    message: CharSequence,
+    confirmText: CharSequence,
+    onConfirm: () -> Unit,
+) {
+    val binding = DialogSettingsConfirmationBinding.inflate(inflater)
+    binding.confirmationTitle.text = title
+    binding.confirmationMessage.text = message
+    binding.confirmationConfirmBtn.text = confirmText
+    val dialog = AlertDialog.Builder(activity).setView(binding.root).create()
+    binding.confirmationCancelBtn.setOnClickListener { dialog.dismiss() }
+    binding.confirmationConfirmBtn.setOnClickListener {
+        dialog.dismiss()
+        onConfirm()
+    }
+    dialog.show()
+    dialog.styleAsTvPanel()
+    binding.confirmationCancelBtn.requestFocus()
 }
 
 // The custom-logo actions as a button dialog, mirroring the mpv.conf editor's button row.

@@ -9,7 +9,6 @@ import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.R
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 
 internal fun AppUpdateManager.showUpdateResult(
@@ -25,11 +24,13 @@ internal fun AppUpdateManager.showUpdateResult(
         if (!respectIgnored || ignoredTag != release.tagName)
             showAvailableUpdateDialog(release)
     } else if (showIfCurrent) {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.update_current_title)
-            .setMessage(activity.getString(R.string.update_current_message, BuildConfig.VERSION_NAME))
-            .setPositiveButton(R.string.dialog_ok, null)
-            .show()
+        showGlassDialog(
+            GlassDialogOptions(
+                title = activity.getString(R.string.update_current_title),
+                notes = activity.getString(R.string.update_current_message, BuildConfig.VERSION_NAME),
+                compactContent = true,
+            )
+        )
     }
 }
 
@@ -66,18 +67,20 @@ internal fun AppUpdateManager.installDownloadedApk(tagName: String?, apkFile: Fi
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
         pendingInstallApk = apkFile
         rememberPendingUpdate(tagName, apkFile)
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.update_install_permission_title)
-            .setMessage(R.string.update_install_permission_message)
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .setPositiveButton(R.string.update_open_permission_settings) { _, _ ->
+        showGlassDialog(
+            GlassDialogOptions(
+                title = activity.getString(R.string.update_install_permission_title),
+                notes = activity.getString(R.string.update_install_permission_message),
+                primaryText = activity.getString(R.string.update_open_permission_settings),
+                onPrimary = {
                 val intent = Intent(
                     Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                     Uri.parse("package:${activity.packageName}")
                 )
                 activity.startActivity(intent)
-            }
-            .show()
+                },
+            )
+        )
         return
     }
 

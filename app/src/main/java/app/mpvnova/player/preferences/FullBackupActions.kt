@@ -13,8 +13,8 @@ import app.mpvnova.player.FONT_EXTENSIONS
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.R
 import app.mpvnova.player.SubtitleFontTable
+import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.installSubtitleFont
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -54,15 +54,32 @@ object FullBackupActions {
         )
     }
 
+    fun exportToDownloads(activity: Activity) {
+        runWithProgress(
+            activity = activity,
+            messageRes = R.string.full_backup_exporting,
+            action = { context ->
+                FullBackupDownloads.write(
+                    context = context,
+                    filename = suggestedFilename(),
+                    mimeType = MIME_TYPE,
+                ) { output ->
+                    writeBackup(context, ZipOutputStream(output.buffered()))
+                }
+            },
+            successRes = R.string.full_backup_exported_downloads,
+            failureRes = R.string.full_backup_export_failed,
+        )
+    }
+
     fun confirmImport(activity: Activity, source: Uri) {
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.full_backup_import_confirm_title)
-            .setMessage(R.string.full_backup_import_confirm_message)
-            .setPositiveButton(R.string.full_backup_import_action) { _, _ ->
-                import(activity, source)
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        activity.showSettingsConfirmationDialog(
+            title = activity.getString(R.string.full_backup_import_confirm_title),
+            message = activity.getString(R.string.full_backup_import_confirm_message),
+            confirmText = activity.getString(R.string.full_backup_import_action),
+        ) {
+            import(activity, source)
+        }
     }
 
     private fun import(activity: Activity, source: Uri) {
@@ -84,10 +101,7 @@ object FullBackupActions {
         failureRes: Int,
         recreateOnSuccess: Boolean = false,
     ) {
-        val progress = MaterialAlertDialogBuilder(activity)
-            .setMessage(messageRes)
-            .setCancelable(false)
-            .show()
+        val progress = activity.showSettingsProgressDialog(activity.getString(messageRes))
         val activityRef = WeakReference(activity)
         val progressRef = WeakReference(progress)
         val appContext = activity.applicationContext
@@ -110,8 +124,10 @@ object FullBackupActions {
     private fun writeBackup(context: Context, zip: ZipOutputStream) {
         zip.use {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+            UserShaderManager.normalize(context)
             val screensaver = screensaverAsset(context, prefs)
             val userFonts = userFontFiles(context)
+            val userShaders = userShaderFiles(context)
             val mpvConfig = File(context.filesDir, MPV_CONFIG)
             val inputConfig = File(context.filesDir, INPUT_CONFIG)
 
@@ -124,6 +140,7 @@ object FullBackupActions {
                 .put("hasMpvConfig", mpvConfig.isFile)
                 .put("hasInputConfig", inputConfig.isFile)
                 .put("fonts", JSONArray(userFonts.map { "fonts/${it.name}" }))
+                .put("shaders", JSONArray(userShaders.map { "shaders/${it.name}" }))
             if (screensaver != null) {
                 manifest.put(
                     "screensaver",
@@ -138,6 +155,7 @@ object FullBackupActions {
             if (mpvConfig.isFile) zip.fileEntry("config/$MPV_CONFIG", mpvConfig, MAX_CONFIG_BYTES)
             if (inputConfig.isFile) zip.fileEntry("config/$INPUT_CONFIG", inputConfig, MAX_CONFIG_BYTES)
             userFonts.forEach { zip.fileEntry("fonts/${it.name}", it, MAX_FONT_BYTES) }
+            userShaders.forEach { zip.fileEntry("shaders/${it.name}", it, MAX_SHADER_BYTES) }
             screensaver?.let { asset ->
                 zip.putNextEntry(ZipEntry(asset.path))
                 openUriInput(context, asset.uri).use { input ->
@@ -218,10 +236,19 @@ object FullBackupActions {
         if (mpvConfig != null) expectedEntries += "config/$MPV_CONFIG"
         if (inputConfig != null) expectedEntries += "config/$INPUT_CONFIG"
         val fonts = validateFontEntries(extracted, manifest, expectedEntries)
+        val shaders = validateShaderEntries(extracted, manifest, expectedEntries)
+        val referencedShaders = UserShaderManager.metadataFileNames(
+            preferences[UserShaderManager.PREF_ENTRIES] as? String
+        )
+        requireValidBackup(referencedShaders != null, "Invalid shader metadata")
+        requireValidBackup(
+            referencedShaders == shaders.mapTo(linkedSetOf()) { it.name },
+            "Shader metadata does not match backup files",
+        )
         val screensaver = validateScreensaverEntry(extracted, manifest, expectedEntries)
         validateArchiveContents(extracted, expectedEntries)
         if (screensaver == null) preferences.remove(PREF_SCREENSAVER_LOGO_URI)
-        return RestorePlan(preferences, mpvConfig, inputConfig, fonts, screensaver)
+        return RestorePlan(preferences, mpvConfig, inputConfig, fonts, shaders, screensaver)
     }
 
     private fun validateFontEntries(
@@ -269,6 +296,33 @@ object FullBackupActions {
         return file
     }
 
+    private fun validateShaderEntries(
+        root: File,
+        manifest: JSONObject,
+        expectedEntries: MutableSet<String>,
+    ): List<File> {
+        val shaders = ArrayList<File>()
+        val shaderEntries = manifest.optJSONArray("shaders") ?: JSONArray()
+        requireValidBackup(
+            shaderEntries.length() <= UserShaderManager.MAX_SHADER_COUNT,
+            "Too many shader entries",
+        )
+        for (index in 0 until shaderEntries.length()) {
+            val path = shaderEntries.getString(index)
+            requireValidBackup(path.startsWith("shaders/"), "Invalid shader entry")
+            val file = File(root, path)
+            ensureInside(root, file)
+            requireValidBackup(UserShaderManager.validateManagedFile(file), "Invalid shader file")
+            requireValidBackup(expectedEntries.add(path), "Duplicate shader entry")
+            shaders += file
+        }
+        requireValidBackup(
+            shaders.sumOf(File::length) <= UserShaderManager.MAX_TOTAL_SHADER_BYTES,
+            "Shader files are too large",
+        )
+        return shaders
+    }
+
     private fun validateArchiveContents(root: File, expectedEntries: Set<String>) {
         val actualEntries = root.walkTopDown()
             .filter { it.isFile }
@@ -285,6 +339,7 @@ object FullBackupActions {
             replaceOptionalFile(plan.mpvConfig, File(context.filesDir, MPV_CONFIG))
             replaceOptionalFile(plan.inputConfig, File(context.filesDir, INPUT_CONFIG))
             replaceUserFonts(context, plan.fonts)
+            replaceUserShaders(context, plan.shaders)
 
             val restoredLogo = File(context.filesDir, RESTORED_SCREENSAVER_PATH)
             if (plan.screensaver != null) {
@@ -322,12 +377,18 @@ object FullBackupActions {
             target.parentFile?.mkdirs()
             logo.copyTo(target, overwrite = true)
         }
+        val shaderBackup = File(rollback, "shaders")
+        userShaderFiles(context).forEach { file ->
+            shaderBackup.mkdirs()
+            file.copyTo(File(shaderBackup, file.name), overwrite = true)
+        }
     }
 
     private fun restoreUserFiles(context: Context, rollback: File) {
         replaceOptionalFile(File(rollback, MPV_CONFIG).takeIf { it.isFile }, File(context.filesDir, MPV_CONFIG))
         replaceOptionalFile(File(rollback, INPUT_CONFIG).takeIf { it.isFile }, File(context.filesDir, INPUT_CONFIG))
         replaceUserFonts(context, File(rollback, "fonts").listFiles()?.filter { it.isFile }.orEmpty())
+        replaceUserShaders(context, File(rollback, "shaders").listFiles()?.filter { it.isFile }.orEmpty())
         replaceOptionalFile(
             File(rollback, RESTORED_SCREENSAVER_PATH).takeIf { it.isFile },
             File(context.filesDir, RESTORED_SCREENSAVER_PATH),
@@ -343,6 +404,16 @@ object FullBackupActions {
                 if (installSubtitleFont(input, target) == null) throw IOException("Could not restore font")
             }
         }
+    }
+
+    private fun replaceUserShaders(context: Context, shaders: List<File>) {
+        val targetDir = UserShaderManager.directory(context)
+        targetDir.listFiles()?.filter { it.isFile }?.forEach { it.delete() }
+        shaders.forEach { source ->
+            requireValidBackup(UserShaderManager.validateManagedFile(source), "Invalid shader file")
+            source.copyTo(File(targetDir, safeFilename(source.name)), overwrite = true)
+        }
+        UserShaderManager.invalidateCache()
     }
 
     private fun replaceOptionalFile(source: File?, target: File) {
@@ -403,9 +474,17 @@ object FullBackupActions {
             .orEmpty()
     }
 
+    private fun userShaderFiles(context: Context): List<File> {
+        val root = UserShaderManager.directory(context)
+        return UserShaderManager.shaders(context).mapNotNull { shader ->
+            File(root, shader.fileName).takeIf(UserShaderManager::validateManagedFile)
+        }
+    }
+
     private fun encodePreferences(prefs: SharedPreferences): JSONObject {
         val values = JSONObject()
         prefs.all.toSortedMap().forEach { (key, value) ->
+            if (key == UserShaderManager.PREF_FOLDER_URIS) return@forEach
             val entry = JSONObject()
             when (value) {
                 is Boolean -> entry.put("type", "boolean").put("value", value)
@@ -471,7 +550,8 @@ object FullBackupActions {
     }
 
     private fun validateManifest(manifest: JSONObject) {
-        if (manifest.optString("format") != BACKUP_FORMAT || manifest.optInt("schema", -1) != BACKUP_SCHEMA) {
+        val schema = manifest.optInt("schema", -1)
+        if (manifest.optString("format") != BACKUP_FORMAT || schema !in MIN_BACKUP_SCHEMA..BACKUP_SCHEMA) {
             throw IOException("Unsupported backup format")
         }
     }
@@ -496,6 +576,7 @@ object FullBackupActions {
         name == MANIFEST_ENTRY || name == SETTINGS_ENTRY -> true
         name == "config/$MPV_CONFIG" || name == "config/$INPUT_CONFIG" -> true
         name.startsWith("fonts/") -> isSafeNestedEntry(name)
+        name.startsWith("shaders/") -> isSafeNestedEntry(name)
         name.startsWith("screensaver/") -> isSafeNestedEntry(name)
         else -> false
     }
@@ -509,6 +590,7 @@ object FullBackupActions {
         name == MANIFEST_ENTRY || name == SETTINGS_ENTRY -> MAX_JSON_BYTES
         name.startsWith("config/") -> MAX_CONFIG_BYTES
         name.startsWith("fonts/") -> MAX_FONT_BYTES
+        name.startsWith("shaders/") -> MAX_SHADER_BYTES
         name.startsWith("screensaver/") -> MAX_IMAGE_BYTES
         else -> 0L
     }
@@ -561,11 +643,13 @@ object FullBackupActions {
         val mpvConfig: File?,
         val inputConfig: File?,
         val fonts: List<File>,
+        val shaders: List<File>,
         val screensaver: File?,
     )
 
     private const val BACKUP_FORMAT = "mpvnova-full-backup"
-    private const val BACKUP_SCHEMA = 1
+    private const val MIN_BACKUP_SCHEMA = 1
+    private const val BACKUP_SCHEMA = 2
     private const val SETTINGS_SCHEMA = 1
     private const val MANIFEST_ENTRY = "manifest.json"
     private const val SETTINGS_ENTRY = "settings.json"
@@ -577,6 +661,7 @@ object FullBackupActions {
     private const val MAX_JSON_BYTES = 4L * 1024L * 1024L
     private const val MAX_CONFIG_BYTES = 2L * 1024L * 1024L
     private const val MAX_FONT_BYTES = SubtitleFontTable.MAX_FONT_FILE_BYTES
+    private const val MAX_SHADER_BYTES = UserShaderManager.MAX_SHADER_BYTES
     private const val MAX_IMAGE_BYTES = 32L * 1024L * 1024L
     private val IMAGE_EXTENSIONS = setOf("png", "jpg", "jpeg", "webp", "gif", "bmp")
     private val UNSAFE_FILENAME = Regex("[^A-Za-z0-9._-]")

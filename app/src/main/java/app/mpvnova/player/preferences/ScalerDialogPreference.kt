@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.widget.EditText
+import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.ScalerPrefBinding
@@ -33,19 +33,26 @@ class ScalerDialogPreference(
 
     override fun onClick() {
         super.onClick()
-        val dialog = MaterialAlertDialogBuilder(context)
         binding = ScalerPrefBinding.inflate(LayoutInflater.from(context))
-        dialog.setView(binding.root)
-        dialog.setTitle(title)
+        val dialog = AlertDialog.Builder(context).setView(binding.root).create()
+        binding.dialogTitle.text = title
         setupViews()
-        dialog.setNegativeButton(R.string.dialog_cancel) { _, _ -> }
-        dialog.setNeutralButton(R.string.dialog_clear) { _, _ -> clear() }
-        dialog.setPositiveButton(R.string.dialog_ok) { _, _ -> save() }
-        dialog.create().show()
+        binding.dialogCancel.setOnClickListener { dialog.dismiss() }
+        binding.dialogClear.setOnClickListener {
+            clear()
+            dialog.dismiss()
+        }
+        binding.dialogOk.setOnClickListener {
+            save()
+            dialog.dismiss()
+        }
+        dialog.show()
+        dialog.styleAsTvPanel()
+        s.requestFocus()
     }
 
     private fun setupViews() {
-        s = binding.scaler as MaterialAutoCompleteTextView
+        s = binding.scaler
         e1 = binding.param1
         e2 = binding.param2
 

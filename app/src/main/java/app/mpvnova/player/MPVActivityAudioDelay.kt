@@ -7,7 +7,10 @@ import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 import kotlin.math.roundToLong
 
-internal fun MPVActivity.showAudioDelayPicker(restoreState: StateRestoreCallback) {
+internal fun MPVActivity.showAudioDelayPicker(
+    restoreState: StateRestoreCallback,
+    onDismiss: () -> Unit = {},
+) {
     val impl = audioDelayDialog ?: AudioDelayDialog().also {
         audioDelayDialog = it
     }
@@ -53,7 +56,11 @@ internal fun MPVActivity.showAudioDelayPicker(restoreState: StateRestoreCallback
     @Suppress("DEPRECATION")
     dialog = with(AlertDialog.Builder(this)) {
         setView(impl.buildView(layoutInflater))
-        setOnDismissListener { restoreState(); reopenDrawerIfPending() }
+        setOnDismissListener {
+            restoreState()
+            onDismiss()
+            reopenDrawerIfNoParentDialog(dialog)
+        }
         create()
     }
     refresh()
@@ -136,7 +143,7 @@ internal fun MPVActivity.clearBluetoothAudioDelay() {
     showToast(getString(R.string.audio_delay_clear_bt), getString(R.string.audio_delay_bt_cleared))
 }
 
-private fun MPVActivity.currentAudioDelayMs(): Long {
+internal fun MPVActivity.currentAudioDelayMs(): Long {
     return secondsToMillis(player.audioDelay ?: 0.0)
 }
 

@@ -61,7 +61,8 @@ internal fun MPVActivity.openPlayerDrawer() {
             maxWidthDp = DRAWER_MAX_WIDTH_DP,
             heightFraction = 1f,
             gravity = Gravity.END,
-        )
+        ),
+        animateChrome = true,
     )
     revealDrawerContentScrollbar(binding)
 
@@ -93,12 +94,17 @@ private fun MPVActivity.highlightTopMenuAfterDrawerClose() {
  * to know about drawer state.
  */
 internal fun MPVActivity.reopenDrawerIfPending() {
-    if (!drawerReopenPending) return
-    drawerReopenPending = false
+    if (!drawerReopenPending || drawerReopenScheduled) return
+    drawerReopenScheduled = true
     // Post so the sub-dialog's window tears down before the drawer
     // slides back in; otherwise the back press that closed the
     // sub-dialog can dismiss the drawer in the same dispatch.
-    eventUiHandler.post { openPlayerDrawer() }
+    eventUiHandler.post {
+        drawerReopenScheduled = false
+        if (!drawerReopenPending) return@post
+        openPlayerDrawer()
+        drawerReopenPending = false
+    }
 }
 
 private fun MPVActivity.bindDrawerTabSwitching(binding: DialogPlayerDrawerBinding) {

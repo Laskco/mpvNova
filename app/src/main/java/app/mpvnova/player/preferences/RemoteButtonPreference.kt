@@ -3,6 +3,7 @@ package app.mpvnova.player.preferences
 import android.content.Context
 import android.util.AttributeSet
 import android.view.KeyEvent
+import android.view.LayoutInflater
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
@@ -11,6 +12,7 @@ import app.mpvnova.player.REMOTE_BUTTON_DISABLED
 import app.mpvnova.player.remoteButtonCanBeAssigned
 import app.mpvnova.player.remoteButtonDisplayName
 import app.mpvnova.player.remoteButtonLetsCaptureDialogHandle
+import app.mpvnova.player.databinding.DialogRemoteButtonCaptureBinding
 
 class RemoteButtonPreference(
     context: Context,
@@ -27,24 +29,20 @@ class RemoteButtonPreference(
     }
 
     private fun showCaptureDialog() {
-        lateinit var dialog: AlertDialog
-        dialog = AlertDialog.Builder(context)
-            .setTitle(title)
-            .setMessage(R.string.pref_remote_next_chapter_capture_message)
-            .setNegativeButton(R.string.dialog_cancel, null)
-            .setNeutralButton(R.string.dialog_clear, null)
-            .create()
-
-        dialog.setOnShowListener {
-            dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
-                persistRemoteButton(REMOTE_BUTTON_DISABLED)
-                dialog.dismiss()
-            }
+        val binding = DialogRemoteButtonCaptureBinding.inflate(LayoutInflater.from(context))
+        val dialog = AlertDialog.Builder(context).setView(binding.root).create()
+        binding.captureTitle.text = title
+        binding.captureCancel.setOnClickListener { dialog.dismiss() }
+        binding.captureClear.setOnClickListener {
+            persistRemoteButton(REMOTE_BUTTON_DISABLED)
+            dialog.dismiss()
         }
         dialog.setOnKeyListener { _, keyCode, event ->
             handleCapturedKey(dialog, keyCode, event)
         }
         dialog.show()
+        dialog.styleAsTvPanel()
+        binding.captureCancel.requestFocus()
     }
 
     private fun handleCapturedKey(dialog: AlertDialog, keyCode: Int, event: KeyEvent): Boolean {

@@ -82,10 +82,11 @@ class AppUpdateManager(internal val activity: Activity) {
     }
 
     private fun showEmptyReleaseHistoryDialog() {
-        com.google.android.material.dialog.MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.update_history_title)
-            .setMessage(R.string.update_history_empty)
-            .setPositiveButton(R.string.update_close, null)
-            .show()
+        showGlassDialog(
+            GlassDialogOptions(
+                title = activity.getString(R.string.update_history_title),
+                notes = activity.getString(R.string.update_history_empty),
+            )
+        )
     }
 }

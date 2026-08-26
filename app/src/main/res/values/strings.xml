@@ -542,6 +542,9 @@
     <string name="remember_video_adjustment_summary">Use this value automatically when playback starts.</string>
     <string name="pref_reset_player_ui_title">Reset player UI settings</string>
     <string name="pref_reset_player_ui_summary">Restore player controls, title, popup, and playlist UI preferences without changing playback, audio, or subtitle settings.</string>
+    <string name="pref_reset_player_ui_confirm_title">Reset player UI settings?</string>
+    <string name="pref_reset_player_ui_confirm_message">This restores every player UI setting to its default. Playback, audio, and subtitle settings are not changed.</string>
+    <string name="pref_reset_player_ui_confirm_action">Reset</string>
 
     <string name="pref_no_ui_pause_title">Continue playback during UI popups</string>
     <string name="pref_no_ui_pause_summary">Continue playback while popups are open. (e.g. during the playlist dialog)</string>
@@ -569,6 +572,54 @@
 
     <string name="pref_video_fastdecode_title">Low-quality video decoding</string>
     <string name="pref_video_fastdecode_summary">Trades quality for performance and thus fluent playback.\n<b>REDUCES QUALITY A LOT</b></string>
+    <string name="shader_manager_title">Shaders</string>
+    <string name="shader_manager_summary">Import, order, and enable custom GPU shaders.</string>
+    <string name="shader_manager_enabled">Use managed shaders</string>
+    <string name="shader_status">%1$d of %2$d enabled</string>
+    <string name="shader_status_manager_off">Manager off, %1$d saved</string>
+    <string name="shader_performance_warning">Shaders run on the GPU every frame and may reduce playback performance.</string>
+    <string name="shader_add">Add shaders</string>
+    <string name="shader_refresh">Refresh</string>
+    <string name="shader_refreshing">Refreshing</string>
+    <string name="shader_refresh_none">No new shaders found</string>
+    <string name="shader_refresh_failed">Could not refresh shader folders</string>
+    <string name="shader_refresh_partial">Imported %1$d shaders. %2$d files or folders could not be read.</string>
+    <plurals name="shader_refresh_result">
+        <item quantity="one">Imported %1$d new shader. It starts disabled.</item>
+        <item quantity="other">Imported %1$d new shaders. They start disabled.</item>
+    </plurals>
+    <plurals name="shader_refresh_unavailable">
+        <item quantity="one">A saved shader file or folder could not be read. Import the folder again if access was lost.</item>
+        <item quantity="other">%1$d saved shader files or folders could not be read. Import folders again if access was lost.</item>
+    </plurals>
+    <string name="shader_import_folder">Import folder</string>
+    <string name="shader_import_choose_source">Add shaders</string>
+    <string name="shader_import_files">Choose shader files</string>
+    <string name="shader_import_files_detail">Use an installed file manager and select one or more files.</string>
+    <string name="shader_import_folder_detail">Use Android’s folder picker to import every shader in a folder.</string>
+    <string name="shader_disable_all">Disable all</string>
+    <string name="shader_empty">No managed shaders yet. Advanced shaders configured in mpv.conf remain separate.</string>
+    <string name="shader_move_up">Move shader up</string>
+    <string name="shader_move_down">Move shader down</string>
+    <string name="shader_remove">Remove</string>
+    <string name="shader_remove_title">Remove shader?</string>
+    <string name="shader_remove_message">Remove %1$s from mpvNova?</string>
+    <string name="shader_importing">Importing</string>
+    <string name="shader_import_failed">Could not import shader</string>
+    <string name="shader_import_open_failed">Could not open shader file</string>
+    <string name="shader_import_too_large">Shader is larger than 8 MB</string>
+    <string name="shader_import_total_too_large">Managed shaders cannot use more than 32 MB</string>
+    <string name="shader_import_empty">Shader file is empty</string>
+    <string name="shader_import_limit_reached">The manager supports up to %1$d shaders</string>
+    <string name="shader_import_unsupported">%1$s is not a supported shader file</string>
+    <string name="shader_import_result_with_skipped">Imported %1$d, skipped %2$d duplicate files</string>
+    <plurals name="shader_import_result">
+        <item quantity="one">Imported %1$d shader. It starts disabled.</item>
+        <item quantity="other">Imported %1$d shaders. They start disabled.</item>
+    </plurals>
+    <string name="shader_import_duplicates">Those shaders are already imported</string>
+    <string name="shader_import_none">No shaders were imported</string>
+    <string name="shader_unnamed">Unnamed shader</string>
 
     <string name="pref_ignore_audio_focus_title">Ignore audio focus</string>
     <string name="pref_ignore_audio_focus_summary">Do not pause playback or reduce volume when other applications play audio at the same time.</string>
@@ -602,6 +653,12 @@
     <string name="pref_import_full_backup_summary">Replace this installation’s settings and user files with an mpvNova backup.</string>
     <string name="full_backup_exporting">Creating full backup…</string>
     <string name="full_backup_exported">Full backup exported</string>
+    <string name="full_backup_exported_downloads">Full backup saved to Downloads</string>
+    <string name="full_backup_export_destination">Export full backup</string>
+    <string name="full_backup_save_downloads">Save to Downloads</string>
+    <string name="full_backup_save_downloads_detail">Save directly without opening Android’s file picker.</string>
+    <string name="full_backup_choose_location">Choose save location</string>
+    <string name="full_backup_choose_location_detail">Use Android’s document picker to select a folder and filename.</string>
     <string name="full_backup_export_failed">Couldn’t export the full backup</string>
     <string name="full_backup_import_confirm_title">Import full backup?</string>
     <string name="full_backup_import_confirm_message">This replaces all current settings, imported fonts, config files, and the custom screensaver image. The backup is checked before anything is changed.</string>
@@ -863,22 +920,23 @@
     <string name="ui_font_work_sans_title">Work Sans</string>
     <string name="ui_font_work_sans_detail">Compact practical forms suited to controls and settings.</string>
 
-    <string name="settings_category_files_languages">Files and languages</string>
-    <string name="settings_category_playback_behavior">Playback behavior</string>
+    <string name="settings_category_files_languages">Files and language defaults</string>
+    <string name="settings_category_playback_behavior">Playback and resume</string>
     <string name="settings_category_skipping_seeking">Skipping and seeking</string>
-    <string name="settings_category_idle">Idle behavior</string>
-    <string name="settings_category_layout">Layout</string>
-    <string name="settings_category_controls">Controls</string>
-    <string name="settings_category_clock">Clock</string>
-    <string name="settings_category_seek_display">Seeking display</string>
-    <string name="settings_category_remote">Remote buttons</string>
-    <string name="settings_category_scaling">Scaling</string>
-    <string name="settings_category_motion_cleanup">Motion and cleanup</string>
-    <string name="settings_category_performance">Performance</string>
-    <string name="settings_category_renderer">Renderer</string>
-    <string name="settings_category_decoder">Decoder</string>
-    <string name="settings_category_shield">Shield compatibility</string>
+    <string name="settings_category_idle">Idle and screensaver</string>
+    <string name="settings_category_layout">Player layout</string>
+    <string name="settings_category_controls">Player controls</string>
+    <string name="settings_category_clock">Clock and time</string>
+    <string name="settings_category_seek_display">Seek display</string>
+    <string name="settings_category_remote">Remote shortcuts</string>
+    <string name="settings_category_scaling">Image scaling</string>
+    <string name="settings_category_motion_cleanup">Motion and image cleanup</string>
+    <string name="settings_category_performance">Playback performance</string>
+    <string name="settings_category_renderer">Video renderer</string>
+    <string name="settings_category_decoder">Hardware decoding</string>
+    <string name="settings_category_shield">NVIDIA Shield compatibility</string>
     <string name="settings_category_configuration">Configuration files</string>
-    <string name="settings_category_diagnostics">Diagnostics</string>
-    <string name="settings_category_system_behavior">System behavior</string>
+    <string name="settings_category_diagnostics">Playback diagnostics</string>
+    <string name="settings_category_system_behavior">Android behavior</string>
+    <string name="document_picker_choose_app">Choose file manager</string>
 </resources>

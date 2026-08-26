@@ -10,7 +10,8 @@ internal data class GlassDialogOptions(
     val ignoreText: String? = null,
     val onPrimary: (() -> Unit)? = null,
     val onIgnore: (() -> Unit)? = null,
-    val showClose: Boolean = true
+    val showClose: Boolean = true,
+    val compactContent: Boolean = false,
 )
 
 internal data class ReleaseInfo(

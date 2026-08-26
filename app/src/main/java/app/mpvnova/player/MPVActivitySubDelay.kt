@@ -4,7 +4,10 @@ import android.os.SystemClock
 import androidx.appcompat.app.AlertDialog
 import kotlin.math.roundToLong
 
-internal fun MPVActivity.showSubDelayPicker(restoreState: StateRestoreCallback) {
+internal fun MPVActivity.showSubDelayPicker(
+    restoreState: StateRestoreCallback,
+    onDismiss: () -> Unit = {},
+) {
     val impl = subDelayDialog ?: SubDelayPanelDialog().also {
         subDelayDialog = it
     }
@@ -30,7 +33,11 @@ internal fun MPVActivity.showSubDelayPicker(restoreState: StateRestoreCallback) 
     @Suppress("DEPRECATION")
     dialog = with(AlertDialog.Builder(this)) {
         setView(impl.buildView(layoutInflater))
-        setOnDismissListener { restoreState(); reopenDrawerIfPending() }
+        setOnDismissListener {
+            restoreState()
+            onDismiss()
+            reopenDrawerIfNoParentDialog(dialog)
+        }
         create()
     }
     refresh()

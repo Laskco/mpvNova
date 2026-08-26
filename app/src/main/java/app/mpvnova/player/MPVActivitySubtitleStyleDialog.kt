@@ -3,7 +3,11 @@ package app.mpvnova.player
 import android.view.LayoutInflater
 import androidx.appcompat.app.AlertDialog
 
-internal fun MPVActivity.openSubtitleStyleDialog() {
+internal fun MPVActivity.openSubtitleStyleDialog(
+    returnToParent: (() -> Unit)? = null,
+) {
+    if (returnToParent != null) subtitleStyleReturnAction = returnToParent
+    subtitleStyleNavigationPending = false
     val restore = keepPlaybackForDialog()
     val impl = subtitleStyleDialog ?: SubtitleStyleDialog().also {
         subtitleStyleDialog = it
@@ -11,35 +15,12 @@ internal fun MPVActivity.openSubtitleStyleDialog() {
     impl.stateProvider = { subtitleStyleState() }
     impl.onAdjust = { control, delta -> adjustSubtitleStyle(control, delta) }
     lateinit var dialog: AlertDialog
-    impl.onAddFont = {
-        dialog.dismiss()
-        pickAndImportSubtitleFont()
-    }
-    impl.onRemoveFont = {
-        dialog.dismiss()
-        showRemoveSubtitleFontDialog()
-    }
-    impl.onSavePreset = {
-        dialog.dismiss()
-        openSavePresetPrompt()
-    }
-    impl.onApplyPreset = {
-        dialog.dismiss()
-        showApplyPresetDialog()
-    }
-    impl.onEditPreset = {
-        dialog.dismiss()
-        showEditPresetDialog()
-    }
-    impl.onDeletePreset = {
-        dialog.dismiss()
-        showDeletePresetDialog()
-    }
+    bindSubtitleStyleNavigation(impl) { dialog.dismiss() }
 
     dialog = with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater))
-        setOnDismissListener { restore(); reopenDrawerIfPending() }
+        setOnDismissListener { handleSubtitleStyleDismiss(dialog, restore) }
         create()
     }
     showWidePlayerDialog(
@@ -51,6 +32,36 @@ internal fun MPVActivity.openSubtitleStyleDialog() {
             maxHeightDp = 880f,
         )
     )
+}
+
+private fun MPVActivity.bindSubtitleStyleNavigation(
+    impl: SubtitleStyleDialog,
+    dismiss: () -> Unit,
+) {
+    fun navigate(action: () -> Unit) {
+        subtitleStyleNavigationPending = true
+        dismiss()
+        action()
+    }
+    impl.onAddFont = { navigate(::pickAndImportSubtitleFont) }
+    impl.onRemoveFont = { navigate(::showRemoveSubtitleFontDialog) }
+    impl.onSavePreset = { navigate(::openSavePresetPrompt) }
+    impl.onApplyPreset = { navigate(::showApplyPresetDialog) }
+    impl.onEditPreset = { navigate(::showEditPresetDialog) }
+    impl.onDeletePreset = { navigate(::showDeletePresetDialog) }
+}
+
+private fun MPVActivity.handleSubtitleStyleDismiss(
+    dialog: AlertDialog,
+    restore: StateRestoreCallback,
+) {
+    restore()
+    if (!subtitleStyleNavigationPending) {
+        val returnAction = subtitleStyleReturnAction
+        subtitleStyleReturnAction = null
+        returnAction?.invoke()
+        reopenDrawerIfNoParentDialog(dialog)
+    }
 }
 
 private fun MPVActivity.pickAndImportSubtitleFont() {

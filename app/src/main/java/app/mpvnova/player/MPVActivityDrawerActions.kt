@@ -31,6 +31,7 @@ private fun MPVActivity.handleProcessingDrawerAction(
         PlayerDrawerAction.DEBANDING -> pickVideoDebanding()
         PlayerDrawerAction.INTERPOLATION -> pickVideoInterpolation()
         PlayerDrawerAction.TEMPORAL_FILTER -> pickVideoScaler(VideoScalerSetting.TEMPORAL)
+        PlayerDrawerAction.SHADERS -> openShaderManagerPanel()
         else -> Unit
     }
 }

@@ -79,26 +79,29 @@ internal fun MPVActivity.bindSkipButton() {
 
 internal fun MPVActivity.refreshSkipButtonVisibility() {
     val seg = currentSkipButtonSegment ?: return
-    val controlsVisible = binding.controls.visibility == View.VISIBLE
-    val key = seg.key()
-    val shouldShow = (key !in autoSkippedSegmentKeys || key in rewoundSkipSegmentKeys) &&
-        (controlsVisible ||
-            (key !in dismissedSkipSegmentKeys && key !in autoHiddenSkipSegmentKeys))
-
     eventUiHandler.removeCallbacks(skipButtonAutoHideRunnable)
-    if (!shouldShow) {
-        if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
-        binding.skipSegmentBtn.isSelected = false
+    if (playerDialogStack.any { it.isShowing }) {
         binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
-        return
-    }
+    } else {
+        val controlsVisible = binding.controls.visibility == View.VISIBLE
+        val key = seg.key()
+        val shouldShow = (key !in autoSkippedSegmentKeys || key in rewoundSkipSegmentKeys) &&
+            (controlsVisible ||
+                (key !in dismissedSkipSegmentKeys && key !in autoHiddenSkipSegmentKeys))
 
-    updateSkipButtonPlacement()
-    binding.skipSegmentBtn.setVisibilityIfChanged(View.VISIBLE)
-    syncSkipButtonHighlight()
-    val autoHideMs = skipButtonDisplayMode.autoHideMs
-    if (!controlsVisible && autoHideMs != null) {
-        eventUiHandler.postDelayed(skipButtonAutoHideRunnable, autoHideMs)
+        if (!shouldShow) {
+            if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
+            binding.skipSegmentBtn.isSelected = false
+            binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
+        } else {
+            updateSkipButtonPlacement()
+            binding.skipSegmentBtn.setVisibilityIfChanged(View.VISIBLE)
+            syncSkipButtonHighlight()
+            val autoHideMs = skipButtonDisplayMode.autoHideMs
+            if (!controlsVisible && autoHideMs != null) {
+                eventUiHandler.postDelayed(skipButtonAutoHideRunnable, autoHideMs)
+            }
+        }
     }
 }
 

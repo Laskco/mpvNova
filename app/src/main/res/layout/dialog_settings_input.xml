@@ -1,52 +1,57 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_tv_dialog_shell"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingStart="24dp"
+    android:paddingTop="22dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="22dp">
 
     <TextView
-        android:id="@+id/dialogTitle"
+        android:id="@+id/inputTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:labelFor="@id/inputValue"
         android:textColor="@color/tv_text"
         android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        tools:text="Default audio language" />
 
-
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switch1"
+    <TextView
+        android:id="@+id/inputMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:textColor="@color/tv_text_dim"
+        android:textSize="13sp"
+        tools:text="Use a three letter language code." />
+
+    <EditText
+        android:id="@+id/inputValue"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
         android:layout_marginTop="16dp"
-        android:text="@string/interpolation_switch" />
-
-
-    <com.google.android.material.textfield.TextInputLayout
-        style="?textInputOutlinedExposedDropdownMenuStyle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
-
-        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-            android:id="@+id/video_sync"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/interpolation_video_sync"
-            android:inputType="none" />
-
-    </com.google.android.material.textfield.TextInputLayout>
+        android:background="@drawable/bg_tv_track_row"
+        android:importantForAutofill="no"
+        android:inputType="text"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:singleLine="true"
+        android:textColor="@color/tv_text"
+        android:textColorHint="@color/tv_text_dim" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="16dp"
         android:gravity="end"
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/dialogCancel"
+            android:id="@+id/inputCancelBtn"
             style="@style/Mpv.SurfaceButton.Compact"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -54,7 +59,7 @@
             android:text="@string/dialog_cancel" />
 
         <Button
-            android:id="@+id/dialogOk"
+            android:id="@+id/inputOkBtn"
             style="@style/Mpv.SurfaceButton.Compact"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -62,5 +67,4 @@
             android:minWidth="84dp"
             android:text="@string/dialog_ok" />
     </LinearLayout>
-
 </LinearLayout>

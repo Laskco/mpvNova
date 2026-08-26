@@ -11,7 +11,7 @@ import java.util.Date
 import java.util.Locale
 
 /**
- * File-only crash reporter. Writes a text report to cacheDir/crashes/,
+ * File-only crash reporter. Writes a text report to persistent app storage,
  * then chains to the previous handler so the OS still sees the crash.
  * "Export support bundle" zips this directory.
  */
@@ -44,7 +44,7 @@ internal object CrashReporter {
     }
 
     private fun writeCrashFile(context: Context, thread: Thread, throwable: Throwable) {
-        val dir = File(context.cacheDir, "crashes").apply { mkdirs() }
+        val dir = File(context.filesDir, CRASH_DIRECTORY).apply { mkdirs() }
         pruneOldCrashes(dir)
         val stamp = timestampFormat.format(Date())
         val file = File(dir, "crash-$stamp.txt")
@@ -65,7 +65,7 @@ internal object CrashReporter {
             appendLine("--- Stack trace ---")
             val sw = StringWriter()
             throwable.printStackTrace(PrintWriter(sw))
-            appendLine(sw.toString().trimEnd())
+            appendLine(sanitizeMpvLogText(sw.toString().trimEnd()))
             appendLine()
             appendLine("--- Recent mpv log (last ${mpvLog.size} lines) ---")
             appendLine(mpvLog.joinToString(separator = "\n"))
@@ -82,4 +82,6 @@ internal object CrashReporter {
             .take(existing.size - (MAX_CRASH_FILES - 1))
             .forEach { it.delete() }
     }
+
+    private const val CRASH_DIRECTORY = "diagnostics/crashes"
 }

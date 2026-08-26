@@ -102,13 +102,22 @@ internal class MediaPickerDialog {
     private var secondaryPosState = ValueState("", false)
     private var secondarySubState = ValueState("", false)
     private var persistSubFiltersEnabled = false
+    var displayedDelayValue: CharSequence? = null
+        set(value) {
+            field = value
+            if (::binding.isInitialized && value != null) binding.delayValue.text = value
+        }
+    var focusDelayRow: () -> Unit = {}
+        private set
+    var focusSubtitleStyleRow: () -> Unit = {}
+        private set
     var focusInitialSelection: () -> Unit = {}
         private set
 
     /** Called when the user clicks a row. Index into [items]. */
     var onItemClick: ((Int) -> Unit)? = null
 
-    /** Called when the user clicks the "Delay" tile (subs only). */
+    /** Called when the user clicks the delay tile. */
     var onDelayClick: (() -> Unit)? = null
 
     /** Called when the user toggles the respective filter (audio only). */
@@ -148,6 +157,9 @@ internal class MediaPickerDialog {
         binding.configureDelay(options, onDelayClick)
         configureAudioFilters(options)
         configureSubtitleFilters(options)
+        binding.positionDelayRow(options)
+        focusDelayRow = { binding.delayRow.post { binding.delayRow.requestFocus() } }
+        focusSubtitleStyleRow = { binding.subStyleRow.post { binding.subStyleRow.requestFocus() } }
         focusInitialSelection = {
             if (::binding.isInitialized)
                 binding.requestInitialFocus(options)
@@ -478,6 +490,7 @@ private fun DialogMediaPickerBinding.configureDelay(
 ) {
     delayRow.isVisible = options.showDelay
     if (options.showDelay) {
+        delayTitle.setText(if (options.showFilters) R.string.audio_delay else R.string.sub_delay)
         delayValue.text = options.delayText ?: "0.00 s"
         delayRow.setOnClickListener { onDelayClick?.invoke() }
     }

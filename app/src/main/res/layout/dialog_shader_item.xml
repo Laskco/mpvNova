@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="5dp"
+    android:layout_marginBottom="5dp"
+    android:background="@drawable/bg_tv_track_row"
+    android:gravity="center_vertical"
+    android:minHeight="62dp"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingTop="6dp"
+    android:paddingEnd="8dp"
+    android:paddingBottom="6dp">
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/shaderEnabled"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="middle"
+        android:focusable="true"
+        android:maxLines="2"
+        android:textColor="@color/tv_text"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        app:thumbTint="@color/appearance_switch_thumb"
+        app:trackTint="@color/appearance_switch_track"
+        tools:text="Anime4K_Upscale_CNN_x2_M.glsl" />
+
+    <ImageButton
+        android:id="@+id/shaderMoveUp"
+        style="@style/MpvPlayer.ButtonBarIconButton"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="6dp"
+        android:contentDescription="@string/shader_move_up"
+        android:src="@drawable/ic_shader_move_up" />
+
+    <ImageButton
+        android:id="@+id/shaderMoveDown"
+        style="@style/MpvPlayer.ButtonBarIconButton"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="4dp"
+        android:contentDescription="@string/shader_move_down"
+        android:src="@drawable/ic_shader_move_down" />
+
+    <ImageButton
+        android:id="@+id/shaderRemove"
+        style="@style/MpvPlayer.ButtonBarIconButton"
+        android:layout_width="42dp"
+        android:layout_height="42dp"
+        android:layout_marginStart="4dp"
+        android:contentDescription="@string/shader_remove"
+        android:src="@drawable/ic_style_delete" />
+</LinearLayout>

@@ -4,6 +4,7 @@ import androidx.appcompat.app.AlertDialog
 import android.os.Build
 import android.util.DisplayMetrics
 import android.view.LayoutInflater
+import android.view.View
 import android.view.WindowManager
 import kotlin.math.roundToInt
 
@@ -15,8 +16,13 @@ internal fun MPVActivity.cycleSub() = trackSwitchNotification {
     player.cycleSub(); TrackData(player.sid, "sub")
 }
 
-internal fun MPVActivity.showWidePlayerDialog(dialog: AlertDialog, layout: PlayerDialogLayout = PlayerDialogLayout()) {
-    showPlayerDialog(dialog)
+internal fun MPVActivity.showWidePlayerDialog(
+    dialog: AlertDialog,
+    layout: PlayerDialogLayout = PlayerDialogLayout(),
+    chrome: PlayerDialogChrome = PlayerDialogChrome.HIDE_ALL,
+    animateChrome: Boolean = false,
+) {
+    showPlayerDialog(dialog, chrome, animateChrome)
     dialog.window?.apply {
         setBackgroundDrawableResource(android.R.color.transparent)
         decorView.setPadding(0, 0, 0, 0)
@@ -54,20 +60,48 @@ internal fun MPVActivity.showWidePlayerDialog(dialog: AlertDialog, layout: Playe
     rehostActivePlayerToast()
 }
 
-internal fun MPVActivity.showPlayerDialog(dialog: AlertDialog) {
+internal fun MPVActivity.showPlayerDialog(
+    dialog: AlertDialog,
+    chrome: PlayerDialogChrome = PlayerDialogChrome.HIDE_ALL,
+    animateChrome: Boolean = false,
+) {
     playerDialogStack.removeAll { !it.isShowing }
+    if (playerDialogStack.isEmpty() && playerChromeSnapshot == null) {
+        playerChromeSnapshot = capturePlayerChrome()
+    }
     topPlayerDialog = dialog
     // Any key inside a panel counts as activity, so the idle timer only fires when the user
     // truly stops moving; navigating a menu keeps the screensaver away.
     dialog.setOnKeyListener { _, _, _ -> noteScreensaverActivity(); false }
     dialog.show()
+    if (animateChrome) {
+        dialog.window?.decorView?.apply {
+            alpha = 0f
+            animate().alpha(1f).setDuration(PLAYER_DIALOG_FADE_DURATION_MS).start()
+        }
+    }
     if (dialog !in playerDialogStack) {
         playerDialogStack += dialog
     }
+    applyPlayerDialogChrome(chrome, animateChrome)
+    dialog.window?.decorView?.addOnAttachStateChangeListener(
+        object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+
+            override fun onViewDetachedFromWindow(view: View) {
+                view.removeOnAttachStateChangeListener(this)
+                eventUiHandler.post { onPlayerDialogDetached(dialog) }
+            }
+        }
+    )
     rehostActivePlayerToast()
 }
 
-internal fun MPVActivity.pickAudio() {
+private const val PLAYER_DIALOG_FADE_DURATION_MS = 140L
+
+internal fun MPVActivity.pickAudio(
+    returnFocus: TrackPanelReturnFocus = TrackPanelReturnFocus.TRACK,
+) {
     val restore = keepPlaybackForDialog()
     val tracks = player.tracks.getValue("audio")
     val selectedId = player.aid
@@ -79,12 +113,23 @@ internal fun MPVActivity.pickAudio() {
     }
     lateinit var dialog: AlertDialog
     configureAudioPickerCallbacks(impl, tracks) { dialog.dismiss() }
+    impl.onDelayClick = {
+        trackPanelChildTransition = true
+        dialog.dismiss()
+        showAudioDelayPicker(keepPlaybackForDialog()) {
+            pickAudio(TrackPanelReturnFocus.DELAY)
+            trackPanelChildTransition = false
+        }
+    }
 
     @Suppress("DEPRECATION")
     dialog = with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater, audioPickerOptions(items)))
-        setOnDismissListener { restore(); reopenDrawerIfPending() }
+        setOnDismissListener {
+            restore()
+            if (!trackPanelChildTransition) reopenDrawerIfPending()
+        }
         create()
     }
     showWidePlayerDialog(
@@ -94,6 +139,9 @@ internal fun MPVActivity.pickAudio() {
             maxWidthDp = 1080f,
         )
     )
+    dialog.window?.decorView?.post {
+        if (returnFocus == TrackPanelReturnFocus.DELAY) impl.focusDelayRow()
+    }
 }
 
 internal fun MPVActivity.buildSubItems(): List<MediaPickerDialog.Item> {
@@ -127,13 +175,28 @@ internal fun MPVActivity.buildSubItems(): List<MediaPickerDialog.Item> {
     }
 }
 
-internal fun MPVActivity.pickSub() {
+internal fun MPVActivity.pickSub(
+    returnFocus: TrackPanelReturnFocus = TrackPanelReturnFocus.TRACK,
+) {
     val restore = keepPlaybackForDialog()
     val impl = subtitlePickerDialog ?: MediaPickerDialog().also {
         subtitlePickerDialog = it
     }
     lateinit var dialog: AlertDialog
     configureSubPickerCallbacks(impl) { dialog.dismiss() }
+    impl.onDelayClick = {
+        trackPanelChildTransition = true
+        dialog.dismiss()
+        openSubDelayDialog()
+    }
+    impl.onSubStyleClick = {
+        trackPanelChildTransition = true
+        dialog.dismiss()
+        openSubtitleStyleDialog {
+            pickSub(TrackPanelReturnFocus.SUBTITLE_STYLE)
+            trackPanelChildTransition = false
+        }
+    }
     dialog = createSubPickerDialog(impl, restore)
     showWidePlayerDialog(
         dialog,
@@ -142,11 +205,21 @@ internal fun MPVActivity.pickSub() {
             maxWidthDp = 1080f,
         )
     )
+    dialog.window?.decorView?.post {
+        when (returnFocus) {
+            TrackPanelReturnFocus.DELAY -> impl.focusDelayRow()
+            TrackPanelReturnFocus.SUBTITLE_STYLE -> impl.focusSubtitleStyleRow()
+            TrackPanelReturnFocus.TRACK -> Unit
+        }
+    }
 }
 
 internal fun MPVActivity.openSubDelayDialog() {
     val restore = keepPlaybackForDialog()
-    showSubDelayPicker(restore)
+    showSubDelayPicker(restore) {
+        pickSub(TrackPanelReturnFocus.DELAY)
+        trackPanelChildTransition = false
+    }
 }
 
 internal fun MPVActivity.openPlaylistMenu(restore: StateRestoreCallback) {

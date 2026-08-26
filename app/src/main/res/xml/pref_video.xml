@@ -7,6 +7,7 @@
         <ListPreference android:defaultValue="" android:entries="@array/deband_entries" android:entryValues="@array/deband_values" android:key="video_debanding" android:summary="@string/pref_video_debanding_summary" android:title="@string/pref_video_debanding_title" app:iconSpaceReserved="false" />
         <app.mpvnova.player.preferences.InterpolationDialogPreference android:dialogMessage="@string/pref_video_interpolation_message" android:key="video" android:summary="" android:title="@string/pref_video_interpolation_title" app:iconSpaceReserved="false" app:sync_default="@string/pref_video_interpolation_sync_default" app:sync_entries="@array/video_sync" />
         <app.mpvnova.player.preferences.ScalerDialogPreference android:dialogMessage="@string/pref_video_tscale_message" android:key="video_tscale" android:summary="@string/pref_video_tscale_summary" android:title="@string/pref_video_tscale_title" app:entries="@array/temporal_scaler_list" app:iconSpaceReserved="false" />
+        <Preference android:key="managed_shaders" android:summary="@string/shader_manager_summary" android:title="@string/shader_manager_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/settings_category_performance" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat android:defaultValue="false" android:key="video_fastdecode" android:summary="@string/pref_video_fastdecode_summary" android:title="@string/pref_video_fastdecode_title" app:iconSpaceReserved="false" />

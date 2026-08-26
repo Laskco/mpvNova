@@ -1,7 +1,7 @@
 package app.mpvnova.player
 
-import android.view.View
 import android.view.WindowManager
+import android.view.View
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
@@ -10,7 +10,6 @@ import app.mpvnova.player.databinding.DialogPlayerTitleStyleBinding
 
 internal fun MPVActivity.openPlayerTitleStylePanel() {
     val restorePlayback = keepPlaybackForDialog()
-    val restorePlayerBar = hidePlayerBarForTitleEditor()
     val panel = DialogPlayerTitleStyleBinding.inflate(layoutInflater)
     lateinit var dialog: AlertDialog
     val controller = PlayerTitleStylePanelController(
@@ -25,7 +24,6 @@ internal fun MPVActivity.openPlayerTitleStylePanel() {
     panel.titleStyleDoneBtn.setOnClickListener { dialog.dismiss() }
     dialog.setOnDismissListener {
         playerTextStylePreviewActive = false
-        restorePlayerBar()
         restorePlayback()
         updateMetadataDisplay()
         refreshTimeInfoPanelVisibility()
@@ -35,29 +33,17 @@ internal fun MPVActivity.openPlayerTitleStylePanel() {
 
     fadeHandler.removeCallbacks(fadeRunnable)
     playerTextStylePreviewActive = true
-    showPlayerTitleStylePreview()
     UiFont.applyToViewTree(panel.root)
     controller.select(PlayerTitlePart.TITLE)
-    showWidePlayerDialog(dialog, PLAYER_TITLE_STYLE_DIALOG_LAYOUT)
+    showWidePlayerDialog(
+        dialog,
+        PLAYER_TITLE_STYLE_DIALOG_LAYOUT,
+        PlayerDialogChrome.TITLE_AND_CLOCK_PREVIEW,
+    )
     dialog.window?.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
     showPlayerTitleStylePreview()
     fitPlayerTitleStylePanelBelowPreview(dialog)
     panel.titleStyleTitleTab.requestFocus()
-}
-
-private fun MPVActivity.hidePlayerBarForTitleEditor(): () -> Unit {
-    val controlsWereVisible = binding.controls.visibility
-    val scrimWasVisible = binding.controlsScrim.visibility
-    binding.controls.animate().setListener(null).cancel()
-    binding.controlsScrim.animate().cancel()
-    binding.controls.visibility = View.GONE
-    binding.controlsScrim.visibility = View.GONE
-    return {
-        binding.controls.visibility = controlsWereVisible
-        binding.controlsScrim.visibility = scrimWasVisible
-        binding.controls.alpha = 1f
-        binding.controlsScrim.alpha = 1f
-    }
 }
 
 private fun MPVActivity.fitPlayerTitleStylePanelBelowPreview(dialog: AlertDialog) {

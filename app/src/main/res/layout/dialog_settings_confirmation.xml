@@ -1,52 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_tv_dialog_shell"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:paddingStart="24dp"
+    android:paddingTop="22dp"
+    android:paddingEnd="24dp"
+    android:paddingBottom="22dp">
 
     <TextView
-        android:id="@+id/dialogTitle"
+        android:id="@+id/confirmationTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/tv_text"
         android:textSize="24sp"
-        android:textStyle="bold" />
+        android:textStyle="bold"
+        tools:text="Reset player UI settings?" />
 
-
-    <com.google.android.material.materialswitch.MaterialSwitch
-        android:id="@+id/switch1"
+    <TextView
+        android:id="@+id/confirmationMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="@string/interpolation_switch" />
-
-
-    <com.google.android.material.textfield.TextInputLayout
-        style="?textInputOutlinedExposedDropdownMenuStyle"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp">
-
-        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-            android:id="@+id/video_sync"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/interpolation_video_sync"
-            android:inputType="none" />
-
-    </com.google.android.material.textfield.TextInputLayout>
+        android:layout_marginTop="8dp"
+        android:textColor="@color/tv_text_dim"
+        android:textSize="13sp"
+        tools:text="This restores every player UI preference to its default." />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="18dp"
+        android:layout_marginTop="20dp"
         android:gravity="end"
         android:orientation="horizontal">
 
         <Button
-            android:id="@+id/dialogCancel"
+            android:id="@+id/confirmationCancelBtn"
             style="@style/Mpv.SurfaceButton.Compact"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -54,13 +44,12 @@
             android:text="@string/dialog_cancel" />
 
         <Button
-            android:id="@+id/dialogOk"
+            android:id="@+id/confirmationConfirmBtn"
             style="@style/Mpv.SurfaceButton.Compact"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
             android:layout_marginStart="8dp"
             android:minWidth="84dp"
-            android:text="@string/dialog_ok" />
+            tools:text="Reset" />
     </LinearLayout>
-
 </LinearLayout>

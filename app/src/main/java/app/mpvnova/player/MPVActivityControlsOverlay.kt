@@ -21,6 +21,7 @@ private fun MPVActivity.controlsOverlayIsFullyVisible(): Boolean {
 }
 
 internal fun MPVActivity.showControls() {
+    if (playerDialogStack.any { it.isShowing }) return
     val overlayNeedsRestore = !controlsOverlayIsFullyVisible()
     fadeHandler.removeCallbacks(fadeRunnable)
     resetControlsAlphaIfNeeded(overlayNeedsRestore)

@@ -33,6 +33,8 @@ internal fun MPVActivity.audioPickerOptions(items: List<MediaPickerDialog.Item>)
     return MediaPickerDialog.Options(
         title = getString(R.string.dialog_title_audio),
         items = items,
+        showDelay = true,
+        delayText = formatAudioDelayMs(currentAudioDelayMs()),
         showFilters = true,
         initialVoiceBoostState = currentVoiceBoostState(),
         initialVolumeBoostState = currentVolumeBoostState(),

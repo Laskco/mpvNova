@@ -37,6 +37,8 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
+import androidx.preference.PreferenceCategory
+import androidx.preference.EditTextPreference
 import androidx.preference.PreferenceGroupAdapter
 import androidx.preference.PreferenceFragmentCompat
 import androidx.preference.ListPreference
@@ -46,6 +48,7 @@ import androidx.preference.Preference.SummaryProvider
 import androidx.preference.PreferenceViewHolder
 import androidx.preference.SwitchPreferenceCompat
 import androidx.recyclerview.widget.RecyclerView
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
 import app.mpvnova.player.OutlinedTextView
@@ -58,13 +61,19 @@ import app.mpvnova.player.screensaverTimeoutLabel
 import app.mpvnova.player.SEEK_STEP_DEFAULT_SEC
 import app.mpvnova.player.SEEK_STEP_MAX_SEC
 import app.mpvnova.player.SEEK_STEP_MIN_SEC
+import app.mpvnova.player.ShaderManagerDialog
 import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.UiFont
+import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.AppearanceColorChoice
+import app.mpvnova.player.createDocumentChooser
+import app.mpvnova.player.documentTreeChooser
+import app.mpvnova.player.openDocumentChooser
+import app.mpvnova.player.selectedDocumentUris
 import app.mpvnova.player.appearanceColorChoices
 import app.mpvnova.player.databinding.ActivitySettingsBinding
 
@@ -294,7 +303,16 @@ class PreferenceActivity : AppCompatActivity(),
     ) : PreferenceFragmentCompat() {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
             setPreferencesFromResource(preferencesRes, rootKey)
+            styleCategoryHeaders()
             onPreferencesLoaded()
+        }
+
+        private fun styleCategoryHeaders() {
+            val screen = preferenceScreen ?: return
+            for (index in 0 until screen.preferenceCount) {
+                (screen.getPreference(index) as? PreferenceCategory)?.layoutResource =
+                    R.layout.preference_category_header
+            }
         }
 
         @SuppressLint("RestrictedApi")
@@ -320,6 +338,11 @@ class PreferenceActivity : AppCompatActivity(),
                                 if (keyCode != KeyEvent.KEYCODE_DPAD_UP || event.action != KeyEvent.ACTION_DOWN) {
                                     return@OnKeyListener false
                                 }
+                                val layoutManager = listView.layoutManager as? LinearLayoutManager
+                                if (layoutManager?.findFirstCompletelyVisibleItemPosition() != 0) {
+                                    layoutManager?.scrollToPositionWithOffset(0, 0)
+                                    return@OnKeyListener true
+                                }
                                 requireActivity()
                                     .findViewById<View>(R.id.settings_back_focus_target)
                                     ?.requestFocus() == true
@@ -338,6 +361,43 @@ class PreferenceActivity : AppCompatActivity(),
         }
 
         protected open fun onPreferencesLoaded() = Unit
+
+        override fun onDisplayPreferenceDialog(preference: Preference) {
+            when (preference) {
+                is ListPreference -> showListPreferenceDialog(preference)
+                is EditTextPreference -> showEditTextPreferenceDialog(preference)
+                else -> super.onDisplayPreferenceDialog(preference)
+            }
+        }
+
+        private fun showListPreferenceDialog(preference: ListPreference) {
+            val entries = preference.entries ?: return
+            val values = preference.entryValues ?: return
+            val items = entries.indices.map { index ->
+                val value = values[index].toString()
+                SettingsChoiceItem(
+                    title = entries[index],
+                    checked = preference.value == value,
+                ) {
+                    if (preference.callChangeListener(value)) {
+                        preference.value = value
+                    }
+                }
+            }
+            showSettingsChoiceDialog(preference.title ?: "", items)
+        }
+
+        private fun showEditTextPreferenceDialog(preference: EditTextPreference) {
+            showSettingsInputDialog(
+                title = preference.dialogTitle ?: preference.title ?: "",
+                message = preference.dialogMessage,
+                initialValue = preference.text.orEmpty(),
+            ) { value ->
+                if (preference.callChangeListener(value)) {
+                    preference.text = value
+                }
+            }
+        }
 
         override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
             super.onViewCreated(view, savedInstanceState)
@@ -641,23 +701,17 @@ class PreferenceActivity : AppCompatActivity(),
         }
 
         private fun showCustomSeekStepDialog(pref: ListPreference) {
-            val input = EditText(requireContext()).apply {
-                inputType = InputType.TYPE_CLASS_NUMBER
-                setText((pref.value?.toIntOrNull() ?: SEEK_STEP_DEFAULT_SEC).toString())
-                selectAll()
+            showSettingsInputDialog(
+                title = getString(R.string.pref_seek_step_custom_title),
+                message = getString(R.string.pref_seek_step_custom_message),
+                initialValue = (pref.value?.toIntOrNull() ?: SEEK_STEP_DEFAULT_SEC).toString(),
+                inputType = InputType.TYPE_CLASS_NUMBER,
+            ) { value ->
+                val seconds = value.toIntOrNull()
+                    ?.coerceIn(SEEK_STEP_MIN_SEC, SEEK_STEP_MAX_SEC)
+                    ?: SEEK_STEP_DEFAULT_SEC
+                pref.value = seconds.toString()
             }
-            AlertDialog.Builder(requireContext())
-                .setTitle(R.string.pref_seek_step_custom_title)
-                .setMessage(R.string.pref_seek_step_custom_message)
-                .setView(input)
-                .setPositiveButton(R.string.dialog_ok) { _, _ ->
-                    val seconds = input.text.toString().toIntOrNull()
-                        ?.coerceIn(SEEK_STEP_MIN_SEC, SEEK_STEP_MAX_SEC)
-                        ?: SEEK_STEP_DEFAULT_SEC
-                    pref.value = seconds.toString()
-                }
-                .setNegativeButton(R.string.dialog_cancel, null)
-                .show()
         }
     }
 
@@ -768,12 +822,93 @@ class PreferenceActivity : AppCompatActivity(),
         }
     }
 
-    class VideoPreference : StyledPreferenceFragment(R.xml.pref_video)
+    class VideoPreference : StyledPreferenceFragment(R.xml.pref_video) {
+        private var shaderImportCallback: ((List<Uri>) -> Unit)? = null
+        private val shaderFilesPicker =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val data = result.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
+                shaderImportCallback?.invoke(data?.selectedDocumentUris().orEmpty())
+                shaderImportCallback = null
+            }
+        private val shaderFolderPicker =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
+                if (uri != null) {
+                    val permissionPersisted = runCatching {
+                        requireContext().contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                    }.isSuccess
+                    if (permissionPersisted) {
+                        UserShaderManager.rememberFolder(requireContext(), uri)
+                    }
+                }
+                val uris = uri?.let {
+                    UserShaderManager.shaderUrisInTree(requireContext(), it)
+                }.orEmpty()
+                shaderImportCallback?.invoke(uris)
+                shaderImportCallback = null
+            }
+
+        override fun onPreferencesLoaded() {
+            val shaderPreference = findPreference<Preference>("managed_shaders") ?: return
+            fun updateSummary() {
+                val shaders = UserShaderManager.shaders(requireContext())
+                shaderPreference.summary = if (UserShaderManager.isEnabled(requireContext())) {
+                    getString(R.string.shader_status, shaders.count { it.enabled }, shaders.size)
+                } else {
+                    getString(R.string.shader_status_manager_off, shaders.size)
+                }
+            }
+            updateSummary()
+            shaderPreference.setOnPreferenceClickListener {
+                ShaderManagerDialog(
+                    activity = requireActivity() as AppCompatActivity,
+                    requestImport = { callback ->
+                        showSettingsChoiceDialog(
+                            getString(R.string.shader_import_choose_source),
+                            listOf(
+                                SettingsChoiceItem(
+                                    title = getString(R.string.shader_import_files),
+                                    detail = getString(R.string.shader_import_files_detail),
+                                ) {
+                                    shaderImportCallback = callback
+                                    shaderFilesPicker.launch(
+                                        openDocumentChooser(
+                                            requireContext(),
+                                            arrayOf("*/*"),
+                                            allowMultiple = true,
+                                        )
+                                    )
+                                },
+                                SettingsChoiceItem(
+                                    title = getString(R.string.shader_import_folder),
+                                    detail = getString(R.string.shader_import_folder_detail),
+                                ) {
+                                    shaderImportCallback = callback
+                                    shaderFolderPicker.launch(documentTreeChooser(requireContext()))
+                                },
+                            ),
+                        )
+                    },
+                    onChanged = { if (isAdded) updateSummary() },
+                ).show()
+                true
+            }
+        }
+    }
 
     class UIPreference : StyledPreferenceFragment(R.xml.pref_ui) {
         override fun onPreferencesLoaded() {
             findPreference<Preference>("reset_player_ui_settings")?.setOnPreferenceClickListener {
-                activity?.let(SupportActions::resetPlayerUiSettings)
+                showSettingsConfirmationDialog(
+                    title = getString(R.string.pref_reset_player_ui_confirm_title),
+                    message = getString(R.string.pref_reset_player_ui_confirm_message),
+                    confirmText = getString(R.string.pref_reset_player_ui_confirm_action),
+                ) {
+                    activity?.let(SupportActions::resetPlayerUiSettings)
+                }
                 true
             }
             bindSeekDisplayExclusivity()
@@ -866,11 +1001,13 @@ class PreferenceActivity : AppCompatActivity(),
 
     class SupportPreference : StyledPreferenceFragment(R.xml.pref_support) {
         private val backupExporter =
-            registerForActivityResult(ActivityResultContracts.CreateDocument(FullBackupActions.MIME_TYPE)) { uri ->
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
                 if (uri != null) activity?.let { FullBackupActions.export(it, uri) }
             }
         private val backupImporter =
-            registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
                 if (uri != null) activity?.let { FullBackupActions.confirmImport(it, uri) }
             }
 
@@ -884,11 +1021,47 @@ class PreferenceActivity : AppCompatActivity(),
                 true
             }
             findPreference<Preference>("export_full_backup")?.setOnPreferenceClickListener {
-                backupExporter.launch(FullBackupActions.suggestedFilename())
+                activity?.let { host ->
+                    val destinations = buildList {
+                        if (FullBackupDownloads.isDirectWriteSupported) {
+                            add(
+                                SettingsChoiceItem(
+                                    title = getString(R.string.full_backup_save_downloads),
+                                    detail = getString(R.string.full_backup_save_downloads_detail),
+                                ) { FullBackupActions.exportToDownloads(host) }
+                            )
+                        }
+                        add(
+                            SettingsChoiceItem(
+                                title = getString(R.string.full_backup_choose_location),
+                                detail = getString(R.string.full_backup_choose_location_detail),
+                            ) {
+                                backupExporter.launch(
+                                    createDocumentChooser(
+                                        host,
+                                        FullBackupActions.MIME_TYPE,
+                                        FullBackupActions.suggestedFilename(),
+                                    )
+                                )
+                            }
+                        )
+                    }
+                    showSettingsChoiceDialog(
+                        getString(R.string.full_backup_export_destination),
+                        destinations,
+                    )
+                }
                 true
             }
             findPreference<Preference>("import_full_backup")?.setOnPreferenceClickListener {
-                backupImporter.launch(arrayOf(FullBackupActions.MIME_TYPE, "application/octet-stream"))
+                activity?.let { host ->
+                    backupImporter.launch(
+                        openDocumentChooser(
+                            host,
+                            arrayOf(FullBackupActions.MIME_TYPE, "application/octet-stream"),
+                        )
+                    )
+                }
                 true
             }
         }

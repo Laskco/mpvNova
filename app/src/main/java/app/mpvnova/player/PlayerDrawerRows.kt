@@ -21,6 +21,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     DEBANDING(PlayerDrawerActionGroup.PROCESSING),
     INTERPOLATION(PlayerDrawerActionGroup.PROCESSING),
     TEMPORAL_FILTER(PlayerDrawerActionGroup.PROCESSING),
+    SHADERS(PlayerDrawerActionGroup.PROCESSING),
     AUDIO_TRACK(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
     OPEN_AUDIO(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
     AUDIO_DELAY(PlayerDrawerActionGroup.AUDIO_SUBTITLE),
@@ -268,6 +269,11 @@ internal enum class PlayerDrawerOption(
         R.string.pref_video_tscale_title,
         R.string.pref_video_tscale_summary,
     ),
+    SHADERS(
+        PlayerDrawerAction.SHADERS,
+        R.string.shader_manager_title,
+        R.string.shader_manager_summary,
+    ),
     SKIP_MODE(
         PlayerDrawerAction.SKIP_MODE,
         R.string.pref_skip_segments_mode_title,
@@ -331,6 +337,7 @@ private fun addProcessingRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addOption(PlayerDrawerOption.DEBANDING)
     rows.addOption(PlayerDrawerOption.INTERPOLATION)
     rows.addOption(PlayerDrawerOption.TEMPORAL_FILTER)
+    rows.addOption(PlayerDrawerOption.SHADERS)
     rows.addPref(PlayerDrawerPreference.LOW_QUALITY_DECODING)
 }
 

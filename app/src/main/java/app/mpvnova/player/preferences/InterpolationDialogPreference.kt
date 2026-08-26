@@ -4,8 +4,8 @@ import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import androidx.core.widget.addTextChangedListener
+import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.materialswitch.MaterialSwitch
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import app.mpvnova.player.R
@@ -41,19 +41,23 @@ class InterpolationDialogPreference(
 
     override fun onClick() {
         super.onClick()
-        val dialog = MaterialAlertDialogBuilder(context)
         binding = InterpolationPrefBinding.inflate(LayoutInflater.from(context))
-        dialog.setView(binding.root)
-        dialog.setTitle(title)
+        val dialog = AlertDialog.Builder(context).setView(binding.root).create()
+        binding.dialogTitle.text = title
         setupViews()
-        dialog.setNegativeButton(R.string.dialog_cancel) { _, _ -> }
-        dialog.setPositiveButton(R.string.dialog_ok) { _, _ -> save() }
-        dialog.create().show()
+        binding.dialogCancel.setOnClickListener { dialog.dismiss() }
+        binding.dialogOk.setOnClickListener {
+            save()
+            dialog.dismiss()
+        }
+        dialog.show()
+        dialog.styleAsTvPanel()
+        sw.requestFocus()
     }
 
     private fun setupViews() {
         sw = binding.switch1
-        sp = binding.videoSync as MaterialAutoCompleteTextView
+        sp = binding.videoSync
 
         sw.isChecked = sharedPreferences?.getBoolean("${key}_interpolation", false) ?: false
 

@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_tv_dialog_shell"
+    android:elevation="24dp"
+    android:orientation="vertical"
+    android:paddingStart="22dp"
+    android:paddingTop="20dp"
+    android:paddingEnd="22dp"
+    android:paddingBottom="18dp">
+
+    <TextView
+        style="@style/MpvTv.TextSmallCaps"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/drawer_section_processing"
+        android:textColor="?attr/mpvAccentHot" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="@string/shader_manager_title"
+        android:textColor="@color/tv_text"
+        android:textSize="24sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="@string/shader_manager_summary"
+        android:textColor="@color/tv_text_dim"
+        android:textSize="12sp" />
+
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/shaderManagerEnabled"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:background="@drawable/bg_tv_track_row"
+        android:focusable="true"
+        android:minHeight="54dp"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:text="@string/shader_manager_enabled"
+        android:textColor="@color/tv_text"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        app:thumbTint="@color/appearance_switch_thumb"
+        app:trackTint="@color/appearance_switch_track" />
+
+    <TextView
+        android:id="@+id/shaderManagerStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="@color/tv_text_dim"
+        android:textSize="11sp" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:background="@drawable/bg_tv_panel_card"
+        android:clipChildren="true">
+
+        <ScrollView
+            android:id="@+id/shaderManagerScroll"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:paddingStart="12dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp"
+            android:scrollbarDefaultDelayBeforeFade="1200"
+            android:scrollbarFadeDuration="240"
+            android:scrollbarSize="3dp"
+            android:scrollbarStyle="insideInset"
+            android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+            android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+            android:scrollbars="vertical">
+
+            <LinearLayout
+                android:id="@+id/shaderManagerRows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingEnd="8dp" />
+        </ScrollView>
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:gravity="end"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/shaderManagerAdd"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:drawableStart="@drawable/ic_add_24dp"
+            android:drawablePadding="6dp"
+            android:text="@string/shader_add" />
+
+        <Button
+            android:id="@+id/shaderManagerRefresh"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/shader_refresh" />
+
+        <Button
+            android:id="@+id/shaderManagerDisableAll"
+            style="@style/Mpv.SurfaceButton.Compact"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/shader_disable_all" />
+
+        <Button
+            android:id="@+id/shaderManagerDone"
+            style="@style/Mpv.SurfaceButton"
+            android:layout_width="wrap_content"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="76dp"
+            android:text="@string/dialog_done" />
+    </LinearLayout>
+</LinearLayout>

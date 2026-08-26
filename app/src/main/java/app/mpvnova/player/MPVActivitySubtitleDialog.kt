@@ -9,14 +9,6 @@ internal fun MPVActivity.configureSubPickerCallbacks(
     dismissDialog: () -> Unit
 ) {
     impl.onItemClick = { index -> handleSubPickerItemClick(impl, index, dismissDialog) }
-    impl.onDelayClick = {
-        dismissDialog()
-        openSubDelayDialog()
-    }
-    impl.onSubStyleClick = {
-        dismissDialog()
-        openSubtitleStyleDialog()
-    }
     impl.onSubPresetAdjust = { delta ->
         val presetName = cycleSubtitleStylePreset(delta)
         MediaPickerDialog.SubPresetState(
@@ -77,7 +69,10 @@ internal fun MPVActivity.createSubPickerDialog(
     return with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
         setView(impl.buildView(inflater, subPickerOptions(delayValue)))
-        setOnDismissListener { restore(); reopenDrawerIfPending() }
+        setOnDismissListener {
+            restore()
+            if (!trackPanelChildTransition) reopenDrawerIfPending()
+        }
         create()
     }
 }
@@ -100,7 +95,7 @@ private fun MPVActivity.subPickerOptions(delayValue: String): MediaPickerDialog.
     )
 }
 
-private fun MPVActivity.currentSubtitleDelayText(): String {
+internal fun MPVActivity.currentSubtitleDelayText(): String {
     val delayMs = ((player.subDelay ?: 0.0) * MPV_MILLIS_PER_SECOND_DOUBLE).roundToLong()
     return formatAudioDelayMs(delayMs)
 }

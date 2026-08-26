@@ -7,6 +7,11 @@ internal fun MPVActivity.shouldShowClockWhileControlsHidden(): Boolean {
 }
 
 internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
+    if (playerDialogStack.any { it.isShowing } && !playerTextStylePreviewActive) {
+        binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
+        clockHandler.removeCallbacks(clockRunnable)
+        return
+    }
     val shouldShow = shouldShowTimeInfoPanel()
     if (shouldShow) {
         binding.timeInfoPanel.animate().cancel()

@@ -15,7 +15,7 @@ import java.util.Locale
  * the same lock used to append a line.
  */
 internal object MpvLogRingBuffer {
-    private const val DEFAULT_CAPACITY = 500
+    private const val DEFAULT_CAPACITY = 2000
     private val timestamp = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     private val lock = Any()

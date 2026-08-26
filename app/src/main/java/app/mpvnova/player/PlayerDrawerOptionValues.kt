@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+@Suppress("CyclomaticComplexMethod")
 internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String = when (option) {
     PlayerDrawerOption.PREFERRED_DECODER -> {
         val mode = normalizedPreferredDecoderMode(preferredDecoderMode, shieldDecoderModeEnabled)
@@ -11,6 +12,14 @@ internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String =
     PlayerDrawerOption.DEBANDING -> videoDebandingDrawerValue()
     PlayerDrawerOption.INTERPOLATION -> videoInterpolationDrawerValue()
     PlayerDrawerOption.TEMPORAL_FILTER -> videoScalerDrawerValue(VideoScalerSetting.TEMPORAL)
+    PlayerDrawerOption.SHADERS -> {
+        val shaders = UserShaderManager.shaders(this)
+        if (UserShaderManager.isEnabled(this)) {
+            getString(R.string.shader_status, shaders.count { it.enabled }, shaders.size)
+        } else {
+            getString(R.string.shader_status_manager_off, shaders.size)
+        }
+    }
     PlayerDrawerOption.SKIP_MODE -> skipSegmentsModeLabel(skipSegmentsMode)
     PlayerDrawerOption.SKIP_BUTTON_DISPLAY -> skipButtonDisplayModeCompactLabel(
         skipButtonDisplayMode

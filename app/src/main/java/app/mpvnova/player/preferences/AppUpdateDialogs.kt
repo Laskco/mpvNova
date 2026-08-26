@@ -3,6 +3,7 @@ package app.mpvnova.player.preferences
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.view.View
+import android.view.ViewGroup
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import app.mpvnova.player.R
@@ -85,6 +86,11 @@ internal fun AppUpdateManager.showGlassDialog(options: GlassDialogOptions): Aler
     binding.updateNotesHeading.setTextOrGone(options.notesHeading)
     binding.updateNotes.text = options.notes
     binding.updateNotesScroll.visibility = if (options.notes.isBlank()) View.GONE else View.VISIBLE
+    if (options.compactContent) {
+        binding.updateNotesScroll.layoutParams = binding.updateNotesScroll.layoutParams.apply {
+            height = ViewGroup.LayoutParams.WRAP_CONTENT
+        }
+    }
 
     binding.updateCloseButton.visibility = if (options.showClose) View.VISIBLE else View.GONE
     binding.updateCloseButton.setOnClickListener { dialog.dismiss() }

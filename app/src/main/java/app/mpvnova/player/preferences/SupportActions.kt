@@ -3,6 +3,7 @@ package app.mpvnova.player.preferences
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -15,8 +16,11 @@ import android.content.pm.ResolveInfo
 import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
+import android.os.Debug
 import android.os.Environment
+import android.os.Process
 import android.provider.MediaStore
+import android.media.MediaCodecList
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
@@ -32,7 +36,6 @@ import app.mpvnova.player.R
 import app.mpvnova.player.Utils
 import app.mpvnova.player.toShieldDecoderFallback
 import app.mpvnova.player.sanitizeMpvLogText
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.io.IOException
 import java.lang.ref.WeakReference
@@ -80,10 +83,9 @@ object SupportActions {
     }
 
     fun exportConfigBundle(activity: Activity) {
-        val progress = MaterialAlertDialogBuilder(activity)
-            .setMessage(R.string.support_export_preparing)
-            .setCancelable(false)
-            .show()
+        val progress = activity.showSettingsProgressDialog(
+            activity.getString(R.string.support_export_preparing)
+        )
         val activityReference = WeakReference(activity)
         val progressReference = WeakReference(progress)
         val applicationContext = activity.applicationContext
@@ -115,13 +117,24 @@ object SupportActions {
 
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
         val bundle = File(supportDir, "mpvNova-support-$stamp.zip")
+        val logcat = captureCurrentProcessLogcat()
+        val exitHistory = captureExitHistory(context)
         ZipOutputStream(bundle.outputStream()).use { zip ->
+            zip.textEntry(
+                "bundle-contents.txt",
+                buildBundleManifest(logcat.available, exitHistory.available),
+            )
             zip.textEntry("debug-info.txt", buildDebugInfo(context))
             zip.textEntry("settings-summary.txt", buildSettingsSummary(context))
             zip.textEntry("storage-report.txt", buildStorageReport(context))
+            zip.textEntry("memory-report.txt", buildMemoryReport(context))
+            zip.textEntry("media-codecs.txt", buildCodecReport())
             zip.configEntry(context, "mpv.conf")
             zip.configEntry(context, "input.conf")
-            zip.textEntry("logs.txt", buildMpvLogDump())
+            zip.textEntry("mpv-log.txt", buildMpvLogDump())
+            zip.textEntry("android-logcat.txt", logcat.text)
+            zip.textEntry("exit-history.txt", exitHistory.summary)
+            exitHistory.traces.forEach { (name, content) -> zip.textEntry(name, content) }
             zip.crashEntries(context)
         }
         return bundle
@@ -206,7 +219,7 @@ object SupportActions {
     private fun ZipOutputStream.configEntry(context: Context, filename: String) {
         val file = File(context.filesDir, filename)
         val content = if (file.isFile)
-            file.readText()
+            sanitizeMpvLogText(file.readText())
         else
             "$filename is not present.\n"
         textEntry(filename, content)
@@ -219,17 +232,21 @@ object SupportActions {
     }
 
     /**
-     * Emit every crash file the [CrashReporter] has written into the bundle
+     * Emit every persistent crash file the [CrashReporter] has written and any
+     * reports left in the legacy cache location into the bundle
      * under a `crashes/` subdirectory. Silently no-op when there have been
      * no crashes — which is the common case.
      */
     private fun ZipOutputStream.crashEntries(context: Context) {
-        val dir = File(context.cacheDir, "crashes")
-        val files = dir.listFiles()?.filter { it.isFile && it.name.startsWith("crash-") }
-            ?: return
+        val files = listOf(
+            File(context.filesDir, "diagnostics/crashes"),
+            File(context.cacheDir, "crashes"),
+        ).flatMap { dir ->
+            dir.listFiles()?.filter { it.isFile && it.name.startsWith("crash-") }.orEmpty()
+        }.distinctBy { it.name }
         if (files.isEmpty()) return
         for (file in files.sortedBy { it.lastModified() }) {
-            textEntry("crashes/${file.name}", file.readText())
+            textEntry("crashes/${file.name}", sanitizeMpvLogText(file.readText()))
         }
     }
 
@@ -260,6 +277,191 @@ object SupportActions {
     }
 
     private const val AMAZON_FEATURE_FIRE_TV = "amazon.hardware.fire_tv"
+}
+
+private data class SupportCapture(
+    val text: String,
+    val available: Boolean,
+)
+
+private data class ExitHistoryCapture(
+    val summary: String,
+    val traces: Map<String, String>,
+    val available: Boolean,
+)
+
+private fun buildBundleManifest(logcatAvailable: Boolean, exitHistoryAvailable: Boolean): String =
+    buildString {
+        appendLine("mpvNova support bundle")
+        appendLine("Generated: ${Date()}")
+        appendLine()
+        appendLine("Always included when available:")
+        appendLine("- App, Android, device, decoder, storage, memory, and codec details")
+        appendLine("- Selected settings with sensitive values redacted")
+        appendLine("- mpv.conf and input.conf")
+        appendLine("- Current-session mpv logs")
+        appendLine("- Persistent mpvNova uncaught-crash reports")
+        appendLine()
+        appendLine("Android process logcat captured: ${if (logcatAvailable) "yes" else "no"}")
+        appendLine("Historical process exits captured: ${if (exitHistoryAvailable) "yes" else "no"}")
+        appendLine(
+            "URLs, authorization headers, cookies, and matching sensitive settings " +
+                "are redacted from diagnostics."
+        )
+        appendLine("Configuration files are included with sensitive URLs and headers redacted.")
+    }
+
+private fun captureCurrentProcessLogcat(): SupportCapture {
+    return runCatching {
+        val process = ProcessBuilder(
+            "logcat",
+            "-d",
+            "-v",
+            "threadtime",
+            "-t",
+            LOGCAT_LINE_LIMIT.toString(),
+            "--pid=${Process.myPid()}",
+        ).redirectErrorStream(true).start()
+        val text = process.inputStream.bufferedReader().use { reader ->
+            readLimitedText(reader, LOGCAT_CHARACTER_LIMIT)
+        }
+        val exitCode = process.waitFor()
+        val sanitized = sanitizeMpvLogText(text)
+        if (exitCode != 0) {
+            SupportCapture(
+                "Android logcat was unavailable (exit $exitCode).\n$sanitized",
+                false,
+            )
+        } else {
+            SupportCapture(
+                sanitized.ifBlank { "No Android log lines were available for this process.\n" },
+                true,
+            )
+        }
+    }.getOrElse { error ->
+        SupportCapture(
+            "Android logcat capture failed: ${error.javaClass.name}: ${error.message}\n",
+            false,
+        )
+    }
+}
+
+private fun captureExitHistory(context: Context): ExitHistoryCapture {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        return ExitHistoryCapture(
+            "Historical process exits require Android 11 or newer.\n",
+            emptyMap(),
+            false,
+        )
+    }
+    return runCatching {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val entries = activityManager.getHistoricalProcessExitReasons(
+            context.packageName,
+            0,
+            EXIT_HISTORY_LIMIT,
+        )
+        val traces = linkedMapOf<String, String>()
+        val summary = buildString {
+            appendLine("Recent mpvNova process exits")
+            if (entries.isEmpty()) appendLine("No historical exits were reported by Android.")
+            entries.forEachIndexed { index, exit ->
+                appendLine()
+                appendLine("Exit ${index + 1}")
+                appendLine("Timestamp: ${Date(exit.timestamp)}")
+                appendLine("Reason: ${exit.reason}")
+                appendLine("Status: ${exit.status}")
+                appendLine("Importance: ${exit.importance}")
+                appendLine("PSS/RSS KB: ${exit.pss}/${exit.rss}")
+                appendLine("Description: ${sanitizeMpvLogText(exit.description.orEmpty())}")
+                val trace = runCatching {
+                    exit.traceInputStream?.bufferedReader()?.use { reader ->
+                        readLimitedText(reader, EXIT_TRACE_CHARACTER_LIMIT)
+                    }
+                }.getOrNull()
+                if (!trace.isNullOrBlank()) {
+                    val name = "exit-traces/exit-${index + 1}.txt"
+                    traces[name] = sanitizeMpvLogText(trace)
+                    appendLine("Trace: $name")
+                } else {
+                    appendLine("Trace: unavailable")
+                }
+            }
+        }
+        ExitHistoryCapture(summary, traces, true)
+    }.getOrElse { error ->
+        ExitHistoryCapture(
+            "Historical exit capture failed: ${error.javaClass.name}: ${error.message}\n",
+            emptyMap(),
+            false,
+        )
+    }
+}
+
+private fun buildMemoryReport(context: Context): String {
+    val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    val system = ActivityManager.MemoryInfo().also(activityManager::getMemoryInfo)
+    val process = activityManager.getProcessMemoryInfo(intArrayOf(Process.myPid())).firstOrNull()
+    val runtime = Runtime.getRuntime()
+    val runtimeHeap = listOf(
+        runtime.totalMemory() - runtime.freeMemory(),
+        runtime.freeMemory(),
+        runtime.maxMemory(),
+    ).joinToString("/")
+    val nativeHeap = listOf(
+        Debug.getNativeHeapAllocatedSize(),
+        Debug.getNativeHeapFreeSize(),
+        Debug.getNativeHeapSize(),
+    ).joinToString("/")
+    return buildString {
+        appendLine("mpvNova memory report")
+        appendLine("System available/total bytes: ${system.availMem}/${system.totalMem}")
+        appendLine("System low memory: ${system.lowMemory}")
+        appendLine("System low-memory threshold bytes: ${system.threshold}")
+        appendLine("Runtime heap used/free/max bytes: $runtimeHeap")
+        appendLine("Native heap allocated/free/size bytes: $nativeHeap")
+        if (process != null) {
+            val processMemory = listOf(
+                process.totalPss,
+                process.totalPrivateDirty,
+                process.totalSharedDirty,
+            ).joinToString("/")
+            appendLine("Process PSS/private-dirty/shared-dirty KB: $processMemory")
+        }
+    }
+}
+
+private fun buildCodecReport(): String = runCatching {
+    buildString {
+        appendLine("Android media codecs")
+        MediaCodecList(MediaCodecList.ALL_CODECS).codecInfos.forEach { codec ->
+            val implementation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                " hardware=${codec.isHardwareAccelerated} software=${codec.isSoftwareOnly} vendor=${codec.isVendor}"
+            } else {
+                ""
+            }
+            appendLine("${codec.name} encoder=${codec.isEncoder}$implementation")
+            appendLine("  ${codec.supportedTypes.joinToString()}")
+        }
+    }
+}.getOrElse { error ->
+    "Codec enumeration failed: ${error.javaClass.name}: ${error.message}\n"
+}
+
+private fun readLimitedText(reader: java.io.BufferedReader, maximumCharacters: Int): String {
+    val buffer = CharArray(DEFAULT_BUFFER_SIZE)
+    return buildString {
+        while (length < maximumCharacters) {
+            val amount = reader.read(
+                buffer,
+                0,
+                minOf(buffer.size, maximumCharacters - length),
+            )
+            if (amount < 0) break
+            append(buffer, 0, amount)
+        }
+        if (length >= maximumCharacters) appendLine("\n[output truncated by mpvNova]")
+    }
 }
 
 @Suppress("DEPRECATION")
@@ -345,14 +547,12 @@ private class SupportBundleExportFlow(
             }
         )
 
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.support_export_chooser)
-            .setItems(options.map { it.label }.toTypedArray()) { dialog, which ->
-                dialog.dismiss()
-                options[which].action()
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        activity.showSettingsChoiceDialog(
+            activity.getString(R.string.support_export_chooser),
+            options.map { option ->
+                SettingsChoiceItem(title = option.label, onClick = option.action)
+            },
+        )
     }
 
     private fun saveBundleToDownloads() {
@@ -369,10 +569,9 @@ private class SupportBundleExportFlow(
     }
 
     fun saveBundleToDownloadsAfterPermission() {
-        val progress = MaterialAlertDialogBuilder(activity)
-            .setMessage(R.string.support_export_saving)
-            .setCancelable(false)
-            .show()
+        val progress = activity.showSettingsProgressDialog(
+            activity.getString(R.string.support_export_saving)
+        )
         SUPPORT_IO_EXECUTOR.execute {
             val result = runCatching {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -466,14 +665,12 @@ private class SupportBundleExportFlow(
             return
         }
 
-        MaterialAlertDialogBuilder(activity)
-            .setTitle(R.string.support_export_share_target_title)
-            .setItems(targets.map { it.label }.toTypedArray()) { dialog, which ->
-                dialog.dismiss()
-                launchShareTarget(targets[which])
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        activity.showSettingsChoiceDialog(
+            activity.getString(R.string.support_export_share_target_title),
+            targets.map { target ->
+                SettingsChoiceItem(title = target.label) { launchShareTarget(target) }
+            },
+        )
     }
 
     private fun querySupportBundleTargets(): List<SupportShareTarget> {
@@ -576,11 +773,15 @@ fun clearPendingSupportExportFlow() {
 private const val LOCALSEND_PACKAGE = "org.localsend.localsend_app"
 private const val SUPPORT_BUNDLE_MIME_TYPE = "application/zip"
 private const val REQUEST_WRITE_DOWNLOADS = 24061
+private const val LOGCAT_LINE_LIMIT = 3000
+private const val LOGCAT_CHARACTER_LIMIT = 2 * 1024 * 1024
+private const val EXIT_HISTORY_LIMIT = 10
+private const val EXIT_TRACE_CHARACTER_LIMIT = 512 * 1024
 private val SUPPORT_IO_EXECUTOR = Executors.newSingleThreadExecutor { runnable ->
     Thread(runnable, "mpvNova-support-io")
 }
 private val SENSITIVE_SETTING_KEY = Regex(
-    "(?i)(authorization|cookie|credential|password|secret|token)",
+    "(?i)(authorization|cookie|credential|password|secret|token|uri|path)",
 )
 
 // Bridges the permission-result round-trip, which has no instance to hang state
