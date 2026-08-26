@@ -124,12 +124,41 @@ class ChapterSeekBar @JvmOverloads constructor(
             drawSegmentedBar(canvas)
             return
         }
+        drawSelectionOutline(canvas)
         super.onDraw(canvas)
-        drawPlatformDecorations(canvas)
+        drawChapterMarkers(canvas)
     }
 
-    /** Focus outline + chapter tick marks drawn over the platform track (normal seekbar). */
-    private fun drawPlatformDecorations(canvas: Canvas) {
+    /** Draw the focus outline below the platform track and thumb. */
+    private fun drawSelectionOutline(canvas: Canvas) {
+        if (!dpadSelected) return
+
+        val trackLeft = paddingLeft.toFloat()
+        val trackRight = (width - paddingRight).toFloat()
+        if (trackRight <= trackLeft) return
+
+        val centerY = height / 2f
+        val trackHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
+            maxOf(maxHeight.toFloat(), trackHeightPx)
+        else
+            trackHeightPx
+        val trackHalfH = trackHeight / 2f
+        selectionPaint.strokeWidth = selectionStrokePx
+        canvas.drawRoundRect(
+            trackLeft - selectionInsetPx,
+            centerY - trackHalfH - selectionInsetPx,
+            trackRight + selectionInsetPx,
+            centerY + trackHalfH + selectionInsetPx,
+            selectionCornerRadiusPx,
+            selectionCornerRadiusPx,
+            selectionPaint
+        )
+    }
+
+    /** Draw chapter tick marks above the platform track. */
+    private fun drawChapterMarkers(canvas: Canvas) {
+        if (chapterFractions.isEmpty()) return
+
         // Track spans from paddingLeft to (width - paddingRight).
         // AppCompatSeekBar pads the view by thumbOffset so the thumb isn't clipped.
         val trackLeft  = paddingLeft.toFloat()
@@ -137,27 +166,7 @@ class ChapterSeekBar @JvmOverloads constructor(
         val trackSpan  = trackRight - trackLeft
         if (trackSpan <= 0f) return
 
-        val centerY     = height / 2f
-        val trackHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            maxOf(maxHeight.toFloat(), trackHeightPx)
-        else
-            trackHeightPx
-        val trackHalfH  = trackHeight / 2f
-        if (dpadSelected) {
-            selectionPaint.strokeWidth = selectionStrokePx
-            canvas.drawRoundRect(
-                trackLeft - selectionInsetPx,
-                centerY - trackHalfH - selectionInsetPx,
-                trackRight + selectionInsetPx,
-                centerY + trackHalfH + selectionInsetPx,
-                selectionCornerRadiusPx,
-                selectionCornerRadiusPx,
-                selectionPaint
-            )
-        }
-
-        if (chapterFractions.isEmpty()) return
-        drawChapterTicks(canvas, trackLeft, trackSpan, centerY)
+        drawChapterTicks(canvas, trackLeft, trackSpan, height / 2f)
     }
 
     private fun drawChapterTicks(canvas: Canvas, trackLeft: Float, trackSpan: Float, centerY: Float) {
