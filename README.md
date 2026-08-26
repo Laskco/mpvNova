@@ -18,8 +18,11 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 - TV-first home screen and launcher integration
 - Remote-friendly player HUD with strong D-pad focus behavior
 - Custom subtitle, audio, chapter, decoder, video-adjustment, advanced playback, and settings panels
+- Managed GPU shaders with in-app importing, ordering, enabling, refreshing, and removal
+- Live clock and title customization with independent styling and layout controls
 - Smart subtitle matching for binge-watching, tied to persisted subtitle settings
 - 16 built-in color themes, AMOLED mode, and pure black surfaces
+- Full backup and restore for settings, configuration files, fonts, artwork, and managed shaders
 - Dialogue-focused audio tools for stereo and surround playback
 - Device-aware decoder paths including gpu-next and optional Shield Hi10P fallback handling
 - In-app update checks backed by GitHub releases
@@ -57,6 +60,10 @@ For mobile-focused Android mpv options, use projects such as [mpvEx](https://git
 
 <div align="center">
   <img src="docs/screenshots/player-clock-title-customization.png" alt="Clock and title customization with live player preview" width="96%" />
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/shader-manager.png" alt="Managed GPU shader library with ordering and per-shader controls" width="96%" />
 </div>
 
 <div align="center">
@@ -117,7 +124,9 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Android TV, Google TV, and Fire OS launcher support with leanback entry points, TV banner assets, and a couch-first home screen
 - Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
 - Live clock and title customization for layout, fonts, sizing, weight, spacing, colors, text case, outlines, shadows, background plates, and visibility
+- Interface font selection with bundled typefaces and immediate updates across the app
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
+- Automatic intro, recap, and outro skipping with per-segment controls, manual fallback buttons, and skip notifications
 - Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
 - Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
 - Audio panel with Voice Boost, Volume Boost, DRC, Audio Normalization, Channel Downmix, surround-state feedback, and filter persistence
@@ -126,8 +135,10 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Shield Hi10P fallback always software-decodes (no hardware can decode Hi10P) and offers two flavors: the default `G-NEXT SW — no tuning` (strictly stock playback) or `G-NEXT SW — light tuning` (loop-filter skip on non-reference frames, 1 s audio buffer, Lanczos-sharp upscaling)
 - Player UI autopause options: a general "Pause when controls show" toggle, plus a Shield-specific "Pause Hi10P on Shield" toggle (on by default) that pauses playback while the controls overlay is visible so the SW decoder is not competing with the UI for CPU on Hi10P files
 - Player-side video adjustment panels for brightness, contrast, gamma, and saturation, with optional remembered values
+- Managed GPU shader library with file and folder importing, remembered-folder refresh, per-shader toggles, ordering, removal, and live playback updates; advanced shaders configured through `mpv.conf` remain separate
 - Live `G-NEXT` path display for direct, copy, or software-backed playback paths, plus automatic decoder fallback for known trouble cases
 - Appearance themes for White, Crimson, Ocean, Cyan, Violet, Emerald, Lime, Amber, Gold, Copper, Indigo, Rose, Slate, Chrome, Oyster, and Ivory, plus AMOLED mode and pure black surfaces
+- Full backup and restore for app preferences, mpv configuration, input bindings, fonts, screensaver artwork, and managed shaders
 - Settings pages update the hero title to the active section, including Appearance, General, Video, Player UI, Advanced, and Support
 - Home-screen update prompt, manual update checks, APK handoff to Android's installer, and release-note history from Settings
 - Resume-position handling, media-title cleanup for launcher/stream sources, readable stats overlays, and support/debug export tools
