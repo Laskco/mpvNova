@@ -734,31 +734,6 @@ open class MPVActivity : AppCompatActivity() {
             )
             pendingActivityResultCallback = null
         }
-    internal var pendingShaderImportCallback: ((List<Uri>) -> Unit)? = null
-    internal val shaderFilesResultLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val data = result.data.takeIf { result.resultCode == RESULT_OK }
-            val uris = data?.selectedDocumentUris().orEmpty()
-            pendingShaderImportCallback?.invoke(uris)
-            pendingShaderImportCallback = null
-        }
-    internal val shaderFolderResultLauncher =
-        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            val uri = result.data?.data.takeIf { result.resultCode == RESULT_OK }
-            if (uri != null) {
-                val permissionPersisted = runCatching {
-                    contentResolver.takePersistableUriPermission(
-                        uri,
-                        Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                    )
-                }.isSuccess
-                if (permissionPersisted) UserShaderManager.rememberFolder(this, uri)
-            }
-            val uris = uri?.let { UserShaderManager.shaderUrisInTree(this, it) }.orEmpty()
-            pendingShaderImportCallback?.invoke(uris)
-            pendingShaderImportCallback = null
-        }
-
     internal val mediaSessionCallback = object : MediaSession.Callback() {
         override fun onPause() {
             player.paused = true

@@ -35,6 +35,10 @@ public class MPVFilePickerFragment extends FilePickerFragment {
         return true;
     }
 
+    public File currentDirectory() {
+        return mCurrentPath;
+    }
+
     @Override
     protected void onPermissionGranted(@NonNull File requestedPath) {
         if (getActivity() instanceof FilePickerActivity) {

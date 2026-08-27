@@ -9,6 +9,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.nio.charset.CodingErrorAction
 import java.security.MessageDigest
 import java.util.Locale
@@ -45,6 +48,10 @@ internal object UserShaderManager {
     const val MAX_TOTAL_SHADER_BYTES = 32L * 1024L * 1024L
     const val MAX_SHADER_COUNT = 64
     private const val SCHEMA = 1
+    private const val REMOTE_CONNECT_TIMEOUT_MS = 10_000
+    private const val REMOTE_READ_TIMEOUT_MS = 15_000
+    private const val HTTP_SUCCESS_MIN = 200
+    private const val HTTP_SUCCESS_MAX = 299
     private val extensions = setOf("glsl", "hook", "comp")
     private val lock = Any()
     private var cachedRaw: String? = null
@@ -70,6 +77,24 @@ internal object UserShaderManager {
         queryShaderUrisInTree(context, treeUri)
     }.getOrDefault(emptyList())
 
+    fun shaderUrisInDirectory(directory: File): List<Uri> =
+        runCatching { scanShaderDirectory(directory) }.getOrDefault(emptyList())
+
+    private fun scanShaderDirectory(directory: File): List<Uri> {
+        if (!directory.isDirectory || !directory.canRead()) {
+            throw IOException("Could not read shader folder")
+        }
+        val children = directory.listFiles() ?: throw IOException("Could not read shader folder")
+        return children
+            .asSequence()
+            .filter { file ->
+                file.isFile && file.extension.lowercase(Locale.ROOT) in extensions
+            }
+            .sortedBy { file -> file.name.lowercase(Locale.ROOT) }
+            .map { file -> Uri.fromFile(file) }
+            .toList()
+    }
+
     fun rememberFolder(context: Context, treeUri: Uri) {
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val folders = prefs.getStringSet(PREF_FOLDER_URIS, emptySet()).orEmpty().toMutableSet()
@@ -94,7 +119,14 @@ internal object UserShaderManager {
         var scanned = 0
         var unavailable = 0
         folders.forEach { folder ->
-            runCatching { queryShaderUrisInTree(context, folder) }
+            runCatching {
+                if (folder.scheme.equals("file", ignoreCase = true)) {
+                    val path = requireNotNull(folder.path) { "Shader folder path is unavailable" }
+                    scanShaderDirectory(File(path))
+                } else {
+                    queryShaderUrisInTree(context, folder)
+                }
+            }
                 .onSuccess { found ->
                     scanned++
                     uris += found
@@ -339,22 +371,52 @@ internal object UserShaderManager {
         runCatching { File(root, shader.fileName).readBytes().sha256() }.getOrNull()
 
     private fun readShader(context: Context, uri: Uri): ByteArray {
-        val stream = context.contentResolver.openInputStream(uri)
-            ?: throw IOException(context.getString(R.string.shader_import_open_failed))
-        return stream.use { input ->
-            val output = java.io.ByteArrayOutputStream()
-            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
-            var total = 0L
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                total += read
-                requireImportSize(context, total, complete = false)
-                output.write(buffer, 0, read)
+        return when (uri.scheme?.lowercase(Locale.ROOT)) {
+            "file" -> {
+                val path = uri.path ?: throw IOException(
+                    context.getString(R.string.shader_import_open_failed)
+                )
+                File(path).inputStream().use { readShader(context, it) }
             }
-            requireImportSize(context, total, complete = true)
-            output.toByteArray()
+            "http", "https" -> readRemoteShader(context, uri)
+            else -> {
+                val stream = context.contentResolver.openInputStream(uri)
+                    ?: throw IOException(context.getString(R.string.shader_import_open_failed))
+                stream.use { readShader(context, it) }
+            }
         }
+    }
+
+    private fun readRemoteShader(context: Context, uri: Uri): ByteArray {
+        val connection = URL(uri.toString()).openConnection() as HttpURLConnection
+        return try {
+            connection.connectTimeout = REMOTE_CONNECT_TIMEOUT_MS
+            connection.readTimeout = REMOTE_READ_TIMEOUT_MS
+            connection.instanceFollowRedirects = true
+            connection.setRequestProperty("User-Agent", "mpvNova")
+            val responseCode = connection.responseCode
+            if (responseCode !in HTTP_SUCCESS_MIN..HTTP_SUCCESS_MAX) {
+                throw IOException("HTTP $responseCode")
+            }
+            connection.inputStream.use { readShader(context, it) }
+        } finally {
+            connection.disconnect()
+        }
+    }
+
+    private fun readShader(context: Context, input: InputStream): ByteArray {
+        val output = java.io.ByteArrayOutputStream()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        var total = 0L
+        while (true) {
+            val read = input.read(buffer)
+            if (read < 0) break
+            total += read
+            requireImportSize(context, total, complete = false)
+            output.write(buffer, 0, read)
+        }
+        requireImportSize(context, total, complete = true)
+        return output.toByteArray()
     }
 
     private fun requireImportSize(context: Context, size: Long, complete: Boolean) {
@@ -386,6 +448,15 @@ internal object UserShaderManager {
     }
 
     private fun displayName(context: Context, uri: Uri): String? {
+        val scheme = uri.scheme?.lowercase(Locale.ROOT)
+        return when (scheme) {
+            "file" -> uri.path?.let(::File)?.name
+            "http", "https" -> uri.lastPathSegment?.let(Uri::decode)?.substringBefore('?')
+            else -> contentDisplayName(context, uri) ?: uri.lastPathSegment
+        }
+    }
+
+    private fun contentDisplayName(context: Context, uri: Uri): String? {
         var name: String? = null
         context.contentResolver.query(
             uri,
@@ -396,7 +467,7 @@ internal object UserShaderManager {
         )?.use { cursor ->
             if (cursor.moveToFirst()) name = cursor.getString(0)
         }
-        return name ?: uri.lastPathSegment
+        return name
     }
 
     private fun isSafeManagedFile(root: File, file: File, fileName: String): Boolean =

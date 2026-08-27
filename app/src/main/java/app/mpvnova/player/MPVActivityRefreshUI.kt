@@ -10,7 +10,12 @@ import android.widget.TextView
 import androidx.annotation.StringRes
 import java.io.File
 
-internal fun MPVActivity.openFilePickerFor(title: String, skip: Int?, callback: ActivityResultCallback) {
+internal fun MPVActivity.openFilePickerFor(
+    title: String,
+    skip: Int?,
+    useCurrentMediaPath: Boolean = true,
+    callback: ActivityResultCallback,
+) {
     if (skip == null) {
         openFileSourceDialog(title, callback)
         return
@@ -20,16 +25,18 @@ internal fun MPVActivity.openFilePickerFor(title: String, skip: Int?, callback: 
     intent.putExtra("allow_document", true)
     intent.putExtra("skip", skip)
     // Start the picker in the current file's directory.
-    val path = mpvGetPropertyString("path") ?: ""
-    if (path.startsWith('/'))
-        intent.putExtra("default_path", File(path).parent)
+    if (useCurrentMediaPath) {
+        val path = mpvGetPropertyString("path").orEmpty()
+        if (path.startsWith('/'))
+            intent.putExtra("default_path", File(path).parent)
+    }
 
     pendingActivityResultCallback = callback
     filePickerResultLauncher.launch(intent)
 }
 
 internal fun MPVActivity.openFilePickerFor(@StringRes titleRes: Int, callback: ActivityResultCallback) {
-    openFilePickerFor(getString(titleRes), null, callback)
+    openFilePickerFor(getString(titleRes), null, callback = callback)
 }
 
 private fun MPVActivity.openFileSourceDialog(title: String, callback: ActivityResultCallback) {
@@ -40,12 +47,12 @@ private fun MPVActivity.openFileSourceDialog(title: String, callback: ActivityRe
     view.findViewById<Button>(R.id.fileBtn).setOnClickListener {
         launchedPicker = true
         dialog.dismiss()
-        openFilePickerFor(title, FilePickerActivity.FILE_PICKER, callback)
+        openFilePickerFor(title, FilePickerActivity.FILE_PICKER, callback = callback)
     }
     view.findViewById<Button>(R.id.urlBtn).setOnClickListener {
         launchedPicker = true
         dialog.dismiss()
-        openFilePickerFor(title, FilePickerActivity.URL_DIALOG, callback)
+        openFilePickerFor(title, FilePickerActivity.URL_DIALOG, callback = callback)
     }
     view.findViewById<Button>(R.id.docBtn).setOnClickListener {
         launchedPicker = true

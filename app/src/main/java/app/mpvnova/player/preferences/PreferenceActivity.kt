@@ -51,6 +51,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
+import app.mpvnova.player.FilePickerActivity
 import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
@@ -70,12 +71,11 @@ import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.AppearanceColorChoice
-import app.mpvnova.player.createDocumentChooser
-import app.mpvnova.player.documentTreeChooser
 import app.mpvnova.player.openDocumentChooser
-import app.mpvnova.player.selectedDocumentUris
+import app.mpvnova.player.shaderImportUrisFromResult
 import app.mpvnova.player.appearanceColorChoices
 import app.mpvnova.player.databinding.ActivitySettingsBinding
+import java.io.File
 
 private fun View.applyPreferenceTextTreatment() {
     when (this) {
@@ -233,7 +233,7 @@ class PreferenceActivity : AppCompatActivity(),
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        handleSupportExportPermissionResult(this, requestCode, grantResults)
+        handleSupportExportPermissionResult(requestCode, grantResults)
     }
 
     override fun onDestroy() {
@@ -826,26 +826,25 @@ class PreferenceActivity : AppCompatActivity(),
         private var shaderImportCallback: ((List<Uri>) -> Unit)? = null
         private val shaderFilesPicker =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                val data = result.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
-                shaderImportCallback?.invoke(data?.selectedDocumentUris().orEmpty())
+                shaderImportCallback?.invoke(
+                    shaderImportUrisFromResult(result.resultCode, result.data)
+                )
+                shaderImportCallback = null
+            }
+        private val shaderDocumentPicker =
+            registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                shaderImportCallback?.invoke(uri?.let(::listOf).orEmpty())
                 shaderImportCallback = null
             }
         private val shaderFolderPicker =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
-                if (uri != null) {
-                    val permissionPersisted = runCatching {
-                        requireContext().contentResolver.takePersistableUriPermission(
-                            uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
-                        )
-                    }.isSuccess
-                    if (permissionPersisted) {
-                        UserShaderManager.rememberFolder(requireContext(), uri)
-                    }
-                }
-                val uris = uri?.let {
-                    UserShaderManager.shaderUrisInTree(requireContext(), it)
+                val folder = shaderImportUrisFromResult(result.resultCode, result.data)
+                    .singleOrNull()
+                    ?.path
+                    ?.let(::File)
+                val uris = folder?.let { selected ->
+                    UserShaderManager.rememberFolder(requireContext(), Uri.fromFile(selected))
+                    UserShaderManager.shaderUrisInDirectory(selected)
                 }.orEmpty()
                 shaderImportCallback?.invoke(uris)
                 shaderImportCallback = null
@@ -869,25 +868,33 @@ class PreferenceActivity : AppCompatActivity(),
                         showSettingsChoiceDialog(
                             getString(R.string.shader_import_choose_source),
                             listOf(
-                                SettingsChoiceItem(
-                                    title = getString(R.string.shader_import_files),
-                                    detail = getString(R.string.shader_import_files_detail),
-                                ) {
+                                SettingsChoiceItem(title = getString(R.string.action_pick_file_old)) {
                                     shaderImportCallback = callback
                                     shaderFilesPicker.launch(
-                                        openDocumentChooser(
-                                            requireContext(),
-                                            arrayOf("*/*"),
-                                            allowMultiple = true,
-                                        )
+                                        Intent(requireContext(), FilePickerActivity::class.java)
+                                            .putExtra("title", getString(R.string.shader_import_files))
+                                            .putExtra("skip", FilePickerActivity.SHADER_FILE_PICKER)
                                     )
                                 },
-                                SettingsChoiceItem(
-                                    title = getString(R.string.shader_import_folder),
-                                    detail = getString(R.string.shader_import_folder_detail),
-                                ) {
+                                SettingsChoiceItem(title = getString(R.string.action_open_url)) {
                                     shaderImportCallback = callback
-                                    shaderFolderPicker.launch(documentTreeChooser(requireContext()))
+                                    shaderFilesPicker.launch(
+                                        Intent(requireContext(), FilePickerActivity::class.java)
+                                            .putExtra("title", getString(R.string.shader_import_files))
+                                            .putExtra("skip", FilePickerActivity.URL_DIALOG)
+                                    )
+                                },
+                                SettingsChoiceItem(title = getString(R.string.action_open_doc)) {
+                                    shaderImportCallback = callback
+                                    shaderDocumentPicker.launch(arrayOf("*/*"))
+                                },
+                                SettingsChoiceItem(title = getString(R.string.shader_import_folder)) {
+                                    shaderImportCallback = callback
+                                    shaderFolderPicker.launch(
+                                        Intent(requireContext(), FilePickerActivity::class.java)
+                                            .putExtra("title", getString(R.string.shader_import_folder))
+                                            .putExtra("skip", FilePickerActivity.FOLDER_PICKER)
+                                    )
                                 },
                             ),
                         )
@@ -1000,11 +1007,6 @@ class PreferenceActivity : AppCompatActivity(),
     }
 
     class SupportPreference : StyledPreferenceFragment(R.xml.pref_support) {
-        private val backupExporter =
-            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
-                if (uri != null) activity?.let { FullBackupActions.export(it, uri) }
-            }
         private val backupImporter =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 val uri = result.data?.data.takeIf { result.resultCode == AppCompatActivity.RESULT_OK }
@@ -1021,36 +1023,7 @@ class PreferenceActivity : AppCompatActivity(),
                 true
             }
             findPreference<Preference>("export_full_backup")?.setOnPreferenceClickListener {
-                activity?.let { host ->
-                    val destinations = buildList {
-                        if (FullBackupDownloads.isDirectWriteSupported) {
-                            add(
-                                SettingsChoiceItem(
-                                    title = getString(R.string.full_backup_save_downloads),
-                                    detail = getString(R.string.full_backup_save_downloads_detail),
-                                ) { FullBackupActions.exportToDownloads(host) }
-                            )
-                        }
-                        add(
-                            SettingsChoiceItem(
-                                title = getString(R.string.full_backup_choose_location),
-                                detail = getString(R.string.full_backup_choose_location_detail),
-                            ) {
-                                backupExporter.launch(
-                                    createDocumentChooser(
-                                        host,
-                                        FullBackupActions.MIME_TYPE,
-                                        FullBackupActions.suggestedFilename(),
-                                    )
-                                )
-                            }
-                        )
-                    }
-                    showSettingsChoiceDialog(
-                        getString(R.string.full_backup_export_destination),
-                        destinations,
-                    )
-                }
+                activity?.let(FullBackupActions::exportWithDestinationFlow)
                 true
             }
             findPreference<Preference>("import_full_backup")?.setOnPreferenceClickListener {

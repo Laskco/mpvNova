@@ -171,6 +171,7 @@
     <string name="action_pick_file">Pick file</string>
     <string name="action_pick_file_old">Pick file (legacy)</string>
     <string name="action_external_storage">External storage</string>
+    <string name="action_select_folder">Select this folder</string>
     <string name="action_toggle_filter">Toggle filter</string>
     <string name="pref_persist_filters_title">Persist filters</string>
     <string name="pref_persist_sub_filters_title">Persist subtitle settings</string>
@@ -594,9 +595,7 @@
     </plurals>
     <string name="shader_import_folder">Import folder</string>
     <string name="shader_import_choose_source">Add shaders</string>
-    <string name="shader_import_files">Choose shader files</string>
-    <string name="shader_import_files_detail">Use an installed file manager and select one or more files.</string>
-    <string name="shader_import_folder_detail">Use Android’s folder picker to import every shader in a folder.</string>
+    <string name="shader_import_files">Choose a shader file</string>
     <string name="shader_disable_all">Disable all</string>
     <string name="shader_empty">No managed shaders yet. Advanced shaders configured in mpv.conf remain separate.</string>
     <string name="shader_move_up">Move shader up</string>
@@ -652,13 +651,11 @@
     <string name="pref_import_full_backup_title">Import full backup</string>
     <string name="pref_import_full_backup_summary">Replace this installation’s settings and user files with an mpvNova backup.</string>
     <string name="full_backup_exporting">Creating full backup…</string>
-    <string name="full_backup_exported">Full backup exported</string>
-    <string name="full_backup_exported_downloads">Full backup saved to Downloads</string>
     <string name="full_backup_export_destination">Export full backup</string>
-    <string name="full_backup_save_downloads">Save to Downloads</string>
-    <string name="full_backup_save_downloads_detail">Save directly without opening Android’s file picker.</string>
-    <string name="full_backup_choose_location">Choose save location</string>
-    <string name="full_backup_choose_location_detail">Use Android’s document picker to select a folder and filename.</string>
+    <string name="full_backup_export_saving">Saving full backup…</string>
+    <string name="full_backup_export_no_target">No app can share the full backup</string>
+    <string name="full_backup_export_share_target_title">Share full backup</string>
+    <string name="full_backup_export_share_failed">Couldn’t share the full backup</string>
     <string name="full_backup_export_failed">Couldn’t export the full backup</string>
     <string name="full_backup_import_confirm_title">Import full backup?</string>
     <string name="full_backup_import_confirm_message">This replaces all current settings, imported fonts, config files, and the custom screensaver image. The backup is checked before anything is changed.</string>

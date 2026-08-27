@@ -12,4 +12,9 @@
         android:icon="@drawable/ic_filter_alt_24dp"
         app:showAsAction="ifRoom" />
 
+    <item android:id="@+id/action_select_folder"
+        android:title="@string/action_select_folder"
+        android:icon="@drawable/ic_tv_check"
+        app:showAsAction="always" />
+
 </menu>

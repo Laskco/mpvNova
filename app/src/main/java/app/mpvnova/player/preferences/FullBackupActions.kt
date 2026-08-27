@@ -40,36 +40,38 @@ object FullBackupActions {
         return "mpvNova-backup-$stamp.zip"
     }
 
-    fun export(activity: Activity, target: Uri) {
-        runWithProgress(
-            activity = activity,
-            messageRes = R.string.full_backup_exporting,
-            action = { context ->
-                context.contentResolver.openOutputStream(target, "w")?.use { output ->
-                    writeBackup(context, ZipOutputStream(output.buffered()))
-                } ?: throw IOException("Could not open backup destination")
-            },
-            successRes = R.string.full_backup_exported,
-            failureRes = R.string.full_backup_export_failed,
+    fun exportWithDestinationFlow(activity: Activity) {
+        val progress = activity.showSettingsProgressDialog(
+            activity.getString(R.string.full_backup_exporting)
         )
+        val activityRef = WeakReference(activity)
+        val progressRef = WeakReference(progress)
+        val appContext = activity.applicationContext
+        BACKUP_IO_EXECUTOR.execute {
+            val result = runCatching { createShareableBackup(appContext) }
+            val current = activityRef.get() ?: return@execute
+            current.runOnUiThread {
+                progressRef.get()?.dismiss()
+                if (current.isFinishing || current.isDestroyed) return@runOnUiThread
+                result.onSuccess { backup ->
+                    showFullBackupExportFlow(current, backup)
+                }.onFailure {
+                    Toast.makeText(
+                        current,
+                        R.string.full_backup_export_failed,
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+        }
     }
 
-    fun exportToDownloads(activity: Activity) {
-        runWithProgress(
-            activity = activity,
-            messageRes = R.string.full_backup_exporting,
-            action = { context ->
-                FullBackupDownloads.write(
-                    context = context,
-                    filename = suggestedFilename(),
-                    mimeType = MIME_TYPE,
-                ) { output ->
-                    writeBackup(context, ZipOutputStream(output.buffered()))
-                }
-            },
-            successRes = R.string.full_backup_exported_downloads,
-            failureRes = R.string.full_backup_export_failed,
-        )
+    private fun createShareableBackup(context: Context): File {
+        val backupDir = File(context.cacheDir, "full-backup").apply { mkdirs() }
+        backupDir.listFiles()?.forEach(File::delete)
+        return File(backupDir, suggestedFilename()).also { backup ->
+            ZipOutputStream(backup.outputStream().buffered()).use { writeBackup(context, it) }
+        }
     }
 
     fun confirmImport(activity: Activity, source: Uri) {

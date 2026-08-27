@@ -135,6 +135,10 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         inflateOptionsMenu(menu)
+        val pickerMode = intent.getIntExtra("skip", -1)
+        menu.findItem(R.id.action_select_folder)?.isVisible = pickerMode == FOLDER_PICKER
+        menu.findItem(R.id.action_file_filter)?.isVisible =
+            pickerMode != FOLDER_PICKER && pickerMode != SHADER_FILE_PICKER
         return true
     }
 
@@ -150,6 +154,10 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             }
             R.id.action_file_filter -> {
                 FilePickerMenuActions.toggleFileFilter(this)
+                true
+            }
+            R.id.action_select_folder -> {
+                fragment?.currentDirectory()?.let(::onDirPicked)
                 true
             }
             else -> false
@@ -226,6 +234,8 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         const val URL_DIALOG = 0
         const val FILE_PICKER = 1
         const val DOC_PICKER = 2
+        const val FOLDER_PICKER = 3
+        const val SHADER_FILE_PICKER = 4
     }
 }
 
@@ -242,6 +252,14 @@ private object FilePickerStartup {
             }
             FilePickerActivity.DOC_PICKER -> {
                 openInitialDocumentPicker(activity)
+                true
+            }
+            FilePickerActivity.FOLDER_PICKER -> {
+                activity.initFilePicker()
+                true
+            }
+            FilePickerActivity.SHADER_FILE_PICKER -> {
+                activity.initFilePicker()
                 true
             }
             else -> false
@@ -535,7 +553,12 @@ private fun FilePickerActivity.initFilePicker() {
     Log.v(FilePickerActivity.TAG, "FilePickerActivity: showing file picker")
     val sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
 
-    if (getFilterState())
+    val pickerMode = intent.getIntExtra("skip", -1)
+    if (
+        getFilterState() &&
+        pickerMode != FilePickerActivity.FOLDER_PICKER &&
+        pickerMode != FilePickerActivity.SHADER_FILE_PICKER
+    )
         activeFragment.filterPredicate = FilePickerActivity.MEDIA_FILE_FILTER
 
     var defaultPathStr = intent.getStringExtra("default_path")

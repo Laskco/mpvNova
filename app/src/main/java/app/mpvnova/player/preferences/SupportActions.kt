@@ -1,31 +1,19 @@
 package app.mpvnova.player.preferences
 
-import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.ActivityManager
-import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
-import android.content.ComponentName
-import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import android.content.res.Configuration
-import android.net.Uri
 import android.os.Build
 import android.os.Debug
 import android.os.Environment
 import android.os.Process
-import android.provider.MediaStore
 import android.media.MediaCodecList
 import android.widget.Toast
-import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.MPVView
@@ -37,7 +25,6 @@ import app.mpvnova.player.Utils
 import app.mpvnova.player.toShieldDecoderFallback
 import app.mpvnova.player.sanitizeMpvLogText
 import java.io.File
-import java.io.IOException
 import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -97,7 +84,7 @@ object SupportActions {
                 if (currentActivity.isFinishing || currentActivity.isDestroyed)
                     return@runOnUiThread
                 result.onSuccess { bundle ->
-                    SupportBundleExportFlow(currentActivity, bundle).show()
+                    showSupportBundleExportFlow(currentActivity, bundle)
                 }.onFailure {
                     Toast.makeText(
                         currentActivity,
@@ -513,266 +500,6 @@ private fun File.describeStoragePath(): String {
     return "$absolutePath exists=${exists()} canRead=${canRead()} isDirectory=${isDirectory()}"
 }
 
-private class SupportBundleExportFlow(
-    private val activity: Activity,
-    private val bundle: File
-) {
-    fun show() {
-        val options = mutableListOf<SupportExportOption>()
-        options.add(
-            SupportExportOption(
-                activity.getString(R.string.support_export_save_downloads)
-            ) {
-                saveBundleToDownloads()
-            }
-        )
-
-        querySupportBundleTargets()
-            .firstOrNull { it.packageName == LOCALSEND_PACKAGE }
-            ?.let { target ->
-                options.add(
-                    SupportExportOption(
-                        activity.getString(R.string.support_export_share_localsend)
-                    ) {
-                        launchShareTarget(target)
-                    }
-                )
-            }
-
-        options.add(
-            SupportExportOption(
-                activity.getString(R.string.support_export_share_other)
-            ) {
-                showShareTargetDialog()
-            }
-        )
-
-        activity.showSettingsChoiceDialog(
-            activity.getString(R.string.support_export_chooser),
-            options.map { option ->
-                SettingsChoiceItem(title = option.label, onClick = option.action)
-            },
-        )
-    }
-
-    private fun saveBundleToDownloads() {
-        if (needsLegacyDownloadsPermission()) {
-            pendingLegacyDownloadsFlow = this
-            ActivityCompat.requestPermissions(
-                activity,
-                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                REQUEST_WRITE_DOWNLOADS
-            )
-            return
-        }
-        saveBundleToDownloadsAfterPermission()
-    }
-
-    fun saveBundleToDownloadsAfterPermission() {
-        val progress = activity.showSettingsProgressDialog(
-            activity.getString(R.string.support_export_saving)
-        )
-        SUPPORT_IO_EXECUTOR.execute {
-            val result = runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    saveBundleToDownloadsMediaStore()
-                } else {
-                    saveBundleToLegacyDownloads()
-                }
-            }
-            activity.runOnUiThread {
-                progress.dismiss()
-                if (activity.isFinishing || activity.isDestroyed)
-                    return@runOnUiThread
-                result.onSuccess { savedName ->
-                    Toast.makeText(
-                        activity,
-                        activity.getString(R.string.support_export_saved, savedName),
-                        Toast.LENGTH_LONG
-                    ).show()
-                }.onFailure {
-                    Toast.makeText(activity, R.string.support_export_save_failed, Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
-    private fun needsLegacyDownloadsPermission(): Boolean {
-        return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
-            ContextCompat.checkSelfPermission(
-                activity,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-    }
-
-    @RequiresApi(Build.VERSION_CODES.Q)
-    private fun saveBundleToDownloadsMediaStore(): String {
-        val resolver = activity.contentResolver
-        val values = ContentValues().apply {
-            put(MediaStore.Downloads.DISPLAY_NAME, bundle.name)
-            put(MediaStore.Downloads.MIME_TYPE, SUPPORT_BUNDLE_MIME_TYPE)
-            put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-            put(MediaStore.Downloads.IS_PENDING, 1)
-        }
-        val uri = checkNotNull(resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)) {
-            "Could not create Downloads entry"
-        }
-        runCatching {
-            checkNotNull(resolver.openOutputStream(uri)) {
-                "Could not open Downloads entry"
-            }.use { output ->
-                bundle.inputStream().use { input -> input.copyTo(output) }
-            }
-            values.clear()
-            values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
-        }.onFailure {
-            resolver.delete(uri, null, null)
-        }.getOrThrow()
-        return bundle.name
-    }
-
-    @Suppress("DEPRECATION")
-    private fun saveBundleToLegacyDownloads(): String {
-        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        if (!downloads.exists() && !downloads.mkdirs())
-            throw IOException("Could not create Downloads directory")
-        val target = uniqueDownloadFile(downloads, bundle.name)
-        bundle.copyTo(target, overwrite = false)
-        return target.name
-    }
-
-    private fun uniqueDownloadFile(directory: File, filename: String): File {
-        var target = File(directory, filename)
-        if (!target.exists())
-            return target
-
-        val base = target.nameWithoutExtension
-        val extension = target.extension.takeIf { it.isNotBlank() }?.let { ".$it" }.orEmpty()
-        var index = 2
-        do {
-            target = File(directory, "$base-$index$extension")
-            index++
-        } while (target.exists())
-        return target
-    }
-
-    private fun showShareTargetDialog() {
-        val targets = querySupportBundleTargets()
-            .filter { it.packageName != LOCALSEND_PACKAGE }
-        if (targets.isEmpty()) {
-            Toast.makeText(activity, R.string.support_export_no_target, Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        activity.showSettingsChoiceDialog(
-            activity.getString(R.string.support_export_share_target_title),
-            targets.map { target ->
-                SettingsChoiceItem(title = target.label) { launchShareTarget(target) }
-            },
-        )
-    }
-
-    private fun querySupportBundleTargets(): List<SupportShareTarget> {
-        val shareIntent = buildShareIntent().first
-        val packageManager = activity.packageManager
-        val targets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            packageManager.queryIntentActivities(
-                shareIntent,
-                PackageManager.ResolveInfoFlags.of(PackageManager.MATCH_DEFAULT_ONLY.toLong())
-            )
-        } else {
-            @Suppress("DEPRECATION")
-            packageManager.queryIntentActivities(shareIntent, PackageManager.MATCH_DEFAULT_ONLY)
-        }
-        return targets
-            .mapNotNull { it.toSupportShareTarget(activity) }
-            .distinctBy { "${it.packageName}/${it.className}" }
-            .sortedBy { it.label.lowercase(Locale.US) }
-    }
-
-    private fun launchShareTarget(target: SupportShareTarget) {
-        val (shareIntent, uri) = buildShareIntent()
-        shareIntent.component = ComponentName(target.packageName, target.className)
-        try {
-            activity.grantUriPermission(target.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            activity.startActivity(shareIntent)
-        } catch (_: ActivityNotFoundException) {
-            Toast.makeText(activity, R.string.support_export_share_failed, Toast.LENGTH_SHORT).show()
-        } catch (_: SecurityException) {
-            Toast.makeText(activity, R.string.support_export_share_failed, Toast.LENGTH_SHORT).show()
-        }
-    }
-
-    private fun buildShareIntent(): Pair<Intent, Uri> {
-        val uri = FileProvider.getUriForFile(
-            activity,
-            "${BuildConfig.APPLICATION_ID}.fileprovider",
-            bundle
-        )
-        val streamClip = ClipData.newUri(activity.contentResolver, bundle.name, uri)
-        val shareIntent = Intent(Intent.ACTION_SEND)
-            .setType(SUPPORT_BUNDLE_MIME_TYPE)
-            .putExtra(Intent.EXTRA_STREAM, uri)
-            .putExtra(Intent.EXTRA_TITLE, bundle.name)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        shareIntent.clipData = streamClip
-        return shareIntent to uri
-    }
-}
-
-private data class SupportExportOption(
-    val label: String,
-    val action: () -> Unit
-)
-
-private data class SupportShareTarget(
-    val packageName: String,
-    val className: String,
-    val label: String
-)
-
-private fun ResolveInfo.toSupportShareTarget(context: Context): SupportShareTarget? {
-    val info = activityInfo ?: return null
-    val label = loadLabel(context.packageManager)
-        .toString()
-        .takeIf { it.isNotBlank() }
-        ?: info.packageName
-    return SupportShareTarget(
-        packageName = info.packageName,
-        className = info.name,
-        label = label
-    )
-}
-
-fun handleSupportExportPermissionResult(
-    activity: Activity,
-    requestCode: Int,
-    grantResults: IntArray
-) {
-    if (requestCode == REQUEST_WRITE_DOWNLOADS) {
-        val pendingFlow = pendingLegacyDownloadsFlow
-        pendingLegacyDownloadsFlow = null
-        if (pendingFlow != null) {
-            if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED)
-                pendingFlow.saveBundleToDownloadsAfterPermission()
-            else
-                Toast.makeText(activity, R.string.support_export_save_failed, Toast.LENGTH_LONG).show()
-        }
-    }
-}
-
-/**
- * Drop a pending export flow when its host activity is destroyed; the flow holds
- * that activity, so leaving it parked here across a recreate leaks the instance.
- */
-fun clearPendingSupportExportFlow() {
-    pendingLegacyDownloadsFlow = null
-}
-
-private const val LOCALSEND_PACKAGE = "org.localsend.localsend_app"
-private const val SUPPORT_BUNDLE_MIME_TYPE = "application/zip"
-private const val REQUEST_WRITE_DOWNLOADS = 24061
 private const val LOGCAT_LINE_LIMIT = 3000
 private const val LOGCAT_CHARACTER_LIMIT = 2 * 1024 * 1024
 private const val EXIT_HISTORY_LIMIT = 10
@@ -783,9 +510,3 @@ private val SUPPORT_IO_EXECUTOR = Executors.newSingleThreadExecutor { runnable -
 private val SENSITIVE_SETTING_KEY = Regex(
     "(?i)(authorization|cookie|credential|password|secret|token|uri|path)",
 )
-
-// Bridges the permission-result round-trip, which has no instance to hang state
-// off. Cleared by the result handler and by PreferenceActivity.onDestroy, so the
-// activity inside the flow can't outlive its host.
-@SuppressLint("StaticFieldLeak")
-private var pendingLegacyDownloadsFlow: SupportBundleExportFlow? = null

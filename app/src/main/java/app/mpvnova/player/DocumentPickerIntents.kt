@@ -1,33 +1,10 @@
 package app.mpvnova.player
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-
-internal fun documentTreeChooser(context: Context): Intent {
-    val target = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
-        Intent.FLAG_GRANT_READ_URI_PERMISSION or
-            Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
-            Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION,
-    )
-    return Intent.createChooser(target, context.getString(R.string.document_picker_choose_app))
-}
-
-internal fun createDocumentChooser(
-    context: Context,
-    mimeType: String,
-    filename: String,
-): Intent {
-    val target = Intent(Intent.ACTION_CREATE_DOCUMENT)
-        .addCategory(Intent.CATEGORY_OPENABLE)
-        .setType(mimeType)
-        .putExtra(Intent.EXTRA_TITLE, filename)
-        .addFlags(
-            Intent.FLAG_GRANT_READ_URI_PERMISSION or
-                Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-        )
-    return Intent.createChooser(target, context.getString(R.string.document_picker_choose_app))
-}
+import java.io.File
 
 internal fun openDocumentChooser(
     context: Context,
@@ -53,3 +30,13 @@ internal fun Intent.selectedDocumentUris(): List<Uri> = buildList {
         }
     }
 }.distinct()
+
+internal fun shaderImportUrisFromResult(resultCode: Int, data: Intent?): List<Uri> {
+    val path = data?.getStringExtra("path")
+    return when {
+        resultCode != Activity.RESULT_OK -> emptyList()
+        path == null -> data?.selectedDocumentUris().orEmpty()
+        path.startsWith('/') -> listOf(Uri.fromFile(File(path)))
+        else -> listOf(Uri.parse(path))
+    }
+}
