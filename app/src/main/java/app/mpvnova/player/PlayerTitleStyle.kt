@@ -117,6 +117,8 @@ internal data class PlayerTitleStyle(
     val separator: PlayerTitleSeparator,
     val titleOrder: List<PlayerTitleUnit>,
     val clockOrder: List<PlayerClockUnit>,
+    val titlePanelOpacityPercent: Int,
+    val clockPanelOpacityPercent: Int,
 ) {
     fun forPart(part: PlayerTitlePart): PlayerTitleTextStyle = when (part) {
         PlayerTitlePart.SEASON -> season
@@ -228,6 +230,8 @@ internal data class PlayerTitleStyle(
             separator = PlayerTitleSeparator.DOT,
             titleOrder = PlayerTitleUnit.entries,
             clockOrder = PlayerClockUnit.entries,
+            titlePanelOpacityPercent = PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT,
+            clockPanelOpacityPercent = PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT,
         )
 
         fun defaultFor(part: PlayerTitlePart): PlayerTitleTextStyle = DEFAULT.forPart(part)
@@ -279,6 +283,8 @@ internal object PlayerTitleStyleStore {
             prefs.getString(CLOCK_ORDER_KEY, null),
             PlayerClockUnit.entries,
         ),
+        titlePanelOpacityPercent = PlayerTitlePanelStyleStore.readTitleOpacity(prefs),
+        clockPanelOpacityPercent = PlayerTitlePanelStyleStore.readClockOpacity(prefs),
     )
 
     fun writePart(
@@ -329,6 +335,7 @@ internal object PlayerTitleStyleStore {
     fun resetAll(prefs: SharedPreferences) {
         PlayerTitlePart.entries.forEach { resetPart(prefs, it) }
         writeSeparator(prefs, PlayerTitleStyle.DEFAULT.separator)
+        PlayerTitlePanelStyleStore.reset(prefs)
     }
 
     private fun readPart(
@@ -476,6 +483,7 @@ internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
     applyPlayerTitleTextStyle(binding.dateTextView, playerTitleStyle.date)
     applyPlayerTitleTextStyle(binding.clockTextView, playerTitleStyle.clock)
     applyPlayerTitleTextStyle(binding.endsAtTextView, playerTitleStyle.endsAt)
+    applyPlayerTitlePanelGlass()
     fittedPlayerTitleText = null
     fittedPlayerTitleWidth = 0
     fittedPlayerTitleFontScale = 0f
@@ -600,7 +608,7 @@ private fun MPVActivity.resolvePlayerTitleColor(color: PlayerTitleColor): Int {
 
 private fun Context.color(@ColorRes colorRes: Int): Int = ContextCompat.getColor(this, colorRes)
 
-private fun Context.themedColor(attribute: Int, @ColorRes fallback: Int): Int {
+internal fun Context.themedColor(attribute: Int, @ColorRes fallback: Int): Int {
     val value = TypedValue()
     return if (theme.resolveAttribute(attribute, value, true)) {
         if (value.resourceId != 0) ContextCompat.getColor(this, value.resourceId) else value.data
@@ -626,6 +634,10 @@ internal const val PLAYER_TITLE_MIN_EFFECT_STRENGTH_PERCENT = 0
 internal const val PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT = 100
 internal const val PLAYER_TITLE_EFFECT_STRENGTH_STEP_PERCENT = 10
 internal const val PLAYER_TITLE_DEFAULT_BACKGROUND_STRENGTH_PERCENT = 40
+internal const val PLAYER_TITLE_MIN_PANEL_OPACITY_PERCENT = 0
+internal const val PLAYER_TITLE_MAX_PANEL_OPACITY_PERCENT = 100
+internal const val PLAYER_TITLE_PANEL_OPACITY_STEP_PERCENT = 10
+internal const val PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT = 70
 private const val PLAYER_TITLE_BACKGROUND_RADIUS_DP = 6f
 private const val PLAYER_TITLE_MAX_COLOR_CHANNEL = 255
 private const val PLAYER_TITLE_DEFAULT_OUTLINE_COLOR = 0xB8000000.toInt()

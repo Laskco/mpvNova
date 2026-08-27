@@ -46,6 +46,15 @@ internal class PlayerTitleStylePanelController(
     }
 
     private fun adjust(control: PlayerTitleStyleControl, delta: Int) {
+        if (control == PlayerTitleStyleControl.PANEL_OPACITY) {
+            activity.playerTitleStyle = activity.playerTitleStyle.adjustPanelOpacity(
+                selectedPart,
+                delta,
+            )
+            PlayerTitlePanelStyleStore.write(preferences, activity.playerTitleStyle)
+            refreshPreview()
+            return
+        }
         if (control == PlayerTitleStyleControl.POSITION) {
             activity.playerTitleStyle = activity.playerTitleStyle.movePart(selectedPart, delta)
             PlayerTitleStyleStore.writeOrders(preferences, activity.playerTitleStyle)

@@ -828,6 +828,7 @@
     <string name="player_title_style_italic">Italic</string>
     <string name="player_title_style_text_case">Text case</string>
     <string name="player_title_style_position">Position</string>
+    <string name="player_title_style_panel_opacity">Panel opacity</string>
     <string name="player_title_style_visibility">Visibility</string>
     <string name="player_title_style_separator">Separator</string>
     <string name="player_title_style_reset_part">Reset selected</string>

@@ -44,6 +44,7 @@ internal fun MPVActivity.adjustPlayerTitleEffects(
             PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
         ),
     )
+    PlayerTitleStyleControl.PANEL_OPACITY -> style
     else -> style
 }
 
@@ -71,6 +72,7 @@ internal fun MPVActivity.playerTitleEffectControlValue(
     PlayerTitleStyleControl.BACKGROUND_STRENGTH -> percentLabel(
         style.backgroundStrengthPercent,
     )
+    PlayerTitleStyleControl.PANEL_OPACITY -> ""
     else -> ""
 }
 

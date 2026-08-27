@@ -23,6 +23,7 @@ internal enum class PlayerTitleStyleControl(@StringRes val labelRes: Int) {
     ITALIC(R.string.player_title_style_italic),
     TEXT_CASE(R.string.player_title_style_text_case),
     POSITION(R.string.player_title_style_position),
+    PANEL_OPACITY(R.string.player_title_style_panel_opacity),
 }
 
 internal data class PlayerTitleStyleControlView(
@@ -128,6 +129,7 @@ internal fun MPVActivity.adjustPlayerTitleStyle(
         textCase = cyclePlayerTitleValue(PlayerTitleTextCase.entries, style.textCase, delta),
     )
     PlayerTitleStyleControl.POSITION -> style
+    PlayerTitleStyleControl.PANEL_OPACITY -> style
 }
 
 private fun balanceFinalControlRow(row: LinearLayout) {
