@@ -264,48 +264,56 @@ private fun storageVolumeDisplayName(volume: StorageVolume, context: Context, ro
 }
 
 internal object Utils {
-    fun copyAssets(context: Context) {
-        val assetManager = context.assets
-        val files = arrayOf("cacert.pem")
-        val configDir = context.filesDir.path
-        val marker = File(configDir, ".bundled-assets-version")
-        val sourceModified = File(context.applicationInfo.sourceDir).lastModified()
-        val assetVersion = "${BuildConfig.VERSION_CODE}:$sourceModified"
-        val recordedAssetVersion = runCatching { marker.readText() }.getOrNull()
-        val refreshBundledAssets = recordedAssetVersion != assetVersion
-        var copiedSuccessfully = true
+    @Volatile
+    private var bundledAssetsReady = false
 
-        for (name in files) {
+    fun copyAssets(context: Context) {
+        if (bundledAssetsReady) return
+        synchronized(this) {
+            if (bundledAssetsReady) return
+            val assetManager = context.assets
+            val files = arrayOf("cacert.pem")
+            val configDir = context.filesDir.path
+            val marker = File(configDir, ".bundled-assets-version")
+            val sourceModified = File(context.applicationInfo.sourceDir).lastModified()
+            val assetVersion = "${BuildConfig.VERSION_CODE}:$sourceModified"
+            val recordedAssetVersion = runCatching { marker.readText() }.getOrNull()
+            val refreshBundledAssets = recordedAssetVersion != assetVersion
+            var copiedSuccessfully = true
+
+            for (name in files) {
+                copiedSuccessfully = AssetCopier.copyFile(
+                    assetManager,
+                    name,
+                    File("$configDir/$name"),
+                    force = refreshBundledAssets,
+                ) && copiedSuccessfully
+            }
+
+            File("$configDir/subfont.ttf").delete()
+            File("$configDir/scripts/auto_subs.lua").delete()
+            val scriptsDir = File("$configDir/scripts").apply { mkdirs() }
             copiedSuccessfully = AssetCopier.copyFile(
                 assetManager,
-                name,
-                File("$configDir/$name"),
+                "scripts/shield_mpeg2_fallback.lua",
+                File(scriptsDir, "shield_mpeg2_fallback.lua"),
                 force = refreshBundledAssets,
             ) && copiedSuccessfully
-        }
 
-        File("$configDir/subfont.ttf").delete()
-        File("$configDir/scripts/auto_subs.lua").delete()
-        val scriptsDir = File("$configDir/scripts").apply { mkdirs() }
-        copiedSuccessfully = AssetCopier.copyFile(
-            assetManager,
-            "scripts/shield_mpeg2_fallback.lua",
-            File(scriptsDir, "shield_mpeg2_fallback.lua"),
-            force = refreshBundledAssets,
-        ) && copiedSuccessfully
+            copiedSuccessfully = copyBundledFonts(
+                assetManager,
+                configDir,
+                force = refreshBundledAssets,
+            ) && copiedSuccessfully
+            val fontsConf = File("$configDir/fonts.conf")
+            if (refreshBundledAssets || !fontsConf.isFile)
+                copiedSuccessfully = writeFontsConf(context, fontsConf) && copiedSuccessfully
 
-        copiedSuccessfully = copyBundledFonts(
-            assetManager,
-            configDir,
-            force = refreshBundledAssets,
-        ) && copiedSuccessfully
-        val fontsConf = File("$configDir/fonts.conf")
-        if (refreshBundledAssets || !fontsConf.isFile)
-            copiedSuccessfully = writeFontsConf(context, fontsConf) && copiedSuccessfully
-
-        if (copiedSuccessfully && refreshBundledAssets) {
-            runCatching { marker.writeText(assetVersion) }
-                .onFailure { Log.w(TAG, "Failed to record bundled asset version", it) }
+            if (copiedSuccessfully && refreshBundledAssets) {
+                runCatching { marker.writeText(assetVersion) }
+                    .onFailure { Log.w(TAG, "Failed to record bundled asset version", it) }
+            }
+            bundledAssetsReady = copiedSuccessfully
         }
     }
 

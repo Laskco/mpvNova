@@ -20,6 +20,6 @@ internal class MpvNovaApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashReporter.install(this)
-        MpvLogRingBuffer.install()
+        MpvLogRingBuffer.install(this)
     }
 }

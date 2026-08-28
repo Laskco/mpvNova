@@ -238,15 +238,20 @@ object SupportActions {
     }
 
     private fun buildMpvLogDump(): String {
+        val previous = MpvLogRingBuffer.previousSessionText().trimEnd()
         val lines = MpvLogRingBuffer.snapshot()
-        if (lines.isEmpty()) {
-            return "No mpv log lines captured yet in this process.\n"
+        if (previous.isEmpty() && lines.isEmpty()) {
+            return "No mpv log lines captured in this or the previous process.\n"
         }
         return buildString {
-            appendLine("Last ${lines.size} mpv log lines captured by mpvNova in this session.")
-            appendLine()
-            for (line in lines) {
-                appendLine(line)
+            if (previous.isNotEmpty()) {
+                appendLine("Previous mpvNova process (last bounded session snapshot):")
+                appendLine(previous)
+            }
+            if (lines.isNotEmpty()) {
+                if (previous.isNotEmpty()) appendLine()
+                appendLine("Current mpvNova process (last ${lines.size} mpv log lines):")
+                for (line in lines) appendLine(line)
             }
         }
     }
@@ -286,7 +291,7 @@ private fun buildBundleManifest(logcatAvailable: Boolean, exitHistoryAvailable: 
         appendLine("- App, Android, device, decoder, storage, memory, and codec details")
         appendLine("- Selected settings with sensitive values redacted")
         appendLine("- mpv.conf and input.conf")
-        appendLine("- Current-session mpv logs")
+        appendLine("- Current and previous-session mpv logs")
         appendLine("- Persistent mpvNova uncaught-crash reports")
         appendLine()
         appendLine("Android process logcat captured: ${if (logcatAvailable) "yes" else "no"}")

@@ -50,6 +50,7 @@ internal val MPV_VIEW_PLAYBACK_SPEED_STEPS = doubleArrayOf(
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
     internal var configuredHwdecCodecs = MPV_VIEW_HWDEC_CODECS
     private val appliedManagedShaderPaths = linkedSetOf<String>()
+    internal val heldMpvKeys = MpvHeldKeyTracker()
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)

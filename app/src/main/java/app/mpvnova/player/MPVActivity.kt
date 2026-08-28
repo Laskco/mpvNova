@@ -31,6 +31,7 @@ import java.util.Locale
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
 
+@Suppress("TooManyFunctions") // Android lifecycle and input callbacks belong to the Activity.
 open class MPVActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(UiScale.wrap(newBase))
@@ -504,6 +505,7 @@ open class MPVActivity : AppCompatActivity() {
     override fun onDestroy() {
         Log.v(MPV_ACTIVITY_TAG, "Exiting.")
         activityIsForeground = false
+        player.releaseAllMpvKeys()
         cancelAllScheduledWork()
         setNoisyReceiverRegistered(false)
         releaseMediaAndAudioFocus()
@@ -582,6 +584,8 @@ open class MPVActivity : AppCompatActivity() {
     }
 
     internal fun onPauseImpl() {
+        player.releaseAllMpvKeys()
+        commitPendingSeekbarSeek()
         cancelScreensaver()
         val shouldBackground = shouldBackground()
         if (shouldBackground)
@@ -662,20 +666,35 @@ open class MPVActivity : AppCompatActivity() {
     internal var clockDateFormatterLocale: Locale? = null
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
-        // The screensaver eats the first key (just wakes); other keys reset its idle timer.
-        if (consumeScreensaverKey(ev)) return true
-        noteScreensaverActivity()
-        val handled = when {
-            // Skip button (when shown) gets first crack: OK skips, other keys dismiss it.
-            handleSkipButtonKey(ev) -> true
-            // Built-in handlers first; forward the rest to libmpv.
-            else -> interceptDpad(ev) ||
-                interceptRemoteNextChapterButton(ev) ||
-                (ev.action == KeyEvent.ACTION_DOWN && interceptKeyDown(ev)) ||
-                player.onKey(ev) ||
-                super.dispatchKeyEvent(ev)
+        // A key-down may have reached mpv before a dialog, overlay, or controls transition
+        // changed who handles input. Always deliver its matching release first.
+        val handled = if (player.releaseMpvKey(ev)) {
+            true
+        } else if (consumeScreensaverKey(ev)) {
+            // The screensaver eats the first key and only wakes the UI.
+            true
+        } else {
+            noteScreensaverActivity()
+            when {
+                // Skip button (when shown) gets first crack: OK skips, other keys dismiss it.
+                handleSkipButtonKey(ev) -> true
+                // Built-in handlers first; forward the rest to libmpv.
+                else -> interceptDpad(ev) ||
+                    interceptRemoteNextChapterButton(ev) ||
+                    (ev.action == KeyEvent.ACTION_DOWN && interceptKeyDown(ev)) ||
+                    player.onKey(ev) ||
+                    super.dispatchKeyEvent(ev)
+            }
         }
         return handled
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        if (!hasFocus) {
+            player.releaseAllMpvKeys()
+            commitPendingSeekbarSeek()
+        }
+        super.onWindowFocusChanged(hasFocus)
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

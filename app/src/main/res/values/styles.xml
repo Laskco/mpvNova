@@ -1951,6 +1951,8 @@
         <item name="dialogCornerRadius">28dp</item>
         <item name="cornerFamily">rounded</item>
         <item name="colorPrimary">?attr/mpvAccent</item>
+        <item name="colorContainer">@android:color/transparent</item>
+        <item name="colorOnContainer">@color/tv_text</item>
         <item name="colorOnSurface">@color/tv_text</item>
         <item name="android:colorBackground">?attr/mpvSurfaceStrongEnd</item>
     </style>
