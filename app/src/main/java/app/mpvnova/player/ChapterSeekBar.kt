@@ -4,7 +4,6 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.os.Build
 import android.util.AttributeSet
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatSeekBar
@@ -181,22 +180,28 @@ class ChapterSeekBar @JvmOverloads constructor(
     private fun drawSelectionOutline(canvas: Canvas) {
         if (!dpadSelected) return
 
-        val trackLeft = paddingLeft.toFloat()
-        val trackRight = (width - paddingRight).toFloat()
-        if (trackRight <= trackLeft) return
-
-        val centerY = height / 2f
-        val trackHeight = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
-            maxOf(maxHeight.toFloat(), trackHeightPx)
-        else
-            trackHeightPx
-        val trackHalfH = trackHeight / 2f
+        val trackBounds = progressDrawable?.bounds
+        val centerY = if (trackBounds != null && !trackBounds.isEmpty) {
+            paddingTop + trackBounds.exactCenterY()
+        } else {
+            height / 2f
+        }
         selectionPaint.strokeWidth = selectionStrokePx
+        val strokeInset = selectionStrokePx / 2f
+        val outlineLeft = (paddingLeft - selectionInsetPx).coerceAtLeast(strokeInset)
+        val outlineRight = (width - paddingRight + selectionInsetPx).coerceAtMost(width - strokeInset)
+        val maxHalfHeight = minOf(
+            centerY - strokeInset,
+            height - strokeInset - centerY,
+        ).coerceAtLeast(0f)
+        val outlineHalfHeight = (trackHeightPx / 2f + selectionInsetPx).coerceAtMost(maxHalfHeight)
+        if (outlineRight <= outlineLeft || outlineHalfHeight <= 0f) return
+
         canvas.drawRoundRect(
-            trackLeft - selectionInsetPx,
-            centerY - trackHalfH - selectionInsetPx,
-            trackRight + selectionInsetPx,
-            centerY + trackHalfH + selectionInsetPx,
+            outlineLeft,
+            centerY - outlineHalfHeight,
+            outlineRight,
+            centerY + outlineHalfHeight,
             selectionCornerRadiusPx,
             selectionCornerRadiusPx,
             selectionPaint
