@@ -22,7 +22,8 @@ internal fun MPVActivity.updateSubtitleControlsPosition() {
         return
     }
 
-    val coveredHeight = playerHeight - controlsTop
+    val clearance = Utils.convertDp(activityContext, SUBTITLE_CONTROLS_CLEARANCE_DP)
+    val coveredHeight = (playerHeight - controlsTop + clearance).coerceAtMost(playerHeight)
     val offsetPercent = (coveredHeight * 100f / playerHeight)
         .roundToInt()
         .coerceAtLeast(0)
@@ -34,3 +35,5 @@ private fun MPVActivity.applySubtitleControlsOffset(offsetPercent: Int) {
     subtitleControlsOffsetPercent = offsetPercent
     applySubPosProperty()
 }
+
+private const val SUBTITLE_CONTROLS_CLEARANCE_DP = 16f

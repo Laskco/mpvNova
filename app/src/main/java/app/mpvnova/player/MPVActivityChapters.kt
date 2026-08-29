@@ -101,6 +101,7 @@ internal fun MPVActivity.updateChapterMarkers() {
     val hasChapters = chapters.isNotEmpty()
 
     binding.nextChapterBtn.visibility = if (hasChapters) View.VISIBLE else View.GONE
+    applyPlayerControlOrderAndVisibility()
 
     if (!hasChapters || duration <= 0) {
         binding.playbackSeekbar.clearChapters()

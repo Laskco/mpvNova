@@ -7,7 +7,7 @@ import android.view.View
 // shows nothing, and the default opens the full controls.
 internal fun MPVActivity.seekFromHiddenControls(ev: KeyEvent) {
     when {
-        minimalSeekbarWhileSeeking -> {
+        !playerUiCustomization.seekbarVisible || minimalSeekbarWhileSeeking -> {
             seekPlaybackFromDpad(seekDeltaFromDpadEvent(ev))
             showMinimalSeekOverlay()
         }

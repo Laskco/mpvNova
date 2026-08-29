@@ -70,14 +70,7 @@ internal fun MPVActivity.interceptDpadActivation(ev: KeyEvent, controls: List<Vi
             true
         }
         ev.keyCode != KeyEvent.KEYCODE_DPAD_UP && ev.keyCode != KeyEvent.KEYCODE_DPAD_DOWN -> false
-        else -> {
-            if (ev.action == KeyEvent.ACTION_DOWN) {
-                activateDpadSelection(ev, controls)
-                requestFirstControlFocusIfNeeded()
-                showControls()
-            }
-            true
-        }
+        else -> activateOrHideControlsFromVerticalDpad(ev, controls)
     }
 }
 
@@ -132,8 +125,9 @@ private fun MPVActivity.nextSelectionForVerticalDpad(
             ?: controls.indexOf(binding.topMenuBtn).takeIf { it >= 0 }
             ?: -1
     }
-    // Bottom button: UP → seekbar, DOWN → hide.
-    return if (isUp) 0 else -1
+    // Bottom button: UP → seekbar when present; otherwise either vertical direction hides.
+    val seekbarIndex = controls.indexOf(binding.playbackSeekbar)
+    return if (isUp && seekbarIndex >= 0) seekbarIndex else -1
 }
 
 internal fun MPVActivity.handleHorizontalDpad(

@@ -30,4 +30,5 @@ internal fun MPVActivity.updatePlaylistButtons() {
     val w = ContextCompat.getColor(this, R.color.tint_normal)
     binding.prevBtn.setImageTintColorIfChanged(if (plPos == 0) g else w)
     binding.nextBtn.setImageTintColorIfChanged(if (plPos == plCount - 1) g else w)
+    applyPlayerControlOrderAndVisibility()
 }

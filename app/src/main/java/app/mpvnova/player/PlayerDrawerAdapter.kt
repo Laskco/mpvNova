@@ -199,7 +199,9 @@ internal class PlayerDrawerAdapter(
         }
 
         private fun isDisabled(preference: PlayerDrawerPreference): Boolean =
-            preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
+            (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
+                !activity.playerUiCustomization.seekbarVisible) ||
+                preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
     }
 
     private inner class OptionHolder(

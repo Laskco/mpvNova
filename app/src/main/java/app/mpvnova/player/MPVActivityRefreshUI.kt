@@ -90,6 +90,7 @@ internal fun MPVActivity.refreshUi() {
     updatePlaylistButtons()
     player.loadTracks()
     updateChapterMarkers()
+    applyPlayerUiCustomization()
 }
 
 // Hoisted to avoid re-allocating on every updateAudioUI() call. Prev/next
@@ -108,8 +109,10 @@ private val AUDIO_UI_TITLE_GROUP = intArrayOf(R.id.titleTextView, R.id.minorTitl
 
 internal fun MPVActivity.updateAudioUI() {
     val shouldUseAudioUI = isPlayingAudioOnly()
-    if (shouldUseAudioUI == useAudioUI)
+    if (shouldUseAudioUI == useAudioUI) {
+        applyPlayerControlOrderAndVisibility()
         return
+    }
     useAudioUI = shouldUseAudioUI
     Log.v(MPV_ACTIVITY_TAG, "Audio UI: $useAudioUI")
 
@@ -129,6 +132,7 @@ internal fun MPVActivity.updateAudioUI() {
     }
 
     updatePlaylistButtons()
+    applyPlayerControlOrderAndVisibility()
 }
 
 internal fun MPVActivity.updateMetadataDisplay() {

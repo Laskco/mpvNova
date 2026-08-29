@@ -13,7 +13,7 @@ internal fun MPVActivity.dpadButtons(): List<View> {
     }
     val views = dpadControlsScratch
     views.clear()
-    if (binding.playbackSeekbar.isEnabled) {
+    if (binding.playbackSeekbar.isEnabled && binding.playbackSeekbar.isVisible) {
         views += binding.playbackSeekbar
     }
     views.addFocusableChildren(binding.controlsButtonGroup)
@@ -33,6 +33,21 @@ private fun MutableList<View>.addFocusableChildren(group: ViewGroup) {
 internal fun MPVActivity.firstControlButtonIndex(controls: List<View>): Int {
     val firstNonSeekbar = controls.indexOfFirst { it !== binding.playbackSeekbar }
     return if (firstNonSeekbar >= 0) firstNonSeekbar else 0
+}
+
+internal fun MPVActivity.activateOrHideControlsFromVerticalDpad(
+    ev: KeyEvent,
+    controls: List<View>,
+): Boolean {
+    if (ev.action != KeyEvent.ACTION_DOWN) return true
+    if (ev.keyCode == KeyEvent.KEYCODE_DPAD_UP && binding.playbackSeekbar !in controls) {
+        hideControlsFade()
+    } else {
+        activateDpadSelection(ev, controls)
+        requestFirstControlFocusIfNeeded()
+        showControls()
+    }
+    return true
 }
 
 internal fun MPVActivity.interceptDpad(ev: KeyEvent): Boolean {

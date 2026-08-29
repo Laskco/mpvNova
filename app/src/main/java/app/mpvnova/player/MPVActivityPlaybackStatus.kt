@@ -8,6 +8,7 @@ import kotlin.math.roundToInt
 
 internal fun MPVActivity.updatePlaybackDuration(durationMs: Long) {
     val duration = (durationMs / MPV_MILLIS_PER_SECOND_FLOAT).roundToInt()
+    updatePlaybackTimeReservedWidths(duration)
     if (!useTimeRemaining) {
         val durationText = Utils.prettyTime(duration)
         binding.playbackDurationTxt.setTextIfChanged(durationText)

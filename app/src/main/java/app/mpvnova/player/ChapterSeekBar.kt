@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.os.Build
 import android.util.AttributeSet
+import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.content.ContextCompat
 import kotlin.math.roundToInt
@@ -22,6 +23,7 @@ import kotlin.math.roundToInt
  * Call [setChapters] whenever the chapter list or media duration changes. Chapter times at t=0 are
  * skipped (no marker at the very start of the track).
  */
+@Suppress("TooManyFunctions")
 class ChapterSeekBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -34,6 +36,12 @@ class ChapterSeekBar @JvmOverloads constructor(
     // When true, the bar is drawn as segmented chapter pills (minimal seek overlay) instead of the
     // platform track + tick marks.
     private var chapterGapMode = false
+    private var chapterMarkersVisible = true
+    private var thumbShape: PlayerSeekbarThumbShape? = null
+    private var thumbSizeDp = 0
+    private var thumbGlowEnabled = true
+    private var thumbColor: PlayerSeekbarThumbColor? = null
+    private var trackDrawableRes = 0
 
     private val markerPaint = Paint().apply {
         color = MARKER_COLOR
@@ -70,7 +78,7 @@ class ChapterSeekBar @JvmOverloads constructor(
     }
 
     private val density: Float get() = resources.displayMetrics.density
-    private val trackHeightPx = TRACK_HEIGHT_DP * density
+    private var trackHeightPx = TRACK_HEIGHT_DP * density
     private val selectionStrokePx = SELECTION_STROKE_DP * density
     private val selectionInsetPx = SELECTION_INSET_DP * density
     private val selectionCornerRadiusPx = SELECTION_CORNER_RADIUS_DP * density
@@ -109,6 +117,46 @@ class ChapterSeekBar @JvmOverloads constructor(
     fun setDpadSelected(selected: Boolean) {
         if (dpadSelected == selected) return
         dpadSelected = selected
+        invalidate()
+    }
+
+    /** Changes only the progress track thickness; the thumb keeps its original circular size. */
+    fun setTrackStyle(heightDp: Float, @DrawableRes drawableRes: Int) {
+        val heightPx = (heightDp * density).roundToInt().coerceAtLeast(1)
+        if (trackDrawableRes != drawableRes) {
+            trackDrawableRes = drawableRes
+            progressDrawable = ContextCompat.getDrawable(context, drawableRes)
+        }
+        if (trackHeightPx.roundToInt() != heightPx) {
+            trackHeightPx = heightPx.toFloat()
+        }
+        requestLayout()
+        invalidate()
+    }
+
+    internal fun setThumbStyle(
+        shape: PlayerSeekbarThumbShape,
+        sizeDp: Int,
+        offsetDp: Float,
+        glowEnabled: Boolean,
+        color: PlayerSeekbarThumbColor,
+    ) {
+        val sameGeometry = thumbShape == shape && thumbSizeDp == sizeDp
+        val sameAppearance = thumbGlowEnabled == glowEnabled && thumbColor == color
+        if (sameGeometry && sameAppearance) return
+        thumbShape = shape
+        thumbSizeDp = sizeDp
+        thumbGlowEnabled = glowEnabled
+        thumbColor = color
+        thumb = PlayerSeekbarThumbDrawable(context, shape, glowEnabled, color, sizeDp)
+        thumbOffset = (offsetDp * density).roundToInt()
+        requestLayout()
+        invalidate()
+    }
+
+    fun setChapterMarkersVisible(visible: Boolean) {
+        if (chapterMarkersVisible == visible) return
+        chapterMarkersVisible = visible
         invalidate()
     }
 
@@ -157,7 +205,7 @@ class ChapterSeekBar @JvmOverloads constructor(
 
     /** Draw chapter tick marks above the platform track. */
     private fun drawChapterMarkers(canvas: Canvas) {
-        if (chapterFractions.isEmpty()) return
+        if (!chapterMarkersVisible || chapterFractions.isEmpty()) return
 
         // Track spans from paddingLeft to (width - paddingRight).
         // AppCompatSeekBar pads the view by thumbOffset so the thumb isn't clipped.

@@ -3,39 +3,37 @@
     <item
         android:id="@android:id/background"
         android:gravity="center_vertical"
-        android:height="8dp">
+        android:height="4dp">
         <shape android:shape="rectangle">
             <solid android:color="#33FFFFFF" />
-            <corners android:radius="5dp" />
-            <size android:height="8dp" />
+            <corners android:radius="2dp" />
+            <size android:height="4dp" />
         </shape>
     </item>
-
     <item
         android:id="@android:id/secondaryProgress"
         android:gravity="center_vertical"
-        android:height="8dp">
+        android:height="4dp">
         <clip>
             <shape android:shape="rectangle">
                 <solid android:color="#55E3E7EB" />
-                <corners android:radius="5dp" />
-                <size android:height="8dp" />
+                <corners android:radius="2dp" />
+                <size android:height="4dp" />
             </shape>
         </clip>
     </item>
-
     <item
         android:id="@android:id/progress"
         android:gravity="center_vertical"
-        android:height="8dp">
+        android:height="4dp">
         <clip>
             <shape android:shape="rectangle">
                 <gradient
                     android:angle="0"
-                    android:startColor="?attr/mpvAccentDeep"
-                    android:endColor="?attr/mpvAccent" />
-                <corners android:radius="5dp" />
-                <size android:height="8dp" />
+                    android:endColor="?attr/mpvAccent"
+                    android:startColor="?attr/mpvAccentDeep" />
+                <corners android:radius="2dp" />
+                <size android:height="4dp" />
             </shape>
         </clip>
     </item>

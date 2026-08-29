@@ -186,10 +186,9 @@
                 android:layout_height="36dp"
                 android:layout_marginStart="2dp"
                 android:layout_marginEnd="2dp"
+                android:background="@null"
                 android:focusable="true"
                 android:focusableInTouchMode="false"
-                android:maxHeight="8dp"
-                android:minHeight="8dp"
                 android:progressDrawable="@drawable/seekbar_progress_tv"
                 android:splitTrack="false"
                 android:thumb="@drawable/seekbar_thumb_tv"
@@ -197,6 +196,7 @@
 
             <!-- Button row wrapper: reorderable icons on LEFT, time on RIGHT -->
             <LinearLayout
+                android:id="@+id/controlsContentRow"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
@@ -349,6 +349,7 @@
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/playbackTimeGroup"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:background="@drawable/bg_pill_purple"

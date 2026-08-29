@@ -1,0 +1,661 @@
+@file:Suppress("TooManyFunctions")
+
+package app.mpvnova.player
+
+import android.content.SharedPreferences
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.Button
+import android.widget.LinearLayout
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.preference.PreferenceManager
+import app.mpvnova.player.databinding.DialogPlayerTitleStyleControlBinding
+import app.mpvnova.player.databinding.DialogPlayerUiControlRowBinding
+import app.mpvnova.player.databinding.DialogPlayerUiCustomizationBinding
+
+private enum class PlayerUiEditorTab { PRESETS, SURFACE, LAYOUT, CONTROLS }
+
+internal fun MPVActivity.openPlayerUiCustomizationPanel() {
+    val restorePlayback = keepPlaybackForDialog()
+    val panel = DialogPlayerUiCustomizationBinding.inflate(layoutInflater)
+    val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
+    lateinit var dialog: AlertDialog
+    val controller = PlayerUiCustomizationPanelController(this, panel, preferences)
+
+    dialog = AlertDialog.Builder(this).setView(panel.root).create()
+    panel.playerUiDoneBtn.setOnClickListener { dialog.dismiss() }
+    dialog.setOnDismissListener {
+        restorePlayback()
+        applyPlayerUiCustomization()
+        refreshVisibleControlsTimeout()
+        reopenDrawerIfPending()
+    }
+    controller.bind()
+    UiFont.applyToViewTree(panel.root)
+    showWidePlayerDialog(
+        dialog,
+        PlayerDialogLayout(
+            widthFraction = 0.92f,
+            maxWidthDp = 1400f,
+            gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            verticalOffsetDp = 10f,
+            heightFraction = 0.72f,
+            maxHeightDp = 650f,
+        ),
+        PlayerDialogChrome.CONTROLS_PREVIEW,
+    )
+    binding.controls.visibility = View.VISIBLE
+    applyPlayerUiCustomization()
+    panel.playerUiPresetTab.requestFocus()
+}
+
+@Suppress("TooManyFunctions")
+private class PlayerUiCustomizationPanelController(
+    private val activity: MPVActivity,
+    private val panel: DialogPlayerUiCustomizationBinding,
+    private val preferences: SharedPreferences,
+) {
+    private var tab = PlayerUiEditorTab.PRESETS
+
+    fun bind() {
+        panel.playerUiPresetTab.setOnClickListener { select(PlayerUiEditorTab.PRESETS) }
+        panel.playerUiSurfaceTab.setOnClickListener { select(PlayerUiEditorTab.SURFACE) }
+        panel.playerUiLayoutTab.setOnClickListener { select(PlayerUiEditorTab.LAYOUT) }
+        panel.playerUiControlsTab.setOnClickListener { select(PlayerUiEditorTab.CONTROLS) }
+        panel.playerUiResetBtn.setOnClickListener { applyStyle(PlayerUiCustomization.DEFAULT) }
+        select(PlayerUiEditorTab.PRESETS)
+    }
+
+    private fun select(selected: PlayerUiEditorTab) {
+        tab = selected
+        mapOf(
+            PlayerUiEditorTab.PRESETS to panel.playerUiPresetTab,
+            PlayerUiEditorTab.SURFACE to panel.playerUiSurfaceTab,
+            PlayerUiEditorTab.LAYOUT to panel.playerUiLayoutTab,
+            PlayerUiEditorTab.CONTROLS to panel.playerUiControlsTab,
+        ).forEach { (candidate, button) ->
+            button.isSelected = candidate == selected
+            button.isActivated = candidate == selected
+        }
+        render()
+        panel.playerUiScroll.scrollTo(0, 0)
+    }
+
+    private fun render(focusTag: String? = null) {
+        panel.playerUiContent.removeAllViews()
+        when (tab) {
+            PlayerUiEditorTab.PRESETS -> renderPresets()
+            PlayerUiEditorTab.SURFACE -> renderSurface()
+            PlayerUiEditorTab.LAYOUT -> renderLayout()
+            PlayerUiEditorTab.CONTROLS -> renderControls()
+        }
+        val preset = playerUiPresetFor(activity.playerUiCustomization)
+        panel.playerUiPresetStatus.text = activity.getString(
+            R.string.player_ui_preset_status,
+            activity.getString(preset.labelRes()),
+        )
+        UiFont.applyToViewTree(panel.playerUiContent)
+        if (focusTag != null) {
+            panel.playerUiContent.findViewWithTag<View>(focusTag)?.requestFocus()
+        }
+    }
+
+    private fun renderPresets() {
+        val presets = listOf(
+            PlayerUiPreset.DEFAULT,
+            PlayerUiPreset.MINIMAL,
+            PlayerUiPreset.CINEMA,
+            PlayerUiPreset.COMPACT,
+            PlayerUiPreset.FLOATING,
+            PlayerUiPreset.EDGE_TO_EDGE,
+        )
+        presets.chunked(PRESETS_PER_ROW).forEach { presetRow ->
+            val row = newRow()
+            presetRow.forEach { preset ->
+                val button = Button(activity).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, PRESET_BUTTON_HEIGHT_DP.dp(), 1f).apply {
+                        marginStart = 5.dp()
+                        marginEnd = 5.dp()
+                    }
+                    background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
+                    isAllCaps = false
+                    setTextColor(activity.getColor(R.color.tv_text))
+                    text = activity.getString(preset.labelRes()) + "\n" +
+                        activity.getString(preset.summaryRes())
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    isSelected = playerUiPresetFor(activity.playerUiCustomization) == preset
+                    isActivated = isSelected
+                    tag = "preset:${preset.name}"
+                    setOnClickListener { view ->
+                        applyStyle(playerUiPresetStyle(preset), view.tag as String)
+                    }
+                }
+                row.addView(button)
+            }
+        }
+    }
+
+    private fun renderSurface() = renderEditorControls(
+        surfaceColorControls() + surfaceShapeControls(),
+    )
+
+    private fun surfaceColorControls() = listOf(
+            EditorControl(R.string.player_ui_surface_style,
+                { activity.getString(activity.playerUiCustomization.surface.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    surface = cycle(PlayerPanelSurface.entries, activity.playerUiCustomization.surface, delta),
+                )
+            },
+            EditorControl(R.string.player_ui_panel_opacity,
+                { percent(activity.playerUiCustomization.panelOpacityPercent) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    panelOpacityPercent = stepPlayerUiValue(
+                        activity.playerUiCustomization.panelOpacityPercent,
+                        delta,
+                        PERCENT_STEP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_scrim_strength,
+                { percent(activity.playerUiCustomization.scrimStrengthPercent) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    scrimStrengthPercent = stepPlayerUiValue(
+                        activity.playerUiCustomization.scrimStrengthPercent,
+                        delta,
+                        PERCENT_STEP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_gradient,
+                { toggleLabel(activity.playerUiCustomization.gradientEnabled) }) {
+                activity.playerUiCustomization.copy(
+                    gradientEnabled = !activity.playerUiCustomization.gradientEnabled,
+                )
+            },
+    )
+
+    private fun surfaceShapeControls() = listOf(
+            EditorControl(R.string.player_ui_panel_outline,
+                { toggleLabel(activity.playerUiCustomization.panelOutlineEnabled) }) {
+                activity.playerUiCustomization.copy(
+                    panelOutlineEnabled = !activity.playerUiCustomization.panelOutlineEnabled,
+                )
+            },
+            EditorControl(R.string.player_ui_panel_outline_width,
+                { dp(activity.playerUiCustomization.panelOutlineWidthDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    panelOutlineWidthDp = activity.playerUiCustomization.panelOutlineWidthDp + delta,
+                )
+            },
+            EditorControl(R.string.player_ui_corner_radius,
+                { dp(activity.playerUiCustomization.cornerRadiusDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    cornerRadiusDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.cornerRadiusDp,
+                        delta,
+                        RADIUS_STEP_DP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_panel_elevation,
+                { dp(activity.playerUiCustomization.panelElevationDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    panelElevationDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.panelElevationDp,
+                        delta,
+                        ELEVATION_STEP_DP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_button_treatment,
+                { activity.getString(activity.playerUiCustomization.buttonTreatment.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    buttonTreatment = cycle(
+                        PlayerButtonTreatment.entries,
+                        activity.playerUiCustomization.buttonTreatment,
+                        delta,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_icon_text_outline,
+                { toggleLabel(activity.playerUiCustomization.iconTextOutlineEnabled) }) {
+                activity.playerUiCustomization.copy(
+                    iconTextOutlineEnabled = !activity.playerUiCustomization.iconTextOutlineEnabled,
+                )
+            },
+    )
+
+    private fun renderLayout() = renderEditorControls(
+        layoutGeometryControls() + layoutSpacingControls() +
+            seekbarControls() + thumbControls() + timeControls() + controlRowControls(),
+    )
+
+    private fun layoutGeometryControls() = listOf(
+            EditorControl(R.string.player_ui_panel_width,
+                { percent(activity.playerUiCustomization.widthPercent) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    widthPercent = stepPlayerUiValue(
+                        activity.playerUiCustomization.widthPercent,
+                        delta,
+                        WIDTH_STEP_PERCENT,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_density,
+                { activity.getString(activity.playerUiCustomization.density.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    density = cycle(PlayerPanelDensity.entries, activity.playerUiCustomization.density, delta),
+                )
+            },
+            EditorControl(R.string.player_ui_vertical_offset,
+                { dp(activity.playerUiCustomization.verticalOffsetDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    verticalOffsetDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.verticalOffsetDp,
+                        delta,
+                        OFFSET_STEP_DP,
+                    ),
+                )
+            },
+    )
+
+    private fun layoutSpacingControls() = listOf(
+            EditorControl(R.string.player_ui_horizontal_padding,
+                { dp(activity.playerUiCustomization.horizontalPaddingDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    horizontalPaddingDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.horizontalPaddingDp,
+                        delta,
+                        PADDING_STEP_DP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_top_padding,
+                { dp(activity.playerUiCustomization.topPaddingDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    topPaddingDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.topPaddingDp,
+                        delta,
+                        PADDING_STEP_DP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_bottom_padding,
+                { dp(activity.playerUiCustomization.bottomPaddingDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    bottomPaddingDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.bottomPaddingDp,
+                        delta,
+                        PADDING_STEP_DP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_row_spacing,
+                { dp(activity.playerUiCustomization.rowSpacingDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    rowSpacingDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.rowSpacingDp,
+                        delta,
+                        ROW_SPACING_STEP_DP,
+                    ),
+                )
+            },
+    )
+
+    private fun seekbarControls() = listOf(
+        EditorControl(R.string.player_ui_seekbar_size,
+            { activity.getString(activity.playerUiCustomization.seekbarSize.labelRes()) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarSize = cycle(PlayerSeekbarSize.entries, activity.playerUiCustomization.seekbarSize, delta),
+            )
+        },
+        EditorControl(R.string.player_ui_chapter_markers,
+            { toggleLabel(activity.playerUiCustomization.chapterMarkersVisible) }) {
+            activity.playerUiCustomization.copy(
+                chapterMarkersVisible = !activity.playerUiCustomization.chapterMarkersVisible,
+            )
+        },
+        EditorControl(R.string.player_ui_seekbar_visibility,
+            { toggleLabel(activity.playerUiCustomization.seekbarVisible) }) {
+            activity.playerUiCustomization.copy(
+                seekbarVisible = !activity.playerUiCustomization.seekbarVisible,
+            )
+        },
+    )
+
+    private fun thumbControls() = listOf(
+        EditorControl(R.string.player_ui_seekbar_thumb_size,
+            { activity.getString(activity.playerUiCustomization.seekbarThumbSize.labelRes()) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarThumbSize = cycle(
+                    PlayerSeekbarThumbSize.entries,
+                    activity.playerUiCustomization.seekbarThumbSize,
+                    delta,
+                ),
+            )
+        },
+        EditorControl(R.string.player_ui_seekbar_thumb_shape,
+            { activity.getString(activity.playerUiCustomization.seekbarThumbShape.labelRes()) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarThumbShape = cycle(
+                    PlayerSeekbarThumbShape.entries,
+                    activity.playerUiCustomization.seekbarThumbShape,
+                    delta,
+                ),
+            )
+        },
+        EditorControl(R.string.player_ui_seekbar_thumb_glow,
+            { toggleLabel(activity.playerUiCustomization.seekbarThumbGlowEnabled) }) {
+            activity.playerUiCustomization.copy(
+                seekbarThumbGlowEnabled = !activity.playerUiCustomization.seekbarThumbGlowEnabled,
+            )
+        },
+        EditorControl(R.string.player_ui_seekbar_thumb_color,
+            { activity.playerSeekbarThumbColorLabel(activity.playerUiCustomization.seekbarThumbColor) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarThumbColor = cycle(
+                    PlayerSeekbarThumbColor.entries,
+                    activity.playerUiCustomization.seekbarThumbColor,
+                    delta,
+                ),
+            )
+        },
+    )
+
+    private fun timeControls() = listOf(
+            EditorControl(R.string.player_ui_time_visibility,
+                { toggleLabel(activity.playerUiCustomization.timeVisible) }) {
+                activity.playerUiCustomization.copy(
+                    timeVisible = !activity.playerUiCustomization.timeVisible,
+                )
+            },
+            EditorControl(R.string.player_ui_time_text_size,
+                { sp(activity.playerUiCustomization.timeTextSizeSp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    timeTextSizeSp = activity.playerUiCustomization.timeTextSizeSp + delta,
+                )
+            },
+            EditorControl(R.string.player_ui_time_position,
+                { activity.getString(activity.playerUiCustomization.timePosition.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    timePosition = cycle(
+                        PlayerTimePosition.entries,
+                        activity.playerUiCustomization.timePosition,
+                        delta,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_time_presentation,
+                { activity.getString(activity.playerUiCustomization.timePresentation.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    timePresentation = cycle(
+                        PlayerTimePresentation.entries,
+                        activity.playerUiCustomization.timePresentation,
+                        delta,
+                    ),
+                )
+            },
+    )
+
+    private fun controlRowControls() = listOf(
+            EditorControl(R.string.player_ui_control_alignment,
+                { activity.getString(activity.playerUiCustomization.controlAlignment.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    controlAlignment = cycle(
+                        PlayerControlAlignment.entries,
+                        activity.playerUiCustomization.controlAlignment,
+                        delta,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_control_size,
+                { activity.getString(activity.playerUiCustomization.controlSize.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    controlSize = cycle(
+                        PlayerControlSize.entries,
+                        activity.playerUiCustomization.controlSize,
+                        delta,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_ui_control_spacing,
+                { dp(activity.playerUiCustomization.controlSpacingDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    controlSpacingDp = activity.playerUiCustomization.controlSpacingDp + delta,
+                )
+            },
+    )
+
+    private fun renderEditorControls(controls: List<EditorControl>) {
+        controls.chunked(CONTROLS_PER_ROW).forEach { chunk ->
+            val row = newRow()
+            chunk.forEach { control ->
+                val binding = DialogPlayerTitleStyleControlBinding.inflate(
+                    LayoutInflater.from(activity), row, false,
+                )
+                binding.titleStyleControlLabel.setText(control.labelRes)
+                binding.titleStyleControlValue.text = control.value()
+                binding.titleStyleControlPrevious.tag = "editor:${control.labelRes}:previous"
+                binding.titleStyleControlNext.tag = "editor:${control.labelRes}:next"
+                binding.titleStyleControlPrevious.setOnClickListener { view ->
+                    applyStyle(control.adjust(-1), view.tag as String)
+                }
+                binding.titleStyleControlNext.setOnClickListener { view ->
+                    applyStyle(control.adjust(1), view.tag as String)
+                }
+                row.addView(binding.root)
+            }
+            repeat(CONTROLS_PER_ROW - chunk.size) {
+                row.addView(View(activity), LinearLayout.LayoutParams(0, 1, 1f))
+            }
+        }
+    }
+
+    private fun renderControls() {
+        activity.playerUiCustomization.controlOrder.forEach { control ->
+            val row = DialogPlayerUiControlRowBinding.inflate(
+                LayoutInflater.from(activity), panel.playerUiContent, false,
+            )
+            row.playerUiControlLabel.setText(control.labelRes)
+            row.playerUiControlVisibility.text = activity.getString(
+                when {
+                    !control.canHide -> R.string.player_ui_control_protected
+                    activity.playerUiCustomization.isControlVisible(control) -> R.string.player_ui_control_shown
+                    else -> R.string.player_ui_control_hidden
+                },
+            )
+            row.playerUiControlVisibility.isEnabled = true
+            row.playerUiControlVisibility.isClickable = control.canHide
+            row.playerUiControlVisibility.isFocusable = true
+            row.playerUiControlVisibility.isChecked =
+                activity.playerUiCustomization.isControlVisible(control)
+            row.playerUiControlVisibility.alpha = if (control.canHide) {
+                1f
+            } else {
+                PROTECTED_CONTROL_ALPHA
+            }
+            row.playerUiControlVisibility.tag = "control:${control.prefValue}:visibility"
+            row.playerUiControlLeft.tag = "control:${control.prefValue}:up"
+            row.playerUiControlRight.tag = "control:${control.prefValue}:down"
+            row.playerUiControlVisibility.setOnClickListener(
+                if (control.canHide) {
+                    View.OnClickListener { view ->
+                        val hidden = activity.playerUiCustomization.hiddenControls.toMutableSet()
+                        if (!hidden.add(control)) hidden.remove(control)
+                        applyStyle(
+                            activity.playerUiCustomization.copy(hiddenControls = hidden),
+                            view.tag as String,
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
+            val position = activity.playerUiCustomization.controlOrder.indexOf(control)
+            row.playerUiControlLeft.isEnabled = position > 0
+            row.playerUiControlRight.isEnabled = position < activity.playerUiCustomization.controlOrder.lastIndex
+            row.playerUiControlLeft.setOnClickListener { view ->
+                moveControl(control, -1, view.tag as String)
+            }
+            row.playerUiControlRight.setOnClickListener { view ->
+                moveControl(control, 1, view.tag as String)
+            }
+            panel.playerUiContent.addView(row.root)
+        }
+    }
+
+    private fun moveControl(control: PlayerBarControl, delta: Int, focusTag: String) {
+        val order = activity.playerUiCustomization.controlOrder.toMutableList()
+        val from = order.indexOf(control)
+        val to = (from + delta).coerceIn(0, order.lastIndex)
+        if (from == to) return
+        order.removeAt(from)
+        order.add(to, control)
+        applyStyle(activity.playerUiCustomization.copy(controlOrder = order), focusTag)
+    }
+
+    private fun applyStyle(style: PlayerUiCustomization, focusTag: String? = null) {
+        activity.playerUiCustomization = style.normalized()
+        PlayerUiCustomizationStore.write(preferences, activity.playerUiCustomization)
+        activity.applyPlayerUiCustomization()
+        render(focusTag)
+    }
+
+    private fun newRow() = LinearLayout(activity).apply {
+        layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT,
+        )
+        orientation = LinearLayout.HORIZONTAL
+        setPadding(0, ROW_PADDING_DP.dp(), 0, ROW_PADDING_DP.dp())
+        panel.playerUiContent.addView(this)
+    }
+
+    private fun percent(value: Int) = activity.getString(
+        R.string.player_ui_value_percent,
+        value.coerceIn(MIN_PERCENT, MAX_PERCENT),
+    )
+    private fun dp(value: Int) = activity.getString(R.string.player_ui_value_dp, value.coerceAtLeast(0))
+    private fun sp(value: Int) = activity.getString(R.string.player_ui_value_sp, value.coerceAtLeast(0))
+    private fun toggleLabel(value: Boolean) = activity.getString(
+        if (value) R.string.player_ui_value_on else R.string.player_ui_value_off,
+    )
+    private fun Int.dp() = (this * activity.resources.displayMetrics.density).toInt()
+}
+
+private data class EditorControl(
+    val labelRes: Int,
+    val value: () -> String,
+    val adjust: (Int) -> PlayerUiCustomization,
+)
+
+private fun PlayerUiPreset.labelRes() = when (this) {
+    PlayerUiPreset.DEFAULT -> R.string.player_ui_preset_default
+    PlayerUiPreset.MINIMAL -> R.string.player_ui_preset_minimal
+    PlayerUiPreset.CINEMA -> R.string.player_ui_preset_cinema
+    PlayerUiPreset.COMPACT -> R.string.player_ui_preset_compact
+    PlayerUiPreset.FLOATING -> R.string.player_ui_preset_floating
+    PlayerUiPreset.EDGE_TO_EDGE -> R.string.player_ui_preset_edge_to_edge
+    PlayerUiPreset.CUSTOM -> R.string.player_ui_preset_custom
+}
+
+private fun PlayerUiPreset.summaryRes() = when (this) {
+    PlayerUiPreset.DEFAULT -> R.string.player_ui_preset_default_summary
+    PlayerUiPreset.MINIMAL -> R.string.player_ui_preset_minimal_summary
+    PlayerUiPreset.CINEMA -> R.string.player_ui_preset_cinema_summary
+    PlayerUiPreset.COMPACT -> R.string.player_ui_preset_compact_summary
+    PlayerUiPreset.FLOATING -> R.string.player_ui_preset_floating_summary
+    PlayerUiPreset.EDGE_TO_EDGE -> R.string.player_ui_preset_edge_to_edge_summary
+    PlayerUiPreset.CUSTOM -> R.string.player_ui_preset_default_summary
+}
+
+private fun PlayerPanelSurface.labelRes() = when (this) {
+    PlayerPanelSurface.GLASS -> R.string.player_ui_surface_glass
+    PlayerPanelSurface.FLAT -> R.string.player_ui_surface_flat
+    PlayerPanelSurface.TRANSPARENT -> R.string.player_ui_surface_transparent
+}
+
+private fun PlayerPanelDensity.labelRes() = when (this) {
+    PlayerPanelDensity.COMPACT -> R.string.player_ui_density_compact
+    PlayerPanelDensity.STANDARD -> R.string.player_ui_density_standard
+    PlayerPanelDensity.COMFORTABLE -> R.string.player_ui_density_comfortable
+}
+
+private fun PlayerSeekbarSize.labelRes() = when (this) {
+    PlayerSeekbarSize.THIN -> R.string.player_ui_seekbar_thin
+    PlayerSeekbarSize.STANDARD -> R.string.player_ui_seekbar_standard
+    PlayerSeekbarSize.THICK -> R.string.player_ui_seekbar_thick
+}
+
+private fun PlayerSeekbarThumbSize.labelRes() = when (this) {
+    PlayerSeekbarThumbSize.SMALL -> R.string.player_ui_thumb_small
+    PlayerSeekbarThumbSize.STANDARD -> R.string.player_ui_thumb_standard
+    PlayerSeekbarThumbSize.LARGE -> R.string.player_ui_thumb_large
+}
+
+private fun PlayerSeekbarThumbShape.labelRes() = when (this) {
+    PlayerSeekbarThumbShape.RING -> R.string.player_ui_thumb_ring
+    PlayerSeekbarThumbShape.SOLID -> R.string.player_ui_thumb_solid
+    PlayerSeekbarThumbShape.DIAMOND -> R.string.player_ui_thumb_diamond
+    PlayerSeekbarThumbShape.PILL -> R.string.player_ui_thumb_pill
+}
+
+private fun MPVActivity.playerSeekbarThumbColorLabel(color: PlayerSeekbarThumbColor): String = when (color) {
+    PlayerSeekbarThumbColor.APP_COLOR -> getString(R.string.player_title_style_value_app_color)
+    PlayerSeekbarThumbColor.BLACK -> getString(R.string.player_title_style_value_black)
+    else -> appearanceColorChoices.firstOrNull { it.value == color.appearanceValue }
+        ?.let { choice -> getString(choice.labelRes) }
+        ?: getString(R.string.appearance_theme_white)
+}
+
+private fun PlayerTimePosition.labelRes() = when (this) {
+    PlayerTimePosition.START -> R.string.player_ui_time_position_start
+    PlayerTimePosition.END -> R.string.player_ui_time_position_end
+}
+
+private fun PlayerTimePresentation.labelRes() = when (this) {
+    PlayerTimePresentation.PILL -> R.string.player_ui_time_presentation_pill
+    PlayerTimePresentation.OUTLINE -> R.string.player_ui_time_presentation_outline
+    PlayerTimePresentation.PLAIN -> R.string.player_ui_time_presentation_plain
+}
+
+private fun PlayerButtonTreatment.labelRes() = when (this) {
+    PlayerButtonTreatment.MINIMAL -> R.string.player_ui_buttons_minimal
+    PlayerButtonTreatment.SOFT -> R.string.player_ui_buttons_soft
+    PlayerButtonTreatment.BLOCK -> R.string.player_ui_buttons_block
+}
+
+private fun PlayerControlAlignment.labelRes() = when (this) {
+    PlayerControlAlignment.START -> R.string.player_ui_alignment_start
+    PlayerControlAlignment.CENTER -> R.string.player_ui_alignment_center
+    PlayerControlAlignment.END -> R.string.player_ui_alignment_end
+}
+
+private fun PlayerControlSize.labelRes() = when (this) {
+    PlayerControlSize.COMPACT -> R.string.player_ui_control_size_compact
+    PlayerControlSize.STANDARD -> R.string.player_ui_control_size_standard
+    PlayerControlSize.LARGE -> R.string.player_ui_control_size_large
+}
+
+private fun <T> cycle(values: List<T>, current: T, delta: Int): T {
+    val index = values.indexOf(current).coerceAtLeast(0)
+    return values[(index + delta).floorMod(values.size)]
+}
+
+private fun Int.floorMod(divisor: Int): Int = ((this % divisor) + divisor) % divisor
+
+private const val PRESET_BUTTON_HEIGHT_DP = 70
+private const val PRESETS_PER_ROW = 3
+private const val PERCENT_STEP = 5
+private const val RADIUS_STEP_DP = 2
+private const val WIDTH_STEP_PERCENT = 2
+private const val OFFSET_STEP_DP = 4
+private const val PADDING_STEP_DP = 2
+private const val ROW_SPACING_STEP_DP = 2
+private const val ELEVATION_STEP_DP = 2
+private const val CONTROLS_PER_ROW = 4
+private const val ROW_PADDING_DP = 3
+private const val PROTECTED_CONTROL_ALPHA = 0.68f

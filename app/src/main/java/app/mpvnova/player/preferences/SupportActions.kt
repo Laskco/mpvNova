@@ -20,6 +20,7 @@ import app.mpvnova.player.MPVView
 import app.mpvnova.player.MpvLogRingBuffer
 import app.mpvnova.player.NativeLibraryVersion
 import app.mpvnova.player.PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK
+import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.R
 import app.mpvnova.player.Utils
 import app.mpvnova.player.toShieldDecoderFallback
@@ -132,6 +133,7 @@ object SupportActions {
         prefs.edit().apply {
             PLAYER_UI_KEYS.forEach(::remove)
         }.apply()
+        PlayerUiCustomizationStore.reset(prefs)
         Toast.makeText(activity, R.string.support_reset_player_ui_done, Toast.LENGTH_SHORT).show()
     }
 

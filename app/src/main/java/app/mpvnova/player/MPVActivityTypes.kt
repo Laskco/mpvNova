@@ -15,6 +15,7 @@ internal data class PlayerDialogLayout(
 internal enum class PlayerDialogChrome {
     HIDE_ALL,
     TITLE_AND_CLOCK_PREVIEW,
+    CONTROLS_PREVIEW,
 }
 
 internal enum class TrackPanelReturnFocus {

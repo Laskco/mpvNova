@@ -47,7 +47,7 @@ private fun MPVActivity.resetControlsAlphaIfNeeded(overlayNeedsRestore: Boolean)
         binding.controls.alpha < 1f ||
         binding.topControls.alpha < 1f ||
         binding.playerTitleOverlay.alpha < 1f ||
-        (!isTvUiMode && binding.controlsScrim.alpha < 1f) ||
+        (playerControlsScrimEnabled() && binding.controlsScrim.alpha < 1f) ||
         binding.timeInfoPanel.alpha < 1f ||
         binding.statsTextView.alpha < 1f
     if (!needReset) return
@@ -76,7 +76,9 @@ private fun MPVActivity.performFirstShowSetup() {
     binding.topControls.setVisibilityIfChanged(View.VISIBLE)
     // The player panel already supplies its own contrast. A second, full-width
     // translucent scrim forces the Shield to blend a large region over video.
-    binding.controlsScrim.setVisibilityIfChanged(if (isTvUiMode) View.GONE else View.VISIBLE)
+    binding.controlsScrim.setVisibilityIfChanged(
+        if (playerControlsScrimEnabled()) View.VISIBLE else View.GONE,
+    )
     refreshTimeInfoPanelVisibility()
     updatePlayerTitleOverlay()
     if (statsFPS) {
@@ -106,7 +108,7 @@ internal fun MPVActivity.keepVisibleControlsFresh() {
         binding.controls.alpha >= 1f &&
         binding.topControls.alpha >= 1f &&
         binding.playerTitleOverlay.alpha >= 1f &&
-        (isTvUiMode || binding.controlsScrim.alpha >= 1f)
+        (!playerControlsScrimEnabled() || binding.controlsScrim.alpha >= 1f)
     if (controlsOverlayIsFullyVisible() && controlsAreOpaque) {
         refreshVisibleControlsTimeout()
     } else {

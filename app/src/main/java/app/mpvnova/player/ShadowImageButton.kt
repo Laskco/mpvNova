@@ -91,9 +91,16 @@ open class ShadowImageButton @JvmOverloads constructor(
     defStyleAttr: Int = androidx.appcompat.R.attr.imageButtonStyle,
 ) : AppCompatImageButton(context, attrs, defStyleAttr) {
     private val iconPainter = OutlinedIconPainter(this)
+    var outlineAndShadowEnabled: Boolean = true
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
 
     override fun onDraw(canvas: Canvas) {
-        iconPainter.draw(canvas)
+        if (outlineAndShadowEnabled)
+            iconPainter.draw(canvas)
         super.onDraw(canvas)
     }
 }

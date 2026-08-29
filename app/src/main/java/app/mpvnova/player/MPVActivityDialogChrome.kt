@@ -19,12 +19,14 @@ internal fun MPVActivity.applyPlayerDialogChrome(
 ) {
     fadeHandler.removeCallbacks(fadeRunnable)
     val hiddenViews = buildList {
-        add(binding.controls)
-        add(binding.controlsScrim)
         add(binding.topControls)
         add(binding.statsTextView)
         add(binding.skipSegmentBtn)
-        if (chrome == PlayerDialogChrome.HIDE_ALL) {
+        if (chrome != PlayerDialogChrome.CONTROLS_PREVIEW) {
+            add(binding.controls)
+            add(binding.controlsScrim)
+        }
+        if (chrome != PlayerDialogChrome.TITLE_AND_CLOCK_PREVIEW) {
             add(binding.playerTitleOverlay)
             add(binding.timeInfoPanel)
         }

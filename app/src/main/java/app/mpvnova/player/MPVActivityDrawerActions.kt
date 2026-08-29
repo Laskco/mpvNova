@@ -154,6 +154,7 @@ private fun MPVActivity.handleInterfaceDrawerAction(
     when (action) {
         PlayerDrawerAction.UI_FONT -> pickUiFont()
         PlayerDrawerAction.TITLE_STYLE -> openPlayerTitleStylePanel()
+        PlayerDrawerAction.PLAYER_UI_STYLE -> openPlayerUiCustomizationPanel()
         PlayerDrawerAction.SCREENSAVER -> openScreensaverPanel()
         else -> Unit
     }

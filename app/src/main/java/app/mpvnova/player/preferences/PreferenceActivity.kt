@@ -55,6 +55,7 @@ import app.mpvnova.player.FilePickerActivity
 import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
+import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.R
 import app.mpvnova.player.SCREENSAVER_CHOICES_SEC
 import app.mpvnova.player.SCREENSAVER_CUSTOM_ID
@@ -925,13 +926,21 @@ class PreferenceActivity : AppCompatActivity(),
         private fun bindSeekDisplayExclusivity() {
             val hide = findPreference<SwitchPreferenceCompat>("hide_controls_while_seeking")
             val minimal = findPreference<SwitchPreferenceCompat>("minimal_seekbar_while_seeking")
+            val minimalForced = !PlayerUiCustomizationStore.read(
+                PreferenceManager.getDefaultSharedPreferences(requireContext()),
+            ).seekbarVisible
+            if (minimalForced) {
+                hide?.isChecked = false
+                minimal?.isChecked = true
+            }
             hide?.isEnabled = minimal?.isChecked != true
-            minimal?.isEnabled = hide?.isChecked != true
+            minimal?.isEnabled = !minimalForced && hide?.isChecked != true
             hide?.setOnPreferenceChangeListener { _, newValue ->
-                minimal?.isEnabled = newValue != true
+                minimal?.isEnabled = !minimalForced && newValue != true
                 true
             }
             minimal?.setOnPreferenceChangeListener { _, newValue ->
+                if (minimalForced && newValue != true) return@setOnPreferenceChangeListener false
                 hide?.isEnabled = newValue != true
                 true
             }
