@@ -81,6 +81,13 @@ internal fun MPVActivity.updateSelectedDpadButton() {
     }
 }
 
+internal fun MPVActivity.parkPlayerFrameworkFocus() {
+    // Player control highlights are driven by btnSelected. Keep Android focus on
+    // the neutral surface so a dismissed dialog cannot also highlight a button.
+    binding.outside.isFocusable = true
+    binding.outside.requestFocus()
+}
+
 internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
     // Override libmpv's defaults for mpvNova-specific behavior.
     var unhandled = 0

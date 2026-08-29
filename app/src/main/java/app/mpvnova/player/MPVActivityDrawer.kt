@@ -77,8 +77,7 @@ private fun MPVActivity.highlightTopMenuAfterDrawerClose() {
     eventUiHandler.post {
         // Dialog focus can otherwise remain on the cog while btnSelected moves
         // through the player bar, producing two simultaneous highlights.
-        binding.outside.isFocusable = true
-        binding.outside.requestFocus()
+        parkPlayerFrameworkFocus()
         val controls = dpadButtons()
         val gearIdx = controls.indexOf(binding.topMenuBtn)
         if (gearIdx >= 0) {

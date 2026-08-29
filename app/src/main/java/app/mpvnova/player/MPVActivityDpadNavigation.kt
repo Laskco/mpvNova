@@ -50,14 +50,12 @@ internal fun MPVActivity.requestFirstControlFocusIfNeeded() {
 }
 
 internal fun MPVActivity.interceptDpadActivation(ev: KeyEvent, controls: List<View>): Boolean {
-    val activatesPausedSeekbar =
+    val activatesSeekbar =
         (ev.keyCode == KeyEvent.KEYCODE_DPAD_LEFT || ev.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) &&
-            keepControlsVisibleWhilePaused &&
-            (player.paused ?: psc.pause) &&
             !seekKeysUseInputConf &&
             controls.firstOrNull() === binding.playbackSeekbar
     return when {
-        activatesPausedSeekbar -> {
+        activatesSeekbar -> {
             if (ev.action == KeyEvent.ACTION_DOWN) {
                 btnSelected = 0
                 updateSelectedDpadButton()
