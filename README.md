@@ -17,6 +17,7 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 
 - TV-first home screen and launcher integration
 - Remote-friendly player HUD with strong D-pad focus behavior
+- Live player bar customization with presets, sizing, surfaces, seekbar styling, and control ordering
 - Custom subtitle, audio, chapter, decoder, video-adjustment, advanced playback, and settings panels
 - Managed GPU shaders with in-app importing, ordering, enabling, refreshing, and removal
 - Live clock and title customization with independent styling and layout controls
@@ -56,6 +57,10 @@ For mobile-focused Android mpv options, use projects such as [mpvEx](https://git
 
 <div align="center">
   <img src="docs/screenshots/player-controls.png" alt="Player UI with updated decoder badge and audio controls" width="96%" />
+</div>
+
+<div align="center">
+  <img src="docs/screenshots/player-ui-customization.png" alt="Player UI customization with a live player bar preview" width="96%" />
 </div>
 
 <div align="center">
@@ -123,6 +128,7 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 
 - Android TV, Google TV, and Fire OS launcher support with leanback entry points, TV banner assets, and a couch-first home screen
 - Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
+- Live player bar customization with six presets, panel surfaces, opacity, backdrop, outline, size, spacing, seekbar and scrubber styling, playback-time layout, and reorderable optional controls; Play, Chapters, Audio, and Subtitles remain protected
 - Live clock and title customization for layout, fonts, sizing, weight, spacing, colors, text case, outlines, shadows, background plates, and visibility
 - Interface font selection with bundled typefaces and immediate updates across the app
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
