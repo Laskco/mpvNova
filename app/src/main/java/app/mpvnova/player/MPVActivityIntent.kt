@@ -57,7 +57,7 @@ internal fun MPVActivity.resolveUri(data: Uri): String? {
         "data" -> "data://${data.schemeSpecificPart}"
         "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
         "tcp", "udp", "lavf", "ftp"
-        -> data.toString()
+        -> encodeUnsafeNetworkUrlCharacters(data.toString())
         else -> null
     }
 
@@ -65,6 +65,32 @@ internal fun MPVActivity.resolveUri(data: Uri): String? {
         Log.e(MPV_ACTIVITY_TAG, "unknown scheme: ${data.scheme}")
     return filepath
 }
+
+internal fun encodeUnsafeNetworkUrlCharacters(value: String): String {
+    if (value.none(::isUnsafeNetworkUrlCharacter)) return value
+
+    return buildString(value.length) {
+        value.forEach { character ->
+            if (isUnsafeNetworkUrlCharacter(character)) {
+                val code = character.code
+                append('%')
+                append(URL_HEX_DIGITS[code ushr URL_NIBBLE_BITS])
+                append(URL_HEX_DIGITS[code and URL_LOW_NIBBLE_MASK])
+            } else {
+                append(character)
+            }
+        }
+    }
+}
+
+private fun isUnsafeNetworkUrlCharacter(character: Char): Boolean =
+    character.code <= ASCII_CONTROL_OR_SPACE_MAX || character.code == ASCII_DELETE
+
+private const val URL_HEX_DIGITS = "0123456789ABCDEF"
+private const val URL_NIBBLE_BITS = 4
+private const val URL_LOW_NIBBLE_MASK = 0x0f
+private const val ASCII_CONTROL_OR_SPACE_MAX = 0x20
+private const val ASCII_DELETE = 0x7f
 
 internal fun MPVActivity.translateContentUri(uri: Uri): String {
     Log.v(MPV_ACTIVITY_TAG, "Resolving content URI: $uri")
