@@ -62,6 +62,7 @@ private val DOUBLE_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
 
 private val STRING_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "speed" to { updateSpeedButton() },
+    "video-params/gamma" to { applyFireTvVideoEdgeCropIfNeeded() },
     "current-vo" to {
         updateDecoderButton()
         updateGpuNextRetryConfirmation()
