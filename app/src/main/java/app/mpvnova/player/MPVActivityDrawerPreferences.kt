@@ -75,10 +75,9 @@ private fun MPVActivity.handleDrawerInterfacePreference(
             controlsAtBottom = newValue
             onConfigurationChanged(resources.configuration)
         }
-        PlayerDrawerPreference.EXIT_DOUBLE_BACK -> {
-            exitWithDoubleBack = newValue
-            lastBackPressMs = 0L
-        }
+        PlayerDrawerPreference.BACK_HIDES_CONTROLS,
+        PlayerDrawerPreference.EXIT_DOUBLE_BACK ->
+            handleDrawerBackPreference(preference, newValue)
         PlayerDrawerPreference.DPAD_UP_JUMPS_TOP -> dpadUpJumpsToTopControls = newValue
         PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING -> hideControlsWhileSeeking = newValue
         PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING -> {
@@ -87,6 +86,18 @@ private fun MPVActivity.handleDrawerInterfacePreference(
         }
         else -> Unit
     }
+}
+
+private fun MPVActivity.handleDrawerBackPreference(
+    preference: PlayerDrawerPreference,
+    newValue: Boolean,
+) {
+    when (preference) {
+        PlayerDrawerPreference.BACK_HIDES_CONTROLS -> backHidesControlsFirst = newValue
+        PlayerDrawerPreference.EXIT_DOUBLE_BACK -> exitWithDoubleBack = newValue
+        else -> Unit
+    }
+    lastBackPressMs = 0L
 }
 
 private fun MPVActivity.handleDrawerVideoPreference(

@@ -25,21 +25,7 @@ internal fun MPVActivity.readPlaybackSettings(
     readDelayDefaults(prefs)
     fastSeekEnabled = prefs.getBoolean("fast_seek_enabled", false)
     readScreensaverSettings(prefs)
-    controlsAtBottom = prefs.getBoolean("bottom_controls", true)
-    showMediaTitle = prefs.getBoolean("display_media_title", true)
-    playerTitleStyle = PlayerTitleStyleStore.read(prefs)
-    showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
-    showClockDate = prefs.getBoolean("display_clock_date", false)
-    showClockOnPause = prefs.getBoolean("display_clock_on_pause", false)
-    force24HourClock = prefs.getBoolean("display_clock_24_hour", false)
-    controlsDisplayTimeoutMs = parseControlsTimeout(
-        prefs.getString("player_controls_timeout", DEFAULT_CONTROLS_DISPLAY_TIMEOUT.toString())
-    )
-    keepControlsVisibleWhilePaused = prefs.getBoolean("keep_controls_visible_paused", false)
-    exitWithDoubleBack = prefs.getBoolean("exit_with_double_back", false)
-    dpadUpJumpsToTopControls = prefs.getBoolean("dpad_up_jumps_to_top_controls", false)
-    hideControlsWhileSeeking = prefs.getBoolean("hide_controls_while_seeking", false)
-    minimalSeekbarWhileSeeking = prefs.getBoolean("minimal_seekbar_while_seeking", false)
+    readPlayerUiSettings(prefs)
     remoteNextChapterKeyCode = remoteButtonKeyCode(prefs.getString(
         PREF_REMOTE_NEXT_CHAPTER_BUTTON,
         REMOTE_BUTTON_DISABLED
@@ -54,6 +40,18 @@ internal fun MPVActivity.readPlaybackSettings(
         getRemember = { key -> prefs.getBoolean(key, false) },
         getValue = { key -> prefs.getInt(key, VIDEO_ADJUSTMENT_DEFAULT_INT) }
     )
+    val storedVideoFilterPreset = prefs.getString(
+        PREF_VIDEO_FILTER_PRESET,
+        VideoFilterPreset.NONE.prefValue,
+    ) ?: VideoFilterPreset.NONE.prefValue
+    videoFilterPresetId = when {
+        !prefs.contains(PREF_VIDEO_FILTER_PRESET) &&
+            VIDEO_FILTER_ADJUSTMENTS.any { prefs.getBoolean(it.rememberKey, false) } ->
+            VIDEO_FILTER_PRESET_CUSTOM
+        VideoFilterPreset.fromPref(storedVideoFilterPreset) != null -> storedVideoFilterPreset
+        storedVideoFilterPreset == VIDEO_FILTER_PRESET_CUSTOM -> VIDEO_FILTER_PRESET_CUSTOM
+        else -> VideoFilterPreset.NONE.prefValue
+    }
     useTimeRemaining = prefs.getBoolean("use_time_remaining", false)
     ignoreAudioFocus = prefs.getBoolean("ignore_audio_focus", false)
     playlistExitWarning = prefs.getBoolean("playlist_exit_warning", true)

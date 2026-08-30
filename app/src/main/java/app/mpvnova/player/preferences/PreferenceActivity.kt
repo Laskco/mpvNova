@@ -56,6 +56,7 @@ import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
 import app.mpvnova.player.PlayerUiCustomizationStore
+import app.mpvnova.player.PREF_VIDEO_FILTER_PRESET
 import app.mpvnova.player.R
 import app.mpvnova.player.SCREENSAVER_CHOICES_SEC
 import app.mpvnova.player.SCREENSAVER_CUSTOM_ID
@@ -67,6 +68,7 @@ import app.mpvnova.player.ShaderManagerDialog
 import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.UiFont
 import app.mpvnova.player.UserShaderManager
+import app.mpvnova.player.VideoFilterPreset
 import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
@@ -75,6 +77,7 @@ import app.mpvnova.player.AppearanceColorChoice
 import app.mpvnova.player.openDocumentChooser
 import app.mpvnova.player.shaderImportUrisFromResult
 import app.mpvnova.player.appearanceColorChoices
+import app.mpvnova.player.writeVideoFilterPreset
 import app.mpvnova.player.databinding.ActivitySettingsBinding
 import java.io.File
 
@@ -852,6 +855,45 @@ class PreferenceActivity : AppCompatActivity(),
             }
 
         override fun onPreferencesLoaded() {
+            bindVideoFilterPresetPreference()
+            bindShaderManagerPreference()
+        }
+
+        private fun bindVideoFilterPresetPreference() {
+            val preference = findPreference<Preference>(PREF_VIDEO_FILTER_PRESET) ?: return
+            val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+            fun selectedPreset(): VideoFilterPreset? = VideoFilterPreset.fromPref(
+                prefs.getString(PREF_VIDEO_FILTER_PRESET, VideoFilterPreset.NONE.prefValue)
+            )
+            fun updateSummary() {
+                val preset = selectedPreset()
+                preference.summary = if (preset != null) {
+                    getString(preset.titleRes)
+                } else {
+                    getString(R.string.video_filter_preset_custom)
+                }
+            }
+            updateSummary()
+            preference.setOnPreferenceClickListener {
+                val selected = selectedPreset()
+                showSettingsChoiceDialog(
+                    getString(R.string.video_filter_presets_title),
+                    VideoFilterPreset.entries.map { preset ->
+                        SettingsChoiceItem(
+                            title = getString(preset.titleRes),
+                            detail = getString(preset.detailRes),
+                            checked = preset == selected,
+                        ) {
+                            writeVideoFilterPreset(prefs, preset)
+                            updateSummary()
+                        }
+                    },
+                )
+                true
+            }
+        }
+
+        private fun bindShaderManagerPreference() {
             val shaderPreference = findPreference<Preference>("managed_shaders") ?: return
             fun updateSummary() {
                 val shaders = UserShaderManager.shaders(requireContext())

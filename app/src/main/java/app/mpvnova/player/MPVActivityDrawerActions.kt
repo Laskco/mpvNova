@@ -26,6 +26,7 @@ private fun MPVActivity.handleProcessingDrawerAction(
 ) {
     dismissDrawerExpectingReopen(dismiss)
     when (action) {
+        PlayerDrawerAction.FILTER_PRESETS -> pickVideoFilterPreset()
         PlayerDrawerAction.UPSCALING_FILTER -> pickVideoScaler(VideoScalerSetting.UPSCALING)
         PlayerDrawerAction.DOWNSCALING_FILTER -> pickVideoScaler(VideoScalerSetting.DOWNSCALING)
         PlayerDrawerAction.DEBANDING -> pickVideoDebanding()

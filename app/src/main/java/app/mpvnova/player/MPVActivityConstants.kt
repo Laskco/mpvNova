@@ -181,6 +181,7 @@ internal const val SQUARE_ASPECT_RATIO = 1
 internal const val PIP_ASPECT_RATIO_SCALE = 10_000
 internal const val REMOTE_ACTION_EMPTY_TEXT = ""
 internal const val PREF_REMOTE_NEXT_CHAPTER_BUTTON = "remote_next_chapter_button"
+internal const val PREF_BACK_HIDES_CONTROLS_FIRST = "back_hides_controls_first"
 internal const val REMOTE_BUTTON_DISABLED = "off"
 internal const val BOOST_LIMIT_LIGHT_DB = 4
 internal const val BOOST_LIMIT_MODERATE_DB = 8

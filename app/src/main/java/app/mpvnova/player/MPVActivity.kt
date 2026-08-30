@@ -302,7 +302,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var force24HourClock = false
     internal var controlsDisplayTimeoutMs = DEFAULT_CONTROLS_DISPLAY_TIMEOUT
     internal var keepControlsVisibleWhilePaused = false
-    internal var exitWithDoubleBack = false
+    internal var backHidesControlsFirst = false
+    internal var exitWithDoubleBack = true
     internal var lastBackPressMs = 0L
     internal var dpadUpJumpsToTopControls = false
     internal var hideControlsWhileSeeking = false
@@ -342,12 +343,17 @@ open class MPVActivity : AppCompatActivity() {
     internal var playerScreenBrightnessActive = false
     internal var rememberPlayerScreenBrightness = false
     internal var playerScreenBrightnessPercent = DEFAULT_PLAYER_SCREEN_BRIGHTNESS_PERCENT
+    internal var rememberVideoBrightness = false
+    internal var videoBrightnessValue = VIDEO_ADJUSTMENT_DEFAULT_INT
     internal var rememberVideoContrast = false
     internal var videoContrastValue = VIDEO_ADJUSTMENT_DEFAULT_INT
     internal var rememberVideoGamma = false
     internal var videoGammaValue = VIDEO_ADJUSTMENT_DEFAULT_INT
     internal var rememberVideoSaturation = false
     internal var videoSaturationValue = VIDEO_ADJUSTMENT_DEFAULT_INT
+    internal var rememberVideoHue = false
+    internal var videoHueValue = VIDEO_ADJUSTMENT_DEFAULT_INT
+    internal var videoFilterPresetId = VideoFilterPreset.NONE.prefValue
     internal var useTimeRemaining = false
     internal var pendingPlayerTitleSource: String? = null
     internal var pendingItemTitle: String? = null

@@ -4,6 +4,7 @@
         <app.mpvnova.player.preferences.ScalerDialogPreference android:key="video_downscale" android:summary="" android:title="@string/pref_video_downscale_title" app:entries="@array/scaler_list" app:iconSpaceReserved="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/settings_category_motion_cleanup" app:iconSpaceReserved="false">
+        <Preference android:key="video_filter_preset" android:summary="@string/video_filter_presets_summary" android:title="@string/video_filter_presets_title" app:iconSpaceReserved="false" />
         <ListPreference android:defaultValue="" android:entries="@array/deband_entries" android:entryValues="@array/deband_values" android:key="video_debanding" android:summary="@string/pref_video_debanding_summary" android:title="@string/pref_video_debanding_title" app:iconSpaceReserved="false" />
         <app.mpvnova.player.preferences.InterpolationDialogPreference android:dialogMessage="@string/pref_video_interpolation_message" android:key="video" android:summary="" android:title="@string/pref_video_interpolation_title" app:iconSpaceReserved="false" app:sync_default="@string/pref_video_interpolation_sync_default" app:sync_entries="@array/video_sync" />
         <app.mpvnova.player.preferences.ScalerDialogPreference android:dialogMessage="@string/pref_video_tscale_message" android:key="video_tscale" android:summary="@string/pref_video_tscale_summary" android:title="@string/pref_video_tscale_title" app:entries="@array/temporal_scaler_list" app:iconSpaceReserved="false" />

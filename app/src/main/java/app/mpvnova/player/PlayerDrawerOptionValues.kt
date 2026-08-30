@@ -7,6 +7,7 @@ internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String =
         decoderModeCompactLabel(mode)
     }
     PlayerDrawerOption.SHIELD_FALLBACK -> shieldFallbackOption(shieldDecoderFallback).compactLabel
+    PlayerDrawerOption.FILTER_PRESETS -> videoFilterPresetLabel()
     PlayerDrawerOption.UPSCALING_FILTER -> videoScalerDrawerValue(VideoScalerSetting.UPSCALING)
     PlayerDrawerOption.DOWNSCALING_FILTER -> videoScalerDrawerValue(VideoScalerSetting.DOWNSCALING)
     PlayerDrawerOption.DEBANDING -> videoDebandingDrawerValue()

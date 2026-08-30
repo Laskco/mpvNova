@@ -11,7 +11,8 @@
         <ListPreference android:defaultValue="@string/pref_player_controls_timeout_default" android:entries="@array/player_controls_timeout_entries" android:entryValues="@array/player_controls_timeout_values" android:key="player_controls_timeout" android:summary="@string/pref_player_controls_timeout_summary" android:title="@string/pref_player_controls_timeout_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="keep_controls_visible_paused" android:summary="@string/pref_keep_controls_visible_paused_summary" android:title="@string/pref_keep_controls_visible_paused_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="autopause_controls_overlay" android:summary="@string/pref_autopause_controls_overlay_summary" android:title="@string/pref_autopause_controls_overlay_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="false" android:key="exit_with_double_back" android:summary="@string/pref_exit_with_double_back_summary" android:title="@string/pref_exit_with_double_back_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="back_hides_controls_first" android:summary="@string/pref_back_hides_controls_summary" android:title="@string/pref_back_hides_controls_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="exit_with_double_back" android:summary="@string/pref_exit_with_double_back_summary" android:title="@string/pref_exit_with_double_back_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="dpad_up_jumps_to_top_controls" android:summary="@string/pref_dpad_up_jumps_top_summary" android:title="@string/pref_dpad_up_jumps_top_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

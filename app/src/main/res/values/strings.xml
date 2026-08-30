@@ -144,6 +144,7 @@
     <string name="exit_warning_playlist">%d playlist items remaining.\nDo you really want to exit?</string>
     <string name="contrast">Contrast</string>
     <string name="video_brightness">Video brightness</string>
+    <string name="video_hue">Hue</string>
     <string name="gamma">Gamma</string>
     <string name="saturation">Saturation</string>
     <string name="video_adjustment">Video adjustment</string>
@@ -716,6 +717,33 @@
     <string name="video_processing_deband_cpu_detail">Use the gradfun video filter. This may be expensive during software decoding.</string>
     <string name="video_processing_deband_gpu">GPU</string>
     <string name="video_processing_deband_gpu_detail">Use mpv\'s renderer debanding. Recommended when the active video output supports it.</string>
+    <string name="video_filter_presets_title">Color filter presets</string>
+    <string name="video_filter_presets_summary">Apply a complete set of video color adjustments.</string>
+    <string name="video_filter_preset_custom">Custom</string>
+    <string name="video_filter_preset_none">None</string>
+    <string name="video_filter_preset_none_detail">Restore neutral brightness, color, contrast, gamma, and hue.</string>
+    <string name="video_filter_preset_vivid">Vivid</string>
+    <string name="video_filter_preset_vivid_detail">Boost color and contrast for a brighter, punchier image.</string>
+    <string name="video_filter_preset_warm">Warm Tone</string>
+    <string name="video_filter_preset_warm_detail">Add a golden tint with slightly richer color.</string>
+    <string name="video_filter_preset_cool">Cool Tone</string>
+    <string name="video_filter_preset_cool_detail">Add a blue tint with slightly stronger contrast.</string>
+    <string name="video_filter_preset_pastel">Soft Pastel</string>
+    <string name="video_filter_preset_pastel_detail">Soften contrast and mute color for a gentle image.</string>
+    <string name="video_filter_preset_cinematic">Cinematic</string>
+    <string name="video_filter_preset_cinematic_detail">Deepen contrast and reduce color for a film-like image.</string>
+    <string name="video_filter_preset_dramatic">Dramatic</string>
+    <string name="video_filter_preset_dramatic_detail">Darken the image and strongly boost contrast and color.</string>
+    <string name="video_filter_preset_night">Night Mode</string>
+    <string name="video_filter_preset_night_detail">Reduce brightness and color for viewing in a dark room.</string>
+    <string name="video_filter_preset_nostalgic">Nostalgic</string>
+    <string name="video_filter_preset_nostalgic_detail">Mute color and add a warm vintage tint.</string>
+    <string name="video_filter_preset_ghibli">Ghibli Style</string>
+    <string name="video_filter_preset_ghibli_detail">Brighten and soften the image with richer anime colors.</string>
+    <string name="video_filter_preset_neon">Neon Pop</string>
+    <string name="video_filter_preset_neon_detail">Strongly boost color and contrast for a vivid neon look.</string>
+    <string name="video_filter_preset_deep_black">Deep Black</string>
+    <string name="video_filter_preset_deep_black_detail">Darken shadows and raise contrast for deeper blacks.</string>
     <string name="video_processing_interpolation_disabled_detail">Turn off frame interpolation and follow normal audio timing.</string>
     <string name="video_processing_interpolation_mode_detail">Match frame timing to the display using this mode.</string>
     <string name="video_sync_display_resample_detail">Match video to the display and gently resample audio to stay synchronized.</string>
@@ -788,6 +816,8 @@
     <string name="btn_audio_filters">Audio filters &amp; track</string>
 
     <!-- Android TV playback controls. -->
+    <string name="pref_back_hides_controls_title">Back hides player UI first</string>
+    <string name="pref_back_hides_controls_summary">When the player UI is visible, the first Back press hides it without starting the exit sequence.</string>
     <string name="pref_exit_with_double_back_title">Exit with double back press</string>
     <string name="pref_exit_with_double_back_summary">Require pressing Back twice within two seconds to exit the player. Helps prevent accidental TV-remote exits during playback.</string>
     <string name="exit_double_back_hint">Press Back again to exit</string>

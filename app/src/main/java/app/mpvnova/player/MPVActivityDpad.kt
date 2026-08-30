@@ -1,6 +1,5 @@
 package app.mpvnova.player
 
-import androidx.appcompat.app.AlertDialog
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
@@ -110,40 +109,4 @@ internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
     }
 
     return unhandled < 2
-}
-
-internal fun MPVActivity.onBackPressedImpl() {
-    // Double-back: first press toasts, second within window exits.
-    // Skipped when the playlist warning already gates the exit.
-    val notYetPlayed = psc.playlistCount - psc.playlistPos - 1
-    val playlistConfirmsExit = notYetPlayed > 0 && playlistExitWarning
-    if (exitWithDoubleBack && !playlistConfirmsExit) {
-        val now = android.os.SystemClock.uptimeMillis()
-        if (now - lastBackPressMs > DOUBLE_BACK_WINDOW_MS) {
-            lastBackPressMs = now
-            showToast(getString(R.string.exit_double_back_hint))
-            return
-        }
-        lastBackPressMs = 0L
-    }
-
-    if (!playlistConfirmsExit) {
-        finishWithResult(RESULT_OK, true)
-        return
-    }
-
-    val restore = pauseForDialog()
-    val dialog = with (AlertDialog.Builder(this)) {
-        setMessage(getString(R.string.exit_warning_playlist, notYetPlayed))
-        setPositiveButton(R.string.dialog_yes) { dialog, _ ->
-            dialog.dismiss()
-            finishWithResult(RESULT_OK, true)
-        }
-        setNegativeButton(R.string.dialog_no) { dialog, _ ->
-            dialog.dismiss()
-            restore()
-        }
-        create()
-    }
-    showPlayerDialog(dialog)
 }

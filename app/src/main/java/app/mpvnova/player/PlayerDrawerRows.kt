@@ -16,6 +16,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     GAMMA(PlayerDrawerActionGroup.VIDEO),
     SATURATION(PlayerDrawerActionGroup.VIDEO),
     SCREENSHOT(PlayerDrawerActionGroup.VIDEO),
+    FILTER_PRESETS(PlayerDrawerActionGroup.PROCESSING),
     UPSCALING_FILTER(PlayerDrawerActionGroup.PROCESSING),
     DOWNSCALING_FILTER(PlayerDrawerActionGroup.PROCESSING),
     DEBANDING(PlayerDrawerActionGroup.PROCESSING),
@@ -130,12 +131,19 @@ internal enum class PlayerDrawerPreference(
         "bottom_controls",
         true,
     ),
+    BACK_HIDES_CONTROLS(
+        PlayerDrawerPreferenceGroup.INTERFACE,
+        R.string.pref_back_hides_controls_title,
+        R.string.pref_back_hides_controls_summary,
+        PREF_BACK_HIDES_CONTROLS_FIRST,
+        false,
+    ),
     EXIT_DOUBLE_BACK(
         PlayerDrawerPreferenceGroup.INTERFACE,
         R.string.pref_exit_with_double_back_title,
         R.string.pref_exit_with_double_back_summary,
         "exit_with_double_back",
-        false,
+        true,
     ),
     DPAD_UP_JUMPS_TOP(
         PlayerDrawerPreferenceGroup.INTERFACE,
@@ -245,6 +253,11 @@ internal enum class PlayerDrawerOption(
         R.string.pref_shield_decoder_fallback_title,
         R.string.pref_shield_decoder_fallback_summary,
     ),
+    FILTER_PRESETS(
+        PlayerDrawerAction.FILTER_PRESETS,
+        R.string.video_filter_presets_title,
+        R.string.video_filter_presets_summary,
+    ),
     UPSCALING_FILTER(
         PlayerDrawerAction.UPSCALING_FILTER,
         R.string.pref_video_upscale_title,
@@ -338,6 +351,7 @@ internal fun MPVActivity.buildPlayerDrawerRows(tab: DrawerTab): List<PlayerDrawe
 }
 
 private fun addProcessingRows(rows: MutableList<PlayerDrawerRow>) {
+    rows.addOption(PlayerDrawerOption.FILTER_PRESETS)
     rows.addOption(PlayerDrawerOption.UPSCALING_FILTER)
     rows.addOption(PlayerDrawerOption.DOWNSCALING_FILTER)
     rows.addOption(PlayerDrawerOption.DEBANDING)
@@ -434,6 +448,7 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE)
     rows.addPref(PlayerDrawerPreference.CLOCK_24_HOUR)
     rows.addPref(PlayerDrawerPreference.BOTTOM_CONTROLS)
+    rows.addPref(PlayerDrawerPreference.BACK_HIDES_CONTROLS)
     rows.addPref(PlayerDrawerPreference.EXIT_DOUBLE_BACK)
     rows.addPref(PlayerDrawerPreference.DPAD_UP_JUMPS_TOP)
     rows.addPref(PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING)
