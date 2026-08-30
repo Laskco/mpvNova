@@ -37,17 +37,18 @@ index 251e385dda..130f3463a2 100644
          .skip_loop_filter = AVDISCARD_DEFAULT,
          .skip_idct = AVDISCARD_DEFAULT,
          .skip_frame = AVDISCARD_DEFAULT,
-@@ -202,6 +207,9 @@ typedef struct lavc_ctx {
+@@ -202,6 +207,10 @@ typedef struct lavc_ctx {
      AVCodecContext *avctx;
      AVFrame *pic;
      AVPacket *avpkt;
++    AVPacket *dovi_in_pkt;
 +    AVPacket *dovi_pkt;
 +    AVBSFContext *dovi_bsf;
 +    bool dovi_pkt_pending;
      bool use_hwdec;
      struct hwdec_info hwdec; // valid only if use_hwdec==true
      bstr *attempted_hwdecs;
-@@ -708,6 +716,64 @@ static void reinit(struct mp_filter *vd)
+@@ -708,6 +717,71 @@ static void reinit(struct mp_filter *vd)
      ctx->wait_for_keyframe = ctx->use_hwdec ? HWDEC_WAIT_KEYFRAME_COUNT : 0;
  }
  
@@ -79,6 +80,8 @@ index 251e385dda..130f3463a2 100644
 +    }
 +
 +    AVBSFContext *bsf = NULL;
++    AVPacket *in_pkt = NULL;
++    AVPacket *out_pkt = NULL;
 +    int ret = av_bsf_alloc(filter, &bsf);
 +    if (ret < 0)
 +        return ret;
@@ -96,15 +99,20 @@ index 251e385dda..130f3463a2 100644
 +    if (ret < 0)
 +        goto fail;
 +
-+    ctx->dovi_pkt = av_packet_alloc();
-+    if (!ctx->dovi_pkt) {
++    in_pkt = av_packet_alloc();
++    out_pkt = av_packet_alloc();
++    if (!in_pkt || !out_pkt) {
 +        ret = AVERROR(ENOMEM);
 +        goto fail;
 +    }
++    ctx->dovi_in_pkt = in_pkt;
++    ctx->dovi_pkt = out_pkt;
 +    ctx->dovi_bsf = bsf;
 +    return 0;
 +
 +fail:
++    av_packet_free(&in_pkt);
++    av_packet_free(&out_pkt);
 +    av_bsf_free(&bsf);
 +    return ret;
 +}
@@ -112,7 +120,7 @@ index 251e385dda..130f3463a2 100644
  static void init_avctx(struct mp_filter *vd)
  {
      vd_ffmpeg_ctx *ctx = vd->priv;
-@@ -851,6 +917,11 @@ static void init_avctx(struct mp_filter *vd)
+@@ -851,6 +925,11 @@ static void init_avctx(struct mp_filter *vd)
          goto error;
      }
  
@@ -124,28 +132,31 @@ index 251e385dda..130f3463a2 100644
  #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
      if (avctx->width > 8192 || avctx->height > 8192) {
          MP_ERR(vd, "Frame size too big %" PRIu32 "x%" PRIu32 ".\n", avctx->width, avctx->height);
-@@ -887,6 +958,11 @@ static void reset_avctx(struct mp_filter *vd)
+@@ -887,6 +966,13 @@ static void reset_avctx(struct mp_filter *vd)
  
      if (ctx->avctx && avcodec_is_open(ctx->avctx))
          avcodec_flush_buffers(ctx->avctx);
 +    if (ctx->dovi_bsf)
 +        av_bsf_flush(ctx->dovi_bsf);
++    if (ctx->dovi_in_pkt)
++        av_packet_unref(ctx->dovi_in_pkt);
 +    if (ctx->dovi_pkt)
 +        av_packet_unref(ctx->dovi_pkt);
 +    ctx->dovi_pkt_pending = false;
      ctx->flushing = false;
      ctx->hwdec_request_reinit = false;
      // Wait for the first keyframe after reset to ensure the decoder state is
-@@ -920,6 +996,8 @@ static void uninit_avctx(struct mp_filter *vd)
+@@ -920,6 +1006,9 @@ static void uninit_avctx(struct mp_filter *vd)
      flush_all(vd);
      av_frame_free(&ctx->pic);
      mp_free_av_packet(&ctx->avpkt);
++    av_packet_free(&ctx->dovi_in_pkt);
 +    av_packet_free(&ctx->dovi_pkt);
 +    av_bsf_free(&ctx->dovi_bsf);
      av_buffer_unref(&ctx->cached_hw_frames_ctx);
  
      avcodec_free_context(&ctx->avctx);
-@@ -1174,6 +1252,40 @@ static void handle_err(struct mp_filter *vd)
+@@ -1174,6 +1263,52 @@ static void handle_err(struct mp_filter *vd)
      }
  }
  
@@ -161,9 +172,21 @@ index 251e385dda..130f3463a2 100644
 +        return avcodec_send_packet(avctx, NULL);
 +
 +    if (!ctx->dovi_pkt_pending) {
-+        mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
++        av_packet_unref(ctx->dovi_in_pkt);
++        int ret = av_packet_ref(ctx->dovi_in_pkt, pkt->avpacket);
++        if (ret < 0)
++            return ret;
 +
-+        int ret = av_bsf_send_packet(ctx->dovi_bsf, ctx->avpkt);
++        ctx->dovi_in_pkt->data = pkt->buffer;
++        ctx->dovi_in_pkt->size = pkt->len;
++        ctx->dovi_in_pkt->pts = mp_pts_to_av(pkt->pts, &ctx->codec_timebase);
++        ctx->dovi_in_pkt->dts = mp_pts_to_av(pkt->dts, &ctx->codec_timebase);
++        if (ctx->codec_timebase.num > 0 && ctx->codec_timebase.den > 0)
++            ctx->dovi_in_pkt->duration = pkt->duration / av_q2d(ctx->codec_timebase);
++        if (pkt->keyframe)
++            ctx->dovi_in_pkt->flags |= AV_PKT_FLAG_KEY;
++
++        ret = av_bsf_send_packet(ctx->dovi_bsf, ctx->dovi_in_pkt);
 +        if (ret < 0)
 +            return ret;
 +
@@ -186,7 +209,7 @@ index 251e385dda..130f3463a2 100644
  static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
  {
      vd_ffmpeg_ctx *ctx = vd->priv;
-@@ -1202,9 +1314,7 @@ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
+@@ -1202,9 +1337,7 @@ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
      if (avctx->skip_frame == AVDISCARD_ALL)
          return 0;
  
