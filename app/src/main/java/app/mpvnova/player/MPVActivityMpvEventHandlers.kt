@@ -67,6 +67,7 @@ private fun MPVActivity.handleMpvStartFile() {
     audioFiltersAwaitingPostLoadReconcile = true
     controlsOverlayAutoPaused = false
     resetPlaybackSeekState()
+    clearFireTvVideoEdgeCrop()
     cachedChapters = emptyList()
     pendingChapterSeekTime = null
     currentPlayerTitleSource = pendingPlayerTitleSource
@@ -98,6 +99,7 @@ private fun MPVActivity.runOnloadCommands() {
 }
 
 private fun MPVActivity.handleMpvFileLoaded() {
+    applyFireTvVideoEdgeCropIfNeeded()
     applyRememberedTrack("sub")
     applyRememberedTrack("audio")
     guardNearEndStartPosition()

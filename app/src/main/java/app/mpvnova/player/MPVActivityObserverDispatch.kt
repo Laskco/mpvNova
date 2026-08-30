@@ -30,6 +30,7 @@ internal fun MPVActivity.updateMediaSessionNow() {
 private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "track-list" to {
         player.loadTracks()
+        applyFireTvVideoEdgeCropIfNeeded()
         maybeApplyShieldHi10pFallback()
     },
     "current-tracks/audio/selected" to {

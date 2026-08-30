@@ -72,6 +72,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastDpadSeekApplyMs = 0L
     internal var lastAppliedSeekMs = Long.MIN_VALUE
     internal var firstPlaybackRestartMs = 0L
+    internal var fireTvVideoEdgeCropApplied = false
     internal var lastClockInfoTick = Long.MIN_VALUE
     internal var lastDisplayedSpeed = Float.NaN
     @DrawableRes
