@@ -1024,7 +1024,7 @@
     <string name="ui_font_lato_title">Lato</string>
     <string name="ui_font_lato_detail">Friendly humanist shapes with a sturdy screen presence.</string>
     <string name="ui_font_noto_sans_title">Noto Sans</string>
-    <string name="ui_font_noto_sans_detail">Neutral forms with broad language and character coverage.</string>
+    <string name="ui_font_noto_sans_detail">Full Vietnamese support with broad language and character coverage.</string>
     <string name="ui_font_roboto_condensed_title">Roboto Condensed</string>
     <string name="ui_font_roboto_condensed_detail">Narrow Roboto forms that fit more text into compact panels.</string>
     <string name="ui_font_archivo_title">Archivo</string>
