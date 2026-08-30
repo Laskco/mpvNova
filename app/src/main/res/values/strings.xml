@@ -577,8 +577,8 @@
     <string name="settings_category_dolby_vision">Dolby Vision</string>
     <string name="pref_dolby_vision_processing_title">Dolby Vision processing</string>
     <string name="pref_dolby_vision_processing_summary">Use Dolby Vision scene metadata for tone mapping and color.</string>
-    <string name="pref_dolby_vision_fel_title">Profile 7 enhancement layer</string>
-    <string name="pref_dolby_vision_fel_summary">Pass FEL video data to the decoder. Uses much more memory and may overload TV devices.</string>
+    <string name="pref_dolby_vision_fel_title">Profile 7 decoder passthrough</string>
+    <string name="pref_dolby_vision_fel_summary">Pass Profile 7 enhancement data directly to the decoder. This does not reconstruct FEL and may freeze unsupported devices.</string>
     <string name="shader_manager_title">Shaders</string>
     <string name="shader_manager_summary">Import, order, and enable custom GPU shaders.</string>
     <string name="shader_manager_enabled">Use managed shaders</string>
