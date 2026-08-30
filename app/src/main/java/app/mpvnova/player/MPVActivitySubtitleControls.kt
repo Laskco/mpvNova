@@ -22,11 +22,14 @@ internal fun MPVActivity.updateSubtitleControlsPosition() {
         return
     }
 
-    val clearance = Utils.convertDp(activityContext, SUBTITLE_CONTROLS_CLEARANCE_DP)
-    val coveredHeight = (playerHeight - controlsTop + clearance).coerceAtMost(playerHeight)
-    val offsetPercent = (coveredHeight * 100f / playerHeight)
-        .roundToInt()
-        .coerceAtLeast(0)
+    val clearancePx = Utils.convertDp(activityContext, SUBTITLE_CONTROLS_CLEARANCE_DP)
+    val baseMargin = mpvGetPropertyInt("sub-margin-y") ?: DEFAULT_SUBTITLE_MARGIN_SCALED_PX
+    val offsetPercent = calculateSubtitleControlsOffsetPercent(
+        playerHeightPx = playerHeight,
+        controlsTopPx = controlsTop,
+        clearancePx = clearancePx,
+        baseMarginScaledPx = baseMargin,
+    )
     applySubtitleControlsOffset(offsetPercent)
 }
 
@@ -36,4 +39,22 @@ private fun MPVActivity.applySubtitleControlsOffset(offsetPercent: Int) {
     applySubPosProperty()
 }
 
-private const val SUBTITLE_CONTROLS_CLEARANCE_DP = 16f
+internal fun calculateSubtitleControlsOffsetPercent(
+    playerHeightPx: Int,
+    controlsTopPx: Int,
+    clearancePx: Int,
+    baseMarginScaledPx: Int,
+): Int {
+    if (playerHeightPx <= 0 || controlsTopPx !in 1 until playerHeightPx) return 0
+    val coveredHeightPx = (playerHeightPx - controlsTopPx + clearancePx)
+        .coerceIn(0, playerHeightPx)
+    val targetMarginScaledPx = (coveredHeightPx * SUBTITLE_REFERENCE_HEIGHT / playerHeightPx)
+        .roundToInt()
+    val requiredShiftScaledPx = (targetMarginScaledPx - baseMarginScaledPx).coerceAtLeast(0)
+    return (requiredShiftScaledPx * PERCENT_SCALE / SUBTITLE_REFERENCE_HEIGHT).roundToInt()
+}
+
+private const val SUBTITLE_CONTROLS_CLEARANCE_DP = 4f
+private const val SUBTITLE_REFERENCE_HEIGHT = 720f
+private const val DEFAULT_SUBTITLE_MARGIN_SCALED_PX = 34
+private const val PERCENT_SCALE = 100f
