@@ -157,6 +157,7 @@ internal enum class PlayerBarControl(
     NEXT("next", R.id.nextBtn, R.string.dialog_next, true),
     SPEED("speed", R.id.cycleSpeedBtn, R.string.btn_play_speed, true),
     DECODER("decoder", R.id.cycleDecoderBtn, R.string.btn_decoder, true),
+    FILTERS("filters", R.id.videoFiltersBtn, R.string.video_filter_presets_title, true),
     STATS("stats", R.id.statsToggleBtn, R.string.toggle_stats, true),
     VOICE_BOOST("voice_boost", R.id.voiceBoostBtn, R.string.btn_voice_boost, true),
     VOLUME_BOOST("volume_boost", R.id.volumeBoostBtn, R.string.btn_volume_boost, true),
@@ -167,6 +168,8 @@ internal enum class PlayerBarControl(
         fun fromPref(value: String): PlayerBarControl? = entries.firstOrNull { it.prefValue == value }
     }
 }
+
+private val DEFAULT_HIDDEN_PLAYER_CONTROLS = setOf(PlayerBarControl.FILTERS)
 
 internal data class PlayerUiCustomization(
     val surface: PlayerPanelSurface = PlayerPanelSurface.GLASS,
@@ -200,7 +203,7 @@ internal data class PlayerUiCustomization(
     val controlSpacingDp: Int = 2,
     val buttonTreatment: PlayerButtonTreatment = PlayerButtonTreatment.MINIMAL,
     val iconTextOutlineEnabled: Boolean = true,
-    val hiddenControls: Set<PlayerBarControl> = emptySet(),
+    val hiddenControls: Set<PlayerBarControl> = DEFAULT_HIDDEN_PLAYER_CONTROLS,
     val controlOrder: List<PlayerBarControl> = PlayerBarControl.entries,
 ) {
     fun normalized(): PlayerUiCustomization = copy(
@@ -286,6 +289,7 @@ private val CINEMA_PLAYER_UI_PRESET = PlayerUiCustomization(
     hiddenControls = setOf(
         PlayerBarControl.PREVIOUS,
         PlayerBarControl.NEXT,
+        PlayerBarControl.FILTERS,
         PlayerBarControl.STATS,
         PlayerBarControl.VOICE_BOOST,
         PlayerBarControl.VOLUME_BOOST,
@@ -475,12 +479,8 @@ internal object PlayerUiCustomizationStore {
             ICON_TEXT_OUTLINE,
             PlayerUiCustomization.DEFAULT.iconTextOutlineEnabled,
         ),
-        hiddenControls = prefs.getStringSet(HIDDEN_CONTROLS, emptySet()).orEmpty()
-            .mapNotNullTo(mutableSetOf()) { PlayerBarControl.fromPref(it) },
-        controlOrder = prefs.getString(CONTROL_ORDER, null)
-            ?.split(',')
-            ?.mapNotNull { PlayerBarControl.fromPref(it) }
-            ?: PlayerBarControl.entries,
+        hiddenControls = readHiddenControls(prefs),
+        controlOrder = readControlOrder(prefs),
     ).normalized()
 
     fun write(prefs: SharedPreferences, style: PlayerUiCustomization) {
@@ -528,6 +528,26 @@ internal object PlayerUiCustomizationStore {
         prefs.getString(SEEKBAR_THUMB_COLOR, null)
             ?.let { raw -> PlayerSeekbarThumbColor.entries.firstOrNull { it.name == raw } }
             ?: PlayerUiCustomization.DEFAULT.seekbarThumbColor
+
+    private fun readHiddenControls(prefs: SharedPreferences): Set<PlayerBarControl> {
+        val controls = prefs.getStringSet(
+            HIDDEN_CONTROLS,
+            DEFAULT_HIDDEN_PLAYER_CONTROLS.mapTo(mutableSetOf()) { it.prefValue },
+        ).orEmpty().mapNotNullTo(mutableSetOf()) { PlayerBarControl.fromPref(it) }
+        val savedOrder = prefs.getString(CONTROL_ORDER, null)
+
+        // New optional controls stay hidden for users with a layout saved by an older version.
+        if (savedOrder != null && PlayerBarControl.FILTERS.prefValue !in savedOrder.split(',')) {
+            controls += PlayerBarControl.FILTERS
+        }
+        return controls
+    }
+
+    private fun readControlOrder(prefs: SharedPreferences): List<PlayerBarControl> =
+        prefs.getString(CONTROL_ORDER, null)
+            ?.split(',')
+            ?.mapNotNull { PlayerBarControl.fromPref(it) }
+            ?: PlayerBarControl.entries
 }
 
 private fun normalizeControlOrder(order: List<PlayerBarControl>): List<PlayerBarControl> {

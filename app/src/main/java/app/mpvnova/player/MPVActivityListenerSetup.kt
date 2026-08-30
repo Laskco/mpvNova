@@ -13,6 +13,7 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     cycleSubsBtn.setOnClickListener { pickSub() }
     playBtn.setOnClickListener { togglePauseFromUser() }
     cycleDecoderBtn.setOnClickListener { pickDecoder() }
+    videoFiltersBtn.setOnClickListener { pickVideoFilterPreset() }
     statsToggleBtn.setOnClickListener { toggleStatsFromButton() }
     cycleSpeedBtn.setOnClickListener { cycleSpeed() }
     voiceBoostBtn.setOnClickListener { adjustVoiceBoost(1, wrap = true) }

@@ -303,6 +303,15 @@
                         tools:text="HW+" />
 
                     <app.mpvnova.player.ShadowImageButton
+                        android:id="@+id/videoFiltersBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:contentDescription="@string/video_filter_presets_title"
+                        app:srcCompat="@drawable/ic_filter_alt_24dp"
+                        app:tint="@color/tv_text" />
+
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/statsToggleBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
