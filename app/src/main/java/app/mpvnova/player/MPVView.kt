@@ -30,6 +30,10 @@ internal const val MPV_VIEW_RIGHT_ANGLE_DEGREES = 90
 internal const val MPV_VIEW_MODERN_DEMUXER_CACHE_MIB = 64
 internal const val MPV_VIEW_LEGACY_DEMUXER_CACHE_MIB = 32
 internal const val MPV_VIEW_BYTES_PER_MIB = 1024 * 1024
+internal const val PREF_DOLBY_VISION_PROCESSING = "dolby_vision_processing"
+internal const val PREF_DOLBY_VISION_FEL = "dolby_vision_fel"
+private const val MPVNOVA_DOLBY_VISION_FILTER =
+    "@mpvnova-dolby-vision:format=dolbyvision=no"
 private const val PLAYBACK_SPEED_HALF = 0.5
 private const val PLAYBACK_SPEED_THREE_QUARTERS = 0.75
 private const val PLAYBACK_SPEED_NORMAL = 1.0
@@ -102,6 +106,13 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     }
 
     private fun applyVideoPreferenceOptions(sharedPreferences: android.content.SharedPreferences) {
+        mpvSetOptionString(
+            "vd-lavc-dovi-fel",
+            if (sharedPreferences.getBoolean(PREF_DOLBY_VISION_FEL, false)) "yes" else "no",
+        )
+        if (!sharedPreferences.getBoolean(PREF_DOLBY_VISION_PROCESSING, true))
+            mpvSetOptionString("vf-add", MPVNOVA_DOLBY_VISION_FILTER)
+
         val debandMode = sharedPreferences.getString("video_debanding", "")
         mpvSetOptionString("deband", if (debandMode == "gpu") "yes" else "no")
         if (debandMode == "gradfun") {

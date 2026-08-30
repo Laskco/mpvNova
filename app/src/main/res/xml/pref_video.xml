@@ -12,4 +12,8 @@
     <PreferenceCategory android:title="@string/settings_category_performance" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat android:defaultValue="false" android:key="video_fastdecode" android:summary="@string/pref_video_fastdecode_summary" android:title="@string/pref_video_fastdecode_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="@string/settings_category_dolby_vision" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="dolby_vision_processing" android:summary="@string/pref_dolby_vision_processing_summary" android:title="@string/pref_dolby_vision_processing_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="dolby_vision_fel" android:summary="@string/pref_dolby_vision_fel_summary" android:title="@string/pref_dolby_vision_fel_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
 </PreferenceScreen>

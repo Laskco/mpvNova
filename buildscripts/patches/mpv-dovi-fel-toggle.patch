@@ -1,0 +1,199 @@
+diff --git a/video/decode/vd_lavc.c b/video/decode/vd_lavc.c
+index 251e385dda..130f3463a2 100644
+--- a/video/decode/vd_lavc.c
++++ b/video/decode/vd_lavc.c
+@@ -22,8 +22,10 @@
+ #include <stdbool.h>
+ 
+ #include <libavcodec/avcodec.h>
++#include <libavcodec/bsf.h>
+ #include <libavformat/version.h>
+ #include <libavutil/common.h>
++#include <libavutil/dovi_meta.h>
+ #include <libavutil/hwcontext.h>
+ #include <libavutil/opt.h>
+ #include <libavutil/intreadwrite.h>
+@@ -83,6 +85,7 @@ struct vd_lavc_params {
+     bool old_x264;
+     bool apply_cropping;
+     bool check_hw_profile;
++    bool dovi_fel;
+     char **avopts;
+     int dr;
+ };
+@@ -112,6 +115,7 @@ const struct m_sub_options vd_lavc_conf = {
+         {"vd-lavc-bitexact", OPT_BOOL(bitexact)},
+         {"vd-lavc-assume-old-x264", OPT_BOOL(old_x264)},
+         {"vd-lavc-check-hw-profile", OPT_BOOL(check_hw_profile)},
++        {"vd-lavc-dovi-fel", OPT_BOOL(dovi_fel)},
+         {"vd-lavc-o", OPT_KEYVALUELIST(avopts)},
+         {"vd-lavc-dr", OPT_CHOICE(dr,
+             {"auto", -1}, {"no", 0}, {"yes", 1})},
+@@ -123,6 +127,7 @@ const struct m_sub_options vd_lavc_conf = {
+     .defaults = &(const struct vd_lavc_params){
+         .film_grain = -1 /*auto*/,
+         .check_hw_profile = true,
++        .dovi_fel = false,
+         .skip_loop_filter = AVDISCARD_DEFAULT,
+         .skip_idct = AVDISCARD_DEFAULT,
+         .skip_frame = AVDISCARD_DEFAULT,
+@@ -202,6 +207,9 @@ typedef struct lavc_ctx {
+     AVCodecContext *avctx;
+     AVFrame *pic;
+     AVPacket *avpkt;
++    AVPacket *dovi_pkt;
++    AVBSFContext *dovi_bsf;
++    bool dovi_pkt_pending;
+     bool use_hwdec;
+     struct hwdec_info hwdec; // valid only if use_hwdec==true
+     bstr *attempted_hwdecs;
+@@ -708,6 +716,64 @@ static void reinit(struct mp_filter *vd)
+     ctx->wait_for_keyframe = ctx->use_hwdec ? HWDEC_WAIT_KEYFRAME_COUNT : 0;
+ }
+ 
++static int init_dovi_bsf(struct mp_filter *vd, AVCodecContext *avctx)
++{
++    vd_ffmpeg_ctx *ctx = vd->priv;
++
++    if (avctx->codec_id != AV_CODEC_ID_HEVC || ctx->opts->dovi_fel)
++        return 0;
++
++    bool has_fel = false;
++    for (int n = 0; n < avctx->nb_coded_side_data; n++) {
++        const AVPacketSideData *side_data = &avctx->coded_side_data[n];
++        if (side_data->type != AV_PKT_DATA_DOVI_CONF ||
++            side_data->size < sizeof(AVDOVIDecoderConfigurationRecord))
++            continue;
++
++        const AVDOVIDecoderConfigurationRecord *dovi = (void *)side_data->data;
++        has_fel = dovi->dv_profile == 7 && dovi->el_present_flag;
++        break;
++    }
++    if (!has_fel)
++        return 0;
++
++    const AVBitStreamFilter *filter = av_bsf_get_by_name("dovi_split");
++    if (!filter) {
++        MP_ERR(vd, "FFmpeg was built without the dovi_split filter.\n");
++        return AVERROR_BSF_NOT_FOUND;
++    }
++
++    AVBSFContext *bsf = NULL;
++    int ret = av_bsf_alloc(filter, &bsf);
++    if (ret < 0)
++        return ret;
++
++    ret = avcodec_parameters_from_context(bsf->par_in, avctx);
++    if (ret < 0)
++        goto fail;
++
++    bsf->time_base_in = ctx->codec_timebase;
++    ret = av_opt_set(bsf->priv_data, "mode", "bl_rpu", 0);
++    if (ret < 0)
++        goto fail;
++
++    ret = av_bsf_init(bsf);
++    if (ret < 0)
++        goto fail;
++
++    ctx->dovi_pkt = av_packet_alloc();
++    if (!ctx->dovi_pkt) {
++        ret = AVERROR(ENOMEM);
++        goto fail;
++    }
++    ctx->dovi_bsf = bsf;
++    return 0;
++
++fail:
++    av_bsf_free(&bsf);
++    return ret;
++}
++
+ static void init_avctx(struct mp_filter *vd)
+ {
+     vd_ffmpeg_ctx *ctx = vd->priv;
+@@ -851,6 +917,11 @@ static void init_avctx(struct mp_filter *vd)
+         goto error;
+     }
+ 
++    if (init_dovi_bsf(vd, avctx) < 0) {
++        MP_ERR(vd, "Could not configure Dolby Vision FEL handling.\n");
++        goto error;
++    }
++
+ #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+     if (avctx->width > 8192 || avctx->height > 8192) {
+         MP_ERR(vd, "Frame size too big %" PRIu32 "x%" PRIu32 ".\n", avctx->width, avctx->height);
+@@ -887,6 +958,11 @@ static void reset_avctx(struct mp_filter *vd)
+ 
+     if (ctx->avctx && avcodec_is_open(ctx->avctx))
+         avcodec_flush_buffers(ctx->avctx);
++    if (ctx->dovi_bsf)
++        av_bsf_flush(ctx->dovi_bsf);
++    if (ctx->dovi_pkt)
++        av_packet_unref(ctx->dovi_pkt);
++    ctx->dovi_pkt_pending = false;
+     ctx->flushing = false;
+     ctx->hwdec_request_reinit = false;
+     // Wait for the first keyframe after reset to ensure the decoder state is
+@@ -920,6 +996,8 @@ static void uninit_avctx(struct mp_filter *vd)
+     flush_all(vd);
+     av_frame_free(&ctx->pic);
+     mp_free_av_packet(&ctx->avpkt);
++    av_packet_free(&ctx->dovi_pkt);
++    av_bsf_free(&ctx->dovi_bsf);
+     av_buffer_unref(&ctx->cached_hw_frames_ctx);
+ 
+     avcodec_free_context(&ctx->avctx);
+@@ -1174,6 +1252,40 @@ static void handle_err(struct mp_filter *vd)
+     }
+ }
+ 
++static int send_dovi_packet(vd_ffmpeg_ctx *ctx, AVCodecContext *avctx,
++                            struct demux_packet *pkt)
++{
++    if (!ctx->dovi_bsf) {
++        mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
++        return avcodec_send_packet(avctx, pkt ? ctx->avpkt : NULL);
++    }
++
++    if (!pkt)
++        return avcodec_send_packet(avctx, NULL);
++
++    if (!ctx->dovi_pkt_pending) {
++        mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
++
++        int ret = av_bsf_send_packet(ctx->dovi_bsf, ctx->avpkt);
++        if (ret < 0)
++            return ret;
++
++        ret = av_bsf_receive_packet(ctx->dovi_bsf, ctx->dovi_pkt);
++        if (ret == AVERROR(EAGAIN))
++            return 0;
++        if (ret < 0)
++            return ret;
++        ctx->dovi_pkt_pending = true;
++    }
++
++    int ret = avcodec_send_packet(avctx, ctx->dovi_pkt);
++    if (ret != AVERROR(EAGAIN)) {
++        av_packet_unref(ctx->dovi_pkt);
++        ctx->dovi_pkt_pending = false;
++    }
++    return ret;
++}
++
+ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
+ {
+     vd_ffmpeg_ctx *ctx = vd->priv;
+@@ -1202,9 +1314,7 @@ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
+     if (avctx->skip_frame == AVDISCARD_ALL)
+         return 0;
+ 
+-    mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
+-
+-    int ret = avcodec_send_packet(avctx, pkt ? ctx->avpkt : NULL);
++    int ret = send_dovi_packet(ctx, avctx, pkt);
+     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+         return ret;
+ 
