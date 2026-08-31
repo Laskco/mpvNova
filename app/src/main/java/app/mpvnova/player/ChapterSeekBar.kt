@@ -181,11 +181,12 @@ class ChapterSeekBar @JvmOverloads constructor(
         if (!dpadSelected) return
 
         val trackBounds = progressDrawable?.bounds
-        val centerY = if (trackBounds != null && !trackBounds.isEmpty) {
+        val trackCenterY = if (trackBounds != null && !trackBounds.isEmpty) {
             paddingTop + trackBounds.exactCenterY()
         } else {
             height / 2f
         }
+        val centerY = trackCenterY + SELECTION_OPTICAL_CENTER_OFFSET_PX
         selectionPaint.strokeWidth = selectionStrokePx
         val strokeInset = selectionStrokePx / 2f
         val outlineLeft = (paddingLeft - selectionInsetPx).coerceAtLeast(strokeInset)
@@ -285,6 +286,7 @@ class ChapterSeekBar @JvmOverloads constructor(
         private const val TRACK_HEIGHT_DP = 8f
         private const val SELECTION_STROKE_DP = 2f
         private const val SELECTION_INSET_DP = 3f
+        private const val SELECTION_OPTICAL_CENTER_OFFSET_PX = -0.5f
         private const val SELECTION_CORNER_RADIUS_DP = 10f
         private const val MARKER_WIDTH_DP = 3f
         private const val MARKER_HEIGHT_DP = 12f
