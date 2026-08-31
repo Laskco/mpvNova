@@ -16,7 +16,7 @@ internal fun MPVActivity.shouldAutoHideControls(): Boolean {
 
 private fun MPVActivity.controlsOverlayIsFullyVisible(): Boolean {
     return binding.controls.visibility == View.VISIBLE &&
-        binding.topControls.visibility == View.VISIBLE &&
+        (topActionsInPlayerBar || binding.topControls.visibility == View.VISIBLE) &&
         !fadeRunnable.hasStarted
 }
 
@@ -73,7 +73,9 @@ private fun MPVActivity.performFirstShowSetup() {
     hideMinimalSeekOverlay()
     maybeAutoPauseForControlsOverlay()
     binding.controls.setVisibilityIfChanged(View.VISIBLE)
-    binding.topControls.setVisibilityIfChanged(View.VISIBLE)
+    binding.topControls.setVisibilityIfChanged(
+        if (topActionsInPlayerBar) View.GONE else View.VISIBLE,
+    )
     // The player panel already supplies its own contrast. A second, full-width
     // translucent scrim forces the Shield to blend a large region over video.
     binding.controlsScrim.setVisibilityIfChanged(
@@ -106,7 +108,7 @@ internal fun MPVActivity.refreshVisibleControlsTimeout() {
 internal fun MPVActivity.keepVisibleControlsFresh() {
     val controlsAreOpaque =
         binding.controls.alpha >= 1f &&
-        binding.topControls.alpha >= 1f &&
+        (topActionsInPlayerBar || binding.topControls.alpha >= 1f) &&
         binding.playerTitleOverlay.alpha >= 1f &&
         (!playerControlsScrimEnabled() || binding.controlsScrim.alpha >= 1f)
     if (controlsOverlayIsFullyVisible() && controlsAreOpaque) {

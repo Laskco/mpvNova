@@ -6,7 +6,10 @@ import android.view.ViewGroup
 import androidx.core.view.isVisible
 
 internal fun MPVActivity.dpadButtons(): List<View> {
-    if (binding.controls.visibility != View.VISIBLE || binding.topControls.visibility != View.VISIBLE) {
+    if (
+        binding.controls.visibility != View.VISIBLE ||
+        (!topActionsInPlayerBar && binding.topControls.visibility != View.VISIBLE)
+    ) {
         dpadControlsScratch.clear()
         return emptyList()
     }
@@ -16,7 +19,9 @@ internal fun MPVActivity.dpadButtons(): List<View> {
         views += binding.playbackSeekbar
     }
     views.addFocusableChildren(binding.controlsButtonGroup)
-    views.addFocusableChildren(binding.topControls)
+    if (!topActionsInPlayerBar) {
+        views.addFocusableChildren(binding.topControls)
+    }
     return views
 }
 

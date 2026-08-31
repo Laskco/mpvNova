@@ -40,6 +40,7 @@ internal fun MPVActivity.applyPlayerPanelLayout(style: PlayerUiCustomization = p
     val density = resources.displayMetrics.density
     val metrics = style.density.layoutMetrics()
     val thumb = style.seekbarThumbSize.thumbStyle()
+    applySeekbarPosition(style.seekbarPosition)
     binding.controls.setPadding(
         (style.horizontalPaddingDp * density).toInt(),
         (style.topPaddingDp * density).toInt(),
@@ -47,26 +48,7 @@ internal fun MPVActivity.applyPlayerPanelLayout(style: PlayerUiCustomization = p
         (style.bottomPaddingDp * density).toInt(),
     )
     binding.controls.elevation = style.panelElevationDp * density
-    binding.controlsContentRow.updateLayoutParams<LinearLayout.LayoutParams> {
-        topMargin = (style.rowSpacingDp * density).toInt()
-    }
-    binding.playbackSeekbar.updateLayoutParams<ViewGroup.LayoutParams> {
-        height = (maxOf(metrics.seekbarHeightDp, thumb.viewHeightDp) * density).toInt()
-    }
-    binding.playbackSeekbar.scaleY = 1f
-    val track = style.seekbarSize.trackStyle()
-    binding.playbackSeekbar.setTrackStyle(track.heightDp, track.drawableRes)
-    binding.playbackSeekbar.setThumbStyle(
-        style.seekbarThumbShape,
-        thumb.sizeDp,
-        thumb.offsetDp,
-        style.seekbarThumbGlowEnabled,
-        style.seekbarThumbColor,
-    )
-    binding.playbackSeekbar.setChapterMarkersVisible(style.chapterMarkersVisible)
-    binding.playbackSeekbar.setVisibilityIfChanged(
-        if (style.seekbarVisible) View.VISIBLE else View.GONE,
-    )
+    applySeekbarGeometry(style, density, metrics, thumb)
     binding.playbackTimeGroup.setVisibilityIfChanged(
         if (style.timeVisible) View.VISIBLE else View.GONE,
     )
@@ -88,6 +70,57 @@ internal fun MPVActivity.applyPlayerPanelLayout(style: PlayerUiCustomization = p
     }
     updateSkipButtonPlacement()
     scheduleSubtitleControlsPositionUpdate()
+}
+
+private fun MPVActivity.applySeekbarGeometry(
+    style: PlayerUiCustomization,
+    density: Float,
+    metrics: PlayerPanelLayoutMetrics,
+    thumb: PlayerSeekbarThumbStyle,
+) {
+    binding.controlsContentRow.updateLayoutParams<LinearLayout.LayoutParams> {
+        topMargin = if (style.seekbarPosition == PlayerSeekbarPosition.ABOVE) {
+            (style.rowSpacingDp * density).toInt()
+        } else {
+            0
+        }
+    }
+    binding.playbackSeekbar.updateLayoutParams<LinearLayout.LayoutParams> {
+        height = (maxOf(metrics.seekbarHeightDp, thumb.viewHeightDp) * density).toInt()
+        marginStart = (style.seekbarInsetDp * density).toInt()
+        marginEnd = (style.seekbarInsetDp * density).toInt()
+        topMargin = if (style.seekbarPosition == PlayerSeekbarPosition.BELOW) {
+            (style.rowSpacingDp * density).toInt()
+        } else {
+            0
+        }
+    }
+    binding.playbackSeekbar.scaleY = 1f
+    val track = style.seekbarSize.trackStyle()
+    binding.playbackSeekbar.setTrackStyle(track.heightDp, track.drawableRes)
+    binding.playbackSeekbar.setThumbStyle(
+        style.seekbarThumbShape,
+        thumb.sizeDp,
+        thumb.offsetDp,
+        style.seekbarThumbGlowEnabled,
+        style.seekbarThumbColor,
+    )
+    binding.playbackSeekbar.setChapterMarkersVisible(style.chapterMarkersVisible)
+    binding.playbackSeekbar.setVisibilityIfChanged(
+        if (style.seekbarVisible) View.VISIBLE else View.GONE,
+    )
+}
+
+private fun MPVActivity.applySeekbarPosition(position: PlayerSeekbarPosition) {
+    val parent = binding.controls
+    val seekbar = binding.playbackSeekbar
+    val content = binding.controlsContentRow
+    val currentAbove = parent.indexOfChild(seekbar) < parent.indexOfChild(content)
+    if (currentAbove == (position == PlayerSeekbarPosition.ABOVE)) return
+    parent.removeView(seekbar)
+    val contentIndex = parent.indexOfChild(content)
+    val targetIndex = if (position == PlayerSeekbarPosition.ABOVE) contentIndex else contentIndex + 1
+    parent.addView(seekbar, targetIndex.coerceIn(0, parent.childCount))
 }
 
 private fun MPVActivity.applyPlayerControlLayout(style: PlayerUiCustomization) {
@@ -130,7 +163,7 @@ private fun MPVActivity.applyPlayerTimeLayout(style: PlayerUiCustomization) {
         expected.forEach(row::addView)
     }
 
-    val gap = (TIME_CONTROL_GAP_DP * resources.displayMetrics.density).toInt()
+    val gap = (style.timeControlGapDp * resources.displayMetrics.density).toInt()
     controls.updateLayoutParams<LinearLayout.LayoutParams> {
         marginStart = if (style.timePosition == PlayerTimePosition.START) gap else 0
         marginEnd = if (style.timePosition == PlayerTimePosition.END) gap else 0
@@ -186,6 +219,7 @@ private fun View.applyTextSizeRecursively(sizeSp: Float) {
 internal fun MPVActivity.applyPlayerControlOrderAndVisibility(
     style: PlayerUiCustomization = playerUiCustomization,
 ) {
+    updateTopActionPlacement()
     val group = binding.controlsButtonGroup
     val currentChildren = (0 until group.childCount).map(group::getChildAt)
     val childrenById = currentChildren.associateBy(View::getId)
@@ -201,8 +235,14 @@ internal fun MPVActivity.applyPlayerControlOrderAndVisibility(
     PlayerBarControl.entries.forEach { control ->
         val view = binding.root.findViewById<View>(control.viewId) ?: return@forEach
         val baseVisible = isControlAvailableForCurrentMedia(control)
+        val obeysPlayerbarVisibility = topActionsInPlayerBar ||
+            (control != PlayerBarControl.SETTINGS && control != PlayerBarControl.PICTURE_IN_PICTURE)
         view.setVisibilityIfChanged(
-            if (baseVisible && style.isControlVisible(control)) View.VISIBLE else View.GONE,
+            if (baseVisible && (!obeysPlayerbarVisibility || style.isControlVisible(control))) {
+                View.VISIBLE
+            } else {
+                View.GONE
+            },
         )
     }
     val controls = dpadButtons()
@@ -212,12 +252,42 @@ internal fun MPVActivity.applyPlayerControlOrderAndVisibility(
     }
 }
 
+private fun MPVActivity.updateTopActionPlacement() {
+    val target = if (topActionsInPlayerBar) binding.controlsButtonGroup else binding.topControls
+    val actions = if (topActionsInPlayerBar) {
+        listOf(binding.topMenuBtn, binding.topPiPBtn)
+    } else {
+        listOf(binding.topPiPBtn, binding.topMenuBtn)
+    }
+    actions.forEach { action ->
+        if (action.parent !== target) {
+            (action.parent as? ViewGroup)?.removeView(action)
+            action.layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            )
+            target.addView(action)
+        }
+        if (!topActionsInPlayerBar) {
+            val padding = (TOP_ACTION_PADDING_DP * resources.displayMetrics.density).toInt()
+            action.minimumWidth = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
+            action.minimumHeight = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
+            action.setPadding(padding, padding, padding, padding)
+            action.setBackgroundResource(R.drawable.bg_tv_player_icon_button)
+        }
+    }
+    binding.topControls.setVisibilityIfChanged(
+        if (!topActionsInPlayerBar && binding.controls.visibility == View.VISIBLE) View.VISIBLE else View.GONE,
+    )
+}
+
 private fun MPVActivity.isControlAvailableForCurrentMedia(control: PlayerBarControl): Boolean {
     if (useAudioUI) {
         return when (control) {
             PlayerBarControl.PLAY,
             PlayerBarControl.CHAPTERS,
             PlayerBarControl.AUDIO,
+            PlayerBarControl.SETTINGS,
             PlayerBarControl.PREVIOUS,
             PlayerBarControl.NEXT,
             PlayerBarControl.SPEED,
@@ -230,6 +300,7 @@ private fun MPVActivity.isControlAvailableForCurrentMedia(control: PlayerBarCont
 
 private fun MPVActivity.dynamicPlayerControlAvailability(control: PlayerBarControl): Boolean = when (control) {
     PlayerBarControl.CHAPTERS -> cachedChapters.isNotEmpty()
+    PlayerBarControl.PICTURE_IN_PICTURE -> isPictureInPictureActionAvailable()
     PlayerBarControl.PREVIOUS,
     PlayerBarControl.NEXT,
     -> useAudioUI || psc.playlistCount != 1
@@ -400,7 +471,6 @@ private const val SEEKBAR_TRACK_THIN_DP = 4f
 private const val SEEKBAR_TRACK_STANDARD_DP = 8f
 private const val SEEKBAR_TRACK_THICK_DP = 14f
 private const val MAX_COLOR_CHANNEL = 255
-private const val TIME_CONTROL_GAP_DP = 12
 private const val TIME_PILL_HORIZONTAL_PADDING_DP = 12
 private const val TIME_PILL_VERTICAL_PADDING_DP = 8
 private const val TIME_OUTLINE_HORIZONTAL_PADDING_DP = 10
@@ -410,6 +480,8 @@ private const val TIME_PLAIN_VERTICAL_PADDING_DP = 2
 private const val PREF_MINIMAL_SEEKBAR_WHILE_SEEKING = "minimal_seekbar_while_seeking"
 private const val PREF_HIDE_CONTROLS_WHILE_SEEKING = "hide_controls_while_seeking"
 private const val TIME_OUTLINE_RADIUS_DP = 999
+private const val TOP_ACTION_SIZE_DP = 48
+private const val TOP_ACTION_PADDING_DP = 8
 private const val SMALL_THUMB_OFFSET_DP = 12f
 private const val STANDARD_THUMB_OFFSET_DP = 16f
 private const val LARGE_THUMB_OFFSET_DP = 20f

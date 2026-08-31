@@ -55,6 +55,8 @@ import app.mpvnova.player.FilePickerActivity
 import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
+import app.mpvnova.player.PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS
+import app.mpvnova.player.PREF_TOP_ACTIONS_IN_PLAYERBAR
 import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.PREF_VIDEO_FILTER_PRESET
 import app.mpvnova.player.R
@@ -961,7 +963,30 @@ class PreferenceActivity : AppCompatActivity(),
                 }
                 true
             }
+            bindTopControlsNavigation()
             bindSeekDisplayExclusivity()
+        }
+
+        private fun bindTopControlsNavigation() {
+            val placement = findPreference<SwitchPreferenceCompat>(PREF_TOP_ACTIONS_IN_PLAYERBAR)
+            val jump = findPreference<SwitchPreferenceCompat>(PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS)
+            val preferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
+
+            fun sync(moveToPlayerBar: Boolean) {
+                if (moveToPlayerBar) {
+                    jump?.isChecked = false
+                    preferences.edit()
+                        .putBoolean(PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS, false)
+                        .apply()
+                }
+                jump?.isEnabled = !moveToPlayerBar
+            }
+
+            sync(placement?.isChecked == true)
+            placement?.setOnPreferenceChangeListener { _, newValue ->
+                sync(newValue == true)
+                true
+            }
         }
 
         // The two seek-display options are mutually exclusive: turning one on greys out the other.

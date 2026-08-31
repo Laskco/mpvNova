@@ -89,6 +89,21 @@ internal enum class PlayerDrawerPreference(
         "keep_controls_visible_paused",
         false,
     ),
+    TOP_ACTIONS_IN_PLAYERBAR(
+        PlayerDrawerPreferenceGroup.INTERFACE,
+        R.string.pref_top_actions_in_playerbar_title,
+        R.string.pref_top_actions_in_playerbar_summary,
+        PREF_TOP_ACTIONS_IN_PLAYERBAR,
+        false,
+    ),
+    DPAD_UP_JUMPS_TOP(
+        PlayerDrawerPreferenceGroup.INTERFACE,
+        R.string.pref_dpad_up_jumps_top_title,
+        R.string.pref_dpad_up_jumps_top_summary,
+        PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS,
+        false,
+        disabledWhenOnKey = PREF_TOP_ACTIONS_IN_PLAYERBAR,
+    ),
     SHOW_MEDIA_TITLE(
         PlayerDrawerPreferenceGroup.INTERFACE,
         R.string.pref_display_media_title_title,
@@ -144,13 +159,6 @@ internal enum class PlayerDrawerPreference(
         R.string.pref_exit_with_double_back_summary,
         "exit_with_double_back",
         true,
-    ),
-    DPAD_UP_JUMPS_TOP(
-        PlayerDrawerPreferenceGroup.INTERFACE,
-        R.string.pref_dpad_up_jumps_top_title,
-        R.string.pref_dpad_up_jumps_top_summary,
-        "dpad_up_jumps_to_top_controls",
-        false,
     ),
     HIDE_CONTROLS_WHILE_SEEKING(
         PlayerDrawerPreferenceGroup.INTERFACE,
@@ -439,6 +447,8 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addOption(PlayerDrawerOption.UI_FONT)
     rows.addOption(PlayerDrawerOption.TITLE_STYLE)
     rows.addOption(PlayerDrawerOption.PLAYER_UI_STYLE)
+    rows.addPref(PlayerDrawerPreference.TOP_ACTIONS_IN_PLAYERBAR)
+    rows.addPref(PlayerDrawerPreference.DPAD_UP_JUMPS_TOP)
     rows.addPref(PlayerDrawerPreference.AUTOPAUSE_CONTROLS)
     rows.addPref(PlayerDrawerPreference.KEEP_CONTROLS_VISIBLE)
     rows.addOption(PlayerDrawerOption.SCREENSAVER)
@@ -450,7 +460,6 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.BOTTOM_CONTROLS)
     rows.addPref(PlayerDrawerPreference.BACK_HIDES_CONTROLS)
     rows.addPref(PlayerDrawerPreference.EXIT_DOUBLE_BACK)
-    rows.addPref(PlayerDrawerPreference.DPAD_UP_JUMPS_TOP)
     rows.addPref(PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING)
     rows.addPref(PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING)
 }

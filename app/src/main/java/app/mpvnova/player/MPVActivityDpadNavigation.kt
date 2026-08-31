@@ -110,13 +110,12 @@ private fun MPVActivity.nextSelectionForVerticalDpad(
     val current = selectedDpadView(controls)
     skipButtonVerticalTarget(ev, controls, current, seekbarSelected)?.let { return it }
     if (current === binding.topMenuBtn || current === binding.topPiPBtn) {
-        // Top control: DOWN → seekbar, UP → exit.
         return if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 0 else -1
     }
     val isUp = ev.keyCode == KeyEvent.KEYCODE_DPAD_UP
     if (seekbarSelected) {
-        // Seekbar: DOWN → first bottom button. UP hides, or jumps to top icons
-        // when dpad_up_jumps_to_top_controls is on. Prefer PiP (leftmost).
+        // Seekbar: DOWN moves to the player bar. UP hides the controls unless
+        // the optional top-controls jump is enabled and those controls exist.
         if (!isUp) return if (controls.size > 1) 1 else -1
         if (!dpadUpJumpsToTopControls) return -1
         return controls.indexOf(binding.topPiPBtn).takeIf { it >= 0 }

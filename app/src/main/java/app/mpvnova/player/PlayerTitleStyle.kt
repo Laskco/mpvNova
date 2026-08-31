@@ -76,6 +76,82 @@ internal enum class PlayerTitleSeparator(val text: String) {
     NONE(""),
 }
 
+internal enum class PlayerTitlePanelAlignment {
+    START,
+    CENTER,
+    END,
+}
+
+internal data class PlayerTitlePanelStyle(
+    val surface: PlayerPanelSurface,
+    val opacityPercent: Int,
+    val accentStrengthPercent: Int,
+    val gradientEnabled: Boolean,
+    val outlineEnabled: Boolean,
+    val outlineWidthDp: Int,
+    val cornerRadiusDp: Int,
+    val elevationDp: Int,
+    val horizontalPaddingDp: Int,
+    val verticalPaddingDp: Int,
+    val contentSpacingDp: Int,
+    val alignment: PlayerTitlePanelAlignment,
+    val contentAlignment: PlayerTitlePanelAlignment,
+    val widthPercent: Int,
+    val verticalOffsetDp: Int,
+) {
+    fun normalized(): PlayerTitlePanelStyle = copy(
+        opacityPercent = opacityPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
+        accentStrengthPercent = accentStrengthPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
+        outlineWidthDp = outlineWidthDp.coerceIn(MIN_OUTLINE_WIDTH_DP, MAX_OUTLINE_WIDTH_DP),
+        cornerRadiusDp = cornerRadiusDp.coerceIn(MIN_CORNER_RADIUS_DP, MAX_CORNER_RADIUS_DP),
+        elevationDp = elevationDp.coerceIn(MIN_ELEVATION_DP, MAX_ELEVATION_DP),
+        horizontalPaddingDp = horizontalPaddingDp.coerceIn(MIN_PANEL_PADDING_DP, MAX_PANEL_PADDING_DP),
+        verticalPaddingDp = verticalPaddingDp.coerceIn(MIN_PANEL_PADDING_DP, MAX_PANEL_PADDING_DP),
+        contentSpacingDp = contentSpacingDp.coerceIn(
+            PLAYER_TITLE_MIN_CONTENT_SPACING_DP,
+            PLAYER_TITLE_MAX_CONTENT_SPACING_DP,
+        ),
+        widthPercent = if (widthPercent == PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT) {
+            PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT
+        } else {
+            widthPercent.coerceIn(
+                PLAYER_TITLE_MIN_PANEL_WIDTH_PERCENT,
+                PLAYER_TITLE_MAX_PANEL_WIDTH_PERCENT,
+            )
+        },
+        verticalOffsetDp = verticalOffsetDp.coerceIn(
+            PLAYER_TITLE_MIN_VERTICAL_OFFSET_DP,
+            PLAYER_TITLE_MAX_VERTICAL_OFFSET_DP,
+        ),
+    )
+
+    companion object {
+        val TITLE_DEFAULT = PlayerTitlePanelStyle(
+            surface = PlayerPanelSurface.GLASS,
+            opacityPercent = PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT,
+            accentStrengthPercent = 0,
+            gradientEnabled = true,
+            outlineEnabled = true,
+            outlineWidthDp = 1,
+            cornerRadiusDp = 22,
+            elevationDp = 8,
+            horizontalPaddingDp = 18,
+            verticalPaddingDp = 10,
+            contentSpacingDp = 4,
+            alignment = PlayerTitlePanelAlignment.CENTER,
+            contentAlignment = PlayerTitlePanelAlignment.CENTER,
+            widthPercent = PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT,
+            verticalOffsetDp = 20,
+        )
+        val CLOCK_DEFAULT = TITLE_DEFAULT.copy(
+            horizontalPaddingDp = 16,
+            verticalPaddingDp = 12,
+            alignment = PlayerTitlePanelAlignment.START,
+            contentAlignment = PlayerTitlePanelAlignment.CENTER,
+        )
+    }
+}
+
 internal enum class PlayerTitleUnit {
     CONTEXT,
     TITLE,
@@ -117,9 +193,12 @@ internal data class PlayerTitleStyle(
     val separator: PlayerTitleSeparator,
     val titleOrder: List<PlayerTitleUnit>,
     val clockOrder: List<PlayerClockUnit>,
-    val titlePanelOpacityPercent: Int,
-    val clockPanelOpacityPercent: Int,
+    val titlePanel: PlayerTitlePanelStyle,
+    val clockPanel: PlayerTitlePanelStyle,
 ) {
+    val titlePanelOpacityPercent: Int get() = titlePanel.opacityPercent
+    val clockPanelOpacityPercent: Int get() = clockPanel.opacityPercent
+
     fun forPart(part: PlayerTitlePart): PlayerTitleTextStyle = when (part) {
         PlayerTitlePart.SEASON -> season
         PlayerTitlePart.EPISODE_NUMBER -> episodeNumber
@@ -230,8 +309,8 @@ internal data class PlayerTitleStyle(
             separator = PlayerTitleSeparator.DOT,
             titleOrder = PlayerTitleUnit.entries,
             clockOrder = PlayerClockUnit.entries,
-            titlePanelOpacityPercent = PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT,
-            clockPanelOpacityPercent = PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT,
+            titlePanel = PlayerTitlePanelStyle.TITLE_DEFAULT,
+            clockPanel = PlayerTitlePanelStyle.CLOCK_DEFAULT,
         )
 
         fun defaultFor(part: PlayerTitlePart): PlayerTitleTextStyle = DEFAULT.forPart(part)
@@ -260,6 +339,7 @@ internal data class PlayerTitleStyle(
     }
 }
 
+@Suppress("TooManyFunctions")
 internal object PlayerTitleStyleStore {
     private const val PREFIX = "player_title_style"
 
@@ -283,8 +363,8 @@ internal object PlayerTitleStyleStore {
             prefs.getString(CLOCK_ORDER_KEY, null),
             PlayerClockUnit.entries,
         ),
-        titlePanelOpacityPercent = PlayerTitlePanelStyleStore.readTitleOpacity(prefs),
-        clockPanelOpacityPercent = PlayerTitlePanelStyleStore.readClockOpacity(prefs),
+        titlePanel = PlayerTitlePanelStyleStore.readTitle(prefs),
+        clockPanel = PlayerTitlePanelStyleStore.readClock(prefs),
     )
 
     fun writePart(
@@ -292,8 +372,15 @@ internal object PlayerTitleStyleStore {
         part: PlayerTitlePart,
         style: PlayerTitleTextStyle,
     ) {
+        prefs.edit().putPart(part, style).apply()
+    }
+
+    private fun SharedPreferences.Editor.putPart(
+        part: PlayerTitlePart,
+        style: PlayerTitleTextStyle,
+    ): SharedPreferences.Editor {
         val key = part.keySegment()
-        prefs.edit()
+        return this
             .putString("${PREFIX}_${key}_font", style.font)
             .putFloat("${PREFIX}_${key}_size", style.sizeSp)
             .putInt("${PREFIX}_${key}_weight", style.weight.value)
@@ -313,7 +400,17 @@ internal object PlayerTitleStyleStore {
             .putInt("${PREFIX}_${key}_shadow_strength", style.shadowStrengthPercent)
             .putBoolean("${PREFIX}_${key}_background_enabled", style.backgroundEnabled)
             .putInt("${PREFIX}_${key}_background_strength", style.backgroundStrengthPercent)
-            .apply()
+    }
+
+    fun write(prefs: SharedPreferences, style: PlayerTitleStyle) {
+        val normalized = style.normalized()
+        prefs.edit().apply {
+            PlayerTitlePart.entries.forEach { part -> putPart(part, normalized.forPart(part)) }
+            putString(SEPARATOR_KEY, normalized.separator.name)
+            putString(TITLE_ORDER_KEY, normalized.titleOrder.joinToString(",") { it.name })
+            putString(CLOCK_ORDER_KEY, normalized.clockOrder.joinToString(",") { it.name })
+            PlayerTitlePanelStyleStore.writeTo(this, normalized)
+        }.apply()
     }
 
     fun writeSeparator(prefs: SharedPreferences, separator: PlayerTitleSeparator) {
@@ -333,9 +430,7 @@ internal object PlayerTitleStyleStore {
     }
 
     fun resetAll(prefs: SharedPreferences) {
-        PlayerTitlePart.entries.forEach { resetPart(prefs, it) }
-        writeSeparator(prefs, PlayerTitleStyle.DEFAULT.separator)
-        PlayerTitlePanelStyleStore.reset(prefs)
+        write(prefs, PlayerTitleStyle.DEFAULT)
     }
 
     private fun readPart(
@@ -349,12 +444,12 @@ internal object PlayerTitleStyleStore {
             font = prefs.getString("${PREFIX}_${key}_font", defaults.font)
                 ?.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) }
                 ?: defaults.font,
-            sizeSp = prefs.getFloat("${PREFIX}_${key}_size", defaults.sizeSp)
+            sizeSp = prefs.numericFloat("${PREFIX}_${key}_size", defaults.sizeSp)
                 .coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
             weight = PlayerTitleWeight.entries.firstOrNull {
                 it.value == prefs.getInt("${PREFIX}_${key}_weight", defaults.weight.value)
             } ?: defaults.weight,
-            letterSpacing = prefs.getFloat(
+            letterSpacing = prefs.numericFloat(
                 "${PREFIX}_${key}_spacing",
                 defaults.letterSpacing,
             ).coerceIn(PLAYER_TITLE_MIN_LETTER_SPACING, PLAYER_TITLE_MAX_LETTER_SPACING),
@@ -432,7 +527,7 @@ private fun readStoredPlayerTitleEffects(
     key: String,
     defaults: PlayerTitleTextStyle,
 ) = StoredPlayerTitleEffects(
-    outlineWidthDp = prefs.getFloat(
+    outlineWidthDp = prefs.numericFloat(
         "${key}_outline_width",
         defaults.outlineWidthDp,
     ).coerceIn(PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP, PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP),
@@ -528,6 +623,9 @@ private fun MPVActivity.applyPlayerTitleTextStyle(
     view: TextView,
     style: PlayerTitleTextStyle,
 ) {
+    view.paint.isAntiAlias = true
+    view.paint.isSubpixelText = true
+    view.paint.isDither = true
     view.setTextSize(TypedValue.COMPLEX_UNIT_SP, style.sizeSp)
     view.letterSpacing = style.letterSpacing
     view.isAllCaps = false
@@ -638,6 +736,13 @@ internal const val PLAYER_TITLE_MIN_PANEL_OPACITY_PERCENT = 0
 internal const val PLAYER_TITLE_MAX_PANEL_OPACITY_PERCENT = 100
 internal const val PLAYER_TITLE_PANEL_OPACITY_STEP_PERCENT = 10
 internal const val PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT = 70
+internal const val PLAYER_TITLE_MIN_CONTENT_SPACING_DP = 0
+internal const val PLAYER_TITLE_MAX_CONTENT_SPACING_DP = 16
+internal const val PLAYER_TITLE_MIN_VERTICAL_OFFSET_DP = 0
+internal const val PLAYER_TITLE_MAX_VERTICAL_OFFSET_DP = 120
+internal const val PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT = 0
+internal const val PLAYER_TITLE_MIN_PANEL_WIDTH_PERCENT = 20
+internal const val PLAYER_TITLE_MAX_PANEL_WIDTH_PERCENT = 80
 private const val PLAYER_TITLE_BACKGROUND_RADIUS_DP = 6f
 private const val PLAYER_TITLE_MAX_COLOR_CHANNEL = 255
 private const val PLAYER_TITLE_DEFAULT_OUTLINE_COLOR = 0xB8000000.toInt()

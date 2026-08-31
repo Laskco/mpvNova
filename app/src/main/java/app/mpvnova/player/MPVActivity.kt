@@ -293,8 +293,10 @@ open class MPVActivity : AppCompatActivity() {
     internal var preferExternalForwardedSubtitles = false
 
     internal var controlsAtBottom = true
+    internal var topActionsInPlayerBar = false
     internal var playerUiCustomization = PlayerUiCustomization.DEFAULT
     internal var subtitleControlsOffsetPercent = 0
+    internal val subtitleControlsPositionRunnable = Runnable { updateSubtitleControlsPosition() }
     internal var showMediaTitle = false
     internal var showClockOverlay = true
     internal var showClockDate = false

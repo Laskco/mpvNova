@@ -72,6 +72,7 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     binding.playerTitleOverlay.alpha = 1f
     binding.timeInfoPanel.alpha = 1f
     binding.statsTextView.alpha = 1f
+    applyPlayerControlOrderAndVisibility()
     parkPlayerFrameworkFocus()
     updateSubtitleControlsPosition()
     refreshSkipButtonVisibility()

@@ -23,7 +23,21 @@ internal enum class PlayerTitleStyleControl(@StringRes val labelRes: Int) {
     ITALIC(R.string.player_title_style_italic),
     TEXT_CASE(R.string.player_title_style_text_case),
     POSITION(R.string.player_title_style_position),
+    PANEL_SURFACE(R.string.player_ui_surface_style),
     PANEL_OPACITY(R.string.player_title_style_panel_opacity),
+    PANEL_ACCENT_STRENGTH(R.string.player_title_style_panel_accent_strength),
+    PANEL_GRADIENT(R.string.player_ui_gradient),
+    PANEL_OUTLINE(R.string.player_ui_panel_outline),
+    PANEL_OUTLINE_WIDTH(R.string.player_ui_panel_outline_width),
+    PANEL_CORNER_RADIUS(R.string.player_ui_corner_radius),
+    PANEL_ELEVATION(R.string.player_ui_panel_elevation),
+    PANEL_HORIZONTAL_PADDING(R.string.player_ui_horizontal_padding),
+    PANEL_VERTICAL_PADDING(R.string.player_title_style_panel_vertical_padding),
+    PANEL_CONTENT_SPACING(R.string.player_title_style_panel_content_spacing),
+    PANEL_ALIGNMENT(R.string.player_title_style_panel_alignment),
+    PANEL_CONTENT_ALIGNMENT(R.string.player_title_style_panel_content_alignment),
+    PANEL_WIDTH(R.string.player_title_style_panel_width),
+    PANEL_VERTICAL_OFFSET(R.string.player_title_style_panel_vertical_offset),
 }
 
 internal data class PlayerTitleStyleControlView(
@@ -35,24 +49,35 @@ internal fun MPVActivity.buildPlayerTitleStyleControls(
     panel: DialogPlayerTitleStyleBinding,
     onAdjust: (PlayerTitleStyleControl, Int) -> Unit,
 ): List<PlayerTitleStyleControlView> {
-    val rows = listOf(
-        panel.titleStyleControlsRowTop,
-        panel.titleStyleControlsRowMiddle,
-        panel.titleStyleControlsRowBottom,
-        panel.titleStyleControlsRowFourth,
-    )
-    return PlayerTitleStyleControl.entries.mapIndexed { index, control ->
-        val binding = DialogPlayerTitleStyleControlBinding.inflate(
-            LayoutInflater.from(this),
-            rows[index / CONTROLS_PER_ROW],
-            false,
-        )
-        binding.titleStyleControlLabel.setText(control.labelRes)
-        binding.titleStyleControlPrevious.setOnClickListener { onAdjust(control, -1) }
-        binding.titleStyleControlNext.setOnClickListener { onAdjust(control, 1) }
-        rows[index / CONTROLS_PER_ROW].addView(binding.root)
-        PlayerTitleStyleControlView(control, binding)
-    }.also { balanceFinalControlRow(rows.last()) }
+    panel.titleStyleControlsContainer.removeAllViews()
+    return buildList {
+        PlayerTitleStyleControl.entries.chunked(CONTROLS_PER_ROW).forEachIndexed { rowIndex, chunk ->
+            val row = LinearLayout(this@buildPlayerTitleStyleControls).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (rowIndex > 0) topMargin = Utils.convertDp(context, CONTROL_ROW_GAP_DP)
+                }
+                isBaselineAligned = false
+                orientation = LinearLayout.HORIZONTAL
+            }
+            panel.titleStyleControlsContainer.addView(row)
+            chunk.forEach { control ->
+                val binding = DialogPlayerTitleStyleControlBinding.inflate(
+                    LayoutInflater.from(this@buildPlayerTitleStyleControls),
+                    row,
+                    false,
+                )
+                binding.titleStyleControlLabel.setText(control.labelRes)
+                binding.titleStyleControlPrevious.setOnClickListener { onAdjust(control, -1) }
+                binding.titleStyleControlNext.setOnClickListener { onAdjust(control, 1) }
+                row.addView(binding.root)
+                add(PlayerTitleStyleControlView(control, binding))
+            }
+            balanceFinalControlRow(row)
+        }
+    }
 }
 
 internal fun MPVActivity.renderPlayerTitleStyleControls(
@@ -129,7 +154,42 @@ internal fun MPVActivity.adjustPlayerTitleStyle(
         textCase = cyclePlayerTitleValue(PlayerTitleTextCase.entries, style.textCase, delta),
     )
     PlayerTitleStyleControl.POSITION -> style
-    PlayerTitleStyleControl.PANEL_OPACITY -> style
+    PlayerTitleStyleControl.PANEL_SURFACE,
+    PlayerTitleStyleControl.PANEL_OPACITY,
+    PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,
+    PlayerTitleStyleControl.PANEL_GRADIENT,
+    PlayerTitleStyleControl.PANEL_OUTLINE,
+    PlayerTitleStyleControl.PANEL_OUTLINE_WIDTH,
+    PlayerTitleStyleControl.PANEL_CORNER_RADIUS,
+    PlayerTitleStyleControl.PANEL_ELEVATION,
+    PlayerTitleStyleControl.PANEL_HORIZONTAL_PADDING,
+    PlayerTitleStyleControl.PANEL_VERTICAL_PADDING,
+    PlayerTitleStyleControl.PANEL_CONTENT_SPACING,
+    PlayerTitleStyleControl.PANEL_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_WIDTH,
+    PlayerTitleStyleControl.PANEL_VERTICAL_OFFSET,
+    -> style
+}
+
+internal fun PlayerTitleStyleControl.isPanelControl(): Boolean = when (this) {
+    PlayerTitleStyleControl.PANEL_SURFACE,
+    PlayerTitleStyleControl.PANEL_OPACITY,
+    PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,
+    PlayerTitleStyleControl.PANEL_GRADIENT,
+    PlayerTitleStyleControl.PANEL_OUTLINE,
+    PlayerTitleStyleControl.PANEL_OUTLINE_WIDTH,
+    PlayerTitleStyleControl.PANEL_CORNER_RADIUS,
+    PlayerTitleStyleControl.PANEL_ELEVATION,
+    PlayerTitleStyleControl.PANEL_HORIZONTAL_PADDING,
+    PlayerTitleStyleControl.PANEL_VERTICAL_PADDING,
+    PlayerTitleStyleControl.PANEL_CONTENT_SPACING,
+    PlayerTitleStyleControl.PANEL_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_WIDTH,
+    PlayerTitleStyleControl.PANEL_VERTICAL_OFFSET,
+    -> true
+    else -> false
 }
 
 private fun balanceFinalControlRow(row: LinearLayout) {
@@ -139,3 +199,4 @@ private fun balanceFinalControlRow(row: LinearLayout) {
 }
 
 private const val CONTROLS_PER_ROW = 4
+private const val CONTROL_ROW_GAP_DP = 8f

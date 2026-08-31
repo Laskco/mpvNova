@@ -3,7 +3,7 @@
     MPV Player overlay - Android TV 10-foot UI
     ==========================================
     One-row left-aligned control bar at the bottom, thin purple seekbar, title
-    aligned left, time on the far right. Top-right pill for PiP/menu.
+    aligned left, time on the far right.
 
     All @+id values that existed in the legacy layout are preserved so
     MPVActivity.kt binds unchanged; new buttons (controlsScrim,
@@ -355,6 +355,7 @@
                         android:contentDescription="@string/btn_audio_norm"
                         app:srcCompat="@drawable/ic_audio_norm_24dp"
                         app:tint="@color/tv_text" />
+
                 </LinearLayout>
 
                 <LinearLayout

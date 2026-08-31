@@ -44,6 +44,8 @@ object SupportActions {
         "bottom_controls",
         "player_controls_timeout",
         "keep_controls_visible_paused",
+        "top_actions_in_playerbar",
+        "dpad_up_jumps_to_top_controls",
         "autopause_controls_overlay",
         "autopause_shield_hi10p",
         "back_hides_controls_first",

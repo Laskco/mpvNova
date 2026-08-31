@@ -47,10 +47,22 @@ internal fun MPVActivity.playerTitleControlValue(
     )
     PlayerTitleStyleControl.TEXT_CASE -> getString(playerTitleTextCaseLabelRes(style.textCase))
     PlayerTitleStyleControl.POSITION -> playerTitlePositionLabel(part)
-    PlayerTitleStyleControl.PANEL_OPACITY -> getString(
-        R.string.player_title_style_value_opacity,
-        playerTitleStyle.panelOpacityFor(part),
-    )
+    PlayerTitleStyleControl.PANEL_SURFACE,
+    PlayerTitleStyleControl.PANEL_OPACITY,
+    PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,
+    PlayerTitleStyleControl.PANEL_GRADIENT,
+    PlayerTitleStyleControl.PANEL_OUTLINE,
+    PlayerTitleStyleControl.PANEL_OUTLINE_WIDTH,
+    PlayerTitleStyleControl.PANEL_CORNER_RADIUS,
+    PlayerTitleStyleControl.PANEL_ELEVATION,
+    PlayerTitleStyleControl.PANEL_HORIZONTAL_PADDING,
+    PlayerTitleStyleControl.PANEL_VERTICAL_PADDING,
+    PlayerTitleStyleControl.PANEL_CONTENT_SPACING,
+    PlayerTitleStyleControl.PANEL_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT,
+    PlayerTitleStyleControl.PANEL_WIDTH,
+    PlayerTitleStyleControl.PANEL_VERTICAL_OFFSET,
+    -> playerTitlePanelControlValue(control, playerTitleStyle.panelStyleFor(part))
 }
 
 private fun MPVActivity.playerTitlePositionLabel(part: PlayerTitlePart): String = getString(

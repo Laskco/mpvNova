@@ -10,6 +10,12 @@ internal class PlayerTitleStylePanelController(
     private val onPreviewChanged: () -> Unit,
 ) {
     private var selectedPart = PlayerTitlePart.TITLE
+    private val presetController = PlayerTitlePresetController(
+        activity,
+        panel,
+        preferences,
+        ::applyPreset,
+    )
     private val controls = activity.buildPlayerTitleStyleControls(panel, ::adjust)
     private val tabs by lazy {
         mapOf(
@@ -30,6 +36,7 @@ internal class PlayerTitleStylePanelController(
         panel.titleStyleResetAllBtn.setOnClickListener { resetAll() }
         panel.titleStyleVisibilityBtn.setOnClickListener { toggleVisibility() }
         panel.titleStyleSeparatorBtn.setOnClickListener { cycleSeparator() }
+        presetController.bind()
     }
 
     fun select(part: PlayerTitlePart) {
@@ -46,10 +53,14 @@ internal class PlayerTitleStylePanelController(
     }
 
     private fun adjust(control: PlayerTitleStyleControl, delta: Int) {
-        if (control == PlayerTitleStyleControl.PANEL_OPACITY) {
-            activity.playerTitleStyle = activity.playerTitleStyle.adjustPanelOpacity(
+        if (control.isPanelControl()) {
+            activity.playerTitleStyle = activity.playerTitleStyle.withPanelStyle(
                 selectedPart,
-                delta,
+                adjustPlayerTitlePanelStyle(
+                    activity.playerTitleStyle.panelStyleFor(selectedPart),
+                    control,
+                    delta,
+                ),
             )
             PlayerTitlePanelStyleStore.write(preferences, activity.playerTitleStyle)
             refreshPreview()
@@ -77,6 +88,7 @@ internal class PlayerTitleStylePanelController(
     }
 
     private fun resetAll() {
+        presetController.clearSelection()
         PlayerTitleStyleStore.resetAll(preferences)
         reloadStyle()
     }
@@ -116,5 +128,12 @@ internal class PlayerTitleStylePanelController(
     private fun refreshControls() {
         activity.renderPlayerTitleStyleControls(controls, selectedPart)
         activity.renderPlayerTitleFooterActions(panel, selectedPart)
+        presetController.render()
+    }
+
+    private fun applyPreset(style: PlayerTitleStyle) {
+        activity.playerTitleStyle = style.normalized()
+        PlayerTitleStyleStore.write(preferences, activity.playerTitleStyle)
+        refreshPreview()
     }
 }

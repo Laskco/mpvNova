@@ -116,7 +116,7 @@ internal class PlayerDrawerAdapter(
             if (row !is PlayerDrawerRow.Preference || row.preference.disabledWhenOnKey != changedKey)
                 return@forEachIndexed
             val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
-            if (holder is PreferenceHolder) holder.applyDisabledState()
+            if (holder is PreferenceHolder) holder.refreshValueAndDisabledState()
             else notifyItemChanged(index)
         }
     }
@@ -196,6 +196,12 @@ internal class PlayerDrawerAdapter(
         fun applyDisabledState() {
             val preference = boundPreference ?: return
             binding.root.alpha = if (isDisabled(preference)) PREF_ROW_DISABLED_ALPHA else 1f
+        }
+
+        fun refreshValueAndDisabledState() {
+            val preference = boundPreference ?: return
+            refreshPrefRowValue(binding.prefRowValue, prefs.rawValue(preference))
+            applyDisabledState()
         }
 
         private fun isDisabled(preference: PlayerDrawerPreference): Boolean =

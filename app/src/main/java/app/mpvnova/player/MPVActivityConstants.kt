@@ -37,6 +37,12 @@ internal val SAVE_PRESET_DIALOG_LAYOUT = PlayerDialogLayout(
     heightFraction = SAVE_PRESET_HEIGHT_FRACTION,
     maxHeightDp = SAVE_PRESET_MAX_HEIGHT_DP,
 )
+internal val CUSTOM_PRESET_NAME_DIALOG_LAYOUT = PlayerDialogLayout(
+    widthFraction = 0.46f,
+    maxWidthDp = 520f,
+    heightFraction = 0.40f,
+    maxHeightDp = 280f,
+)
 internal val SCREENSAVER_DIALOG_LAYOUT = PlayerDialogLayout(
     widthFraction = 0.54f,
     maxWidthDp = 580f,
@@ -182,6 +188,8 @@ internal const val PIP_ASPECT_RATIO_SCALE = 10_000
 internal const val REMOTE_ACTION_EMPTY_TEXT = ""
 internal const val PREF_REMOTE_NEXT_CHAPTER_BUTTON = "remote_next_chapter_button"
 internal const val PREF_BACK_HIDES_CONTROLS_FIRST = "back_hides_controls_first"
+internal const val PREF_TOP_ACTIONS_IN_PLAYERBAR = "top_actions_in_playerbar"
+internal const val PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS = "dpad_up_jumps_to_top_controls"
 internal const val REMOTE_BUTTON_DISABLED = "off"
 internal const val BOOST_LIMIT_LIGHT_DB = 4
 internal const val BOOST_LIMIT_MODERATE_DB = 8

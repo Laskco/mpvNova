@@ -32,6 +32,9 @@ private object OutlinedTextPainter {
 
     fun draw(view: TextView, drawText: () -> Unit) {
         val paint = view.paint
+        paint.isAntiAlias = true
+        paint.isSubpixelText = true
+        paint.isDither = true
         val fillColors = view.textColors
         val originalStyle = paint.style
         val originalStrokeWidth = paint.strokeWidth
@@ -44,7 +47,7 @@ private object OutlinedTextPainter {
             view.setTextColor(effects.outlineColor)
             view.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
             paint.style = Paint.Style.STROKE
-            paint.strokeWidth = density * effects.outlineWidthDp
+            paint.strokeWidth = (density * effects.outlineWidthDp).coerceAtLeast(1f)
             paint.strokeJoin = Paint.Join.ROUND
             drawText()
         }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -132,7 +133,7 @@
         android:clipToOutline="true"
         tools:targetApi="s">
 
-        <ScrollView
+        <app.mpvnova.player.TvSmoothScrollView
             android:id="@+id/playerUiScroll"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -156,24 +157,76 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical" />
-        </ScrollView>
+        </app.mpvnova.player.TvSmoothScrollView>
     </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        android:gravity="end|center_vertical"
+        android:gravity="center_vertical"
         android:orientation="horizontal">
 
+        <ImageButton
+            android:id="@+id/playerUiPresetMinusBtn"
+            style="@style/MpvPlayer.ButtonBarIconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/btn_decrease"
+            app:srcCompat="@drawable/ic_remove_24dp"
+            app:tint="@color/tv_text" />
+
         <TextView
-            android:id="@+id/playerUiPresetStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:textColor="@color/tv_text_dim"
+            android:id="@+id/playerUiPresetValue"
+            android:layout_width="132dp"
+            android:layout_height="40dp"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/tv_text"
             android:textSize="12sp"
-            tools:text="Current preset: Custom" />
+            android:textStyle="bold"
+            tools:text="Cinema" />
+
+        <ImageButton
+            android:id="@+id/playerUiPresetPlusBtn"
+            style="@style/MpvPlayer.ButtonBarIconButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:contentDescription="@string/btn_increase"
+            app:srcCompat="@drawable/ic_add_24dp"
+            app:tint="@color/tv_text" />
+
+        <Button
+            android:id="@+id/playerUiPresetSaveBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_player_title_style_action"
+            android:minWidth="112dp"
+            android:stateListAnimator="@null"
+            android:text="@string/custom_preset_save"
+            android:textAllCaps="false"
+            android:textColor="@color/tv_text"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/playerUiPresetDeleteBtn"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:background="@drawable/bg_player_title_style_action"
+            android:minWidth="82dp"
+            android:stateListAnimator="@null"
+            android:text="@string/custom_preset_delete"
+            android:textAllCaps="false"
+            android:textColor="@color/tv_text"
+            android:textStyle="bold" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
 
         <Button
             android:id="@+id/playerUiResetBtn"

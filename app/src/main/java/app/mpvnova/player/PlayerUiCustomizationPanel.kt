@@ -51,20 +51,32 @@ internal fun MPVActivity.openPlayerUiCustomizationPanel() {
     panel.playerUiPresetTab.requestFocus()
 }
 
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LargeClass")
 private class PlayerUiCustomizationPanelController(
     private val activity: MPVActivity,
     private val panel: DialogPlayerUiCustomizationBinding,
     private val preferences: SharedPreferences,
 ) {
     private var tab = PlayerUiEditorTab.PRESETS
+    private val editorControlViews = mutableListOf<EditorControlView>()
+    private var customPresets = PlayerUiCustomPresetStore.read(preferences)
+    private var activeCustomPresetName = customPresets
+        .firstOrNull { it.style == activity.playerUiCustomization.normalized() }
+        ?.name
 
     fun bind() {
         panel.playerUiPresetTab.setOnClickListener { select(PlayerUiEditorTab.PRESETS) }
         panel.playerUiSurfaceTab.setOnClickListener { select(PlayerUiEditorTab.SURFACE) }
         panel.playerUiLayoutTab.setOnClickListener { select(PlayerUiEditorTab.LAYOUT) }
         panel.playerUiControlsTab.setOnClickListener { select(PlayerUiEditorTab.CONTROLS) }
-        panel.playerUiResetBtn.setOnClickListener { applyStyle(PlayerUiCustomization.DEFAULT) }
+        panel.playerUiPresetMinusBtn.setOnClickListener { cyclePreset(-1) }
+        panel.playerUiPresetPlusBtn.setOnClickListener { cyclePreset(1) }
+        panel.playerUiPresetSaveBtn.setOnClickListener { savePreset() }
+        panel.playerUiPresetDeleteBtn.setOnClickListener { deletePreset() }
+        panel.playerUiResetBtn.setOnClickListener {
+            activeCustomPresetName = null
+            applyStyle(PlayerUiCustomization.DEFAULT)
+        }
         select(PlayerUiEditorTab.PRESETS)
     }
 
@@ -84,6 +96,7 @@ private class PlayerUiCustomizationPanelController(
     }
 
     private fun render(focusTag: String? = null) {
+        editorControlViews.clear()
         panel.playerUiContent.removeAllViews()
         when (tab) {
             PlayerUiEditorTab.PRESETS -> renderPresets()
@@ -91,11 +104,7 @@ private class PlayerUiCustomizationPanelController(
             PlayerUiEditorTab.LAYOUT -> renderLayout()
             PlayerUiEditorTab.CONTROLS -> renderControls()
         }
-        val preset = playerUiPresetFor(activity.playerUiCustomization)
-        panel.playerUiPresetStatus.text = activity.getString(
-            R.string.player_ui_preset_status,
-            activity.getString(preset.labelRes()),
-        )
+        renderPresetFooter()
         UiFont.applyToViewTree(panel.playerUiContent)
         if (focusTag != null) {
             panel.playerUiContent.findViewWithTag<View>(focusTag)?.requestFocus()
@@ -103,6 +112,11 @@ private class PlayerUiCustomizationPanelController(
     }
 
     private fun renderPresets() {
+        renderBuiltInPresets()
+        renderCustomPresets()
+    }
+
+    private fun renderBuiltInPresets() {
         val presets = listOf(
             PlayerUiPreset.DEFAULT,
             PlayerUiPreset.MINIMAL,
@@ -130,12 +144,110 @@ private class PlayerUiCustomizationPanelController(
                     isActivated = isSelected
                     tag = "preset:${preset.name}"
                     setOnClickListener { view ->
+                        activeCustomPresetName = null
                         applyStyle(playerUiPresetStyle(preset), view.tag as String)
                     }
                 }
                 row.addView(button)
             }
         }
+    }
+
+    private fun renderCustomPresets() {
+        customPresets.chunked(PRESETS_PER_ROW).forEach { presetRow ->
+            val row = newRow()
+            presetRow.forEach { preset ->
+                val button = Button(activity).apply {
+                    layoutParams = LinearLayout.LayoutParams(0, PRESET_BUTTON_HEIGHT_DP.dp(), 1f).apply {
+                        marginStart = 5.dp()
+                        marginEnd = 5.dp()
+                    }
+                    background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
+                    isAllCaps = false
+                    setTextColor(activity.getColor(R.color.tv_text))
+                    text = preset.name + "\n" + activity.getString(R.string.custom_preset_saved_summary)
+                    textSize = 11f
+                    gravity = Gravity.CENTER
+                    isSelected = activeCustomPresetName.equals(preset.name, ignoreCase = true)
+                    isActivated = isSelected
+                    tag = "custom-preset:${preset.name}"
+                    setOnClickListener { view ->
+                        activeCustomPresetName = preset.name
+                        applyStyle(preset.style, view.tag as String)
+                    }
+                }
+                row.addView(button)
+            }
+            repeat(PRESETS_PER_ROW - presetRow.size) {
+                row.addView(View(activity), LinearLayout.LayoutParams(0, 1, 1f))
+            }
+        }
+    }
+
+    private fun renderPresetFooter() {
+        val saved = customPresets
+            .firstOrNull { it.name.equals(activeCustomPresetName, ignoreCase = true) }
+        val label = when {
+            saved != null && saved.style == activity.playerUiCustomization -> saved.name
+            saved != null -> activity.getString(R.string.custom_preset_modified, saved.name)
+            else -> playerUiPresetFor(activity.playerUiCustomization).takeUnless {
+                it == PlayerUiPreset.CUSTOM
+            }?.let { activity.getString(it.labelRes()) }
+                ?: activity.getString(R.string.custom_preset_unsaved)
+        }
+        panel.playerUiPresetValue.text = label
+        panel.playerUiPresetDeleteBtn.isEnabled = saved != null
+        panel.playerUiPresetDeleteBtn.alpha = if (saved != null) 1f else DISABLED_ACTION_ALPHA
+    }
+
+    private fun cyclePreset(delta: Int) {
+        val builtIns = listOf(
+            PlayerUiPreset.DEFAULT,
+            PlayerUiPreset.MINIMAL,
+            PlayerUiPreset.CINEMA,
+            PlayerUiPreset.COMPACT,
+            PlayerUiPreset.FLOATING,
+            PlayerUiPreset.EDGE_TO_EDGE,
+        ).map { PresetChoice(playerUiPresetStyle(it), null) }
+        val custom = customPresets.map {
+            PresetChoice(it.style, it.name)
+        }
+        val choices = builtIns + custom
+        if (choices.isEmpty()) return
+        val current = activeCustomPresetName?.let { name ->
+            choices.indexOfFirst { it.customName.equals(name, ignoreCase = true) }
+        }?.takeIf { it >= 0 } ?: choices.indexOfFirst {
+            it.customName == null && it.style == activity.playerUiCustomization
+        }
+        val next = Math.floorMod((current.takeIf { it >= 0 } ?: if (delta > 0) -1 else 0) + delta, choices.size)
+        val choice = choices[next]
+        activeCustomPresetName = choice.customName
+        applyStyle(choice.style)
+    }
+
+    private fun savePreset() {
+        activity.showCustomPresetNameDialog(
+            currentName = activeCustomPresetName,
+            chrome = PlayerDialogChrome.CONTROLS_PREVIEW,
+        ) { name ->
+            customPresets = customPresets.filterNot { preset ->
+                preset.name.equals(name, ignoreCase = true) ||
+                    preset.name.equals(activeCustomPresetName, ignoreCase = true)
+            } + PlayerUiCustomPreset(name, activity.playerUiCustomization)
+            PlayerUiCustomPresetStore.write(preferences, customPresets)
+            activeCustomPresetName = name
+            activity.showToast(activity.getString(R.string.custom_preset_saved), name)
+            render()
+        }
+    }
+
+    private fun deletePreset() {
+        val name = activeCustomPresetName ?: return
+        customPresets = customPresets.filterNot { it.name.equals(name, ignoreCase = true) }
+        PlayerUiCustomPresetStore.write(preferences, customPresets)
+        activeCustomPresetName = null
+        activity.showToast(activity.getString(R.string.custom_preset_deleted), name)
+        render()
     }
 
     private fun renderSurface() = renderEditorControls(
@@ -312,6 +424,26 @@ private class PlayerUiCustomizationPanelController(
                 seekbarSize = cycle(PlayerSeekbarSize.entries, activity.playerUiCustomization.seekbarSize, delta),
             )
         },
+        EditorControl(R.string.player_ui_seekbar_position,
+            { activity.getString(activity.playerUiCustomization.seekbarPosition.labelRes()) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarPosition = cycle(
+                    PlayerSeekbarPosition.entries,
+                    activity.playerUiCustomization.seekbarPosition,
+                    delta,
+                ),
+            )
+        },
+        EditorControl(R.string.player_ui_seekbar_inset,
+            { dp(activity.playerUiCustomization.seekbarInsetDp) }) { delta ->
+            activity.playerUiCustomization.copy(
+                seekbarInsetDp = stepPlayerUiValue(
+                    activity.playerUiCustomization.seekbarInsetDp,
+                    delta,
+                    PADDING_STEP_DP,
+                ),
+            )
+        },
         EditorControl(R.string.player_ui_chapter_markers,
             { toggleLabel(activity.playerUiCustomization.chapterMarkersVisible) }) {
             activity.playerUiCustomization.copy(
@@ -398,6 +530,16 @@ private class PlayerUiCustomizationPanelController(
                     ),
                 )
             },
+            EditorControl(R.string.player_ui_time_control_gap,
+                { dp(activity.playerUiCustomization.timeControlGapDp) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    timeControlGapDp = stepPlayerUiValue(
+                        activity.playerUiCustomization.timeControlGapDp,
+                        delta,
+                        PADDING_STEP_DP,
+                    ),
+                )
+            },
     )
 
     private fun controlRowControls() = listOf(
@@ -447,6 +589,7 @@ private class PlayerUiCustomizationPanelController(
                     applyStyle(control.adjust(1), view.tag as String)
                 }
                 row.addView(binding.root)
+                editorControlViews += EditorControlView(control, binding)
             }
             repeat(CONTROLS_PER_ROW - chunk.size) {
                 row.addView(View(activity), LinearLayout.LayoutParams(0, 1, 1f))
@@ -521,7 +664,14 @@ private class PlayerUiCustomizationPanelController(
         activity.playerUiCustomization = style.normalized()
         PlayerUiCustomizationStore.write(preferences, activity.playerUiCustomization)
         activity.applyPlayerUiCustomization()
-        render(focusTag)
+        if (focusTag?.startsWith(EDITOR_FOCUS_TAG_PREFIX) == true) {
+            editorControlViews.forEach { controlView ->
+                controlView.binding.titleStyleControlValue.text = controlView.control.value()
+            }
+            renderPresetFooter()
+        } else {
+            render(focusTag)
+        }
     }
 
     private fun newRow() = LinearLayout(activity).apply {
@@ -550,6 +700,16 @@ private data class EditorControl(
     val labelRes: Int,
     val value: () -> String,
     val adjust: (Int) -> PlayerUiCustomization,
+)
+
+private data class EditorControlView(
+    val control: EditorControl,
+    val binding: DialogPlayerTitleStyleControlBinding,
+)
+
+private data class PresetChoice(
+    val style: PlayerUiCustomization,
+    val customName: String?,
 )
 
 private fun PlayerUiPreset.labelRes() = when (this) {
@@ -588,6 +748,11 @@ private fun PlayerSeekbarSize.labelRes() = when (this) {
     PlayerSeekbarSize.THIN -> R.string.player_ui_seekbar_thin
     PlayerSeekbarSize.STANDARD -> R.string.player_ui_seekbar_standard
     PlayerSeekbarSize.THICK -> R.string.player_ui_seekbar_thick
+}
+
+private fun PlayerSeekbarPosition.labelRes() = when (this) {
+    PlayerSeekbarPosition.ABOVE -> R.string.player_ui_seekbar_position_above
+    PlayerSeekbarPosition.BELOW -> R.string.player_ui_seekbar_position_below
 }
 
 private fun PlayerSeekbarThumbSize.labelRes() = when (this) {
@@ -658,4 +823,6 @@ private const val ROW_SPACING_STEP_DP = 2
 private const val ELEVATION_STEP_DP = 2
 private const val CONTROLS_PER_ROW = 4
 private const val ROW_PADDING_DP = 3
+private const val EDITOR_FOCUS_TAG_PREFIX = "editor:"
 private const val PROTECTED_CONTROL_ALPHA = 0.68f
+private const val DISABLED_ACTION_ALPHA = 0.45f

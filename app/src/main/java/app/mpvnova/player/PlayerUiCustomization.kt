@@ -38,6 +38,16 @@ internal enum class PlayerSeekbarSize(val prefValue: String) {
     }
 }
 
+internal enum class PlayerSeekbarPosition(val prefValue: String) {
+    ABOVE("above"),
+    BELOW("below");
+
+    companion object {
+        fun fromPref(value: String?): PlayerSeekbarPosition =
+            entries.firstOrNull { it.prefValue == value } ?: ABOVE
+    }
+}
+
 internal enum class PlayerSeekbarThumbSize(val prefValue: String) {
     SMALL("small"),
     STANDARD("standard"),
@@ -153,6 +163,7 @@ internal enum class PlayerBarControl(
     CHAPTERS("chapters", R.id.nextChapterBtn, R.string.chapter_button, false),
     SUBTITLES("subtitles", R.id.cycleSubsBtn, R.string.track_subs, false),
     AUDIO("audio", R.id.cycleAudioBtn, R.string.track_audio, false),
+    SETTINGS("settings", R.id.topMenuBtn, R.string.action_settings, false),
     PREVIOUS("previous", R.id.prevBtn, R.string.dialog_prev, true),
     NEXT("next", R.id.nextBtn, R.string.dialog_next, true),
     SPEED("speed", R.id.cycleSpeedBtn, R.string.btn_play_speed, true),
@@ -162,14 +173,18 @@ internal enum class PlayerBarControl(
     VOICE_BOOST("voice_boost", R.id.voiceBoostBtn, R.string.btn_voice_boost, true),
     VOLUME_BOOST("volume_boost", R.id.volumeBoostBtn, R.string.btn_volume_boost, true),
     NIGHT_MODE("night_mode", R.id.nightModeBtn, R.string.btn_night_mode, true),
-    AUDIO_NORMALIZATION("audio_norm", R.id.audioNormBtn, R.string.btn_audio_norm, true);
+    AUDIO_NORMALIZATION("audio_norm", R.id.audioNormBtn, R.string.btn_audio_norm, true),
+    PICTURE_IN_PICTURE("pip", R.id.topPiPBtn, R.string.action_pip, true);
 
     companion object {
         fun fromPref(value: String): PlayerBarControl? = entries.firstOrNull { it.prefValue == value }
     }
 }
 
-private val DEFAULT_HIDDEN_PLAYER_CONTROLS = setOf(PlayerBarControl.FILTERS)
+private val DEFAULT_HIDDEN_PLAYER_CONTROLS = setOf(
+    PlayerBarControl.FILTERS,
+    PlayerBarControl.PICTURE_IN_PICTURE,
+)
 
 internal data class PlayerUiCustomization(
     val surface: PlayerPanelSurface = PlayerPanelSurface.GLASS,
@@ -188,6 +203,8 @@ internal data class PlayerUiCustomization(
     val rowSpacingDp: Int = 4,
     val panelElevationDp: Int = 0,
     val seekbarSize: PlayerSeekbarSize = PlayerSeekbarSize.STANDARD,
+    val seekbarPosition: PlayerSeekbarPosition = PlayerSeekbarPosition.ABOVE,
+    val seekbarInsetDp: Int = 2,
     val seekbarThumbSize: PlayerSeekbarThumbSize = PlayerSeekbarThumbSize.STANDARD,
     val seekbarThumbShape: PlayerSeekbarThumbShape = PlayerSeekbarThumbShape.RING,
     val seekbarThumbGlowEnabled: Boolean = true,
@@ -198,6 +215,7 @@ internal data class PlayerUiCustomization(
     val timeTextSizeSp: Int = 13,
     val timePosition: PlayerTimePosition = PlayerTimePosition.END,
     val timePresentation: PlayerTimePresentation = PlayerTimePresentation.PILL,
+    val timeControlGapDp: Int = 12,
     val controlAlignment: PlayerControlAlignment = PlayerControlAlignment.START,
     val controlSize: PlayerControlSize = PlayerControlSize.STANDARD,
     val controlSpacingDp: Int = 2,
@@ -218,7 +236,9 @@ internal data class PlayerUiCustomization(
         bottomPaddingDp = bottomPaddingDp.coerceIn(MIN_PANEL_PADDING_DP, MAX_PANEL_PADDING_DP),
         rowSpacingDp = rowSpacingDp.coerceIn(MIN_ROW_SPACING_DP, MAX_ROW_SPACING_DP),
         panelElevationDp = panelElevationDp.coerceIn(MIN_ELEVATION_DP, MAX_ELEVATION_DP),
+        seekbarInsetDp = seekbarInsetDp.coerceIn(MIN_SEEKBAR_INSET_DP, MAX_SEEKBAR_INSET_DP),
         timeTextSizeSp = timeTextSizeSp.coerceIn(MIN_TIME_TEXT_SIZE_SP, MAX_TIME_TEXT_SIZE_SP),
+        timeControlGapDp = timeControlGapDp.coerceIn(MIN_TIME_CONTROL_GAP_DP, MAX_TIME_CONTROL_GAP_DP),
         controlSpacingDp = controlSpacingDp.coerceIn(MIN_CONTROL_SPACING_DP, MAX_CONTROL_SPACING_DP),
         hiddenControls = hiddenControls.filterTo(mutableSetOf()) { it.canHide },
         controlOrder = normalizeControlOrder(controlOrder),
@@ -254,6 +274,7 @@ private val MINIMAL_PLAYER_UI_PRESET = PlayerUiCustomization(
     bottomPaddingDp = 2,
     rowSpacingDp = 0,
     seekbarSize = PlayerSeekbarSize.THIN,
+    seekbarInsetDp = 16,
     seekbarThumbSize = PlayerSeekbarThumbSize.SMALL,
     seekbarThumbShape = PlayerSeekbarThumbShape.SOLID,
     seekbarThumbGlowEnabled = false,
@@ -280,10 +301,12 @@ private val CINEMA_PLAYER_UI_PRESET = PlayerUiCustomization(
     bottomPaddingDp = 6,
     rowSpacingDp = 2,
     seekbarSize = PlayerSeekbarSize.THIN,
+    seekbarInsetDp = 28,
     seekbarThumbSize = PlayerSeekbarThumbSize.SMALL,
     seekbarThumbShape = PlayerSeekbarThumbShape.PILL,
     seekbarThumbGlowEnabled = false,
     timePresentation = PlayerTimePresentation.PLAIN,
+    timeControlGapDp = 20,
     controlAlignment = PlayerControlAlignment.CENTER,
     controlSpacingDp = 4,
     hiddenControls = setOf(
@@ -295,6 +318,7 @@ private val CINEMA_PLAYER_UI_PRESET = PlayerUiCustomization(
         PlayerBarControl.VOLUME_BOOST,
         PlayerBarControl.NIGHT_MODE,
         PlayerBarControl.AUDIO_NORMALIZATION,
+        PlayerBarControl.PICTURE_IN_PICTURE,
     ),
 )
 
@@ -310,6 +334,8 @@ private val COMPACT_PLAYER_UI_PRESET = PlayerUiCustomization(
     bottomPaddingDp = 2,
     rowSpacingDp = 0,
     seekbarSize = PlayerSeekbarSize.THIN,
+    seekbarPosition = PlayerSeekbarPosition.BELOW,
+    seekbarInsetDp = 10,
     seekbarThumbSize = PlayerSeekbarThumbSize.SMALL,
     seekbarThumbShape = PlayerSeekbarThumbShape.DIAMOND,
     seekbarThumbGlowEnabled = false,
@@ -342,6 +368,7 @@ private val DOCK_PLAYER_UI_PRESET = PlayerUiCustomization(
     timeTextSizeSp = 13,
     timePosition = PlayerTimePosition.END,
     timePresentation = PlayerTimePresentation.PLAIN,
+    timeControlGapDp = 6,
     controlAlignment = PlayerControlAlignment.CENTER,
     controlSize = PlayerControlSize.STANDARD,
     controlSpacingDp = 3,
@@ -364,11 +391,14 @@ private val EDGE_TO_EDGE_PLAYER_UI_PRESET = PlayerUiCustomization(
     topPaddingDp = 8,
     bottomPaddingDp = 6,
     seekbarSize = PlayerSeekbarSize.THICK,
+    seekbarPosition = PlayerSeekbarPosition.BELOW,
+    seekbarInsetDp = 0,
     seekbarThumbSize = PlayerSeekbarThumbSize.LARGE,
     seekbarThumbShape = PlayerSeekbarThumbShape.DIAMOND,
     seekbarThumbGlowEnabled = false,
     timeTextSizeSp = 14,
     timePresentation = PlayerTimePresentation.PLAIN,
+    timeControlGapDp = 18,
     controlAlignment = PlayerControlAlignment.START,
     controlSize = PlayerControlSize.STANDARD,
     controlSpacingDp = 3,
@@ -408,6 +438,8 @@ internal object PlayerUiCustomizationStore {
     private const val ROW_SPACING = "${PREFIX}_row_spacing"
     private const val PANEL_ELEVATION = "${PREFIX}_panel_elevation"
     private const val SEEKBAR_SIZE = "${PREFIX}_seekbar_size"
+    private const val SEEKBAR_POSITION = "${PREFIX}_seekbar_position"
+    private const val SEEKBAR_INSET = "${PREFIX}_seekbar_inset"
     private const val SEEKBAR_THUMB_SIZE = "${PREFIX}_seekbar_thumb_size"
     private const val SEEKBAR_THUMB_SHAPE = "${PREFIX}_seekbar_thumb_shape"
     private const val SEEKBAR_THUMB_GLOW = "${PREFIX}_seekbar_thumb_glow"
@@ -418,6 +450,7 @@ internal object PlayerUiCustomizationStore {
     private const val TIME_TEXT_SIZE = "${PREFIX}_time_text_size"
     private const val TIME_POSITION = "${PREFIX}_time_position"
     private const val TIME_PRESENTATION = "${PREFIX}_time_presentation"
+    private const val TIME_CONTROL_GAP = "${PREFIX}_time_control_gap"
     private const val CONTROL_ALIGNMENT = "${PREFIX}_control_alignment"
     private const val CONTROL_SIZE = "${PREFIX}_control_size"
     private const val CONTROL_SPACING = "${PREFIX}_control_spacing"
@@ -426,6 +459,7 @@ internal object PlayerUiCustomizationStore {
     private const val HIDDEN_CONTROLS = "${PREFIX}_hidden_controls"
     private const val CONTROL_ORDER = "${PREFIX}_control_order"
 
+    @Suppress("LongMethod")
     fun read(prefs: SharedPreferences): PlayerUiCustomization = PlayerUiCustomization(
         surface = PlayerPanelSurface.fromPref(prefs.getString(SURFACE, null)),
         panelOpacityPercent = prefs.getInt(PANEL_OPACITY, PlayerUiCustomization.DEFAULT.panelOpacityPercent),
@@ -455,6 +489,8 @@ internal object PlayerUiCustomizationStore {
         rowSpacingDp = prefs.getInt(ROW_SPACING, PlayerUiCustomization.DEFAULT.rowSpacingDp),
         panelElevationDp = prefs.getInt(PANEL_ELEVATION, PlayerUiCustomization.DEFAULT.panelElevationDp),
         seekbarSize = PlayerSeekbarSize.fromPref(prefs.getString(SEEKBAR_SIZE, null)),
+        seekbarPosition = PlayerSeekbarPosition.fromPref(prefs.getString(SEEKBAR_POSITION, null)),
+        seekbarInsetDp = prefs.getInt(SEEKBAR_INSET, PlayerUiCustomization.DEFAULT.seekbarInsetDp),
         seekbarThumbSize = PlayerSeekbarThumbSize.fromPref(prefs.getString(SEEKBAR_THUMB_SIZE, null)),
         seekbarThumbShape = PlayerSeekbarThumbShape.fromPref(prefs.getString(SEEKBAR_THUMB_SHAPE, null)),
         seekbarThumbGlowEnabled = prefs.getBoolean(
@@ -471,6 +507,10 @@ internal object PlayerUiCustomizationStore {
         timeTextSizeSp = prefs.getInt(TIME_TEXT_SIZE, PlayerUiCustomization.DEFAULT.timeTextSizeSp),
         timePosition = PlayerTimePosition.fromPref(prefs.getString(TIME_POSITION, null)),
         timePresentation = PlayerTimePresentation.fromPref(prefs.getString(TIME_PRESENTATION, null)),
+        timeControlGapDp = prefs.getInt(
+            TIME_CONTROL_GAP,
+            PlayerUiCustomization.DEFAULT.timeControlGapDp,
+        ),
         controlAlignment = PlayerControlAlignment.fromPref(prefs.getString(CONTROL_ALIGNMENT, null)),
         controlSize = PlayerControlSize.fromPref(prefs.getString(CONTROL_SIZE, null)),
         controlSpacingDp = prefs.getInt(CONTROL_SPACING, PlayerUiCustomization.DEFAULT.controlSpacingDp),
@@ -502,6 +542,8 @@ internal object PlayerUiCustomizationStore {
             .putInt(ROW_SPACING, normalized.rowSpacingDp)
             .putInt(PANEL_ELEVATION, normalized.panelElevationDp)
             .putString(SEEKBAR_SIZE, normalized.seekbarSize.prefValue)
+            .putString(SEEKBAR_POSITION, normalized.seekbarPosition.prefValue)
+            .putInt(SEEKBAR_INSET, normalized.seekbarInsetDp)
             .putString(SEEKBAR_THUMB_SIZE, normalized.seekbarThumbSize.prefValue)
             .putString(SEEKBAR_THUMB_SHAPE, normalized.seekbarThumbShape.prefValue)
             .putBoolean(SEEKBAR_THUMB_GLOW, normalized.seekbarThumbGlowEnabled)
@@ -512,6 +554,7 @@ internal object PlayerUiCustomizationStore {
             .putInt(TIME_TEXT_SIZE, normalized.timeTextSizeSp)
             .putString(TIME_POSITION, normalized.timePosition.prefValue)
             .putString(TIME_PRESENTATION, normalized.timePresentation.prefValue)
+            .putInt(TIME_CONTROL_GAP, normalized.timeControlGapDp)
             .putString(CONTROL_ALIGNMENT, normalized.controlAlignment.prefValue)
             .putString(CONTROL_SIZE, normalized.controlSize.prefValue)
             .putInt(CONTROL_SPACING, normalized.controlSpacingDp)
@@ -540,21 +583,47 @@ internal object PlayerUiCustomizationStore {
         if (savedOrder != null && PlayerBarControl.FILTERS.prefValue !in savedOrder.split(',')) {
             controls += PlayerBarControl.FILTERS
         }
+        if (savedOrder != null && PlayerBarControl.PICTURE_IN_PICTURE.prefValue !in savedOrder.split(',')) {
+            controls += PlayerBarControl.PICTURE_IN_PICTURE
+        }
         return controls
     }
 
-    private fun readControlOrder(prefs: SharedPreferences): List<PlayerBarControl> =
-        prefs.getString(CONTROL_ORDER, null)
+    private fun readControlOrder(prefs: SharedPreferences): List<PlayerBarControl> {
+        val saved = prefs.getString(CONTROL_ORDER, null)
             ?.split(',')
             ?.mapNotNull { PlayerBarControl.fromPref(it) }
-            ?: PlayerBarControl.entries
+            ?: return PlayerBarControl.entries
+        val migrated = saved.toMutableList()
+        if (PlayerBarControl.SETTINGS !in migrated) {
+            val audioIndex = migrated.indexOf(PlayerBarControl.AUDIO)
+            migrated.add((audioIndex + 1).coerceAtLeast(0), PlayerBarControl.SETTINGS)
+        }
+        if (PlayerBarControl.PICTURE_IN_PICTURE !in migrated) {
+            migrated += PlayerBarControl.PICTURE_IN_PICTURE
+        }
+        return migrated
+    }
 }
 
 private fun normalizeControlOrder(order: List<PlayerBarControl>): List<PlayerBarControl> {
-    val unique = LinkedHashSet<PlayerBarControl>()
-    unique.addAll(order)
-    unique.addAll(PlayerBarControl.entries)
-    return unique.toList()
+    val normalized = LinkedHashSet(order).toMutableList()
+    PlayerBarControl.entries.forEach { control ->
+        if (
+            control !in normalized &&
+            control != PlayerBarControl.SETTINGS &&
+            control != PlayerBarControl.PICTURE_IN_PICTURE
+        ) {
+            normalized += control
+        }
+    }
+    if (PlayerBarControl.SETTINGS !in normalized) {
+        normalized.add(normalized.indexOf(PlayerBarControl.AUDIO) + 1, PlayerBarControl.SETTINGS)
+    }
+    if (PlayerBarControl.PICTURE_IN_PICTURE !in normalized) {
+        normalized += PlayerBarControl.PICTURE_IN_PICTURE
+    }
+    return normalized
 }
 
 internal fun stepPlayerUiValue(value: Int, delta: Int, step: Int): Int {
@@ -587,3 +656,7 @@ internal const val MIN_TIME_TEXT_SIZE_SP = 10
 internal const val MAX_TIME_TEXT_SIZE_SP = 20
 internal const val MIN_CONTROL_SPACING_DP = 0
 internal const val MAX_CONTROL_SPACING_DP = 12
+internal const val MIN_SEEKBAR_INSET_DP = 0
+internal const val MAX_SEEKBAR_INSET_DP = 48
+internal const val MIN_TIME_CONTROL_GAP_DP = 0
+internal const val MAX_TIME_CONTROL_GAP_DP = 32

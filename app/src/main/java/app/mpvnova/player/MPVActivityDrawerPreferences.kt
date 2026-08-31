@@ -49,10 +49,48 @@ private fun MPVActivity.handleDrawerInterfacePreference(
 ) {
     when (preference) {
         PlayerDrawerPreference.KEEP_CONTROLS_VISIBLE -> keepControlsVisibleWhilePaused = newValue
+        PlayerDrawerPreference.TOP_ACTIONS_IN_PLAYERBAR -> {
+            topActionsInPlayerBar = newValue
+            if (newValue) {
+                dpadUpJumpsToTopControls = false
+                getDefaultSharedPreferences(applicationContext).edit()
+                    .putBoolean(PREF_DPAD_UP_JUMPS_TO_TOP_CONTROLS, false)
+                    .apply()
+            }
+            applyPlayerControlOrderAndVisibility()
+        }
+        PlayerDrawerPreference.DPAD_UP_JUMPS_TOP -> {
+            dpadUpJumpsToTopControls = !topActionsInPlayerBar && newValue
+        }
         PlayerDrawerPreference.SHOW_MEDIA_TITLE -> {
             showMediaTitle = newValue
             refreshUi()
         }
+        PlayerDrawerPreference.SHOW_CLOCK,
+        PlayerDrawerPreference.SHOW_CLOCK_DATE,
+        PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE,
+        PlayerDrawerPreference.CLOCK_24_HOUR -> handleDrawerClockPreference(preference, newValue)
+        PlayerDrawerPreference.BOTTOM_CONTROLS -> {
+            controlsAtBottom = newValue
+            onConfigurationChanged(resources.configuration)
+        }
+        PlayerDrawerPreference.BACK_HIDES_CONTROLS,
+        PlayerDrawerPreference.EXIT_DOUBLE_BACK ->
+            handleDrawerBackPreference(preference, newValue)
+        PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING -> hideControlsWhileSeeking = newValue
+        PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING -> {
+            minimalSeekbarWhileSeeking = newValue
+            if (!newValue) hideMinimalSeekOverlay()
+        }
+        else -> Unit
+    }
+}
+
+private fun MPVActivity.handleDrawerClockPreference(
+    preference: PlayerDrawerPreference,
+    newValue: Boolean,
+) {
+    when (preference) {
         PlayerDrawerPreference.SHOW_CLOCK -> {
             showClockOverlay = newValue
             refreshUi()
@@ -70,19 +108,6 @@ private fun MPVActivity.handleDrawerInterfacePreference(
             clockFormatter = null
             clockFormatterIs24 = null
             updateClockInfo(force = true)
-        }
-        PlayerDrawerPreference.BOTTOM_CONTROLS -> {
-            controlsAtBottom = newValue
-            onConfigurationChanged(resources.configuration)
-        }
-        PlayerDrawerPreference.BACK_HIDES_CONTROLS,
-        PlayerDrawerPreference.EXIT_DOUBLE_BACK ->
-            handleDrawerBackPreference(preference, newValue)
-        PlayerDrawerPreference.DPAD_UP_JUMPS_TOP -> dpadUpJumpsToTopControls = newValue
-        PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING -> hideControlsWhileSeeking = newValue
-        PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING -> {
-            minimalSeekbarWhileSeeking = newValue
-            if (!newValue) hideMinimalSeekOverlay()
         }
         else -> Unit
     }

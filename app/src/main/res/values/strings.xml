@@ -535,6 +535,10 @@
     <string name="pref_player_controls_timeout_default" translatable="false">5000</string>
     <string name="pref_keep_controls_visible_paused_title">Keep controls visible while paused</string>
     <string name="pref_keep_controls_visible_paused_summary">When playback is paused, keep the player controls on screen until playback resumes or you hide them manually.</string>
+    <string name="pref_top_actions_in_playerbar_title">Place Settings and PiP in player bar</string>
+    <string name="pref_top_actions_in_playerbar_summary">Move the top-right Settings and picture-in-picture buttons into the player bar. PiP remains optional in Player UI customization.</string>
+    <string name="pref_dpad_up_jumps_top_title">D-pad up jumps to top controls</string>
+    <string name="pref_dpad_up_jumps_top_summary">Press Up from the seekbar to jump to the top-right PiP and Settings buttons. Unavailable while those buttons are in the player bar.</string>
     <string name="pref_remote_next_chapter_button_title">Remote button for next chapter</string>
     <string name="pref_remote_next_chapter_capture_message">Press the remote button to use for next chapter. Press Back to cancel.</string>
     <string name="pref_remote_next_chapter_reserved_button">That button is reserved. Choose another remote button.</string>
@@ -831,8 +835,6 @@
     <string name="pref_display_clock_24_hour_title">Use 24-hour time</string>
     <string name="pref_display_clock_24_hour_summary">Use 24-hour time for the player clock and "ends at" estimate. When off, follow the device time format.</string>
 
-    <string name="pref_dpad_up_jumps_top_title">D-pad up jumps to top controls</string>
-    <string name="pref_dpad_up_jumps_top_summary">When on, pressing Up from the seekbar jumps to the top-right PiP / Settings icons instead of hiding the overlay. When off (default), pressing Up from the seekbar hides the overlay.</string>
     <string name="pref_hide_controls_while_seeking_title">Hide controls while seeking</string>
     <string name="pref_hide_controls_while_seeking_summary">When on, pressing Left / Right seeks without opening the player controls. Up, Down and OK still bring them up.</string>
     <string name="pref_minimal_seekbar_while_seeking_title">Minimal seekbar while seeking</string>
@@ -864,6 +866,10 @@
     <string name="player_ui_bottom_padding">Bottom padding</string>
     <string name="player_ui_row_spacing">Seekbar spacing</string>
     <string name="player_ui_seekbar_size">Seekbar size</string>
+    <string name="player_ui_seekbar_position">Seekbar position</string>
+    <string name="player_ui_seekbar_position_above">Above controls</string>
+    <string name="player_ui_seekbar_position_below">Below controls</string>
+    <string name="player_ui_seekbar_inset">Seekbar side inset</string>
     <string name="player_ui_seekbar_thumb_size">Scrubber size</string>
     <string name="player_ui_seekbar_thumb_shape">Scrubber shape</string>
     <string name="player_ui_seekbar_thumb_glow">Scrubber glow</string>
@@ -873,6 +879,7 @@
     <string name="player_ui_time_visibility">Show playback time</string>
     <string name="player_ui_time_text_size">Playback time size</string>
     <string name="player_ui_time_position">Time position</string>
+    <string name="player_ui_time_control_gap">Time gap</string>
     <string name="player_ui_time_presentation">Time background</string>
     <string name="player_ui_control_alignment">Control alignment</string>
     <string name="player_ui_control_size">Control size</string>
@@ -933,7 +940,26 @@
     <string name="player_ui_move_up">Move control earlier</string>
     <string name="player_ui_move_down">Move control later</string>
     <string name="player_ui_reset_all">Reset all</string>
+    <string name="custom_preset_save_title">Save preset</string>
+    <string name="custom_preset_rename_title">Rename preset</string>
+    <string name="custom_preset_name_hint">Preset name</string>
+    <string name="custom_preset_name_count">%1$d/%2$d</string>
+    <string name="custom_preset_name_required">Enter a preset name</string>
+    <string name="custom_preset_save">Save preset</string>
+    <string name="custom_preset_delete">Delete</string>
+    <string name="custom_preset_saved">Preset saved</string>
+    <string name="custom_preset_deleted">Preset deleted</string>
+    <string name="custom_preset_unsaved">Unsaved</string>
+    <string name="custom_preset_modified">%1$s *</string>
+    <string name="custom_preset_saved_summary">Saved custom layout.</string>
+    <string name="custom_preset_label">Preset</string>
     <string name="player_title_style_summary">Customize clock and title text with a live preview.</string>
+    <string name="player_title_preset_default">Default</string>
+    <string name="player_title_preset_cinema">Cinema</string>
+    <string name="player_title_preset_minimal">Minimal</string>
+    <string name="player_title_preset_broadcast">Broadcast</string>
+    <string name="player_title_preset_neon">Neon</string>
+    <string name="player_title_preset_accessible">High contrast</string>
     <string name="player_title_style_season">Season</string>
     <string name="player_title_style_episode_number">Episode number</string>
     <string name="player_title_style_show_title">Show title</string>
@@ -957,12 +983,20 @@
     <string name="player_title_style_text_case">Text case</string>
     <string name="player_title_style_position">Position</string>
     <string name="player_title_style_panel_opacity">Panel opacity</string>
+    <string name="player_title_style_panel_vertical_padding">Vertical padding</string>
+    <string name="player_title_style_panel_content_spacing">Text spacing</string>
+    <string name="player_title_style_panel_alignment">Panel position</string>
+    <string name="player_title_style_panel_vertical_offset">Top offset</string>
     <string name="player_title_style_visibility">Visibility</string>
     <string name="player_title_style_separator">Separator</string>
     <string name="player_title_style_reset_part">Reset selected</string>
     <string name="player_title_style_reset_part_named">Reset %1$s</string>
     <string name="player_title_style_reset_all">Reset all</string>
-    <string name="player_title_style_drawer_value">Customize</string>
+    <string name="player_title_style_drawer_value">Open editor</string>
+    <string name="player_title_style_panel_accent_strength">Accent tint</string>
+    <string name="player_title_style_panel_content_alignment">Text alignment</string>
+    <string name="player_title_style_panel_width">Panel width</string>
+    <string name="player_title_style_panel_width_auto">Auto</string>
     <string name="player_title_style_inherit_font">Interface font</string>
     <string name="player_title_style_value_size">%1$.1f sp</string>
     <string name="player_title_style_value_spacing">%1$.2f</string>

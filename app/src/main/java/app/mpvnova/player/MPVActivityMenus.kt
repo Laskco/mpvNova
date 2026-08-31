@@ -27,6 +27,11 @@ internal fun MPVActivity.goIntoPiP() {
     enterPictureInPictureMode(buildPiPParams())
 }
 
+internal fun MPVActivity.isPictureInPictureActionAvailable(): Boolean =
+    Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+        packageManager.hasSystemFeature("android.software.picture_in_picture") &&
+        !intent.getBooleanExtra(EXTRA_EXTERNAL_PLAYER_RESULT, false)
+
 internal fun MPVActivity.genericPickerDialog(
     picker: PickerDialog,
     @StringRes titleRes: Int,
