@@ -23,9 +23,25 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
         schedulePlayerTitleToastPlacement()
 }
 
-private fun MPVActivity.shouldShowPlayerTitleOverlay(title: String): Boolean =
-    !playbackEnded && !isStatsOverlayVisible() && !useAudioUI && showMediaTitle &&
-        title.isNotBlank() && binding.controls.isVisible
+private fun MPVActivity.shouldShowPlayerTitleOverlay(title: String): Boolean {
+    val playbackAllowsTitle =
+        !playbackEnded && !inPictureInPicture() && !isStatsOverlayVisible()
+    val contentAllowsTitle = !useAudioUI && showMediaTitle && title.isNotBlank()
+    val playerAllowsTitle = playbackAllowsTitle && contentAllowsTitle
+    val dialogAllowsTitle =
+        playerDialogStack.none { it.isShowing } || playerTextStylePreviewActive
+    val controlsAllowTitle = binding.controls.isVisible || shouldShowTitleWhileControlsHidden()
+    return playerAllowsTitle && dialogAllowsTitle && controlsAllowTitle
+}
+
+internal fun MPVActivity.shouldShowTitleWhileControlsHidden(): Boolean {
+    val playbackAllowsTitle =
+        !playbackEnded && !inPictureInPicture() && !isStatsOverlayVisible()
+    val pausedTitleEnabled = showTitleOnPause && psc.pause
+    val dialogAllowsTitle =
+        playerDialogStack.none { it.isShowing } || playerTextStylePreviewActive
+    return playbackAllowsTitle && pausedTitleEnabled && dialogAllowsTitle
+}
 
 private fun MPVActivity.hidePlayerTitleOverlay() {
     val wasVisible = binding.playerTitleOverlay.isVisible

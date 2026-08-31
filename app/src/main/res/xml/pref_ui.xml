@@ -19,6 +19,7 @@
         <SwitchPreferenceCompat android:defaultValue="true" android:key="display_clock_overlay" android:summary="@string/pref_display_clock_overlay_summary" android:title="@string/pref_display_clock_overlay_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_date" android:summary="@string/pref_display_clock_date_summary" android:title="@string/pref_display_clock_date_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_on_pause" android:summary="@string/pref_display_clock_on_pause_summary" android:title="@string/pref_display_clock_on_pause_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="display_title_on_pause" android:summary="@string/pref_display_title_on_pause_summary" android:title="@string/pref_display_title_on_pause_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_24_hour" android:summary="@string/pref_display_clock_24_hour_summary" android:title="@string/pref_display_clock_24_hour_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

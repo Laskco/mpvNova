@@ -833,6 +833,8 @@
     <string name="pref_display_clock_date_summary">Add the current date above the clock whenever the clock panel is visible.</string>
     <string name="pref_display_clock_on_pause_title">Show clock while paused</string>
     <string name="pref_display_clock_on_pause_summary">Keep the clock visible while playback is paused, even after the player controls hide.</string>
+    <string name="pref_display_title_on_pause_title">Show title while paused</string>
+    <string name="pref_display_title_on_pause_summary">Keep the media title visible while playback is paused, even after the player controls hide.</string>
     <string name="pref_display_clock_24_hour_title">Use 24-hour time</string>
     <string name="pref_display_clock_24_hour_summary">Use 24-hour time for the player clock and "ends at" estimate. When off, follow the device time format.</string>
 

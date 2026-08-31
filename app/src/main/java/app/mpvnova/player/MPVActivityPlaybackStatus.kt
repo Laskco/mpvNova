@@ -73,6 +73,7 @@ internal fun MPVActivity.updatePlaybackStatus(paused: Boolean) {
         }
     }
     refreshTimeInfoPanelVisibility()
+    updatePlayerTitleOverlay()
 }
 
 internal fun MPVActivity.updateDecoderButton() {

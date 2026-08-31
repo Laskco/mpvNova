@@ -225,7 +225,8 @@ open class MPVActivity : AppCompatActivity() {
             // Only animate the compact bar. Creating hardware layers for every
             // overlay, including the full-width scrim, competes with video output.
             binding.topControls.visibility = View.GONE
-            binding.playerTitleOverlay.visibility = View.GONE
+            if (!shouldShowTitleWhileControlsHidden())
+                binding.playerTitleOverlay.visibility = View.GONE
             binding.controlsScrim.visibility = View.GONE
             if (!shouldShowClockWhileControlsHidden()) binding.timeInfoPanel.visibility = View.GONE
             binding.statsTextView.visibility = View.GONE
@@ -301,6 +302,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var showClockOverlay = true
     internal var showClockDate = false
     internal var showClockOnPause = false
+    internal var showTitleOnPause = false
     internal var force24HourClock = false
     internal var controlsDisplayTimeoutMs = DEFAULT_CONTROLS_DISPLAY_TIMEOUT
     internal var keepControlsVisibleWhilePaused = false

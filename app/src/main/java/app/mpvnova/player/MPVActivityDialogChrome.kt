@@ -75,6 +75,8 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     applyPlayerControlOrderAndVisibility()
     parkPlayerFrameworkFocus()
     updateSubtitleControlsPosition()
+    refreshTimeInfoPanelVisibility()
+    updatePlayerTitleOverlay()
     refreshSkipButtonVisibility()
     refreshVisibleControlsTimeout()
 }

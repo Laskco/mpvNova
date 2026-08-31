@@ -62,14 +62,13 @@ private fun MPVActivity.handleDrawerInterfacePreference(
         PlayerDrawerPreference.DPAD_UP_JUMPS_TOP -> {
             dpadUpJumpsToTopControls = !topActionsInPlayerBar && newValue
         }
-        PlayerDrawerPreference.SHOW_MEDIA_TITLE -> {
-            showMediaTitle = newValue
-            refreshUi()
-        }
+        PlayerDrawerPreference.SHOW_MEDIA_TITLE,
+        PlayerDrawerPreference.SHOW_TITLE_ON_PAUSE,
         PlayerDrawerPreference.SHOW_CLOCK,
         PlayerDrawerPreference.SHOW_CLOCK_DATE,
         PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE,
-        PlayerDrawerPreference.CLOCK_24_HOUR -> handleDrawerClockPreference(preference, newValue)
+        PlayerDrawerPreference.CLOCK_24_HOUR ->
+            handleDrawerTitleAndClockPreference(preference, newValue)
         PlayerDrawerPreference.BOTTOM_CONTROLS -> {
             controlsAtBottom = newValue
             onConfigurationChanged(resources.configuration)
@@ -86,11 +85,19 @@ private fun MPVActivity.handleDrawerInterfacePreference(
     }
 }
 
-private fun MPVActivity.handleDrawerClockPreference(
+private fun MPVActivity.handleDrawerTitleAndClockPreference(
     preference: PlayerDrawerPreference,
     newValue: Boolean,
 ) {
     when (preference) {
+        PlayerDrawerPreference.SHOW_MEDIA_TITLE -> {
+            showMediaTitle = newValue
+            refreshUi()
+        }
+        PlayerDrawerPreference.SHOW_TITLE_ON_PAUSE -> {
+            showTitleOnPause = newValue
+            updatePlayerTitleOverlay()
+        }
         PlayerDrawerPreference.SHOW_CLOCK -> {
             showClockOverlay = newValue
             refreshUi()

@@ -10,6 +10,7 @@ internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences) {
     showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     showClockDate = prefs.getBoolean("display_clock_date", false)
     showClockOnPause = prefs.getBoolean("display_clock_on_pause", false)
+    showTitleOnPause = prefs.getBoolean("display_title_on_pause", false)
     force24HourClock = prefs.getBoolean("display_clock_24_hour", false)
     controlsDisplayTimeoutMs = parseControlsTimeout(
         prefs.getString("player_controls_timeout", DEFAULT_CONTROLS_DISPLAY_TIMEOUT.toString())

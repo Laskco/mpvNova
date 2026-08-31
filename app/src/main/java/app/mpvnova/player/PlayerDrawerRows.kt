@@ -112,6 +112,13 @@ internal enum class PlayerDrawerPreference(
         "display_media_title",
         true,
     ),
+    SHOW_TITLE_ON_PAUSE(
+        PlayerDrawerPreferenceGroup.INTERFACE,
+        R.string.pref_display_title_on_pause_title,
+        R.string.pref_display_title_on_pause_summary,
+        "display_title_on_pause",
+        false,
+    ),
     SHOW_CLOCK(
         PlayerDrawerPreferenceGroup.INTERFACE,
         R.string.pref_display_clock_overlay_title,
@@ -462,6 +469,7 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_DATE)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE)
+    rows.addPref(PlayerDrawerPreference.SHOW_TITLE_ON_PAUSE)
     rows.addPref(PlayerDrawerPreference.CLOCK_24_HOUR)
     rows.addPref(PlayerDrawerPreference.BACK_HIDES_CONTROLS)
     rows.addPref(PlayerDrawerPreference.EXIT_DOUBLE_BACK)

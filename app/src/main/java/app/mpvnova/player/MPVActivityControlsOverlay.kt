@@ -132,7 +132,7 @@ internal fun MPVActivity.hideControls() {
     // see http://stackoverflow.com/a/12655713/2606891
     binding.controls.setVisibilityIfChanged(View.GONE)
     binding.topControls.setVisibilityIfChanged(View.GONE)
-    binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+    updatePlayerTitleOverlay()
     binding.controlsScrim.setVisibilityIfChanged(View.GONE)
     binding.statsTextView.setVisibilityIfChanged(View.GONE)
     updateSubtitleControlsPosition()
