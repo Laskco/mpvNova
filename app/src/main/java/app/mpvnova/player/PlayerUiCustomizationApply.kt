@@ -15,23 +15,34 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.updateLayoutParams
 import androidx.preference.PreferenceManager
 
-internal fun MPVActivity.applyPlayerUiCustomization() {
+internal fun MPVActivity.applyPlayerUiCustomization(force: Boolean = false) {
     val style = playerUiCustomization.normalized()
     playerUiCustomization = style
     enforceMinimalSeekOverlayForHiddenSeekbar(style)
+    val styleChanged = force ||
+        appliedPlayerUiCustomization != style ||
+        appliedTopActionsInPlayerBar != topActionsInPlayerBar ||
+        appliedControlsAtBottom != controlsAtBottom
+    if (!styleChanged) {
+        applyPlayerControlOrderAndVisibility(style)
+        return
+    }
     applyPlayerPanelSurface(style)
     applyPlayerPanelLayout(style)
     applyPlayerControlOrderAndVisibility(style)
     applyPlayerControlLayout(style)
     applyPlayerTimeLayout(style)
     applyPlayerControlDecoration(style.iconTextOutlineEnabled)
+    appliedPlayerUiCustomization = style
+    appliedTopActionsInPlayerBar = topActionsInPlayerBar
+    appliedControlsAtBottom = controlsAtBottom
 }
 
 internal fun MPVActivity.refreshPlayerUiTheme() {
     binding.playbackSeekbar.refreshTheme(this)
     binding.seekOverlayBar.refreshTheme(this)
     binding.seekOverlayTime.background = themedPlayerDrawable(R.drawable.bg_player_toast)
-    applyPlayerUiCustomization()
+    applyPlayerUiCustomization(force = true)
 }
 
 private fun MPVActivity.enforceMinimalSeekOverlayForHiddenSeekbar(style: PlayerUiCustomization) {

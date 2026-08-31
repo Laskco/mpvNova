@@ -296,6 +296,9 @@ open class MPVActivity : AppCompatActivity() {
     internal var controlsAtBottom = true
     internal var topActionsInPlayerBar = false
     internal var playerUiCustomization = PlayerUiCustomization.DEFAULT
+    internal var appliedPlayerUiCustomization: PlayerUiCustomization? = null
+    internal var appliedTopActionsInPlayerBar = false
+    internal var appliedControlsAtBottom = true
     internal var subtitleControlsOffsetPercent = 0
     internal val subtitleControlsPositionRunnable = Runnable { updateSubtitleControlsPosition() }
     internal var showMediaTitle = false

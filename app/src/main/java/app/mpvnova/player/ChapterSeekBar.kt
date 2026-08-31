@@ -123,6 +123,7 @@ class ChapterSeekBar @JvmOverloads constructor(
     /** Changes only the progress track thickness; the thumb keeps its original circular size. */
     fun setTrackStyle(heightDp: Float, @DrawableRes drawableRes: Int, themedContext: Context) {
         val heightPx = (heightDp * density).roundToInt().coerceAtLeast(1)
+        var drawableChanged = false
         if (trackDrawableRes != drawableRes) {
             trackDrawableRes = drawableRes
             progressDrawable = ResourcesCompat.getDrawable(
@@ -130,12 +131,16 @@ class ChapterSeekBar @JvmOverloads constructor(
                 drawableRes,
                 themedContext.theme,
             )
+            drawableChanged = true
         }
-        if (trackHeightPx.roundToInt() != heightPx) {
+        val heightChanged = trackHeightPx.roundToInt() != heightPx
+        if (heightChanged) {
             trackHeightPx = heightPx.toFloat()
         }
-        requestLayout()
-        invalidate()
+        if (drawableChanged || heightChanged) {
+            requestLayout()
+            invalidate()
+        }
     }
 
     internal fun setThumbStyle(

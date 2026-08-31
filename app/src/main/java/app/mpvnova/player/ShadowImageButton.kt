@@ -7,7 +7,6 @@ import android.graphics.drawable.Drawable
 import android.util.AttributeSet
 import android.widget.ImageView
 import androidx.appcompat.widget.AppCompatImageButton
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.core.graphics.drawable.DrawableCompat
 import kotlin.math.roundToInt
 
@@ -101,25 +100,6 @@ open class ShadowImageButton @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         if (outlineAndShadowEnabled)
             iconPainter.draw(canvas)
-        super.onDraw(canvas)
-    }
-}
-
-class OutlinedImageButton @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = androidx.appcompat.R.attr.imageButtonStyle,
-) : ShadowImageButton(context, attrs, defStyleAttr)
-
-class OutlinedImageView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
-    defStyleAttr: Int = 0,
-) : AppCompatImageView(context, attrs, defStyleAttr) {
-    private val iconPainter = OutlinedIconPainter(this)
-
-    override fun onDraw(canvas: Canvas) {
-        iconPainter.draw(canvas)
         super.onDraw(canvas)
     }
 }

@@ -16,21 +16,11 @@ import androidx.appcompat.widget.AppCompatRadioButton
 import androidx.appcompat.widget.AppCompatTextView
 
 private object OutlinedTextPainter {
-    private const val OUTLINE_WIDTH_DP = 0.5f
     private const val SHADOW_RADIUS_DP = 1.25f
     private const val SHADOW_OFFSET_Y_DP = 0.75f
-    private const val OUTLINE_COLOR = 0xB8000000.toInt()
     private const val SHADOW_COLOR = 0xB3000000.toInt()
 
-    private val defaultEffects = OutlinedTextEffects(
-        outlineWidthDp = OUTLINE_WIDTH_DP,
-        outlineColor = OUTLINE_COLOR,
-        shadowRadiusDp = SHADOW_RADIUS_DP,
-        shadowOffsetYDp = SHADOW_OFFSET_Y_DP,
-        shadowColor = SHADOW_COLOR,
-    )
-
-    fun draw(view: TextView, drawText: () -> Unit) {
+    fun draw(view: TextView, effects: OutlinedTextEffects, drawText: () -> Unit) {
         val paint = view.paint
         paint.isAntiAlias = true
         paint.isSubpixelText = true
@@ -40,8 +30,6 @@ private object OutlinedTextPainter {
         val originalStrokeWidth = paint.strokeWidth
         val originalStrokeJoin = paint.strokeJoin
         val density = view.resources.displayMetrics.density
-
-        val effects = (view as? OutlinedTextView)?.textEffects ?: defaultEffects
 
         if (effects.outlineWidthDp > 0f && Color.alpha(effects.outlineColor) > 0) {
             view.setTextColor(effects.outlineColor)
@@ -96,6 +84,10 @@ class OutlinedTextView @JvmOverloads constructor(
     internal var textEffects: OutlinedTextEffects? = null
         private set
 
+    init {
+        OutlinedTextPainter.applyShadow(this)
+    }
+
     internal fun setTextEffects(
         outlineWidthDp: Float,
         outlineColor: Int,
@@ -103,20 +95,27 @@ class OutlinedTextView @JvmOverloads constructor(
         shadowOffsetYDp: Float,
         shadowColor: Int,
     ) {
-        textEffects = OutlinedTextEffects(
+        val effects = OutlinedTextEffects(
             outlineWidthDp = outlineWidthDp,
             outlineColor = outlineColor,
             shadowRadiusDp = shadowRadiusDp,
             shadowOffsetYDp = shadowOffsetYDp,
             shadowColor = shadowColor,
         )
+        if (textEffects == effects) return
+        textEffects = effects
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
+        val effects = textEffects
+        if (effects == null) {
+            super.onDraw(canvas)
+            return
+        }
         suppressInvalidation = true
         try {
-            OutlinedTextPainter.draw(this) { super.onDraw(canvas) }
+            OutlinedTextPainter.draw(this, effects) { super.onDraw(canvas) }
         } finally {
             suppressInvalidation = false
         }
@@ -132,19 +131,8 @@ class OutlinedButton @JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyleAttr: Int = androidx.appcompat.R.attr.buttonStyle,
 ) : AppCompatButton(context, attrs, defStyleAttr) {
-    private var suppressInvalidation = false
-
-    override fun onDraw(canvas: Canvas) {
-        suppressInvalidation = true
-        try {
-            OutlinedTextPainter.draw(this) { super.onDraw(canvas) }
-        } finally {
-            suppressInvalidation = false
-        }
-    }
-
-    override fun invalidate() {
-        if (!suppressInvalidation) super.invalidate()
+    init {
+        OutlinedTextPainter.applyShadow(this)
     }
 }
 
@@ -165,10 +153,10 @@ class OutlinedAppCompatViewInflater : AppCompatViewInflater() {
         AppCompatRadioButton(context, attrs).also(UiFont::applyToTextView)
 
     override fun createImageView(context: Context, attrs: AttributeSet): AppCompatImageView =
-        OutlinedImageView(context, attrs)
+        AppCompatImageView(context, attrs)
 
     override fun createImageButton(context: Context, attrs: AttributeSet): AppCompatImageButton =
-        OutlinedImageButton(context, attrs)
+        AppCompatImageButton(context, attrs)
 }
 
 internal fun TextView.applyUiTextShadow() = OutlinedTextPainter.applyShadow(this)
