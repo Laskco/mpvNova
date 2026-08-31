@@ -1,6 +1,9 @@
 package app.mpvnova.player
 
+import android.app.Dialog
 import android.graphics.Rect
+import android.view.Gravity
+import android.view.Window
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
@@ -12,7 +15,6 @@ internal const val CUSTOM_PRESET_NAME_MAX_CHARS = 12
 internal fun normalizedCustomPresetName(value: String): String =
     value.trim().take(CUSTOM_PRESET_NAME_MAX_CHARS)
 
-@Suppress("DEPRECATION")
 internal fun MPVActivity.showCustomPresetNameDialog(
     currentName: String?,
     chrome: PlayerDialogChrome,
@@ -20,8 +22,8 @@ internal fun MPVActivity.showCustomPresetNameDialog(
 ) {
     val editorDialog = topPlayerDialog
     val activitySoftInputMode = window.attributes.softInputMode
+    val editorWindowState = editorDialog?.window?.freezeForPresetKeyboard()
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
-    editorDialog?.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
     val binding = DialogCustomPresetNameBinding.inflate(layoutInflater)
     val editing = !currentName.isNullOrBlank()
     binding.customPresetDialogTitle.setText(
@@ -53,6 +55,16 @@ internal fun MPVActivity.showCustomPresetNameDialog(
     }
     UiFont.applyToViewTree(binding.root)
     showWidePlayerDialog(dialog, CUSTOM_PRESET_NAME_DIALOG_LAYOUT, chrome)
+    trackPresetKeyboard(dialog, editorDialog, editorWindowState, activitySoftInputMode)
+}
+
+@Suppress("DEPRECATION")
+private fun MPVActivity.trackPresetKeyboard(
+    dialog: AlertDialog,
+    editorDialog: Dialog?,
+    editorWindowState: EditorWindowState?,
+    activitySoftInputMode: Int,
+) {
     val dialogWindow = dialog.window ?: return
     dialogWindow.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
     val decor = dialogWindow.decorView
@@ -77,11 +89,56 @@ internal fun MPVActivity.showCustomPresetNameDialog(
             decor.viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
         }
         eventUiHandler.postDelayed(
-            { window.setSoftInputMode(activitySoftInputMode) },
+            {
+                window.setSoftInputMode(activitySoftInputMode)
+                if (editorDialog?.isShowing == true && editorWindowState != null) {
+                    editorDialog.window?.restoreAfterPresetKeyboard(editorWindowState)
+                }
+            },
             SOFT_INPUT_RESTORE_DELAY_MS,
         )
     }
 }
+
+private fun Window.freezeForPresetKeyboard(): EditorWindowState {
+    val current = attributes
+    val state = EditorWindowState(
+        softInputMode = current.softInputMode,
+        flags = current.flags,
+        gravity = current.gravity,
+        x = current.x,
+        y = current.y,
+    )
+    val location = IntArray(2)
+    decorView.getLocationOnScreen(location)
+    val horizontalGravity = current.gravity and Gravity.HORIZONTAL_GRAVITY_MASK
+    attributes = current.apply {
+        softInputMode = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING
+        flags = flags or WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM
+        gravity = Gravity.TOP or horizontalGravity
+        y = location[1]
+    }
+    return state
+}
+
+private fun Window.restoreAfterPresetKeyboard(state: EditorWindowState) {
+    attributes = attributes.apply {
+        softInputMode = state.softInputMode
+        flags = state.flags
+        gravity = state.gravity
+        x = state.x
+        y = state.y
+    }
+}
+
+private data class EditorWindowState(
+    val softInputMode: Int,
+    val flags: Int,
+    val gravity: Int,
+    val x: Int,
+    val y: Int,
+)
 
 private const val KEYBOARD_VISIBLE_THRESHOLD_FRACTION = 0.18f
 private const val KEYBOARD_DIALOG_OFFSET_DIVISOR = 2
