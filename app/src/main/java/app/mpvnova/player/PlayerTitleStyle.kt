@@ -98,6 +98,8 @@ internal data class PlayerTitlePanelStyle(
     val contentAlignment: PlayerTitlePanelAlignment,
     val widthPercent: Int,
     val verticalOffsetDp: Int,
+    val manualPosition: Boolean = false,
+    val horizontalOffsetDp: Int = PLAYER_TITLE_DEFAULT_HORIZONTAL_OFFSET_DP,
 ) {
     fun normalized(): PlayerTitlePanelStyle = copy(
         opacityPercent = opacityPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
@@ -122,6 +124,10 @@ internal data class PlayerTitlePanelStyle(
         verticalOffsetDp = verticalOffsetDp.coerceIn(
             PLAYER_TITLE_MIN_VERTICAL_OFFSET_DP,
             PLAYER_TITLE_MAX_VERTICAL_OFFSET_DP,
+        ),
+        horizontalOffsetDp = horizontalOffsetDp.coerceIn(
+            PLAYER_TITLE_MIN_HORIZONTAL_OFFSET_DP,
+            PLAYER_TITLE_MAX_HORIZONTAL_OFFSET_DP,
         ),
     )
 
@@ -739,7 +745,10 @@ internal const val PLAYER_TITLE_DEFAULT_PANEL_OPACITY_PERCENT = 70
 internal const val PLAYER_TITLE_MIN_CONTENT_SPACING_DP = 0
 internal const val PLAYER_TITLE_MAX_CONTENT_SPACING_DP = 16
 internal const val PLAYER_TITLE_MIN_VERTICAL_OFFSET_DP = 0
-internal const val PLAYER_TITLE_MAX_VERTICAL_OFFSET_DP = 120
+internal const val PLAYER_TITLE_MAX_VERTICAL_OFFSET_DP = 2_000
+internal const val PLAYER_TITLE_MIN_HORIZONTAL_OFFSET_DP = 0
+internal const val PLAYER_TITLE_MAX_HORIZONTAL_OFFSET_DP = 2_000
+internal const val PLAYER_TITLE_DEFAULT_HORIZONTAL_OFFSET_DP = 20
 internal const val PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT = 0
 internal const val PLAYER_TITLE_MIN_PANEL_WIDTH_PERCENT = 20
 internal const val PLAYER_TITLE_MAX_PANEL_WIDTH_PERCENT = 80

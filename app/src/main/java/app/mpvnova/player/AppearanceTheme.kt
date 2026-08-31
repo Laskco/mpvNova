@@ -3,6 +3,7 @@ package app.mpvnova.player
 import android.app.Activity
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Resources
 import android.util.TypedValue
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
@@ -56,27 +57,19 @@ object AppearanceTheme {
     }
 
     fun applyPlayer(activity: Activity) {
-        migrateLegacyOled(activity)
-        activity.setTheme(styleFor(activity, Target.Player))
-        applySurfaceOverlays(activity)
+        applyTheme(activity, Target.Player)
     }
 
     fun applyPreferences(activity: Activity) {
-        migrateLegacyOled(activity)
-        activity.setTheme(styleFor(activity, Target.Preference))
-        applySurfaceOverlays(activity)
+        applyTheme(activity, Target.Preference)
     }
 
     fun applyFilePicker(activity: Activity) {
-        migrateLegacyOled(activity)
-        activity.setTheme(styleFor(activity, Target.FilePicker))
-        applySurfaceOverlays(activity)
+        applyTheme(activity, Target.FilePicker)
     }
 
     fun applySpecialFilePicker(activity: Activity) {
-        migrateLegacyOled(activity)
-        activity.setTheme(styleFor(activity, Target.FilePickerSpecial))
-        applySurfaceOverlays(activity)
+        applyTheme(activity, Target.FilePickerSpecial)
     }
 
     @ColorInt
@@ -96,12 +89,22 @@ object AppearanceTheme {
         return PreferenceManager.getDefaultSharedPreferences(context)
     }
 
-    private fun applySurfaceOverlays(activity: Activity) {
-        val prefs = preferences(activity)
+    private fun applyTheme(activity: Activity, target: Target) {
+        migrateLegacyOled(activity)
+        val baseStyle = styleFor(activity, target)
+        activity.setTheme(baseStyle)
+        val replacement = activity.resources.newTheme().apply {
+            applyStyle(baseStyle, true)
+            applySurfaceOverlays(this, preferences(activity))
+        }
+        activity.theme.setTo(replacement)
+    }
+
+    private fun applySurfaceOverlays(theme: Resources.Theme, prefs: SharedPreferences) {
         if (prefs.getBoolean(PREF_AMOLED_MODE, false))
-            activity.theme.applyStyle(R.style.MpvThemeOverlay_Amoled, true)
+            theme.applyStyle(R.style.MpvThemeOverlay_Amoled, true)
         if (prefs.getBoolean(PREF_PURE_BLACK_SURFACES, false))
-            activity.theme.applyStyle(R.style.MpvThemeOverlay_PureBlackSurfaces, true)
+            theme.applyStyle(R.style.MpvThemeOverlay_PureBlackSurfaces, true)
     }
 
     @StyleRes

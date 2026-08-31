@@ -46,6 +46,7 @@ internal fun MPVActivity.readSettings() {
 
     readPlaybackSettings(prefs, getString)
     playerUiCustomization = PlayerUiCustomizationStore.read(prefs)
+    migrateRetiredPlayerUiSettings(prefs)
     readAudioFilterSettings(prefs)
     clampAudioFilterState()
     readSubFilterSettings(prefs)

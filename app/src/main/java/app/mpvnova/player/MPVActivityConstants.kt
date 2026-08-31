@@ -67,8 +67,8 @@ internal val PLAYER_TITLE_STYLE_DIALOG_LAYOUT = PlayerDialogLayout(
     gravity = android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL,
     verticalOffsetDp = 28f,
 )
-internal const val PLAYER_TITLE_STYLE_DIALOG_HEIGHT_FRACTION = 0.70f
-internal const val PLAYER_TITLE_STYLE_DIALOG_MAX_HEIGHT_DP = 540f
+internal const val PLAYER_TITLE_STYLE_DIALOG_HEIGHT_FRACTION = 0.82f
+internal const val PLAYER_TITLE_STYLE_DIALOG_MAX_HEIGHT_DP = 650f
 internal const val CLOCK_TICK_INTERVAL_MS = 30_000L
 internal const val MIN_CLOCK_TICK_DELAY_MS = 1_000L
 internal const val BACKGROUND_SERVICE_STOP_DELAY_MS = 1_000L

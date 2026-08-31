@@ -11,32 +11,21 @@
     android:focusable="true"
     android:focusableInTouchMode="false"
     android:gravity="center_vertical"
-    android:minHeight="54dp"
+    android:minHeight="64dp"
     android:orientation="horizontal"
     android:paddingStart="10dp"
     android:paddingTop="7dp"
     android:paddingEnd="10dp"
     android:paddingBottom="7dp">
 
-    <View
-        android:id="@+id/optionColorSwatch"
-        android:layout_width="28dp"
-        android:layout_height="28dp"
-        android:layout_gravity="center_vertical"
-        android:layout_marginEnd="12dp"
-        android:visibility="gone"
-        tools:background="#2196F3"
-        tools:visibility="visible" />
-
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
         android:layout_weight="1"
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/optionTitleText"
+            android:id="@+id/optionToggleTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:ellipsize="end"
@@ -44,10 +33,10 @@
             android:textColor="@color/tv_text"
             android:textSize="13sp"
             android:textStyle="bold"
-            tools:text="Auto-skip" />
+            tools:text="AMOLED Mode" />
 
         <TextView
-            android:id="@+id/optionDetailText"
+            android:id="@+id/optionToggleDetail"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
@@ -55,17 +44,16 @@
             android:maxLines="2"
             android:textColor="@color/tv_text_dim"
             android:textSize="10sp"
-            tools:text="Use Nuvio skip intervals automatically." />
+            tools:text="Use pure black for app backgrounds" />
     </LinearLayout>
 
-    <ImageView
-        android:id="@+id/optionCheck"
-        android:layout_width="22dp"
-        android:layout_height="22dp"
-        android:layout_gravity="center_vertical"
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/optionToggle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
-        android:src="@drawable/ic_tv_check"
-        android:visibility="invisible"
-        app:tint="@color/tv_text"
-        tools:visibility="visible" />
+        android:clickable="false"
+        android:focusable="false"
+        app:thumbTint="@color/appearance_switch_thumb"
+        app:trackTint="@color/appearance_switch_track" />
 </LinearLayout>

@@ -3,9 +3,9 @@ package app.mpvnova.player
 import android.content.SharedPreferences
 
 internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences) {
-    controlsAtBottom = prefs.getBoolean("bottom_controls", true)
+    controlsAtBottom = true
     topActionsInPlayerBar = prefs.getBoolean(PREF_TOP_ACTIONS_IN_PLAYERBAR, false)
-    showMediaTitle = prefs.getBoolean("display_media_title", true)
+    showMediaTitle = true
     playerTitleStyle = PlayerTitleStyleStore.read(prefs)
     showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     showClockDate = prefs.getBoolean("display_clock_date", false)
@@ -25,3 +25,34 @@ internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences) {
     hideControlsWhileSeeking = prefs.getBoolean("hide_controls_while_seeking", false)
     minimalSeekbarWhileSeeking = prefs.getBoolean("minimal_seekbar_while_seeking", false)
 }
+
+internal fun MPVActivity.migrateRetiredPlayerUiSettings(prefs: SharedPreferences) {
+    if (prefs.contains(RETIRED_MEDIA_TITLE_KEY) &&
+        !prefs.getBoolean(RETIRED_MEDIA_TITLE_KEY, true)
+    ) {
+        playerTitleStyle = playerTitleStyle.copy(
+            season = playerTitleStyle.season.copy(visible = false),
+            episodeNumber = playerTitleStyle.episodeNumber.copy(visible = false),
+            title = playerTitleStyle.title.copy(visible = false),
+            episodeTitle = playerTitleStyle.episodeTitle.copy(visible = false),
+        )
+        PlayerTitleStyleStore.write(prefs, playerTitleStyle)
+    }
+    if (prefs.contains(RETIRED_BOTTOM_CONTROLS_KEY) &&
+        !prefs.getBoolean(RETIRED_BOTTOM_CONTROLS_KEY, true)
+    ) {
+        playerUiCustomization = playerUiCustomization.copy(
+            verticalOffsetDp = (
+                playerUiCustomization.verticalOffsetDp + FLOATING_CONTROLS_BOTTOM_MARGIN_DP.toInt()
+            ).coerceAtMost(MAX_VERTICAL_OFFSET_DP),
+        ).normalized()
+        PlayerUiCustomizationStore.write(prefs, playerUiCustomization)
+    }
+    prefs.edit()
+        .remove(RETIRED_MEDIA_TITLE_KEY)
+        .remove(RETIRED_BOTTOM_CONTROLS_KEY)
+        .apply()
+}
+
+private const val RETIRED_MEDIA_TITLE_KEY = "display_media_title"
+private const val RETIRED_BOTTOM_CONTROLS_KEY = "bottom_controls"

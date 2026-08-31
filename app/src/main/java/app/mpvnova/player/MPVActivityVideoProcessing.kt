@@ -1,11 +1,15 @@
 package app.mpvnova.player
 
+import android.content.res.ColorStateList
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.databinding.DialogVideoProcessingBinding
 
@@ -66,6 +70,14 @@ internal data class PlayerPanelChoice(
     val value: String,
     val title: String,
     val detail: String = "",
+    val swatchColor: Int? = null,
+)
+
+internal data class PlayerPanelToggle(
+    val key: String,
+    val title: String,
+    val detail: String,
+    val checked: Boolean,
 )
 
 internal fun MPVActivity.pickVideoScaler(setting: VideoScalerSetting) {
@@ -169,10 +181,16 @@ internal fun MPVActivity.openPlayerChoicePanel(
     @StringRes summaryRes: Int,
     choices: List<PlayerPanelChoice>,
     selectedValue: String,
+    chrome: PlayerDialogChrome = PlayerDialogChrome.HIDE_ALL,
+    dismissOnSelection: Boolean = false,
+    toggles: List<PlayerPanelToggle> = emptyList(),
+    refreshThemeOnChange: Boolean = false,
+    onToggled: (String, Boolean) -> Unit = { _, _ -> },
     onSelected: (String) -> Unit,
 ) {
     val restore = keepPlaybackForDialog()
     val binding = DialogVideoProcessingBinding.inflate(layoutInflater)
+    lateinit var dialog: AlertDialog
     binding.videoProcessingEyebrow.setText(eyebrowRes)
     binding.videoProcessingTitle.setText(titleRes)
     binding.videoProcessingSummary.setText(summaryRes)
@@ -191,23 +209,72 @@ internal fun MPVActivity.openPlayerChoicePanel(
             selectedRow = row
         row.setOnClickListener {
             onSelected(choice.value)
+            if (refreshThemeOnChange) refreshPlayerChoicePanelTheme(binding)
             UiFont.applyToViewTree(binding.root)
             checks.forEach { (value, image) ->
                 image.visibility = if (value == choice.value) View.VISIBLE else View.INVISIBLE
             }
+            if (dismissOnSelection) dialog.dismiss()
         }
         binding.videoProcessingRows.addView(row)
     }
 
-    val dialog = AlertDialog.Builder(this).setView(binding.root).create()
+    toggles.forEach { toggle ->
+        val row = inflatePlayerPanelToggleRow(binding.videoProcessingRows, toggle)
+        val switch = row.findViewById<SwitchCompat>(R.id.optionToggle)
+        row.setOnClickListener {
+            val checked = !switch.isChecked
+            switch.isChecked = checked
+            onToggled(toggle.key, checked)
+            if (refreshThemeOnChange) refreshPlayerChoicePanelTheme(binding)
+            UiFont.applyToViewTree(binding.root)
+        }
+        binding.videoProcessingRows.addView(row)
+    }
+
+    dialog = AlertDialog.Builder(this).setView(binding.root).create()
     dialog.setOnDismissListener {
         restore()
         reopenDrawerIfPending()
     }
     binding.videoProcessingDoneBtn.setOnClickListener { dialog.dismiss() }
-    showWidePlayerDialog(dialog, VIDEO_PROCESSING_DIALOG_LAYOUT)
+    showWidePlayerDialog(dialog, VIDEO_PROCESSING_DIALOG_LAYOUT, chrome)
     val focusRow = selectedRow ?: binding.videoProcessingRows.getChildAt(0)
     focusRow.post { focusRow.requestFocus() }
+}
+
+private fun MPVActivity.refreshPlayerChoicePanelTheme(binding: DialogVideoProcessingBinding) {
+    binding.root.background = AppCompatResources.getDrawable(this, R.drawable.bg_tv_dialog_shell)
+    (binding.videoProcessingScroll.parent as? View)?.background =
+        AppCompatResources.getDrawable(this, R.drawable.bg_tv_panel_card)
+    binding.videoProcessingEyebrow.setTextColor(
+        AppearanceTheme.resolveColor(this, R.attr.mpvAccentHot, android.graphics.Color.WHITE)
+    )
+    binding.videoProcessingDoneBtn.background =
+        AppCompatResources.getDrawable(this, R.drawable.bg_dialog_action)
+
+    val thumbTint = ColorStateList(
+        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+        intArrayOf(
+            AppearanceTheme.resolveColor(this, R.attr.mpvAccentHot, android.graphics.Color.WHITE),
+            ContextCompat.getColor(this, R.color.tv_text_dim),
+        ),
+    )
+    val trackTint = ColorStateList(
+        arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf()),
+        intArrayOf(
+            AppearanceTheme.resolveColor(this, R.attr.mpvAccentDeep, android.graphics.Color.DKGRAY),
+            AppearanceTheme.resolveColor(this, R.attr.mpvStrokeStrong, android.graphics.Color.GRAY),
+        ),
+    )
+    repeat(binding.videoProcessingRows.childCount) { index ->
+        val row = binding.videoProcessingRows.getChildAt(index)
+        row.background = AppCompatResources.getDrawable(this, R.drawable.bg_tv_track_row)
+        row.findViewById<SwitchCompat>(R.id.optionToggle)?.apply {
+            thumbTintList = thumbTint
+            trackTintList = trackTint
+        }
+    }
 }
 
 private fun MPVActivity.inflateVideoProcessingRow(
@@ -230,6 +297,31 @@ private fun MPVActivity.inflateVideoProcessingRow(
     }
     row.findViewById<ImageView>(R.id.optionCheck).visibility =
         if (selected) View.VISIBLE else View.INVISIBLE
+    row.findViewById<View>(R.id.optionColorSwatch).apply {
+        val color = choice.swatchColor
+        visibility = if (color == null) View.GONE else View.VISIBLE
+        if (color != null) {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(color)
+                setStroke(
+                    Utils.convertDp(this@inflateVideoProcessingRow, 1f),
+                    android.graphics.Color.WHITE,
+                )
+            }
+        }
+    }
+    return row
+}
+
+private fun MPVActivity.inflatePlayerPanelToggleRow(
+    parent: ViewGroup,
+    toggle: PlayerPanelToggle,
+): View {
+    val row = layoutInflater.inflate(R.layout.dialog_setting_toggle_item, parent, false)
+    row.findViewById<TextView>(R.id.optionToggleTitle).text = toggle.title
+    row.findViewById<TextView>(R.id.optionToggleDetail).text = toggle.detail
+    row.findViewById<SwitchCompat>(R.id.optionToggle).isChecked = toggle.checked
     return row
 }
 

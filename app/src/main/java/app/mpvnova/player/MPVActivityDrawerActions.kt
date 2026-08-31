@@ -154,6 +154,7 @@ private fun MPVActivity.handleInterfaceDrawerAction(
     dismissDrawerExpectingReopen(dismiss)
     when (action) {
         PlayerDrawerAction.UI_FONT -> pickUiFont()
+        PlayerDrawerAction.APPEARANCE_COLORS -> pickPlayerAppearanceColor()
         PlayerDrawerAction.TITLE_STYLE -> openPlayerTitleStylePanel()
         PlayerDrawerAction.PLAYER_UI_STYLE -> openPlayerUiCustomizationPanel()
         PlayerDrawerAction.SCREENSAVER -> openScreensaverPanel()

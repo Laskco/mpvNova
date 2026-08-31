@@ -28,6 +28,10 @@ internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String =
     PlayerDrawerOption.SEEK_STEP -> seekStepLabel(seekStepMs)
     PlayerDrawerOption.SCREENSAVER -> screensaverDrawerSummary()
     PlayerDrawerOption.UI_FONT -> UiFont.currentLabel(this)
+    PlayerDrawerOption.APPEARANCE_COLORS -> appearanceColorChoices
+        .firstOrNull { it.value == AppearanceTheme.currentValue(this) }
+        ?.let { getString(it.labelRes) }
+        ?: getString(appearanceColorChoices.first().labelRes)
     PlayerDrawerOption.TITLE_STYLE -> getString(R.string.player_title_style_drawer_value)
     PlayerDrawerOption.PLAYER_UI_STYLE -> getString(R.string.player_ui_customization_drawer_value)
 }

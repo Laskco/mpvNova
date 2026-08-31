@@ -8,6 +8,7 @@ internal class PlayerTitleStylePanelController(
     private val panel: DialogPlayerTitleStyleBinding,
     private val preferences: SharedPreferences,
     private val onPreviewChanged: () -> Unit,
+    private val onMovePanel: (PlayerTitlePart, () -> Unit) -> Unit,
 ) {
     private var selectedPart = PlayerTitlePart.TITLE
     private val presetController = PlayerTitlePresetController(
@@ -36,6 +37,16 @@ internal class PlayerTitleStylePanelController(
         panel.titleStyleResetAllBtn.setOnClickListener { resetAll() }
         panel.titleStyleVisibilityBtn.setOnClickListener { toggleVisibility() }
         panel.titleStyleSeparatorBtn.setOnClickListener { cycleSeparator() }
+        panel.titleStyleMoveBtn.setOnClickListener {
+            onMovePanel(selectedPart, ::refreshControls)
+        }
+        panel.titleStyleResetPositionBtn.setOnClickListener {
+            activity.playerTitleStyle = activity.playerTitleStyle.withDefaultPanelPosition(
+                selectedPart,
+            )
+            PlayerTitlePanelStyleStore.write(preferences, activity.playerTitleStyle)
+            refreshPreview()
+        }
         presetController.bind()
     }
 
@@ -48,6 +59,20 @@ internal class PlayerTitleStylePanelController(
         panel.titleStyleResetPartBtn.text = activity.getString(
             R.string.player_title_style_reset_part_named,
             activity.playerTitlePartLabel(part),
+        )
+        panel.titleStyleMoveBtn.text = activity.getString(
+            if (part.isTitlePart()) {
+                R.string.player_title_style_move_title_panel
+            } else {
+                R.string.player_title_style_move_clock_panel
+            },
+        )
+        panel.titleStyleResetPositionBtn.text = activity.getString(
+            if (part.isTitlePart()) {
+                R.string.player_title_style_reset_title_position
+            } else {
+                R.string.player_title_style_reset_clock_position
+            },
         )
         refreshControls()
     }
@@ -136,4 +161,21 @@ internal class PlayerTitleStylePanelController(
         PlayerTitleStyleStore.write(preferences, activity.playerTitleStyle)
         refreshPreview()
     }
+}
+
+private fun PlayerTitleStyle.withDefaultPanelPosition(part: PlayerTitlePart): PlayerTitleStyle {
+    val defaults = if (part.isTitlePart()) {
+        PlayerTitlePanelStyle.TITLE_DEFAULT
+    } else {
+        PlayerTitlePanelStyle.CLOCK_DEFAULT
+    }
+    return withPanelStyle(
+        part,
+        panelStyleFor(part).copy(
+            alignment = defaults.alignment,
+            verticalOffsetDp = defaults.verticalOffsetDp,
+            manualPosition = false,
+            horizontalOffsetDp = defaults.horizontalOffsetDp,
+        ),
+    )
 }

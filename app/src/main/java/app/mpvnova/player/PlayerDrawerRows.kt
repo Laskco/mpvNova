@@ -41,6 +41,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     SKIP_BUTTON_DISPLAY(PlayerDrawerActionGroup.PLAYBACK),
     SEEK_STEP(PlayerDrawerActionGroup.PLAYBACK),
     UI_FONT(PlayerDrawerActionGroup.INTERFACE),
+    APPEARANCE_COLORS(PlayerDrawerActionGroup.INTERFACE),
     TITLE_STYLE(PlayerDrawerActionGroup.INTERFACE),
     PLAYER_UI_STYLE(PlayerDrawerActionGroup.INTERFACE),
     SCREENSAVER(PlayerDrawerActionGroup.INTERFACE),
@@ -321,6 +322,11 @@ internal enum class PlayerDrawerOption(
         R.string.appearance_ui_font_title,
         R.string.appearance_ui_font_summary,
     ),
+    APPEARANCE_COLORS(
+        PlayerDrawerAction.APPEARANCE_COLORS,
+        R.string.appearance_color_theme_title,
+        R.string.appearance_color_theme_summary,
+    ),
     TITLE_STYLE(
         PlayerDrawerAction.TITLE_STYLE,
         R.string.player_title_style_title,
@@ -445,6 +451,7 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
 
 private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addOption(PlayerDrawerOption.UI_FONT)
+    rows.addOption(PlayerDrawerOption.APPEARANCE_COLORS)
     rows.addOption(PlayerDrawerOption.TITLE_STYLE)
     rows.addOption(PlayerDrawerOption.PLAYER_UI_STYLE)
     rows.addPref(PlayerDrawerPreference.TOP_ACTIONS_IN_PLAYERBAR)
@@ -452,12 +459,10 @@ private fun addInterfaceRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.AUTOPAUSE_CONTROLS)
     rows.addPref(PlayerDrawerPreference.KEEP_CONTROLS_VISIBLE)
     rows.addOption(PlayerDrawerOption.SCREENSAVER)
-    rows.addPref(PlayerDrawerPreference.SHOW_MEDIA_TITLE)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_DATE)
     rows.addPref(PlayerDrawerPreference.SHOW_CLOCK_ON_PAUSE)
     rows.addPref(PlayerDrawerPreference.CLOCK_24_HOUR)
-    rows.addPref(PlayerDrawerPreference.BOTTOM_CONTROLS)
     rows.addPref(PlayerDrawerPreference.BACK_HIDES_CONTROLS)
     rows.addPref(PlayerDrawerPreference.EXIT_DOUBLE_BACK)
     rows.addPref(PlayerDrawerPreference.HIDE_CONTROLS_WHILE_SEEKING)

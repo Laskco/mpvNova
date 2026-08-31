@@ -447,6 +447,7 @@ open class MPVActivity : AppCompatActivity() {
 
 
     internal var playbackHasStarted = false
+    internal var playbackEnded = false
     // External-player result state. MPV_EVENT_END_FILE can also mean an early
     // stream failure, so completion is only true when position is near duration.
     internal var playbackCompletionReached = false
@@ -470,10 +471,14 @@ open class MPVActivity : AppCompatActivity() {
     // the translucent attrs are merged on top of it, before the window is created.
     protected open val useTranslucentPlayerWindow: Boolean get() = false
 
-    override fun onCreate(icicle: Bundle?) {
-        AppearanceTheme.applyPlayer(this)
+    internal fun applyTranslucentPlayerWindowTheme() {
         if (useTranslucentPlayerWindow)
             setTheme(R.style.PlayerTranslucentOverlay)
+    }
+
+    override fun onCreate(icicle: Bundle?) {
+        AppearanceTheme.applyPlayer(this)
+        applyTranslucentPlayerWindowTheme()
         super.onCreate(icicle)
         suppressPlayerActivityTransition()
         lifecycle.addObserver(lifecycleObserver)
@@ -531,6 +536,11 @@ open class MPVActivity : AppCompatActivity() {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             runOnUiThread { finish() }
             return
+        }
+        playbackEnded = true
+        if (::binding.isInitialized) {
+            binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
+            binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
         }
         super.finish()
         suppressPlayerActivityTransition()

@@ -20,6 +20,7 @@ internal fun MPVActivity.toggleStatsPage(page: Int) {
         mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
         activeStatsPage = 0
         refreshTimeInfoPanelVisibility()
+        updatePlayerTitleOverlay()
         return
     }
     val previousPage = activeStatsPage.takeIf { it in STATS_PAGE_FIRST..STATS_PAGE_LAST }
@@ -28,6 +29,7 @@ internal fun MPVActivity.toggleStatsPage(page: Int) {
     mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
     activeStatsPage = statsPage
     refreshTimeInfoPanelVisibility()
+    updatePlayerTitleOverlay()
 }
 
 internal fun MPVActivity.showConfiguredStatsPage() {
@@ -35,6 +37,7 @@ internal fun MPVActivity.showConfiguredStatsPage() {
     mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
     activeStatsPage = statsPage
     refreshTimeInfoPanelVisibility()
+    updatePlayerTitleOverlay()
 }
 
 internal fun MPVActivity.showStatsPickerDialog() {

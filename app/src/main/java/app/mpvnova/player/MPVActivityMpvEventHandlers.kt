@@ -6,10 +6,13 @@ import android.util.Log
 internal fun MPVActivity.handleMpvEvent(eventId: Int) {
     when (eventId) {
         MpvEvent.MPV_EVENT_END_FILE -> handleMpvEndFile()
-        MpvEvent.MPV_EVENT_SHUTDOWN -> finishWithResult(
-            if (playbackHasStarted) RESULT_OK else RESULT_CANCELED,
-            includeTimePos = true,
-        )
+        MpvEvent.MPV_EVENT_SHUTDOWN -> {
+            markPlaybackEnded()
+            finishWithResult(
+                if (playbackHasStarted) RESULT_OK else RESULT_CANCELED,
+                includeTimePos = true,
+            )
+        }
         MpvEvent.MPV_EVENT_START_FILE -> handleMpvStartFile()
         MpvEvent.MPV_EVENT_FILE_LOADED -> handleMpvFileLoaded()
         MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> handleMpvPlaybackRestart()
@@ -42,6 +45,7 @@ private fun MPVActivity.handleMpvEndFile() {
     // END_FILE; that is not a real playback end, so it must not return to the caller.
     val replacedOutgoingFile = suppressEndFileFinishForReplace
     suppressEndFileFinishForReplace = false
+    if (!replacedOutgoingFile) markPlaybackEnded()
     if (!replacedOutgoingFile && shouldFinishExternalPlaybackOnEndFile()) {
         Log.v(
             MPV_ACTIVITY_TAG,
@@ -57,6 +61,7 @@ private fun MPVActivity.handleMpvStartFile() {
     // file never fired END_FILE (nothing was playing), clear it here so this file's
     // genuine end still returns to the caller.
     suppressEndFileFinishForReplace = false
+    playbackEnded = false
     resetPlaybackResultState()
     audioNormUnderrunHintShown = false
     gpuNextRenderFallbackStage = 0
@@ -82,6 +87,8 @@ private fun MPVActivity.handleMpvStartFile() {
     eventUiHandler.post {
         refreshLoadingOverlay()
         updateMetadataDisplay()
+        refreshTimeInfoPanelVisibility()
+        updatePlayerTitleOverlay()
     }
     applySessionDecoderModeIfNeeded()
     runOnloadCommands()

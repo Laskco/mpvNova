@@ -137,6 +137,8 @@ private fun PlayerTitlePanelStyle.toJson() = JSONObject().apply {
     put("contentAlignment", contentAlignment.name)
     put("width", widthPercent)
     put("verticalOffset", verticalOffsetDp)
+    put("manualPosition", manualPosition)
+    put("horizontalOffset", horizontalOffsetDp)
 }
 
 private fun JSONObject.toPlayerTitleStyle(): PlayerTitleStyle {
@@ -201,6 +203,8 @@ private fun JSONObject?.toPanelStyle(defaults: PlayerTitlePanelStyle): PlayerTit
         ),
         widthPercent = optInt("width", defaults.widthPercent),
         verticalOffsetDp = optInt("verticalOffset", defaults.verticalOffsetDp),
+        manualPosition = optBoolean("manualPosition", defaults.manualPosition),
+        horizontalOffsetDp = optInt("horizontalOffset", defaults.horizontalOffsetDp),
     ).normalized()
 }
 

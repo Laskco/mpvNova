@@ -2,7 +2,9 @@ package app.mpvnova.player
 
 import android.view.LayoutInflater
 import android.view.View
+import android.graphics.Typeface
 import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.annotation.StringRes
 import app.mpvnova.player.databinding.DialogPlayerTitleStyleBinding
 import app.mpvnova.player.databinding.DialogPlayerTitleStyleControlBinding
@@ -51,33 +53,115 @@ internal fun MPVActivity.buildPlayerTitleStyleControls(
 ): List<PlayerTitleStyleControlView> {
     panel.titleStyleControlsContainer.removeAllViews()
     return buildList {
-        PlayerTitleStyleControl.entries.chunked(CONTROLS_PER_ROW).forEachIndexed { rowIndex, chunk ->
-            val row = LinearLayout(this@buildPlayerTitleStyleControls).apply {
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    if (rowIndex > 0) topMargin = Utils.convertDp(context, CONTROL_ROW_GAP_DP)
+        playerTitleControlSections().forEachIndexed { sectionIndex, section ->
+            panel.titleStyleControlsContainer.addView(
+                playerTitleSectionHeader(section.labelRes, sectionIndex > 0),
+            )
+            section.controls.chunked(CONTROLS_PER_ROW).forEachIndexed { rowIndex, chunk ->
+                val row = LinearLayout(this@buildPlayerTitleStyleControls).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        if (rowIndex > 0) {
+                            topMargin = Utils.convertDp(context, CONTROL_ROW_GAP_DP)
+                        }
+                    }
+                    isBaselineAligned = false
+                    orientation = LinearLayout.HORIZONTAL
                 }
-                isBaselineAligned = false
-                orientation = LinearLayout.HORIZONTAL
+                panel.titleStyleControlsContainer.addView(row)
+                chunk.forEach { control ->
+                    val binding = DialogPlayerTitleStyleControlBinding.inflate(
+                        LayoutInflater.from(this@buildPlayerTitleStyleControls),
+                        row,
+                        false,
+                    )
+                    binding.titleStyleControlLabel.setText(control.labelRes)
+                    binding.titleStyleControlPrevious.setOnClickListener { onAdjust(control, -1) }
+                    binding.titleStyleControlNext.setOnClickListener { onAdjust(control, 1) }
+                    row.addView(binding.root)
+                    add(PlayerTitleStyleControlView(control, binding))
+                }
+                balanceFinalControlRow(row)
             }
-            panel.titleStyleControlsContainer.addView(row)
-            chunk.forEach { control ->
-                val binding = DialogPlayerTitleStyleControlBinding.inflate(
-                    LayoutInflater.from(this@buildPlayerTitleStyleControls),
-                    row,
-                    false,
-                )
-                binding.titleStyleControlLabel.setText(control.labelRes)
-                binding.titleStyleControlPrevious.setOnClickListener { onAdjust(control, -1) }
-                binding.titleStyleControlNext.setOnClickListener { onAdjust(control, 1) }
-                row.addView(binding.root)
-                add(PlayerTitleStyleControlView(control, binding))
-            }
-            balanceFinalControlRow(row)
         }
     }
+}
+
+private data class PlayerTitleControlSection(
+    @StringRes val labelRes: Int,
+    val controls: List<PlayerTitleStyleControl>,
+)
+
+private fun playerTitleControlSections() = listOf(
+    PlayerTitleControlSection(
+        R.string.player_title_style_section_text,
+        listOf(
+            PlayerTitleStyleControl.FONT,
+            PlayerTitleStyleControl.SIZE,
+            PlayerTitleStyleControl.WEIGHT,
+            PlayerTitleStyleControl.LETTER_SPACING,
+            PlayerTitleStyleControl.COLOR,
+            PlayerTitleStyleControl.OPACITY,
+            PlayerTitleStyleControl.ITALIC,
+            PlayerTitleStyleControl.TEXT_CASE,
+            PlayerTitleStyleControl.POSITION,
+        ),
+    ),
+    PlayerTitleControlSection(
+        R.string.player_title_style_section_readability,
+        listOf(
+            PlayerTitleStyleControl.SHADOW,
+            PlayerTitleStyleControl.SHADOW_STRENGTH,
+            PlayerTitleStyleControl.OUTLINE_THICKNESS,
+            PlayerTitleStyleControl.OUTLINE_COLOR,
+            PlayerTitleStyleControl.BACKGROUND_PLATE,
+            PlayerTitleStyleControl.BACKGROUND_STRENGTH,
+        ),
+    ),
+    PlayerTitleControlSection(
+        R.string.player_title_style_section_panel_appearance,
+        listOf(
+            PlayerTitleStyleControl.PANEL_SURFACE,
+            PlayerTitleStyleControl.PANEL_OPACITY,
+            PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,
+            PlayerTitleStyleControl.PANEL_GRADIENT,
+            PlayerTitleStyleControl.PANEL_OUTLINE,
+            PlayerTitleStyleControl.PANEL_OUTLINE_WIDTH,
+            PlayerTitleStyleControl.PANEL_CORNER_RADIUS,
+            PlayerTitleStyleControl.PANEL_ELEVATION,
+        ),
+    ),
+    PlayerTitleControlSection(
+        R.string.player_title_style_section_panel_layout,
+        listOf(
+            PlayerTitleStyleControl.PANEL_HORIZONTAL_PADDING,
+            PlayerTitleStyleControl.PANEL_VERTICAL_PADDING,
+            PlayerTitleStyleControl.PANEL_CONTENT_SPACING,
+            PlayerTitleStyleControl.PANEL_ALIGNMENT,
+            PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT,
+            PlayerTitleStyleControl.PANEL_WIDTH,
+            PlayerTitleStyleControl.PANEL_VERTICAL_OFFSET,
+        ),
+    ),
+)
+
+private fun MPVActivity.playerTitleSectionHeader(
+    @StringRes labelRes: Int,
+    hasTopGap: Boolean,
+) = TextView(this).apply {
+    layoutParams = LinearLayout.LayoutParams(
+        LinearLayout.LayoutParams.MATCH_PARENT,
+        LinearLayout.LayoutParams.WRAP_CONTENT,
+    ).apply {
+        topMargin = Utils.convertDp(context, if (hasTopGap) SECTION_TOP_GAP_DP else 0f)
+        bottomMargin = Utils.convertDp(context, SECTION_BOTTOM_GAP_DP)
+    }
+    setText(labelRes)
+    setTextColor(themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot))
+    setTypeface(typeface, Typeface.BOLD)
+    textSize = SECTION_TEXT_SIZE_SP
 }
 
 internal fun MPVActivity.renderPlayerTitleStyleControls(
@@ -200,3 +284,6 @@ private fun balanceFinalControlRow(row: LinearLayout) {
 
 private const val CONTROLS_PER_ROW = 4
 private const val CONTROL_ROW_GAP_DP = 8f
+private const val SECTION_TOP_GAP_DP = 12f
+private const val SECTION_BOTTOM_GAP_DP = 6f
+private const val SECTION_TEXT_SIZE_SP = 11f

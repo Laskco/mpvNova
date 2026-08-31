@@ -72,6 +72,7 @@ private fun adjustPanelLayout(
     )
     PlayerTitleStyleControl.PANEL_ALIGNMENT -> style.copy(
         alignment = cyclePlayerTitleValue(PlayerTitlePanelAlignment.entries, style.alignment, delta),
+        manualPosition = false,
     )
     PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT -> style.copy(
         contentAlignment = cyclePlayerTitleValue(

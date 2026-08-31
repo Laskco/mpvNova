@@ -3,11 +3,14 @@
 package app.mpvnova.player
 
 import android.content.SharedPreferences
+import android.graphics.Typeface
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import android.widget.LinearLayout
+import android.widget.TextView
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.preference.PreferenceManager
@@ -112,8 +115,12 @@ private class PlayerUiCustomizationPanelController(
     }
 
     private fun renderPresets() {
+        addSectionHeading(R.string.player_ui_section_built_in_presets, false)
         renderBuiltInPresets()
-        renderCustomPresets()
+        if (customPresets.isNotEmpty()) {
+            addSectionHeading(R.string.player_ui_section_saved_presets, true)
+            renderCustomPresets()
+        }
     }
 
     private fun renderBuiltInPresets() {
@@ -250,8 +257,11 @@ private class PlayerUiCustomizationPanelController(
         render()
     }
 
-    private fun renderSurface() = renderEditorControls(
-        surfaceColorControls() + surfaceShapeControls(),
+    private fun renderSurface() = renderEditorSections(
+        listOf(
+            EditorSection(R.string.player_ui_section_background, surfaceColorControls()),
+            EditorSection(R.string.player_ui_section_shape, surfaceShapeControls()),
+        ),
     )
 
     private fun surfaceColorControls() = listOf(
@@ -340,9 +350,15 @@ private class PlayerUiCustomizationPanelController(
             },
     )
 
-    private fun renderLayout() = renderEditorControls(
-        layoutGeometryControls() + layoutSpacingControls() +
-            seekbarControls() + thumbControls() + timeControls() + controlRowControls(),
+    private fun renderLayout() = renderEditorSections(
+        listOf(
+            EditorSection(R.string.player_ui_section_panel_layout, layoutGeometryControls()),
+            EditorSection(R.string.player_ui_section_panel_spacing, layoutSpacingControls()),
+            EditorSection(R.string.player_ui_section_seekbar, seekbarControls()),
+            EditorSection(R.string.player_ui_section_thumb, thumbControls()),
+            EditorSection(R.string.player_ui_section_time, timeControls()),
+            EditorSection(R.string.player_ui_section_button_row, controlRowControls()),
+        ),
     )
 
     private fun layoutGeometryControls() = listOf(
@@ -571,6 +587,13 @@ private class PlayerUiCustomizationPanelController(
             },
     )
 
+    private fun renderEditorSections(sections: List<EditorSection>) {
+        sections.forEachIndexed { index, section ->
+            addSectionHeading(section.labelRes, index > 0)
+            renderEditorControls(section.controls)
+        }
+    }
+
     private fun renderEditorControls(controls: List<EditorControl>) {
         controls.chunked(CONTROLS_PER_ROW).forEach { chunk ->
             val row = newRow()
@@ -598,6 +621,7 @@ private class PlayerUiCustomizationPanelController(
     }
 
     private fun renderControls() {
+        addSectionHeading(R.string.player_ui_section_button_order, false)
         activity.playerUiCustomization.controlOrder.forEach { control ->
             val row = DialogPlayerUiControlRowBinding.inflate(
                 LayoutInflater.from(activity), panel.playerUiContent, false,
@@ -684,6 +708,22 @@ private class PlayerUiCustomizationPanelController(
         panel.playerUiContent.addView(this)
     }
 
+    private fun addSectionHeading(@StringRes labelRes: Int, hasTopGap: Boolean) {
+        panel.playerUiContent.addView(TextView(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = if (hasTopGap) SECTION_TOP_GAP_DP.dp() else 0
+                bottomMargin = SECTION_BOTTOM_GAP_DP.dp()
+            }
+            setText(labelRes)
+            setTextColor(activity.themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot))
+            setTypeface(typeface, Typeface.BOLD)
+            textSize = SECTION_TEXT_SIZE_SP
+        })
+    }
+
     private fun percent(value: Int) = activity.getString(
         R.string.player_ui_value_percent,
         value.coerceIn(MIN_PERCENT, MAX_PERCENT),
@@ -700,6 +740,11 @@ private data class EditorControl(
     val labelRes: Int,
     val value: () -> String,
     val adjust: (Int) -> PlayerUiCustomization,
+)
+
+private data class EditorSection(
+    @StringRes val labelRes: Int,
+    val controls: List<EditorControl>,
 )
 
 private data class EditorControlView(
@@ -826,3 +871,6 @@ private const val ROW_PADDING_DP = 3
 private const val EDITOR_FOCUS_TAG_PREFIX = "editor:"
 private const val PROTECTED_CONTROL_ALPHA = 0.68f
 private const val DISABLED_ACTION_ALPHA = 0.45f
+private const val SECTION_TOP_GAP_DP = 12
+private const val SECTION_BOTTOM_GAP_DP = 6
+private const val SECTION_TEXT_SIZE_SP = 11f

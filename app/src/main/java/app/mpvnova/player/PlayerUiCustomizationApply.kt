@@ -10,6 +10,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.TextView
+import androidx.annotation.DrawableRes
+import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.updateLayoutParams
 import androidx.preference.PreferenceManager
 
@@ -23,6 +25,13 @@ internal fun MPVActivity.applyPlayerUiCustomization() {
     applyPlayerControlLayout(style)
     applyPlayerTimeLayout(style)
     applyPlayerControlDecoration(style.iconTextOutlineEnabled)
+}
+
+internal fun MPVActivity.refreshPlayerUiTheme() {
+    binding.playbackSeekbar.refreshTheme(this)
+    binding.seekOverlayBar.refreshTheme(this)
+    binding.seekOverlayTime.background = themedPlayerDrawable(R.drawable.bg_player_toast)
+    applyPlayerUiCustomization()
 }
 
 private fun MPVActivity.enforceMinimalSeekOverlayForHiddenSeekbar(style: PlayerUiCustomization) {
@@ -97,8 +106,9 @@ private fun MPVActivity.applySeekbarGeometry(
     }
     binding.playbackSeekbar.scaleY = 1f
     val track = style.seekbarSize.trackStyle()
-    binding.playbackSeekbar.setTrackStyle(track.heightDp, track.drawableRes)
+    binding.playbackSeekbar.setTrackStyle(track.heightDp, track.drawableRes, this)
     binding.playbackSeekbar.setThumbStyle(
+        this,
         style.seekbarThumbShape,
         thumb.sizeDp,
         thumb.offsetDp,
@@ -139,7 +149,7 @@ private fun MPVActivity.applyPlayerControlLayout(style: PlayerUiCustomization) {
         child.minimumHeight = (metrics.heightDp * density).toInt()
         val padding = (metrics.paddingDp * density).toInt()
         child.setPadding(padding, padding, padding, padding)
-        child.setBackgroundResource(style.buttonTreatment.backgroundRes(isIcon))
+        child.background = themedPlayerDrawable(style.buttonTreatment.backgroundRes(isIcon))
         (child.layoutParams as? ViewGroup.MarginLayoutParams)?.let { params ->
             params.marginStart = spacing
             params.marginEnd = spacing
@@ -176,7 +186,7 @@ private fun MPVActivity.applyTimePresentation(presentation: PlayerTimePresentati
     val verticalPadding: Int
     when (presentation) {
         PlayerTimePresentation.PILL -> {
-            binding.playbackTimeGroup.setBackgroundResource(R.drawable.bg_pill_purple)
+            binding.playbackTimeGroup.background = themedPlayerDrawable(R.drawable.bg_pill_purple)
             horizontalPadding = TIME_PILL_HORIZONTAL_PADDING_DP
             verticalPadding = TIME_PILL_VERTICAL_PADDING_DP
         }
@@ -273,7 +283,7 @@ private fun MPVActivity.updateTopActionPlacement() {
             action.minimumWidth = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
             action.minimumHeight = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
             action.setPadding(padding, padding, padding, padding)
-            action.setBackgroundResource(R.drawable.bg_tv_player_icon_button)
+            action.background = themedPlayerDrawable(R.drawable.bg_tv_player_icon_button)
         }
     }
     binding.topControls.setVisibilityIfChanged(
@@ -385,6 +395,9 @@ private fun Int.withOpacity(percent: Int): Int = Color.argb(
     Color.green(this),
     Color.blue(this),
 )
+
+private fun MPVActivity.themedPlayerDrawable(@DrawableRes drawableRes: Int) =
+    ResourcesCompat.getDrawable(resources, drawableRes, theme)
 
 private fun PlayerPanelDensity.layoutMetrics(): PlayerPanelLayoutMetrics = when (this) {
     PlayerPanelDensity.COMPACT -> COMPACT_LAYOUT_METRICS

@@ -8,6 +8,7 @@ import android.util.AttributeSet
 import androidx.annotation.DrawableRes
 import androidx.appcompat.widget.AppCompatSeekBar
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import kotlin.math.roundToInt
 
 /**
@@ -120,11 +121,15 @@ class ChapterSeekBar @JvmOverloads constructor(
     }
 
     /** Changes only the progress track thickness; the thumb keeps its original circular size. */
-    fun setTrackStyle(heightDp: Float, @DrawableRes drawableRes: Int) {
+    fun setTrackStyle(heightDp: Float, @DrawableRes drawableRes: Int, themedContext: Context) {
         val heightPx = (heightDp * density).roundToInt().coerceAtLeast(1)
         if (trackDrawableRes != drawableRes) {
             trackDrawableRes = drawableRes
-            progressDrawable = ContextCompat.getDrawable(context, drawableRes)
+            progressDrawable = ResourcesCompat.getDrawable(
+                themedContext.resources,
+                drawableRes,
+                themedContext.theme,
+            )
         }
         if (trackHeightPx.roundToInt() != heightPx) {
             trackHeightPx = heightPx.toFloat()
@@ -134,6 +139,7 @@ class ChapterSeekBar @JvmOverloads constructor(
     }
 
     internal fun setThumbStyle(
+        themedContext: Context,
         shape: PlayerSeekbarThumbShape,
         sizeDp: Int,
         offsetDp: Float,
@@ -147,9 +153,55 @@ class ChapterSeekBar @JvmOverloads constructor(
         thumbSizeDp = sizeDp
         thumbGlowEnabled = glowEnabled
         thumbColor = color
-        thumb = PlayerSeekbarThumbDrawable(context, shape, glowEnabled, color, sizeDp)
+        thumb = PlayerSeekbarThumbDrawable(themedContext, shape, glowEnabled, color, sizeDp)
         thumbOffset = (offsetDp * density).roundToInt()
         requestLayout()
+        invalidate()
+    }
+
+    internal fun refreshTheme(themedContext: Context) {
+        selectionPaint.color = AppearanceTheme.resolveColor(
+            themedContext,
+            R.attr.mpvAccentHot,
+            ContextCompat.getColor(themedContext, R.color.tv_purple_hot),
+        )
+        val segmentBase = AppearanceTheme.resolveColor(
+            themedContext,
+            R.attr.mpvSurfaceSoft,
+            ContextCompat.getColor(themedContext, R.color.tv_surface_soft),
+        )
+        val segmentAlpha = (Color.alpha(segmentBase) * SEGMENT_TRACK_ALPHA_BOOST)
+            .roundToInt()
+            .coerceAtMost(MAX_ALPHA)
+        segmentTrackPaint.color = Color.argb(
+            segmentAlpha,
+            Color.red(segmentBase),
+            Color.green(segmentBase),
+            Color.blue(segmentBase),
+        )
+        segmentFillPaint.color = AppearanceTheme.resolveColor(
+            themedContext,
+            R.attr.mpvAccent,
+            ContextCompat.getColor(themedContext, R.color.tv_purple_hot),
+        )
+        if (trackDrawableRes != 0) {
+            progressDrawable = ResourcesCompat.getDrawable(
+                themedContext.resources,
+                trackDrawableRes,
+                themedContext.theme,
+            )
+        }
+        val shape = thumbShape
+        val color = thumbColor
+        if (shape != null && color != null) {
+            thumb = PlayerSeekbarThumbDrawable(
+                themedContext,
+                shape,
+                thumbGlowEnabled,
+                color,
+                thumbSizeDp,
+            )
+        }
         invalidate()
     }
 

@@ -24,7 +24,8 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
 }
 
 private fun MPVActivity.shouldShowPlayerTitleOverlay(title: String): Boolean =
-    !useAudioUI && showMediaTitle && title.isNotBlank() && binding.controls.isVisible
+    !playbackEnded && !isStatsOverlayVisible() && !useAudioUI && showMediaTitle &&
+        title.isNotBlank() && binding.controls.isVisible
 
 private fun MPVActivity.hidePlayerTitleOverlay() {
     val wasVisible = binding.playerTitleOverlay.isVisible

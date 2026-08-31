@@ -1,6 +1,7 @@
 package app.mpvnova.player
 
 import android.content.SharedPreferences
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.View
@@ -78,6 +79,14 @@ internal object PlayerTitlePanelStyleStore {
             key(segment, "vertical_offset"),
             defaults.verticalOffsetDp,
         ),
+        manualPosition = prefs.getBoolean(
+            key(segment, "manual_position"),
+            defaults.manualPosition,
+        ),
+        horizontalOffsetDp = prefs.numericInt(
+            key(segment, "horizontal_offset"),
+            defaults.horizontalOffsetDp,
+        ),
     ).normalized()
 
     private fun writePanel(
@@ -101,6 +110,8 @@ internal object PlayerTitlePanelStyleStore {
             .putString(key(segment, "content_alignment"), style.contentAlignment.name)
             .putInt(key(segment, "width"), style.widthPercent)
             .putInt(key(segment, "vertical_offset"), style.verticalOffsetDp)
+            .putBoolean(key(segment, "manual_position"), style.manualPosition)
+            .putInt(key(segment, "horizontal_offset"), style.horizontalOffsetDp)
     }
 
     private fun key(segment: String, property: String) = "${PREFIX}_${segment}_$property"
@@ -121,9 +132,6 @@ internal fun PlayerTitleStyle.withPanelStyle(
     copy(clockPanel = panelStyle.normalized())
 }
 
-internal fun PlayerTitleStyle.panelOpacityFor(part: PlayerTitlePart): Int =
-    panelStyleFor(part).opacityPercent
-
 internal fun PlayerTitleStyle.adjustPanelOpacity(
     part: PlayerTitlePart,
     delta: Int,
@@ -142,25 +150,25 @@ internal fun PlayerTitleStyle.adjustPanelOpacity(
 }
 
 internal fun MPVActivity.applyPlayerTitlePanelGlass() {
-    binding.playerTitleOverlay.applyThemedPanelStyle(playerTitleStyle.titlePanel)
-    binding.timeInfoPanel.applyThemedPanelStyle(playerTitleStyle.clockPanel)
+    binding.playerTitleOverlay.applyThemedPanelStyle(playerTitleStyle.titlePanel, this)
+    binding.timeInfoPanel.applyThemedPanelStyle(playerTitleStyle.clockPanel, this)
 }
 
-private fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle) {
+private fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle, themedContext: Context) {
     val normalized = style.normalized()
-    val accent = context.themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot)
+    val accent = themedContext.themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot)
     val blendRatio = normalized.accentStrengthPercent / MAX_PERCENT.toFloat()
     val startColor = ColorUtils.blendARGB(
-        context.themedColor(R.attr.mpvSurfaceAltStart, R.color.tv_surface_alt),
+        themedContext.themedColor(R.attr.mpvSurfaceAltStart, R.color.tv_surface_alt),
         accent,
         blendRatio,
     )
     val endColor = ColorUtils.blendARGB(
-        context.themedColor(R.attr.mpvSurfaceAltEnd, R.color.tv_surface_alt),
+        themedContext.themedColor(R.attr.mpvSurfaceAltEnd, R.color.tv_surface_alt),
         accent,
         blendRatio,
     )
-    val strokeColor = context.themedColor(R.attr.mpvStroke, R.color.tv_stroke)
+    val strokeColor = themedContext.themedColor(R.attr.mpvStroke, R.color.tv_stroke)
     val colors = when (normalized.surface) {
         PlayerPanelSurface.GLASS -> if (normalized.gradientEnabled) {
             intArrayOf(
@@ -204,17 +212,23 @@ private fun View.applyPanelPosition(style: PlayerTitlePanelStyle) {
     params.removeRule(RelativeLayout.ALIGN_PARENT_START)
     params.removeRule(RelativeLayout.ALIGN_PARENT_END)
     params.removeRule(RelativeLayout.CENTER_HORIZONTAL)
-    when (style.alignment) {
-        PlayerTitlePanelAlignment.START -> params.addRule(RelativeLayout.ALIGN_PARENT_START)
-        PlayerTitlePanelAlignment.CENTER -> params.addRule(RelativeLayout.CENTER_HORIZONTAL)
-        PlayerTitlePanelAlignment.END -> params.addRule(RelativeLayout.ALIGN_PARENT_END)
+    if (style.manualPosition) {
+        params.addRule(RelativeLayout.ALIGN_PARENT_START)
+    } else {
+        when (style.alignment) {
+            PlayerTitlePanelAlignment.START -> params.addRule(RelativeLayout.ALIGN_PARENT_START)
+            PlayerTitlePanelAlignment.CENTER -> params.addRule(RelativeLayout.CENTER_HORIZONTAL)
+            PlayerTitlePanelAlignment.END -> params.addRule(RelativeLayout.ALIGN_PARENT_END)
+        }
     }
-    params.marginStart = if (style.alignment == PlayerTitlePanelAlignment.START) {
+    params.marginStart = if (style.manualPosition) {
+        dp(style.horizontalOffsetDp)
+    } else if (style.alignment == PlayerTitlePanelAlignment.START) {
         dp(PANEL_EDGE_MARGIN_DP)
     } else {
         0
     }
-    params.marginEnd = if (style.alignment == PlayerTitlePanelAlignment.END) {
+    params.marginEnd = if (!style.manualPosition && style.alignment == PlayerTitlePanelAlignment.END) {
         dp(PANEL_EDGE_MARGIN_DP)
     } else {
         0
@@ -226,6 +240,26 @@ private fun View.applyPanelPosition(style: PlayerTitlePanelStyle) {
         resources.displayMetrics.widthPixels * style.widthPercent / MAX_PERCENT
     }
     layoutParams = params
+    if (style.manualPosition) clampManualPositionToViewport()
+}
+
+private fun View.clampManualPositionToViewport() {
+    post {
+        val parentView = parent as? View ?: return@post
+        val current = layoutParams as? RelativeLayout.LayoutParams ?: return@post
+        val clampedStart = current.marginStart.coerceIn(
+            0,
+            (parentView.width - width).coerceAtLeast(0),
+        )
+        val clampedTop = current.topMargin.coerceIn(
+            0,
+            (parentView.height - height).coerceAtLeast(0),
+        )
+        if (current.marginStart == clampedStart && current.topMargin == clampedTop) return@post
+        current.marginStart = clampedStart
+        current.topMargin = clampedTop
+        layoutParams = current
+    }
 }
 
 private fun PlayerTitlePanelAlignment.gravityValue(): Int = when (this) {

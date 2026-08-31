@@ -15,7 +15,11 @@ internal fun MPVActivity.playerTitlePanelControlValue(
     )
     PlayerTitleStyleControl.PANEL_GRADIENT -> onOffLabel(style.gradientEnabled)
     PlayerTitleStyleControl.PANEL_OUTLINE -> onOffLabel(style.outlineEnabled)
-    PlayerTitleStyleControl.PANEL_ALIGNMENT -> panelAlignmentLabel(style.alignment)
+    PlayerTitleStyleControl.PANEL_ALIGNMENT -> if (style.manualPosition) {
+        getString(R.string.player_title_style_position_manual)
+    } else {
+        panelAlignmentLabel(style.alignment)
+    }
     PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT -> panelAlignmentLabel(style.contentAlignment)
     PlayerTitleStyleControl.PANEL_WIDTH -> if (
         style.widthPercent == PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT
