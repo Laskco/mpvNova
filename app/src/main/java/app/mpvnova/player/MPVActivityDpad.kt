@@ -93,6 +93,8 @@ internal fun MPVActivity.parkPlayerFrameworkFocus() {
 }
 
 internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
+    if (event.isRepeatedPlayerConfirmKey()) return true
+
     // Override libmpv's defaults for mpvNova-specific behavior.
     var unhandled = 0
 
@@ -115,3 +117,11 @@ internal fun MPVActivity.interceptKeyDown(event: KeyEvent): Boolean {
 
     return unhandled < 2
 }
+
+internal fun KeyEvent.isRepeatedPlayerConfirmKey(): Boolean =
+    action == KeyEvent.ACTION_DOWN && repeatCount > 0 && when (keyCode) {
+        KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_ENTER,
+        KeyEvent.KEYCODE_NUMPAD_ENTER -> true
+        else -> false
+    }

@@ -699,6 +699,10 @@ open class MPVActivity : AppCompatActivity() {
         } else if (consumeScreensaverKey(ev)) {
             // The screensaver eats the first key and only wakes the UI.
             true
+        } else if (ev.isRepeatedPlayerConfirmKey()) {
+            // A held OK key can outlive the control or dialog that claimed its first press.
+            // Never let those repeats fall through to the global play/pause shortcut.
+            true
         } else {
             noteScreensaverActivity()
             when {
