@@ -11,9 +11,10 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
     val horizontalMargin = Utils.convertDp(activityContext, PLAYER_TITLE_HORIZONTAL_MARGIN_DP)
     val screenWidth = resources.displayMetrics.widthPixels
     val availableWidth = (screenWidth - horizontalMargin * 2).coerceAtLeast(1)
+    val maximumWidth = playerTitleMaximumWidth(screenWidth)
     val cappedWidth = minOf(
         availableWidth,
-        Utils.convertDp(activityContext, PLAYER_TITLE_MAX_WIDTH_DP),
+        maximumWidth,
     )
     listOf(
         binding.playerTitleSeason,
@@ -25,6 +26,20 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
     }
     binding.playerTitleSecondary.maxWidth = episodeTitleMaxWidth(cappedWidth)
     fitPrimaryPlayerTitle(cappedWidth)
+}
+
+private fun MPVActivity.playerTitleMaximumWidth(screenWidth: Int): Int {
+    val panel = playerTitleStyle.titlePanel
+    val usesCompactEdgeWidth =
+        panel.widthPercent == PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT &&
+            panel.alignment != PlayerTitlePanelAlignment.CENTER
+    if (!usesCompactEdgeWidth) {
+        return Utils.convertDp(activityContext, PLAYER_TITLE_MAX_WIDTH_DP)
+    }
+    return minOf(
+        Utils.convertDp(activityContext, PLAYER_TITLE_EDGE_MAX_WIDTH_DP),
+        screenWidth * PLAYER_TITLE_EDGE_MAX_WIDTH_PERCENT / MAX_PERCENT,
+    )
 }
 
 private fun MPVActivity.episodeTitleMaxWidth(cappedWidth: Int): Int {

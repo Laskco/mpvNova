@@ -744,7 +744,7 @@
                 android:gravity="center"
                 android:includeFontPadding="false"
                 android:letterSpacing="0"
-                android:maxLines="2"
+                android:maxLines="3"
                 android:maxWidth="464dp"
                 android:paddingStart="4dp"
                 android:paddingEnd="4dp"

@@ -4,10 +4,12 @@ import android.content.SharedPreferences
 import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.TextView
 import androidx.core.graphics.ColorUtils
 
 internal object PlayerTitlePanelStyleStore {
@@ -204,7 +206,10 @@ private fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle, themedConte
     setPadding(horizontal, vertical, horizontal, vertical)
     applyPanelPosition(normalized)
     (this as? LinearLayout)?.gravity = normalized.contentAlignment.gravityValue()
-    (this as? ViewGroup)?.applyContentSpacing(normalized.contentSpacingDp)
+    (this as? ViewGroup)?.applyContentLayout(
+        normalized.contentSpacingDp,
+        normalized.contentAlignment,
+    )
 }
 
 private fun View.applyPanelPosition(style: PlayerTitlePanelStyle) {
@@ -263,12 +268,30 @@ private fun View.clampManualPositionToViewport() {
 }
 
 private fun PlayerTitlePanelAlignment.gravityValue(): Int = when (this) {
-    PlayerTitlePanelAlignment.START -> android.view.Gravity.START
-    PlayerTitlePanelAlignment.CENTER -> android.view.Gravity.CENTER_HORIZONTAL
-    PlayerTitlePanelAlignment.END -> android.view.Gravity.END
+    PlayerTitlePanelAlignment.START -> Gravity.START
+    PlayerTitlePanelAlignment.CENTER -> Gravity.CENTER_HORIZONTAL
+    PlayerTitlePanelAlignment.END -> Gravity.END
 }
 
-private fun ViewGroup.applyContentSpacing(spacingDp: Int) {
+private fun ViewGroup.applyContentLayout(
+    spacingDp: Int,
+    alignment: PlayerTitlePanelAlignment,
+) {
+    val horizontalGravity = alignment.gravityValue()
+    val groups = ArrayDeque<ViewGroup>().apply { add(this@applyContentLayout) }
+    while (groups.isNotEmpty()) {
+        val group = groups.removeFirst()
+        for (index in 0 until group.childCount) {
+            when (val child = group.getChildAt(index)) {
+                is TextView -> {
+                    child.gravity =
+                        (child.gravity and Gravity.VERTICAL_GRAVITY_MASK) or horizontalGravity
+                    child.textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+                }
+                is ViewGroup -> groups.add(child)
+            }
+        }
+    }
     val spacing = dp(spacingDp)
     var hasVisibleChild = false
     for (index in 0 until childCount) {
