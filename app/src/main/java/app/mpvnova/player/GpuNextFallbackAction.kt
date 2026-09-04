@@ -22,6 +22,7 @@ internal fun MPVActivity.canApplyGpuNextRenderFallback(level: Int): Boolean {
     val chosen = sessionDecoderMode ?: preferredDecoderMode
     val userPickedGpuNextMode =
         chosen == MPVView.DECODER_MODE_GNEXT ||
+            chosen == MPVView.DECODER_MODE_GNEXT_DIRECT ||
             chosen == MPVView.DECODER_MODE_SHIELD_H10P ||
             chosen == MPVView.DECODER_MODE_MPV_CONF
     val gatesPassed = autoDecoderFallback &&

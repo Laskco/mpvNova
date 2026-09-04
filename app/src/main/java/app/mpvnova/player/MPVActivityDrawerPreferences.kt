@@ -139,6 +139,10 @@ private fun MPVActivity.handleDrawerVideoPreference(
     when (preference) {
         PlayerDrawerPreference.DECODER_AUTO_FALLBACK -> handleDrawerAutoFallbackChange(newValue)
         PlayerDrawerPreference.SHIELD_DECODER_MODE -> handleDrawerShieldDecoderModeChange(newValue)
+        PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES -> {
+            hi10pFallbackOnOtherDevicesEnabled = newValue
+            if (newValue) maybeApplyShieldHi10pFallback()
+        }
         PlayerDrawerPreference.SHIELD_MPEG2_SOFTWARE_FALLBACK -> {
             shieldMpeg2SoftwareFallbackEnabled = newValue
             player.applyShieldMpeg2FallbackSetting(newValue)

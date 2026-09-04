@@ -64,6 +64,10 @@ internal fun MPVActivity.readPlaybackSettings(
 private fun MPVActivity.readDecoderSettings(prefs: SharedPreferences) {
     autoDecoderFallback = prefs.getBoolean("decoder_auto_fallback", true)
     shieldDecoderModeEnabled = prefs.getBoolean("shield_decoder_mode", true)
+    hi10pFallbackOnOtherDevicesEnabled = prefs.getBoolean(
+        PREF_HI10P_FALLBACK_OTHER_DEVICES,
+        false,
+    )
     shieldDecoderFallback = prefs.getString(
         "shield_decoder_fallback",
         MPVView.SHIELD_DECODER_FALLBACK_DEFAULT,

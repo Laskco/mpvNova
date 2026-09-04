@@ -82,9 +82,12 @@ internal fun MPVActivity.updateDecoderButton() {
         return
     }
     val decoderText = when (currentDecoderUiMode()) {
+        MPVView.DECODER_MODE_AUTO_SAFE -> currentAutoSafeDecoderBadge()
         MPVView.DECODER_MODE_HW_PLUS -> "HW+"
         MPVView.DECODER_MODE_HW -> "HW"
-        MPVView.DECODER_MODE_GNEXT, MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
+        MPVView.DECODER_MODE_GNEXT,
+        MPVView.DECODER_MODE_GNEXT_DIRECT,
+        MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
         MPVView.DECODER_MODE_SW -> "SW"
         MPVView.DECODER_MODE_MPV_CONF -> "CFG"
         else -> "HW"
@@ -92,19 +95,32 @@ internal fun MPVActivity.updateDecoderButton() {
     binding.cycleDecoderBtn.setTextIfChanged(decoderText)
 }
 
+private fun MPVActivity.currentAutoSafeDecoderBadge(): String {
+    if (player.requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
+        return currentGpuNextBadge()
+
+    return when (player.hwdecActive.trim().lowercase()) {
+        MPV_VIEW_HWDEC_MEDIACODEC -> "HW+"
+        MPV_VIEW_HWDEC_MEDIACODEC_COPY -> "HW"
+        MPV_VIEW_HWDEC_NONE -> "SW"
+        else -> "AUTO"
+    }
+}
+
 private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boolean {
     return autoDecoderFallback &&
-        shieldDecoderModeEnabled &&
-        isNvidiaShieldDevice() &&
+        isHi10pFallbackDeviceEnabled() &&
         player.isHi10pH264Video() &&
         (
             currentMode == MPVView.DECODER_MODE_HW ||
                 currentMode == MPVView.DECODER_MODE_HW_PLUS ||
+                currentMode == MPVView.DECODER_MODE_AUTO_SAFE ||
                 // gpu-next sessions read as G-NEXT (copy). MediaCodec rejects
                 // 10-bit H.264 there too, so Hi10P still needs the tuned
                 // fallback — otherwise lavc silently software-decodes with
                 // standard tuning and the user's fallback choice never applies.
-                currentMode == MPVView.DECODER_MODE_GNEXT
+                currentMode == MPVView.DECODER_MODE_GNEXT ||
+                currentMode == MPVView.DECODER_MODE_GNEXT_DIRECT
         )
 }
 

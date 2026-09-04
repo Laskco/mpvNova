@@ -6,6 +6,7 @@
     <PreferenceCategory android:title="@string/settings_category_decoder" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat android:defaultValue="true" android:key="hardware_decoding" android:summary="@string/pref_hardware_decoding_summary" android:title="@string/pref_hardware_decoding_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="true" android:key="decoder_auto_fallback" android:summary="@string/pref_decoder_auto_fallback_summary" android:title="@string/pref_decoder_auto_fallback_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:dependency="decoder_auto_fallback" android:key="hi10p_fallback_other_devices" android:summary="@string/pref_hi10p_fallback_other_devices_summary" android:title="@string/pref_hi10p_fallback_other_devices_title" app:iconSpaceReserved="false" />
         <ListPreference android:defaultValue="" android:key="preferred_decoder_mode" android:summary="@string/pref_preferred_decoder_mode_summary" android:title="@string/pref_preferred_decoder_mode_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/settings_category_shield" app:iconSpaceReserved="false">

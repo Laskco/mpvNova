@@ -430,6 +430,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var sessionDecoderMode: String? = null
     internal var autoDecoderFallback = true
     internal var shieldDecoderModeEnabled = true
+    internal var hi10pFallbackOnOtherDevicesEnabled = false
     internal var shieldDecoderFallback = MPVView.SHIELD_DECODER_FALLBACK_COPY
     internal var shieldMpeg2SoftwareFallbackEnabled = true
     internal var preferredDecoderMode = ""

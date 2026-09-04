@@ -52,15 +52,18 @@ internal fun MPVActivity.pickDecoder() {
 
 internal fun MPVActivity.cycleDecoderMode() {
     val modes = mutableListOf(
+        MPVView.DECODER_MODE_AUTO_SAFE,
         MPVView.DECODER_MODE_HW,
         MPVView.DECODER_MODE_SW,
         MPVView.DECODER_MODE_GNEXT,
-        MPVView.DECODER_MODE_MPV_CONF,
     )
+    if (canSelectGpuNextDirect())
+        modes.add(MPVView.DECODER_MODE_GNEXT_DIRECT)
+    modes.add(MPVView.DECODER_MODE_MPV_CONF)
     if (shieldDecoderModeEnabled)
         modes.add(MPVView.DECODER_MODE_SHIELD_H10P)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        modes.add(0, MPVView.DECODER_MODE_HW_PLUS)
+        modes.add(1, MPVView.DECODER_MODE_HW_PLUS)
     val currentMode = currentDecoderUiMode()
     val currentIndex = modes.indexOf(currentMode).takeIf { it >= 0 } ?: 0
     val nextMode = modes[(currentIndex + 1) % modes.size]
@@ -139,6 +142,7 @@ internal fun MPVActivity.highlightDecoderLabel(
 
 internal fun MPVActivity.decoderMenuLabel(mode: String, isCurrentMode: Boolean): CharSequence {
     return when (mode) {
+        MPVView.DECODER_MODE_AUTO_SAFE -> getString(R.string.decoder_mode_auto_safe)
         MPVView.DECODER_MODE_HW_PLUS ->
             highlightDecoderLabel(getString(R.string.decoder_mode_hw_plus), "direct", isCurrentMode)
         MPVView.DECODER_MODE_HW ->
@@ -149,6 +153,12 @@ internal fun MPVActivity.decoderMenuLabel(mode: String, isCurrentMode: Boolean):
             highlightDecoderLabel(
                 getString(R.string.decoder_mode_gnext_paths),
                 currentGpuNextPathLabel(useActivePath = true),
+                isCurrentMode,
+            )
+        MPVView.DECODER_MODE_GNEXT_DIRECT ->
+            highlightDecoderLabel(
+                getString(R.string.decoder_mode_gnext_direct),
+                "direct",
                 isCurrentMode,
             )
         MPVView.DECODER_MODE_SHIELD_H10P ->

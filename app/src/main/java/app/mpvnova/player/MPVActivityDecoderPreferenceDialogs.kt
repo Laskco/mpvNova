@@ -12,9 +12,10 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
     val currentMode = normalizedPreferredDecoderMode(preferredDecoderMode, shieldDecoderModeEnabled)
     val items = options.map { option ->
         MediaPickerDialog.Item(
-            getString(option.titleRes),
-            option.value,
-            option.value == currentMode,
+            label = preferredDecoderPickerLabel(option),
+            tag = option.value,
+            selected = option.value == currentMode,
+            enabled = option.enabled,
         )
     }
     val impl = preferredDecoderPickerDialog ?: MediaPickerDialog().also {
@@ -22,19 +23,21 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
     }
     lateinit var dialog: AlertDialog
     impl.onItemClick = { idx ->
-        val mode = options[idx].value
-        preferredDecoderMode = mode
-        getDefaultSharedPreferences(applicationContext)
-            .edit()
-            .putString("preferred_decoder_mode", mode)
-            .apply()
-        if (!autoDecoderFallback) {
-            sessionDecoderMode = mode
-            player.applyDecoderMode(mode)
-            updateDecoderButton()
+        if (options[idx].enabled) {
+            val mode = options[idx].value
+            preferredDecoderMode = mode
+            getDefaultSharedPreferences(applicationContext)
+                .edit()
+                .putString("preferred_decoder_mode", mode)
+                .apply()
+            if (!autoDecoderFallback) {
+                sessionDecoderMode = mode
+                player.applyDecoderMode(mode)
+                updateDecoderButton()
+            }
+            refreshDrawerRowsIfVisible(DrawerTab.VIDEO)
+            dialog.dismiss()
         }
-        refreshDrawerRowsIfVisible(DrawerTab.VIDEO)
-        dialog.dismiss()
     }
 
     dialog = with(AlertDialog.Builder(this)) {
@@ -58,6 +61,15 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
             maxWidthDp = 760f,
         )
     )
+}
+
+private fun MPVActivity.preferredDecoderPickerLabel(
+    option: PreferredDecoderModeOption,
+): CharSequence = if (!option.enabled && option.value == MPVView.DECODER_MODE_GNEXT_DIRECT) {
+    getString(option.titleRes) + "\n" +
+        getString(R.string.decoder_mode_gnext_direct_shield_warning)
+} else {
+    getString(option.titleRes)
 }
 
 internal fun MPVActivity.pickShieldDecoderFallback() {

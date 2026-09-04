@@ -73,6 +73,7 @@ import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.VideoFilterPreset
 import app.mpvnova.player.decoderModeDescriptionRes
 import app.mpvnova.player.defaultPreferredDecoderMode
+import app.mpvnova.player.normalizedPreferredDecoderMode
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.AppearanceColorChoice
@@ -381,9 +382,19 @@ class PreferenceActivity : AppCompatActivity(),
             val values = preference.entryValues ?: return
             val items = entries.indices.map { index ->
                 val value = values[index].toString()
+                val incompatibleShieldDirect =
+                    preference.key == "preferred_decoder_mode" &&
+                        value == app.mpvnova.player.MPVView.DECODER_MODE_GNEXT_DIRECT &&
+                        app.mpvnova.player.isNvidiaShieldDevice()
                 SettingsChoiceItem(
                     title = entries[index],
+                    detail = if (incompatibleShieldDirect) {
+                        getString(R.string.decoder_mode_gnext_direct_shield_warning)
+                    } else {
+                        null
+                    },
                     checked = preference.value == value,
+                    enabled = !incompatibleShieldDirect,
                 ) {
                     if (preference.callChangeListener(value)) {
                         preference.value = value
@@ -1020,6 +1031,15 @@ class PreferenceActivity : AppCompatActivity(),
         override fun onPreferencesLoaded() {
             val autoFallbackPref = findPreference<SwitchPreferenceCompat>("decoder_auto_fallback")
             val shieldDecoderPref = findPreference<SwitchPreferenceCompat>("shield_decoder_mode")
+            val otherDeviceHi10pPref = findPreference<SwitchPreferenceCompat>(
+                app.mpvnova.player.PREF_HI10P_FALLBACK_OTHER_DEVICES
+            )
+            if (app.mpvnova.player.isNvidiaShieldDevice()) {
+                otherDeviceHi10pPref?.isEnabled = false
+                otherDeviceHi10pPref?.setSummary(
+                    R.string.pref_hi10p_fallback_other_devices_shield_summary
+                )
+            }
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
 
             fun refreshDecoderPreferenceOptions(
@@ -1031,11 +1051,10 @@ class PreferenceActivity : AppCompatActivity(),
                 val (entries, values) = buildDecoderPreferenceOptions(shieldDecoderEnabled)
                 preferredDecoderPref.entries = entries
                 preferredDecoderPref.entryValues = values
-                if (preferredDecoderPref.value.isNullOrBlank() ||
-                    !values.contains(preferredDecoderPref.value)
-                ) {
-                    preferredDecoderPref.value = defaultPreferredDecoderMode()
-                }
+                preferredDecoderPref.value = normalizedPreferredDecoderMode(
+                    preferredDecoderPref.value,
+                    shieldDecoderEnabled,
+                )
                 preferredDecoderPref.summaryProvider = SummaryProvider<ListPreference> { pref ->
                     val entry = pref.entry?.toString()
                         ?: getString(R.string.pref_preferred_decoder_mode_summary)

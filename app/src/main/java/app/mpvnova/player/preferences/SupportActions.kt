@@ -19,6 +19,7 @@ import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.MPVView
 import app.mpvnova.player.MpvLogRingBuffer
 import app.mpvnova.player.NativeLibraryVersion
+import app.mpvnova.player.PREF_HI10P_FALLBACK_OTHER_DEVICES
 import app.mpvnova.player.PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK
 import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.R
@@ -157,6 +158,10 @@ object SupportActions {
         val hasFakeTouch = packageManager.hasSystemFeature(PackageManager.FEATURE_FAKETOUCH)
         val autoDecoder = prefs.getBoolean("decoder_auto_fallback", true)
         val shieldDecoder = prefs.getBoolean("shield_decoder_mode", true)
+        val hi10pFallbackOnOtherDevices = prefs.getBoolean(
+            PREF_HI10P_FALLBACK_OTHER_DEVICES,
+            false,
+        )
         val shieldDecoderFallback = prefs.getString(
             "shield_decoder_fallback",
             MPVView.SHIELD_DECODER_FALLBACK_DEFAULT,
@@ -191,6 +196,10 @@ object SupportActions {
             )
             appendLine("Decoder setting: $decoder")
             appendLine("Shield decoder mode: ${if (shieldDecoder) "enabled" else "disabled"}")
+            appendLine(
+                "Hi10P fallback on this device: " +
+                    if (hi10pFallbackOnOtherDevices) "enabled" else "disabled"
+            )
             appendLine("Shield Hi10P fallback: $shieldDecoderFallback")
             appendLine("Shield MPEG2 software fallback: ${if (shieldMpeg2Fallback) "enabled" else "disabled"}")
             appendLine("mpv: ${nativeVersion(context, "libmpv.so", "mpv v")}")

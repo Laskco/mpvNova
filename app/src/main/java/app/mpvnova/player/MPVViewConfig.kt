@@ -11,6 +11,13 @@ internal fun startupPreferredDecoderMode(sharedPreferences: SharedPreferences): 
         return null
     return sharedPreferences.getString("preferred_decoder_mode", "")
         ?.takeIf { it.isNotBlank() }
+        ?.let { mode ->
+            if (mode == MPVView.DECODER_MODE_GNEXT_DIRECT && isNvidiaShieldDevice()) {
+                MPVView.DECODER_MODE_GNEXT
+            } else {
+                mode
+            }
+        }
 }
 
 internal fun MPVView.startupVo(
@@ -29,6 +36,7 @@ internal fun MPVView.startupHwdec(
 ): String? {
     return when (startupDecoderMode) {
         MPVView.DECODER_MODE_MPV_CONF -> null
+        MPVView.DECODER_MODE_AUTO_SAFE -> MPV_VIEW_HWDEC_AUTO_SAFE
         else -> defaultHwdec(sharedPreferences)
     }
 }

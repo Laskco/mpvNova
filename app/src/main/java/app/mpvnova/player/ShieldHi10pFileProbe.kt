@@ -9,6 +9,8 @@ import java.io.IOException
 import java.nio.ByteBuffer
 import java.util.Locale
 
+internal const val PREF_HI10P_FALLBACK_OTHER_DEVICES = "hi10p_fallback_other_devices"
+
 internal fun MPVActivity.prepareDecoderForFileLoad(filepath: String) {
     if (!canPreloadShieldHi10pFallback()) {
         restoreDecoderAfterShieldHi10pPreload()
@@ -56,9 +58,11 @@ internal fun String.indicatesH264TenBitByName(): Boolean {
 
 private fun MPVActivity.canPreloadShieldHi10pFallback(): Boolean =
     autoDecoderFallback &&
-        shieldDecoderModeEnabled &&
         sessionDecoderMode == null &&
-        isNvidiaShieldDevice()
+        isHi10pFallbackDeviceEnabled()
+
+internal fun MPVActivity.isHi10pFallbackDeviceEnabled(): Boolean =
+    if (isNvidiaShieldDevice()) shieldDecoderModeEnabled else hi10pFallbackOnOtherDevicesEnabled
 
 private fun MPVActivity.restoreDecoderAfterShieldHi10pPreload() {
     if (!shieldHi10pPreloadApplied)

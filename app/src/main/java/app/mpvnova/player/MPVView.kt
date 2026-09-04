@@ -19,6 +19,7 @@ internal const val MPV_VIEW_LOG_TAG = "mpv"
 internal const val MPV_VIEW_HWDECS = "mediacodec,mediacodec-copy"
 internal const val MPV_VIEW_HWDEC_MEDIACODEC = "mediacodec"
 internal const val MPV_VIEW_HWDEC_MEDIACODEC_COPY = "mediacodec-copy"
+internal const val MPV_VIEW_HWDEC_AUTO_SAFE = "auto-safe"
 internal const val MPV_VIEW_HWDEC_NONE = "no"
 internal const val MPV_VIEW_HWDEC_CODECS = "h264,hevc,mpeg4,mpeg2video,vp8,vp9,av1"
 internal const val MPV_VIEW_HWDEC_CODECS_WITHOUT_MPEG2 = "h264,hevc,mpeg4,vp8,vp9,av1"
@@ -252,10 +253,12 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     var aid: Int by TrackDelegate("aid")
 
     companion object {
+        const val DECODER_MODE_AUTO_SAFE = "auto_safe"
         const val DECODER_MODE_HW_PLUS = "hw_plus"
         const val DECODER_MODE_HW = "hw"
         const val DECODER_MODE_SW = "sw"
         const val DECODER_MODE_GNEXT = "g_next"
+        const val DECODER_MODE_GNEXT_DIRECT = "g_next_direct"
         const val DECODER_MODE_SHIELD_H10P = "shield_h10p"
         const val DECODER_MODE_MPV_CONF = "mpv_conf"
         const val SHIELD_DECODER_FALLBACK_DEFAULT = "g_next_default"

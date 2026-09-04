@@ -176,7 +176,15 @@ internal class PlayerDrawerAdapter(
         fun bind(preference: PlayerDrawerPreference) = with(binding) {
             boundPreference = preference
             prefRowTitle.setText(preference.titleRes)
-            prefRowSummary.setText(preference.summaryRes)
+            prefRowSummary.setText(
+                if (preference == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES &&
+                    isNvidiaShieldDevice()
+                ) {
+                    R.string.pref_hi10p_fallback_other_devices_shield_summary
+                } else {
+                    preference.summaryRes
+                }
+            )
             activity.applyPreferenceValueLayout(prefRowValue)
             refreshPrefRowValue(prefRowValue, prefs.rawValue(preference))
             applyDisabledState()
@@ -205,7 +213,9 @@ internal class PlayerDrawerAdapter(
         }
 
         private fun isDisabled(preference: PlayerDrawerPreference): Boolean =
-            (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
+            (preference == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES &&
+                isNvidiaShieldDevice()) ||
+                (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
                 !activity.playerUiCustomization.seekbarVisible) ||
                 preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
     }
