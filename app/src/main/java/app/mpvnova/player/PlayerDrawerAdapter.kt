@@ -176,15 +176,7 @@ internal class PlayerDrawerAdapter(
         fun bind(preference: PlayerDrawerPreference) = with(binding) {
             boundPreference = preference
             prefRowTitle.setText(preference.titleRes)
-            prefRowSummary.setText(
-                if (preference == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES &&
-                    isNvidiaShieldDevice()
-                ) {
-                    R.string.pref_hi10p_fallback_other_devices_shield_summary
-                } else {
-                    preference.summaryRes
-                }
-            )
+            prefRowSummary.setText(preference.summaryResForDevice())
             activity.applyPreferenceValueLayout(prefRowValue)
             refreshPrefRowValue(prefRowValue, prefs.rawValue(preference))
             applyDisabledState()
@@ -213,11 +205,25 @@ internal class PlayerDrawerAdapter(
         }
 
         private fun isDisabled(preference: PlayerDrawerPreference): Boolean =
-            (preference == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES &&
-                isNvidiaShieldDevice()) ||
+            (preference.isOtherDeviceDecoderFallback() && isNvidiaShieldDevice()) ||
                 (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
                 !activity.playerUiCustomization.seekbarVisible) ||
                 preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
+
+        private fun PlayerDrawerPreference.isOtherDeviceDecoderFallback(): Boolean =
+            this == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES ||
+                this == PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES
+
+        private fun PlayerDrawerPreference.summaryResForDevice(): Int {
+            if (!isNvidiaShieldDevice()) return summaryRes
+            return when (this) {
+                PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES ->
+                    R.string.pref_hi10p_fallback_other_devices_shield_summary
+                PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES ->
+                    R.string.pref_mpeg2_software_fallback_other_devices_shield_summary
+                else -> summaryRes
+            }
+        }
     }
 
     private inner class OptionHolder(

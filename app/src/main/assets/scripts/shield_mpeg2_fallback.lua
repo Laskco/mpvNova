@@ -17,7 +17,7 @@ mp.add_hook("on_preloaded", 50, function()
         return
     end
 
-    mp.msg.info("Shield MPEG2 fallback: selecting G-NEXT SW before decoder creation")
+    mp.msg.info("MPEG2 software fallback: selecting G-NEXT SW before decoder creation")
     mp.set_property("file-local-options/vo", "gpu-next")
     mp.set_property("file-local-options/hwdec", "no")
 end)

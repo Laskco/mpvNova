@@ -76,6 +76,10 @@ private fun MPVActivity.readDecoderSettings(prefs: SharedPreferences) {
         PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK,
         true,
     )
+    mpeg2SoftwareFallbackOnOtherDevicesEnabled = prefs.getBoolean(
+        PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES,
+        false,
+    )
     preferredDecoderMode = prefs.getString("preferred_decoder_mode", "") ?: ""
 }
 

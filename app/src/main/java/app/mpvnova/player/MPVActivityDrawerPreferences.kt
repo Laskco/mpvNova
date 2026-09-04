@@ -145,7 +145,17 @@ private fun MPVActivity.handleDrawerVideoPreference(
         }
         PlayerDrawerPreference.SHIELD_MPEG2_SOFTWARE_FALLBACK -> {
             shieldMpeg2SoftwareFallbackEnabled = newValue
-            player.applyShieldMpeg2FallbackSetting(newValue)
+            player.applyMpeg2SoftwareFallbackSetting(
+                shieldEnabled = newValue,
+                otherDeviceEnabled = mpeg2SoftwareFallbackOnOtherDevicesEnabled,
+            )
+        }
+        PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES -> {
+            mpeg2SoftwareFallbackOnOtherDevicesEnabled = newValue
+            player.applyMpeg2SoftwareFallbackSetting(
+                shieldEnabled = shieldMpeg2SoftwareFallbackEnabled,
+                otherDeviceEnabled = newValue,
+            )
         }
         else -> Unit
     }

@@ -405,6 +405,9 @@
     <string name="pref_hi10p_fallback_other_devices_title">Hi10P fallback on this device</string>
     <string name="pref_hi10p_fallback_other_devices_summary">For non-Shield devices that cannot play Hi10P H.264, automatically switch to the Shield software fallback. Off by default; enable only if Hi10P playback freezes or fails.</string>
     <string name="pref_hi10p_fallback_other_devices_shield_summary">NVIDIA Shield detected. Use Shield decoder mode and Shield Hi10P fallback below instead.</string>
+    <string name="pref_mpeg2_software_fallback_other_devices_title">MPEG2 software fallback on this device</string>
+    <string name="pref_mpeg2_software_fallback_other_devices_summary">For non-Shield devices with broken or frozen MPEG2 hardware decoding, force MPEG2 video through G-NEXT software decoding. Off by default; enable only if MPEG2 playback fails.</string>
+    <string name="pref_mpeg2_software_fallback_other_devices_shield_summary">NVIDIA Shield detected. Use Shield MPEG2 software fallback below instead.</string>
     <string name="pref_shield_decoder_mode_title">Shield decoder mode</string>
     <string name="pref_shield_decoder_mode_summary">Use a Shield-specific fallback for Hi10P H.264. Turn off to keep the normal decoder modes only.</string>
     <string name="pref_shield_decoder_fallback_title">Shield Hi10P fallback</string>

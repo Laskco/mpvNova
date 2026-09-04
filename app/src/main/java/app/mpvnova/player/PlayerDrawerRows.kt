@@ -205,6 +205,13 @@ internal enum class PlayerDrawerPreference(
         PREF_HI10P_FALLBACK_OTHER_DEVICES,
         false,
     ),
+    MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES(
+        PlayerDrawerPreferenceGroup.VIDEO,
+        R.string.pref_mpeg2_software_fallback_other_devices_title,
+        R.string.pref_mpeg2_software_fallback_other_devices_summary,
+        PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES,
+        false,
+    ),
     SHIELD_MPEG2_SOFTWARE_FALLBACK(
         PlayerDrawerPreferenceGroup.VIDEO,
         R.string.pref_shield_mpeg2_software_fallback_title,
@@ -410,6 +417,7 @@ private fun MPVActivity.addVideoRows(rows: MutableList<PlayerDrawerRow>) {
     }
     rows.addPref(PlayerDrawerPreference.SHIELD_DECODER_MODE)
     rows.addPref(PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES)
+    rows.addPref(PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES)
     if (shieldDecoderModeEnabled) {
         rows.addOption(PlayerDrawerOption.SHIELD_FALLBACK)
     }

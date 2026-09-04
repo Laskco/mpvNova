@@ -1034,10 +1034,17 @@ class PreferenceActivity : AppCompatActivity(),
             val otherDeviceHi10pPref = findPreference<SwitchPreferenceCompat>(
                 app.mpvnova.player.PREF_HI10P_FALLBACK_OTHER_DEVICES
             )
+            val otherDeviceMpeg2Pref = findPreference<SwitchPreferenceCompat>(
+                app.mpvnova.player.PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES
+            )
             if (app.mpvnova.player.isNvidiaShieldDevice()) {
                 otherDeviceHi10pPref?.isEnabled = false
                 otherDeviceHi10pPref?.setSummary(
                     R.string.pref_hi10p_fallback_other_devices_shield_summary
+                )
+                otherDeviceMpeg2Pref?.isEnabled = false
+                otherDeviceMpeg2Pref?.setSummary(
+                    R.string.pref_mpeg2_software_fallback_other_devices_shield_summary
                 )
             }
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
