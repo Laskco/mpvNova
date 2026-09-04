@@ -25,6 +25,7 @@ import app.mpvnova.player.databinding.DialogSettingsProgressBinding
 private const val DIALOG_WIDTH_FRACTION = 0.5f
 private const val DIALOG_MAX_WIDTH_DP = 560f
 private const val CHOICE_LIST_MAX_HEIGHT_DP = 300f
+private const val DISABLED_CHOICE_ALPHA = 0.58f
 
 // A single-choice dialog styled like the mpv.conf editor (app-themed shell, styled rows),
 // so the screensaver settings match the rest of the app instead of the default picker.
@@ -57,16 +58,23 @@ private fun showSettingsChoiceDialog(
         row.findViewById<ImageView>(R.id.optionCheck).visibility =
             if (item.checked) View.VISIBLE else View.INVISIBLE
         if (item.checked) selectedRow = row
-        row.setOnClickListener {
-            item.onClick()
-            dialog.dismiss()
+        row.isEnabled = item.enabled
+        row.isFocusable = item.enabled
+        row.alpha = if (item.enabled) 1f else DISABLED_CHOICE_ALPHA
+        if (item.enabled) {
+            row.setOnClickListener {
+                item.onClick()
+                dialog.dismiss()
+            }
         }
         binding.choiceRows.addView(row)
     }
     binding.choiceCancelBtn.setOnClickListener { dialog.dismiss() }
     dialog.show()
     dialog.styleAsTvPanel()
-    val focusRow = selectedRow ?: binding.choiceRows.getChildAt(0)
+    val focusRow = selectedRow?.takeIf { it.isEnabled } ?: (0 until binding.choiceRows.childCount)
+        .map(binding.choiceRows::getChildAt)
+        .firstOrNull(View::isEnabled)
     focusRow?.post { focusRow.requestFocus() }
 }
 

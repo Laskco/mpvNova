@@ -34,7 +34,12 @@ private const val DISABLED_BUTTON_ALPHA = 0.38f
 
 internal class MediaPickerDialog {
 
-    data class Item(val label: CharSequence, val tag: Any?, val selected: Boolean)
+    data class Item(
+        val label: CharSequence,
+        val tag: Any?,
+        val selected: Boolean,
+        val enabled: Boolean = true,
+    )
     data class ValueState(
         val label: String,
         val active: Boolean,
@@ -418,13 +423,16 @@ internal class MediaPickerDialog {
             init {
                 view.setOnClickListener {
                     val position = bindingAdapterPosition
-                    if (position != RecyclerView.NO_POSITION)
+                    if (position != RecyclerView.NO_POSITION && parent.items[position].enabled)
                         parent.onItemClick?.invoke(position)
                 }
             }
             fun bind(item: Item) {
                 textView.text = item.label
                 textView.isChecked = item.selected
+                itemView.isEnabled = item.enabled
+                itemView.isFocusable = item.enabled
+                itemView.alpha = if (item.enabled) 1f else DISABLED_ROW_ALPHA
                 textView.setTextColor(
                     ContextCompat.getColor(
                         textView.context,
