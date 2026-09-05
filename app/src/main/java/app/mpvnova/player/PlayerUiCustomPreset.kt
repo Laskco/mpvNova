@@ -52,7 +52,7 @@ internal object PlayerUiCustomPresetStore {
     }
 }
 
-private fun PlayerUiCustomization.toJson() = JSONObject().apply {
+internal fun PlayerUiCustomization.toJson() = JSONObject().apply {
     put("surface", surface.prefValue)
     put("panelOpacity", panelOpacityPercent)
     put("scrimStrength", scrimStrengthPercent)
@@ -89,9 +89,22 @@ private fun PlayerUiCustomization.toJson() = JSONObject().apply {
     put("iconTextOutline", iconTextOutlineEnabled)
     put("hiddenControls", JSONArray(hiddenControls.map(PlayerBarControl::prefValue)))
     put("controlOrder", JSONArray(controlOrder.map(PlayerBarControl::prefValue)))
+    put("seekbarPlayedColor", seekbarPlayedColor?.name)
+    put("seekbarBufferedColor", seekbarBufferedColor?.name)
+    put("seekbarUnplayedColor", seekbarUnplayedColor?.name)
+    put("chapterMarkerColor", chapterMarkerColor?.name)
+    put("chapterMarkerShape", chapterMarkerShape.name)
+    put("chapterMarkerSizePercent", chapterMarkerSizePercent)
+    put("currentChapterEmphasis", currentChapterEmphasis)
+    put("buttonFocusOutlineWidthDp", buttonFocusOutlineWidthDp)
+    put("buttonFocusHighlightOpacityPercent", buttonFocusHighlightOpacityPercent)
+    put("buttonFocusEnlargementPercent", buttonFocusEnlargementPercent)
+    put("primaryPlayIconSizePercent", primaryPlayIconSizePercent)
+    put("otherIconSizePercent", otherIconSizePercent)
+    put("timeMode", timeMode.name)
 }
 
-private fun JSONObject.toPlayerUiStyle(): PlayerUiCustomization = PlayerUiCustomization(
+internal fun JSONObject.toPlayerUiStyle(): PlayerUiCustomization = PlayerUiCustomization(
     surface = PlayerPanelSurface.fromPref(nullableString("surface")),
     panelOpacityPercent = optInt("panelOpacity", PlayerUiCustomization.DEFAULT.panelOpacityPercent),
     scrimStrengthPercent = optInt("scrimStrength", PlayerUiCustomization.DEFAULT.scrimStrengthPercent),
@@ -133,7 +146,25 @@ private fun JSONObject.toPlayerUiStyle(): PlayerUiCustomization = PlayerUiCustom
     controlOrder = optJSONArray("controlOrder")?.playerControls()
         ?.takeIf(List<PlayerBarControl>::isNotEmpty)
         ?: PlayerUiCustomization.DEFAULT.controlOrder,
+    seekbarPlayedColor = playerBarColor("seekbarPlayedColor"),
+    seekbarBufferedColor = playerBarColor("seekbarBufferedColor"),
+    seekbarUnplayedColor = playerBarColor("seekbarUnplayedColor"),
+    chapterMarkerColor = playerBarColor("chapterMarkerColor"),
+    chapterMarkerShape = enumValueOrDefault(nullableString("chapterMarkerShape"), PlayerChapterMarkerShape.TICKS),
+    chapterMarkerSizePercent = optInt("chapterMarkerSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+    currentChapterEmphasis = optBoolean("currentChapterEmphasis", false),
+    buttonFocusOutlineWidthDp = optInt("buttonFocusOutlineWidthDp", DEFAULT_BUTTON_FOCUS_OUTLINE_WIDTH_DP),
+    buttonFocusHighlightOpacityPercent = optInt(
+        "buttonFocusHighlightOpacityPercent", DEFAULT_BUTTON_FOCUS_HIGHLIGHT_OPACITY_PERCENT,
+    ),
+    buttonFocusEnlargementPercent = optInt("buttonFocusEnlargementPercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+    primaryPlayIconSizePercent = optInt("primaryPlayIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+    otherIconSizePercent = optInt("otherIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+    timeMode = enumValueOrDefault(nullableString("timeMode"), PlayerTimeMode.PLAYER_DEFAULT),
 ).normalized()
+
+private fun JSONObject.playerBarColor(key: String): PlayerSeekbarThumbColor? =
+    PlayerSeekbarThumbColor.entries.firstOrNull { it.name == nullableString(key) }
 
 private fun JSONObject.readPlayerUiPresetHiddenControls(): Set<PlayerBarControl> {
     val hidden = optJSONArray("hiddenControls")?.playerControls()

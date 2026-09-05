@@ -21,13 +21,23 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
         binding.playerTitleEpisodeNumber,
         binding.playerTitlePrimary,
     ).forEach { textView ->
-        if (textView.maxWidth != cappedWidth) textView.maxWidth = cappedWidth
+        val style = when (textView) {
+            binding.playerTitleSeason -> playerTitleStyle.season
+            binding.playerTitleEpisodeNumber -> playerTitleStyle.episodeNumber
+            else -> playerTitleStyle.title
+        }
+        val width = titleWidthWithOffset(cappedWidth, style)
+        if (textView.maxWidth != width) textView.maxWidth = width
     }
-    val episodeWidth = episodeTitleMaxWidth(cappedWidth)
+    val episodeWidth = titleWidthWithOffset(episodeTitleMaxWidth(cappedWidth), playerTitleStyle.episodeTitle)
     if (binding.playerTitleSecondary.maxWidth != episodeWidth)
         binding.playerTitleSecondary.maxWidth = episodeWidth
-    fitPrimaryPlayerTitle(cappedWidth)
+    fitPrimaryPlayerTitle(titleWidthWithOffset(cappedWidth, playerTitleStyle.title))
 }
+
+private fun MPVActivity.titleWidthWithOffset(width: Int, style: PlayerTitleTextStyle): Int =
+    (width - (2 * kotlin.math.abs(style.horizontalOffsetDp) * resources.displayMetrics.density).toInt())
+        .coerceAtLeast(1)
 
 private fun MPVActivity.playerTitleMaximumWidth(screenWidth: Int): Int {
     val panel = playerTitleStyle.titlePanel
@@ -65,6 +75,7 @@ private fun MPVActivity.episodeTitleMaxWidth(cappedWidth: Int): Int {
 }
 
 private fun MPVActivity.fitPrimaryPlayerTitle(cappedWidth: Int) {
+    if (playerTitleStyle.title.longTextMode != PlayerTitleLongTextMode.DEFAULT) return
     val title = binding.playerTitlePrimary.text.toString()
     val fontScale = resources.configuration.fontScale
     val preferredSizeSp = playerTitleStyle.title.sizeSp

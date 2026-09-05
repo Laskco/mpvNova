@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <item name="player_title_original_text_layout" type="id" />
+    <item name="player_title_text_offsets" type="id" />
+    <item name="player_title_presentation" type="id" />
+    <item name="player_title_combined_panel" type="id" />
+    <string name="player_title_extra_long_text">Long text</string>
+    <string name="player_title_extra_default">Default</string>
+    <string name="player_title_extra_wrap">Wrap</string>
+    <string name="player_title_extra_ellipsis">Shorten with ...</string>
+    <string name="player_title_extra_marquee">Scroll</string>
+    <string name="player_title_extra_max_lines">Maximum lines</string>
+    <string name="player_title_extra_line_spacing">Wrapped line spacing</string>
+    <string name="player_title_extra_offset_x">Text horizontal offset</string>
+    <string name="player_title_extra_offset_y">Text vertical offset</string>
+    <string name="player_title_extra_dp">%1$d dp</string>
+    <string name="player_title_extra_metadata">Season / episode format</string>
+    <string name="player_title_extra_words">Season 1 Episode 3</string>
+    <string name="player_title_extra_padded">S01E03</string>
+    <string name="player_title_extra_compact">1x03</string>
+    <string name="player_title_extra_panel_mode">Title and clock panels</string>
+    <string name="player_title_extra_separate">Separate</string>
+    <string name="player_title_extra_combined">Combined</string>
+    <string name="player_title_extra_move_shared">Move shared panel</string>
+    <string name="player_title_extra_reset_shared">Reset shared position</string>
+</resources>

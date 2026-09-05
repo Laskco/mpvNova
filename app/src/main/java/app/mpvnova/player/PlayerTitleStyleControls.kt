@@ -25,6 +25,13 @@ internal enum class PlayerTitleStyleControl(@StringRes val labelRes: Int) {
     ITALIC(R.string.player_title_style_italic),
     TEXT_CASE(R.string.player_title_style_text_case),
     POSITION(R.string.player_title_style_position),
+    LONG_TEXT_MODE(R.string.player_title_extra_long_text),
+    MAX_LINES(R.string.player_title_extra_max_lines),
+    WRAPPED_LINE_SPACING(R.string.player_title_extra_line_spacing),
+    TEXT_OFFSET_X(R.string.player_title_extra_offset_x),
+    TEXT_OFFSET_Y(R.string.player_title_extra_offset_y),
+    METADATA_FORMAT(R.string.player_title_extra_metadata),
+    COMBINED_PANELS(R.string.player_title_extra_panel_mode),
     PANEL_SURFACE(R.string.player_ui_surface_style),
     PANEL_OPACITY(R.string.player_title_style_panel_opacity),
     PANEL_ACCENT_STRENGTH(R.string.player_title_style_panel_accent_strength),
@@ -107,6 +114,12 @@ private fun playerTitleControlSections() = listOf(
             PlayerTitleStyleControl.ITALIC,
             PlayerTitleStyleControl.TEXT_CASE,
             PlayerTitleStyleControl.POSITION,
+            PlayerTitleStyleControl.LONG_TEXT_MODE,
+            PlayerTitleStyleControl.MAX_LINES,
+            PlayerTitleStyleControl.WRAPPED_LINE_SPACING,
+            PlayerTitleStyleControl.TEXT_OFFSET_X,
+            PlayerTitleStyleControl.TEXT_OFFSET_Y,
+            PlayerTitleStyleControl.METADATA_FORMAT,
         ),
     ),
     PlayerTitleControlSection(
@@ -143,6 +156,7 @@ private fun playerTitleControlSections() = listOf(
             PlayerTitleStyleControl.PANEL_CONTENT_ALIGNMENT,
             PlayerTitleStyleControl.PANEL_WIDTH,
             PlayerTitleStyleControl.PANEL_VERTICAL_OFFSET,
+            PlayerTitleStyleControl.COMBINED_PANELS,
         ),
     ),
 )
@@ -238,6 +252,13 @@ internal fun MPVActivity.adjustPlayerTitleStyle(
         textCase = cyclePlayerTitleValue(PlayerTitleTextCase.entries, style.textCase, delta),
     )
     PlayerTitleStyleControl.POSITION -> style
+    PlayerTitleStyleControl.LONG_TEXT_MODE,
+    PlayerTitleStyleControl.MAX_LINES,
+    PlayerTitleStyleControl.WRAPPED_LINE_SPACING,
+    PlayerTitleStyleControl.TEXT_OFFSET_X,
+    PlayerTitleStyleControl.TEXT_OFFSET_Y -> adjustPlayerTitleTextLayout(style, control, delta)
+    PlayerTitleStyleControl.METADATA_FORMAT,
+    PlayerTitleStyleControl.COMBINED_PANELS -> style
     PlayerTitleStyleControl.PANEL_SURFACE,
     PlayerTitleStyleControl.PANEL_OPACITY,
     PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,

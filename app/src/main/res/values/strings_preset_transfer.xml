@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="preset_transfer_import_title">Import preset</string>
+    <string name="preset_transfer_import_confirm">Save %1$s as a new preset?</string>
+    <string name="preset_transfer_import_action">Import</string>
+    <string name="preset_transfer_rename_action">Rename</string>
+    <string name="preset_transfer_duplicate">A preset named %1$s already exists. Choose a different name to import this preset.</string>
+    <string name="preset_transfer_limit">You can save up to 24 presets. Delete a preset before importing another.</string>
+    <string name="preset_transfer_unavailable">No document provider is available. Install or enable a document provider to share presets.</string>
+    <string name="preset_transfer_import_failed">Could not import this preset. Choose a valid, supported preset of this type, no larger than 128 KiB.</string>
+    <string name="preset_transfer_export_failed">Could not export this preset. Check the selected location and try again.</string>
+    <string name="preset_transfer_exported">Preset exported</string>
+    <string name="preset_transfer_imported">Preset imported</string>
+    <string name="preset_transfer_busy">Finish the current preset transfer first.</string>
+</resources>

@@ -61,10 +61,8 @@ private fun MPVActivity.resolvePlayerTitlePresentation(title: String): PlayerTit
 private fun MPVActivity.bindPlayerTitlePresentation(
     presentation: PlayerTitlePresentation,
 ): Boolean {
-    val season = presentation.season?.let { getString(R.string.player_title_season, it) }
-    val episodeNumber = presentation.episode?.let {
-        getString(R.string.player_title_episode_number, it)
-    }
+    binding.playerTitleOverlay.setTag(R.id.player_title_presentation, presentation)
+    val (season, episodeNumber) = playerTitleMetadataText(presentation)
     val contentChanged = playerTitleContentChanged(presentation, season, episodeNumber)
     binding.playerTitleSeason.setTextIfChanged(season)
     binding.playerTitleEpisodeNumber.setTextIfChanged(episodeNumber)

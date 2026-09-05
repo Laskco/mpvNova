@@ -62,7 +62,7 @@ private fun MPVActivity.startPlayerTitlePanelPlacement(
     part: PlayerTitlePart,
     onFinished: () -> Unit,
 ) {
-    val target = if (part.isTitlePart()) binding.playerTitleOverlay else binding.timeInfoPanel
+    val target = playerTitlePlacementTarget(part)
     target.post {
         val density = resources.displayMetrics.density
         val preferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
@@ -102,7 +102,9 @@ private fun MPVActivity.startPlayerTitlePanelPlacement(
             val position = playerTitleStyle.panelStyleFor(part)
             hint.text = getString(
                 R.string.player_title_style_move_hint,
-                if (part.isTitlePart()) {
+                if (playerTitleStyle.combinedPanels) {
+                    getString(R.string.player_title_extra_combined)
+                } else if (part.isTitlePart()) {
                     getString(R.string.player_title_style_title_panel)
                 } else {
                     getString(R.string.player_title_style_clock_panel)
@@ -173,7 +175,7 @@ private fun MPVActivity.fitPlayerTitleStylePanelBelowPreview(dialog: AlertDialog
             PLAYER_TITLE_STYLE_DIALOG_LAYOUT.verticalOffsetDp,
         )
         val availableHeight = (
-            screenHeight - binding.playerTitleOverlay.bottom - previewGap - verticalOffset
+            screenHeight - playerTitlePlacementTarget(PlayerTitlePart.TITLE).bottom - previewGap - verticalOffset
         ).coerceAtLeast(1)
         val desiredHeight = minOf(
             (screenHeight * PLAYER_TITLE_STYLE_DIALOG_HEIGHT_FRACTION).toInt(),

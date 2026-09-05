@@ -68,8 +68,9 @@ internal fun PlayerTitleStyle.normalized(): PlayerTitleStyle = copy(
 
 private fun PlayerTitleTextStyle.normalized(defaults: PlayerTitleTextStyle) = copy(
     font = font.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) } ?: defaults.font,
-    sizeSp = sizeSp.coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
-    letterSpacing = letterSpacing.coerceIn(
+    sizeSp = (sizeSp.takeIf { it.isFinite() } ?: defaults.sizeSp)
+        .coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
+    letterSpacing = (letterSpacing.takeIf { it.isFinite() } ?: defaults.letterSpacing).coerceIn(
         PLAYER_TITLE_MIN_LETTER_SPACING,
         PLAYER_TITLE_MAX_LETTER_SPACING,
     ),
@@ -77,18 +78,26 @@ private fun PlayerTitleTextStyle.normalized(defaults: PlayerTitleTextStyle) = co
         PLAYER_TITLE_MIN_OPACITY_PERCENT,
         PLAYER_TITLE_MAX_OPACITY_PERCENT,
     ),
-    outlineWidthDp = outlineWidthDp.coerceIn(
+    outlineWidthDp = (outlineWidthDp.takeIf { it.isFinite() } ?: defaults.outlineWidthDp).coerceIn(
         PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP,
         PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP,
     ),
     shadowStrengthPercent = shadowStrengthPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
     backgroundStrengthPercent = backgroundStrengthPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
+    maxLines = maxLines.coerceIn(0, PLAYER_TITLE_MAX_LINES),
+    wrappedLineSpacingDp = wrappedLineSpacingDp.coerceIn(0, PLAYER_TITLE_MAX_WRAPPED_LINE_SPACING_DP),
+    horizontalOffsetDp = horizontalOffsetDp.coerceIn(
+        -PLAYER_TITLE_MAX_TEXT_OFFSET_DP, PLAYER_TITLE_MAX_TEXT_OFFSET_DP,
+    ),
+    verticalOffsetDp = verticalOffsetDp.coerceIn(
+        -PLAYER_TITLE_MAX_TEXT_OFFSET_DP, PLAYER_TITLE_MAX_TEXT_OFFSET_DP,
+    ),
 )
 
 private fun <T> List<T>.validOrderOr(defaults: List<T>): List<T> =
     takeIf { size == defaults.size && toSet() == defaults.toSet() } ?: defaults
 
-private fun PlayerTitleStyle.toJson() = JSONObject().apply {
+internal fun PlayerTitleStyle.toJson() = JSONObject().apply {
     put("season", season.toJson())
     put("episodeNumber", episodeNumber.toJson())
     put("title", title.toJson())
@@ -101,6 +110,8 @@ private fun PlayerTitleStyle.toJson() = JSONObject().apply {
     put("clockOrder", JSONArray(clockOrder.map(PlayerClockUnit::name)))
     put("titlePanel", titlePanel.toJson())
     put("clockPanel", clockPanel.toJson())
+    put("metadataFormat", metadataFormat.name)
+    put("combinedPanels", combinedPanels)
 }
 
 private fun PlayerTitleTextStyle.toJson() = JSONObject().apply {
@@ -119,6 +130,11 @@ private fun PlayerTitleTextStyle.toJson() = JSONObject().apply {
     put("shadowStrength", shadowStrengthPercent)
     put("backgroundEnabled", backgroundEnabled)
     put("backgroundStrength", backgroundStrengthPercent)
+    put("longTextMode", longTextMode.name)
+    put("maxLines", maxLines)
+    put("wrappedLineSpacing", wrappedLineSpacingDp)
+    put("textOffsetX", horizontalOffsetDp)
+    put("textOffsetY", verticalOffsetDp)
 }
 
 private fun PlayerTitlePanelStyle.toJson() = JSONObject().apply {
@@ -141,7 +157,7 @@ private fun PlayerTitlePanelStyle.toJson() = JSONObject().apply {
     put("horizontalOffset", horizontalOffsetDp)
 }
 
-private fun JSONObject.toPlayerTitleStyle(): PlayerTitleStyle {
+internal fun JSONObject.toPlayerTitleStyle(): PlayerTitleStyle {
     val defaults = PlayerTitleStyle.DEFAULT
     return PlayerTitleStyle(
         season = optJSONObject("season").toTextStyle(defaults.season),
@@ -158,6 +174,8 @@ private fun JSONObject.toPlayerTitleStyle(): PlayerTitleStyle {
             .validOrderOr(defaults.clockOrder),
         titlePanel = optJSONObject("titlePanel").toPanelStyle(defaults.titlePanel),
         clockPanel = optJSONObject("clockPanel").toPanelStyle(defaults.clockPanel),
+        metadataFormat = enumValueOrDefault(nullableString("metadataFormat"), defaults.metadataFormat),
+        combinedPanels = optBoolean("combinedPanels", false),
     ).normalized()
 }
 
@@ -179,6 +197,11 @@ private fun JSONObject?.toTextStyle(defaults: PlayerTitleTextStyle): PlayerTitle
         shadowStrengthPercent = optInt("shadowStrength", defaults.shadowStrengthPercent),
         backgroundEnabled = optBoolean("backgroundEnabled", defaults.backgroundEnabled),
         backgroundStrengthPercent = optInt("backgroundStrength", defaults.backgroundStrengthPercent),
+        longTextMode = enumValueOrDefault(nullableString("longTextMode"), defaults.longTextMode),
+        maxLines = optInt("maxLines", defaults.maxLines),
+        wrappedLineSpacingDp = optInt("wrappedLineSpacing", defaults.wrappedLineSpacingDp),
+        horizontalOffsetDp = optInt("textOffsetX", defaults.horizontalOffsetDp),
+        verticalOffsetDp = optInt("textOffsetY", defaults.verticalOffsetDp),
     ).normalized(defaults)
 }
 

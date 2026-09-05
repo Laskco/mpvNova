@@ -110,15 +110,7 @@ internal fun MPVActivity.updatePlaybackText(position: Int, force: Boolean = fals
     if (!force && lastDisplayedPlaybackSecond == position)
         return
     lastDisplayedPlaybackSecond = position
-    binding.playbackPositionTxt.setTextIfChanged(Utils.prettyTime(position))
-    if (useTimeRemaining) {
-        val diff = psc.durationSec - position
-        val durationText = if (diff <= 0)
-            "-00:00"
-        else
-            Utils.prettyTime(-diff, true)
-        binding.playbackDurationTxt.setTextIfChanged(durationText)
-    }
+    renderPlayerBarTime(position, psc.durationSec)
 
     // Skip secondary UI work while scrubbing — decoder is busy with the seek.
     // Clock + "Ends at" panel has its own 30s heartbeat.

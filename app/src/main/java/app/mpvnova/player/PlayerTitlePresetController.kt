@@ -14,6 +14,15 @@ internal class PlayerTitlePresetController(
         .firstOrNull { it.style == activity.playerTitleStyle.normalized() }
         ?.name
 
+    val exportName: String
+        get() = activeCustomPresetName ?: activity.getString(R.string.player_title_style_title)
+
+    fun acceptImported(preset: PlayerTitleCustomPreset) {
+        customPresets = PlayerTitleCustomPresetStore.read(preferences)
+        activeCustomPresetName = preset.name
+        onPresetApplied(preset.style)
+    }
+
     fun bind() {
         panel.titleStylePresetMinusBtn.setOnClickListener { cycle(-1) }
         panel.titleStylePresetPlusBtn.setOnClickListener { cycle(1) }

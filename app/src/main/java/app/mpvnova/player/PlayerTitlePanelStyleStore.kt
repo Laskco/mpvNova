@@ -123,12 +123,12 @@ internal object PlayerTitlePanelStyleStore {
 }
 
 internal fun PlayerTitleStyle.panelStyleFor(part: PlayerTitlePart): PlayerTitlePanelStyle =
-    if (part.isTitlePart()) titlePanel else clockPanel
+    if (combinedPanels || part.isTitlePart()) titlePanel else clockPanel
 
 internal fun PlayerTitleStyle.withPanelStyle(
     part: PlayerTitlePart,
     panelStyle: PlayerTitlePanelStyle,
-): PlayerTitleStyle = if (part.isTitlePart()) {
+): PlayerTitleStyle = if (combinedPanels || part.isTitlePart()) {
     copy(titlePanel = panelStyle.normalized())
 } else {
     copy(clockPanel = panelStyle.normalized())
@@ -154,9 +154,10 @@ internal fun PlayerTitleStyle.adjustPanelOpacity(
 internal fun MPVActivity.applyPlayerTitlePanelGlass() {
     binding.playerTitleOverlay.applyThemedPanelStyle(playerTitleStyle.titlePanel, this)
     binding.timeInfoPanel.applyThemedPanelStyle(playerTitleStyle.clockPanel, this)
+    applyPlayerTitleCombinedPanel()
 }
 
-private fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle, themedContext: Context) {
+internal fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle, themedContext: Context) {
     val normalized = style.normalized()
     val accent = themedContext.themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot)
     val blendRatio = normalized.accentStrengthPercent / MAX_PERCENT.toFloat()

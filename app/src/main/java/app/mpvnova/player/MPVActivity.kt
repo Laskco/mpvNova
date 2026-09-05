@@ -788,6 +788,9 @@ open class MPVActivity : AppCompatActivity() {
             )
             pendingActivityResultCallback = null
         }
+    // Register SAF launchers eagerly, before the Activity reaches STARTED.
+    internal val presetTransfer = PlayerAppearancePresetTransfer(this)
+
     internal val mediaSessionCallback = object : MediaSession.Callback() {
         override fun onPause() {
             player.paused = true

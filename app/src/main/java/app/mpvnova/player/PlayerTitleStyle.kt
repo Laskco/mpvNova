@@ -68,6 +68,10 @@ internal enum class PlayerTitleTextCase {
     TITLE_CASE,
 }
 
+internal enum class PlayerTitleLongTextMode { DEFAULT, WRAP, ELLIPSIS, MARQUEE }
+
+internal enum class PlayerTitleMetadataFormat { WORDS, PADDED, COMPACT }
+
 internal enum class PlayerTitleSeparator(val text: String) {
     DOT("\u2022"),
     DASH("-"),
@@ -186,6 +190,11 @@ internal data class PlayerTitleTextStyle(
     val shadowStrengthPercent: Int,
     val backgroundEnabled: Boolean,
     val backgroundStrengthPercent: Int,
+    val longTextMode: PlayerTitleLongTextMode = PlayerTitleLongTextMode.DEFAULT,
+    val maxLines: Int = 0,
+    val wrappedLineSpacingDp: Int = 0,
+    val horizontalOffsetDp: Int = 0,
+    val verticalOffsetDp: Int = 0,
 )
 
 internal data class PlayerTitleStyle(
@@ -201,6 +210,8 @@ internal data class PlayerTitleStyle(
     val clockOrder: List<PlayerClockUnit>,
     val titlePanel: PlayerTitlePanelStyle,
     val clockPanel: PlayerTitlePanelStyle,
+    val metadataFormat: PlayerTitleMetadataFormat = PlayerTitleMetadataFormat.WORDS,
+    val combinedPanels: Boolean = false,
 ) {
     val titlePanelOpacityPercent: Int get() = titlePanel.opacityPercent
     val clockPanelOpacityPercent: Int get() = clockPanel.opacityPercent
@@ -371,6 +382,11 @@ internal object PlayerTitleStyleStore {
         ),
         titlePanel = PlayerTitlePanelStyleStore.readTitle(prefs),
         clockPanel = PlayerTitlePanelStyleStore.readClock(prefs),
+        metadataFormat = enumValueOrDefault(
+            prefs.all["${PREFIX}_metadata_format"] as? String,
+            PlayerTitleMetadataFormat.WORDS,
+        ),
+        combinedPanels = prefs.all["${PREFIX}_combined_panels"] as? Boolean ?: false,
     )
 
     fun writePart(
@@ -401,11 +417,16 @@ internal object PlayerTitleStyleStore {
                 "${PREFIX}_${key}_uppercase",
                 style.textCase == PlayerTitleTextCase.UPPERCASE,
             )
-            .putFloat("${PREFIX}_${key}_outline_width", style.outlineWidthDp)
+            .putFloat("${PREFIX}_${key}_text_outline_width", style.outlineWidthDp)
             .putString("${PREFIX}_${key}_outline_color", style.outlineColor.name)
             .putInt("${PREFIX}_${key}_shadow_strength", style.shadowStrengthPercent)
             .putBoolean("${PREFIX}_${key}_background_enabled", style.backgroundEnabled)
             .putInt("${PREFIX}_${key}_background_strength", style.backgroundStrengthPercent)
+            .putString("${PREFIX}_${key}_long_text", style.longTextMode.name)
+            .putInt("${PREFIX}_${key}_max_lines", style.maxLines)
+            .putInt("${PREFIX}_${key}_line_spacing", style.wrappedLineSpacingDp)
+            .putInt("${PREFIX}_${key}_text_offset_x", style.horizontalOffsetDp)
+            .putInt("${PREFIX}_${key}_text_offset_y", style.verticalOffsetDp)
     }
 
     fun write(prefs: SharedPreferences, style: PlayerTitleStyle) {
@@ -413,6 +434,8 @@ internal object PlayerTitleStyleStore {
         prefs.edit().apply {
             PlayerTitlePart.entries.forEach { part -> putPart(part, normalized.forPart(part)) }
             putString(SEPARATOR_KEY, normalized.separator.name)
+            putString("${PREFIX}_metadata_format", normalized.metadataFormat.name)
+            putBoolean("${PREFIX}_combined_panels", normalized.combinedPanels)
             putString(TITLE_ORDER_KEY, normalized.titleOrder.joinToString(",") { it.name })
             putString(CLOCK_ORDER_KEY, normalized.clockOrder.joinToString(",") { it.name })
             PlayerTitlePanelStyleStore.writeTo(this, normalized)
@@ -484,6 +507,17 @@ internal object PlayerTitleStyleStore {
             shadowStrengthPercent = effects.shadowStrengthPercent,
             backgroundEnabled = effects.backgroundEnabled,
             backgroundStrengthPercent = effects.backgroundStrengthPercent,
+            longTextMode = enumValueOrDefault(
+                prefs.all["${PREFIX}_${key}_long_text"] as? String,
+                defaults.longTextMode,
+            ),
+            maxLines = prefs.numericInt("${PREFIX}_${key}_max_lines", 0).coerceIn(0, 8),
+            wrappedLineSpacingDp = prefs.numericInt("${PREFIX}_${key}_line_spacing", 0)
+                .coerceIn(0, 24),
+            horizontalOffsetDp = prefs.numericInt("${PREFIX}_${key}_text_offset_x", 0)
+                .coerceIn(-200, 200),
+            verticalOffsetDp = prefs.numericInt("${PREFIX}_${key}_text_offset_y", 0)
+                .coerceIn(-200, 200),
         )
     }
 
@@ -534,8 +568,9 @@ private fun readStoredPlayerTitleEffects(
     defaults: PlayerTitleTextStyle,
 ) = StoredPlayerTitleEffects(
     outlineWidthDp = prefs.numericFloat(
-        "${key}_outline_width",
-        defaults.outlineWidthDp,
+        "${key}_text_outline_width",
+        // Older versions shared this key with the panel border. Preserve its last saved value.
+        prefs.numericFloat("${key}_outline_width", defaults.outlineWidthDp),
     ).coerceIn(PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP, PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP),
     outlineColor = prefs.getString("${key}_outline_color", defaults.outlineColor.name)
         ?.let { raw -> PlayerTitleColor.entries.firstOrNull { it.name == raw } }
@@ -561,9 +596,11 @@ private fun readStoredPlayerTitleEffects(
 )
 
 internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
+    refreshPlayerTitleMetadataFormat()
     applyPlayerTitleVisibility()
     if (!force && appliedPlayerTitleStyle == playerTitleStyle)
         return
+    resetPlayerTitleTextOffsets()
     applyPlayerTextOrder()
     applyPlayerTitleTextStyle(binding.playerTitleSeason, playerTitleStyle.season)
     applyPlayerTitleTextStyle(binding.playerTitleEpisodeNumber, playerTitleStyle.episodeNumber)
@@ -577,6 +614,8 @@ internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
             italic = false,
             textCase = PlayerTitleTextCase.ORIGINAL,
             backgroundEnabled = false,
+            horizontalOffsetDp = 0,
+            verticalOffsetDp = 0,
         ),
     )
     applyPlayerTitleTextStyle(binding.playerTitlePrimary, playerTitleStyle.title)
@@ -585,6 +624,7 @@ internal fun MPVActivity.applyPlayerTitleStyle(force: Boolean = false) {
     applyPlayerTitleTextStyle(binding.clockTextView, playerTitleStyle.clock)
     applyPlayerTitleTextStyle(binding.endsAtTextView, playerTitleStyle.endsAt)
     applyPlayerTitlePanelGlass()
+    applyPlayerTitleTextOffsets()
     fittedPlayerTitleText = null
     fittedPlayerTitleWidth = 0
     fittedPlayerTitleFontScale = 0f
@@ -601,9 +641,12 @@ private fun MPVActivity.applyPlayerTitleVisibility() {
         playerTitleStyle.episodeNumber.visible,
     )
     binding.playerTitleContextSeparator.apply {
-        setTextIfChanged(playerTitleStyle.separator.text)
+        setTextIfChanged(if (playerTitleStyle.metadataFormat == PlayerTitleMetadataFormat.WORDS) {
+            playerTitleStyle.separator.text
+        } else "")
         val separatorVisible = seasonVisible && episodeVisible &&
-            playerTitleStyle.separator != PlayerTitleSeparator.NONE
+            playerTitleStyle.separator != PlayerTitleSeparator.NONE &&
+            playerTitleStyle.metadataFormat == PlayerTitleMetadataFormat.WORDS
         visibility = separatorVisible.toVisibility()
     }
     binding.playerTitleContextRow.visibility = (seasonVisible || episodeVisible).toVisibility()
@@ -629,6 +672,7 @@ private fun MPVActivity.applyPlayerTitleTextStyle(
     view: TextView,
     style: PlayerTitleTextStyle,
 ) {
+    view.applyPlayerTitleTextLayout(style)
     view.paint.isAntiAlias = true
     view.paint.isSubpixelText = true
     view.paint.isDither = true
@@ -722,6 +766,9 @@ internal fun Context.themedColor(attribute: Int, @ColorRes fallback: Int): Int {
 }
 
 internal const val PLAYER_TITLE_MIN_CUSTOM_SIZE_SP = 10f
+internal const val PLAYER_TITLE_MAX_LINES = 8
+internal const val PLAYER_TITLE_MAX_WRAPPED_LINE_SPACING_DP = 24
+internal const val PLAYER_TITLE_MAX_TEXT_OFFSET_DP = 200
 internal const val PLAYER_TITLE_MAX_CUSTOM_SIZE_SP = 30f
 internal const val PLAYER_TITLE_SIZE_STEP_SP = 0.5f
 internal const val PLAYER_TITLE_MIN_LETTER_SPACING = -0.05f

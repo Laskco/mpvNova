@@ -47,6 +47,13 @@ internal fun MPVActivity.playerTitleControlValue(
     )
     PlayerTitleStyleControl.TEXT_CASE -> getString(playerTitleTextCaseLabelRes(style.textCase))
     PlayerTitleStyleControl.POSITION -> playerTitlePositionLabel(part)
+    PlayerTitleStyleControl.LONG_TEXT_MODE,
+    PlayerTitleStyleControl.MAX_LINES,
+    PlayerTitleStyleControl.WRAPPED_LINE_SPACING,
+    PlayerTitleStyleControl.TEXT_OFFSET_X,
+    PlayerTitleStyleControl.TEXT_OFFSET_Y,
+    PlayerTitleStyleControl.METADATA_FORMAT,
+    PlayerTitleStyleControl.COMBINED_PANELS -> playerTitleTextLayoutValue(control, style)
     PlayerTitleStyleControl.PANEL_SURFACE,
     PlayerTitleStyleControl.PANEL_OPACITY,
     PlayerTitleStyleControl.PANEL_ACCENT_STRENGTH,

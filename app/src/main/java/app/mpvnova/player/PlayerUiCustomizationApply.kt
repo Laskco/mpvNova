@@ -127,6 +127,7 @@ private fun MPVActivity.applySeekbarGeometry(
         style.seekbarThumbColor,
     )
     binding.playbackSeekbar.setChapterMarkersVisible(style.chapterMarkersVisible)
+    binding.playbackSeekbar.setBarAppearance(style, this)
     binding.playbackSeekbar.setVisibilityIfChanged(
         if (style.seekbarVisible) View.VISIBLE else View.GONE,
     )
@@ -160,7 +161,9 @@ private fun MPVActivity.applyPlayerControlLayout(style: PlayerUiCustomization) {
         child.minimumHeight = (metrics.heightDp * density).toInt()
         val padding = (metrics.paddingDp * density).toInt()
         child.setPadding(padding, padding, padding, padding)
-        child.background = themedPlayerDrawable(style.buttonTreatment.backgroundRes(isIcon))
+        child.background = playerBarButtonBackground(
+            child, style, themedPlayerDrawable(style.buttonTreatment.backgroundRes(isIcon)),
+        )
         (child.layoutParams as? ViewGroup.MarginLayoutParams)?.let { params ->
             params.marginStart = spacing
             params.marginEnd = spacing
@@ -190,6 +193,7 @@ private fun MPVActivity.applyPlayerTimeLayout(style: PlayerUiCustomization) {
         marginEnd = if (style.timePosition == PlayerTimePosition.END) gap else 0
     }
     applyTimePresentation(style.timePresentation)
+    renderPlayerBarTime(psc.positionSec, psc.durationSec)
 }
 
 private fun MPVActivity.applyTimePresentation(presentation: PlayerTimePresentation) {
@@ -295,6 +299,7 @@ private fun MPVActivity.updateTopActionPlacement() {
             action.minimumHeight = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
             action.setPadding(padding, padding, padding, padding)
             action.background = themedPlayerDrawable(R.drawable.bg_tv_player_icon_button)
+            (action as? android.widget.ImageView)?.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
         }
     }
     binding.topControls.setVisibilityIfChanged(

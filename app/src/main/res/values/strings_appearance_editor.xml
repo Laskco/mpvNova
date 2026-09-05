@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="appearance_editor_actions">Editor actions</string>
+    <string name="appearance_editor_undo">Undo last change</string>
+    <string name="appearance_editor_redo">Redo change</string>
+    <string name="appearance_editor_revert">Revert to when editor opened</string>
+    <string name="appearance_editor_export">Export this preset</string>
+    <string name="appearance_editor_import">Import a preset</string>
+    <string name="appearance_copy_title_surface">Copy title panel surface</string>
+    <string name="appearance_copy_clock_surface">Copy clock panel surface</string>
+    <string name="appearance_copy_player_surface">Copy player bar surface</string>
+    <string name="appearance_copy_title">Copy title appearance to clock</string>
+    <string name="appearance_copy_clock">Copy clock appearance to title</string>
+    <string name="appearance_copy_surface_detail">Colors, background and border only. Layout stays unchanged.</string>
+    <string name="appearance_copy_detail">Background and text styling only. Positions and visibility stay unchanged.</string>
+</resources>

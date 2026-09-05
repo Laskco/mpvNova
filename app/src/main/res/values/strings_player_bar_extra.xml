@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="player_bar_colors">Track colors</string>
+    <string name="player_bar_chapters">Chapter markers</string>
+    <string name="player_bar_button_focus">Button focus</string>
+    <string name="player_bar_played_color">Played color</string>
+    <string name="player_bar_buffered_color">Buffered color</string>
+    <string name="player_bar_unplayed_color">Unplayed color</string>
+    <string name="player_bar_marker_color">Marker color</string>
+    <string name="player_bar_theme_default">Theme default</string>
+    <string name="player_bar_marker_shape">Marker shape</string>
+    <string name="player_bar_marker_ticks">Ticks</string>
+    <string name="player_bar_marker_dots">Dots</string>
+    <string name="player_bar_marker_size">Marker size</string>
+    <string name="player_bar_current_chapter">Current chapter emphasis</string>
+    <string name="player_bar_focus_outline">Outline thickness</string>
+    <string name="player_bar_focus_opacity">Highlight opacity</string>
+    <string name="player_bar_focus_enlargement">Focus enlargement</string>
+    <string name="player_bar_play_icon_size">Primary Play icon size</string>
+    <string name="player_bar_other_icon_size">Other icon size</string>
+    <string name="player_bar_time_mode">Time mode</string>
+    <string name="player_bar_player_default">Player default</string>
+    <string name="player_bar_elapsed_total">Elapsed / Total</string>
+    <string name="player_bar_elapsed_remaining">Elapsed / Remaining</string>
+    <string name="player_bar_remaining_only">Remaining only</string>
+</resources>

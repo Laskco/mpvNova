@@ -17,6 +17,7 @@ import androidx.preference.PreferenceManager
 import app.mpvnova.player.databinding.DialogPlayerTitleStyleControlBinding
 import app.mpvnova.player.databinding.DialogPlayerUiControlRowBinding
 import app.mpvnova.player.databinding.DialogPlayerUiCustomizationBinding
+import app.mpvnova.player.preferences.SettingsChoiceItem
 
 private enum class PlayerUiEditorTab { PRESETS, SURFACE, LAYOUT, CONTROLS }
 
@@ -61,6 +62,7 @@ private class PlayerUiCustomizationPanelController(
     private val preferences: SharedPreferences,
 ) {
     private var tab = PlayerUiEditorTab.PRESETS
+    private val history = PlayerAppearanceEditHistory(activity.playerUiCustomization.normalized())
     private val editorControlViews = mutableListOf<EditorControlView>()
     private var customPresets = PlayerUiCustomPresetStore.read(preferences)
     private var activeCustomPresetName = customPresets
@@ -68,6 +70,7 @@ private class PlayerUiCustomizationPanelController(
         ?.name
 
     fun bind() {
+        panel.playerUiMoreBtn.setOnClickListener { showEditorActions() }
         panel.playerUiPresetTab.setOnClickListener { select(PlayerUiEditorTab.PRESETS) }
         panel.playerUiSurfaceTab.setOnClickListener { select(PlayerUiEditorTab.SURFACE) }
         panel.playerUiLayoutTab.setOnClickListener { select(PlayerUiEditorTab.LAYOUT) }
@@ -81,6 +84,40 @@ private class PlayerUiCustomizationPanelController(
             applyStyle(PlayerUiCustomization.DEFAULT)
         }
         select(PlayerUiEditorTab.PRESETS)
+    }
+
+    private fun showEditorActions() {
+        activity.showAppearanceEditorActions(
+            history = history,
+            applyStyle = { applyStyle(it) },
+            copyActions = listOf(
+                SettingsChoiceItem(
+                    activity.getString(R.string.appearance_copy_title_surface),
+                    detail = activity.getString(R.string.appearance_copy_surface_detail),
+                ) {
+                    applyStyle(activity.playerUiCustomization.withSurfaceFrom(activity.playerTitleStyle.titlePanel))
+                },
+                SettingsChoiceItem(
+                    activity.getString(R.string.appearance_copy_clock_surface),
+                    detail = activity.getString(R.string.appearance_copy_surface_detail),
+                ) {
+                    applyStyle(activity.playerUiCustomization.withSurfaceFrom(activity.playerTitleStyle.clockPanel))
+                },
+            ),
+            exportPreset = {
+                activity.presetTransfer.exportPlayerBar(
+                    activeCustomPresetName ?: activity.getString(R.string.player_ui_customization_title),
+                    activity.playerUiCustomization,
+                )
+            },
+            importPreset = {
+                activity.presetTransfer.importPlayerBar { preset ->
+                    customPresets = PlayerUiCustomPresetStore.read(preferences)
+                    activeCustomPresetName = preset.name
+                    applyStyle(preset.style)
+                }
+            },
+        )
     }
 
     private fun select(selected: PlayerUiEditorTab) {
@@ -355,9 +392,12 @@ private class PlayerUiCustomizationPanelController(
             EditorSection(R.string.player_ui_section_panel_layout, layoutGeometryControls()),
             EditorSection(R.string.player_ui_section_panel_spacing, layoutSpacingControls()),
             EditorSection(R.string.player_ui_section_seekbar, seekbarControls()),
+            EditorSection(R.string.player_bar_colors, barColorControls()),
+            EditorSection(R.string.player_bar_chapters, chapterStyleControls()),
             EditorSection(R.string.player_ui_section_thumb, thumbControls()),
             EditorSection(R.string.player_ui_section_time, timeControls()),
             EditorSection(R.string.player_ui_section_button_row, controlRowControls()),
+            EditorSection(R.string.player_bar_button_focus, buttonFocusControls()),
         ),
     )
 
@@ -514,6 +554,12 @@ private class PlayerUiCustomizationPanelController(
     )
 
     private fun timeControls() = listOf(
+            EditorControl(R.string.player_bar_time_mode,
+                { activity.getString(activity.playerUiCustomization.timeMode.labelRes()) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    timeMode = cycle(PlayerTimeMode.entries, activity.playerUiCustomization.timeMode, delta),
+                )
+            },
             EditorControl(R.string.player_ui_time_visibility,
                 { toggleLabel(activity.playerUiCustomization.timeVisible) }) {
                 activity.playerUiCustomization.copy(
@@ -559,6 +605,22 @@ private class PlayerUiCustomizationPanelController(
     )
 
     private fun controlRowControls() = listOf(
+            EditorControl(R.string.player_bar_play_icon_size,
+                { scalePercent(activity.playerUiCustomization.primaryPlayIconSizePercent) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    primaryPlayIconSizePercent = stepPlayerUiValue(
+                        activity.playerUiCustomization.primaryPlayIconSizePercent, delta, PERCENT_STEP,
+                    ),
+                )
+            },
+            EditorControl(R.string.player_bar_other_icon_size,
+                { scalePercent(activity.playerUiCustomization.otherIconSizePercent) }) { delta ->
+                activity.playerUiCustomization.copy(
+                    otherIconSizePercent = stepPlayerUiValue(
+                        activity.playerUiCustomization.otherIconSizePercent, delta, PERCENT_STEP,
+                    ),
+                )
+            },
             EditorControl(R.string.player_ui_control_alignment,
                 { activity.getString(activity.playerUiCustomization.controlAlignment.labelRes()) }) { delta ->
                 activity.playerUiCustomization.copy(
@@ -586,6 +648,81 @@ private class PlayerUiCustomizationPanelController(
                 )
             },
     )
+
+    private fun barColorControls() = listOf(
+        barColorControl(R.string.player_bar_played_color,
+            { it.seekbarPlayedColor }, { style, color -> style.copy(seekbarPlayedColor = color) }),
+        barColorControl(R.string.player_bar_buffered_color,
+            { it.seekbarBufferedColor }, { style, color -> style.copy(seekbarBufferedColor = color) }),
+        barColorControl(R.string.player_bar_unplayed_color,
+            { it.seekbarUnplayedColor }, { style, color -> style.copy(seekbarUnplayedColor = color) }),
+        barColorControl(R.string.player_bar_marker_color,
+            { it.chapterMarkerColor }, { style, color -> style.copy(chapterMarkerColor = color) }),
+    )
+
+    private fun barColorControl(
+        @StringRes label: Int,
+        color: (PlayerUiCustomization) -> PlayerSeekbarThumbColor?,
+        update: (PlayerUiCustomization, PlayerSeekbarThumbColor?) -> PlayerUiCustomization,
+    ) = EditorControl(label, {
+        color(activity.playerUiCustomization)?.let(activity::playerSeekbarThumbColorLabel)
+            ?: activity.getString(R.string.player_bar_theme_default)
+    }) { delta ->
+        val style = activity.playerUiCustomization
+        update(style, cycle(listOf(null) + PlayerSeekbarThumbColor.entries, color(style), delta))
+    }
+
+    private fun chapterStyleControls() = listOf(
+        EditorControl(R.string.player_bar_marker_shape,
+            { activity.getString(activity.playerUiCustomization.chapterMarkerShape.labelRes()) }) { delta ->
+            activity.playerUiCustomization.copy(
+                chapterMarkerShape = cycle(
+                    PlayerChapterMarkerShape.entries, activity.playerUiCustomization.chapterMarkerShape, delta,
+                ),
+            )
+        },
+        EditorControl(R.string.player_bar_marker_size,
+            { scalePercent(activity.playerUiCustomization.chapterMarkerSizePercent) }) { delta ->
+            activity.playerUiCustomization.copy(
+                chapterMarkerSizePercent = stepPlayerUiValue(
+                    activity.playerUiCustomization.chapterMarkerSizePercent, delta, PERCENT_STEP,
+                ),
+            )
+        },
+        EditorControl(R.string.player_bar_current_chapter,
+            { toggleLabel(activity.playerUiCustomization.currentChapterEmphasis) }) {
+            activity.playerUiCustomization.copy(
+                currentChapterEmphasis = !activity.playerUiCustomization.currentChapterEmphasis,
+            )
+        },
+    )
+
+    private fun buttonFocusControls() = listOf(
+        EditorControl(R.string.player_bar_focus_outline,
+            { dp(activity.playerUiCustomization.buttonFocusOutlineWidthDp) }) { delta ->
+            activity.playerUiCustomization.copy(
+                buttonFocusOutlineWidthDp = activity.playerUiCustomization.buttonFocusOutlineWidthDp + delta,
+            )
+        },
+        EditorControl(R.string.player_bar_focus_opacity,
+            { percent(activity.playerUiCustomization.buttonFocusHighlightOpacityPercent) }) { delta ->
+            activity.playerUiCustomization.copy(
+                buttonFocusHighlightOpacityPercent = stepPlayerUiValue(
+                    activity.playerUiCustomization.buttonFocusHighlightOpacityPercent, delta, PERCENT_STEP,
+                ),
+            )
+        },
+        EditorControl(R.string.player_bar_focus_enlargement,
+            { scalePercent(activity.playerUiCustomization.buttonFocusEnlargementPercent) }) { delta ->
+            activity.playerUiCustomization.copy(
+                buttonFocusEnlargementPercent = stepPlayerUiValue(
+                    activity.playerUiCustomization.buttonFocusEnlargementPercent, delta, PERCENT_STEP,
+                ),
+            )
+        },
+    )
+
+    private fun scalePercent(value: Int) = activity.getString(R.string.player_ui_value_percent, value)
 
     private fun renderEditorSections(sections: List<EditorSection>) {
         sections.forEachIndexed { index, section ->
@@ -686,6 +823,7 @@ private class PlayerUiCustomizationPanelController(
 
     private fun applyStyle(style: PlayerUiCustomization, focusTag: String? = null) {
         activity.playerUiCustomization = style.normalized()
+        history.record(activity.playerUiCustomization)
         PlayerUiCustomizationStore.write(preferences, activity.playerUiCustomization)
         activity.applyPlayerUiCustomization()
         if (focusTag?.startsWith(EDITOR_FOCUS_TAG_PREFIX) == true) {
@@ -824,6 +962,18 @@ private fun MPVActivity.playerSeekbarThumbColorLabel(color: PlayerSeekbarThumbCo
 private fun PlayerTimePosition.labelRes() = when (this) {
     PlayerTimePosition.START -> R.string.player_ui_time_position_start
     PlayerTimePosition.END -> R.string.player_ui_time_position_end
+}
+
+private fun PlayerChapterMarkerShape.labelRes() = when (this) {
+    PlayerChapterMarkerShape.TICKS -> R.string.player_bar_marker_ticks
+    PlayerChapterMarkerShape.DOTS -> R.string.player_bar_marker_dots
+}
+
+private fun PlayerTimeMode.labelRes() = when (this) {
+    PlayerTimeMode.PLAYER_DEFAULT -> R.string.player_bar_player_default
+    PlayerTimeMode.ELAPSED_TOTAL -> R.string.player_bar_elapsed_total
+    PlayerTimeMode.ELAPSED_REMAINING -> R.string.player_bar_elapsed_remaining
+    PlayerTimeMode.REMAINING_ONLY -> R.string.player_bar_remaining_only
 }
 
 private fun PlayerTimePresentation.labelRes() = when (this) {

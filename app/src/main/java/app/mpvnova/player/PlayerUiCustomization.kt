@@ -105,6 +105,10 @@ internal enum class PlayerTimePosition(val prefValue: String) {
     }
 }
 
+internal enum class PlayerChapterMarkerShape { TICKS, DOTS }
+
+internal enum class PlayerTimeMode { PLAYER_DEFAULT, ELAPSED_TOTAL, ELAPSED_REMAINING, REMAINING_ONLY }
+
 internal enum class PlayerTimePresentation(val prefValue: String) {
     PILL("pill"),
     OUTLINE("outline"),
@@ -223,6 +227,19 @@ internal data class PlayerUiCustomization(
     val iconTextOutlineEnabled: Boolean = true,
     val hiddenControls: Set<PlayerBarControl> = DEFAULT_HIDDEN_PLAYER_CONTROLS,
     val controlOrder: List<PlayerBarControl> = PlayerBarControl.entries,
+    val seekbarPlayedColor: PlayerSeekbarThumbColor? = null,
+    val seekbarBufferedColor: PlayerSeekbarThumbColor? = null,
+    val seekbarUnplayedColor: PlayerSeekbarThumbColor? = null,
+    val chapterMarkerColor: PlayerSeekbarThumbColor? = null,
+    val chapterMarkerShape: PlayerChapterMarkerShape = PlayerChapterMarkerShape.TICKS,
+    val chapterMarkerSizePercent: Int = DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+    val currentChapterEmphasis: Boolean = false,
+    val buttonFocusOutlineWidthDp: Int = DEFAULT_BUTTON_FOCUS_OUTLINE_WIDTH_DP,
+    val buttonFocusHighlightOpacityPercent: Int = DEFAULT_BUTTON_FOCUS_HIGHLIGHT_OPACITY_PERCENT,
+    val buttonFocusEnlargementPercent: Int = DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+    val primaryPlayIconSizePercent: Int = DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+    val otherIconSizePercent: Int = DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+    val timeMode: PlayerTimeMode = PlayerTimeMode.PLAYER_DEFAULT,
 ) {
     fun normalized(): PlayerUiCustomization = copy(
         panelOpacityPercent = panelOpacityPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
@@ -242,12 +259,28 @@ internal data class PlayerUiCustomization(
         controlSpacingDp = controlSpacingDp.coerceIn(MIN_CONTROL_SPACING_DP, MAX_CONTROL_SPACING_DP),
         hiddenControls = hiddenControls.filterTo(mutableSetOf()) { it.canHide },
         controlOrder = normalizeControlOrder(controlOrder),
+        chapterMarkerSizePercent = chapterMarkerSizePercent.coerceIn(
+            MIN_CHAPTER_MARKER_SIZE_PERCENT, MAX_CHAPTER_MARKER_SIZE_PERCENT,
+        ),
+        buttonFocusOutlineWidthDp = buttonFocusOutlineWidthDp.coerceIn(
+            MIN_BUTTON_FOCUS_OUTLINE_WIDTH_DP, MAX_BUTTON_FOCUS_OUTLINE_WIDTH_DP,
+        ),
+        buttonFocusHighlightOpacityPercent = buttonFocusHighlightOpacityPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
+        buttonFocusEnlargementPercent = buttonFocusEnlargementPercent.coerceIn(
+            MIN_BUTTON_FOCUS_ENLARGEMENT_PERCENT, MAX_BUTTON_FOCUS_ENLARGEMENT_PERCENT,
+        ),
+        primaryPlayIconSizePercent = primaryPlayIconSizePercent.coerceIn(
+            MIN_PLAYER_ICON_SIZE_PERCENT, MAX_PLAYER_ICON_SIZE_PERCENT,
+        ),
+        otherIconSizePercent = otherIconSizePercent.coerceIn(
+            MIN_PLAYER_ICON_SIZE_PERCENT, MAX_PLAYER_ICON_SIZE_PERCENT,
+        ),
     )
 
     fun isControlVisible(control: PlayerBarControl): Boolean = !control.canHide || control !in hiddenControls
 
     companion object {
-        val DEFAULT = PlayerUiCustomization()
+        val DEFAULT by lazy { PlayerUiCustomization() }
     }
 }
 
@@ -521,6 +554,26 @@ internal object PlayerUiCustomizationStore {
         ),
         hiddenControls = readHiddenControls(prefs),
         controlOrder = readControlOrder(prefs),
+        seekbarPlayedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarPlayedColor"),
+        seekbarBufferedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarBufferedColor"),
+        seekbarUnplayedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarUnplayedColor"),
+        chapterMarkerColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("chapterMarkerColor"),
+        chapterMarkerShape = prefs.playerBarEnum<PlayerChapterMarkerShape>("chapterMarkerShape")
+            ?: PlayerChapterMarkerShape.TICKS,
+        chapterMarkerSizePercent = prefs.playerBarInt("chapterMarkerSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+        currentChapterEmphasis = prefs.all["${PREFIX}_currentChapterEmphasis"] as? Boolean ?: false,
+        buttonFocusOutlineWidthDp = prefs.playerBarInt(
+            "buttonFocusOutlineWidthDp", DEFAULT_BUTTON_FOCUS_OUTLINE_WIDTH_DP,
+        ),
+        buttonFocusHighlightOpacityPercent = prefs.playerBarInt(
+            "buttonFocusHighlightOpacityPercent", DEFAULT_BUTTON_FOCUS_HIGHLIGHT_OPACITY_PERCENT,
+        ),
+        buttonFocusEnlargementPercent = prefs.playerBarInt(
+            "buttonFocusEnlargementPercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+        ),
+        primaryPlayIconSizePercent = prefs.playerBarInt("primaryPlayIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+        otherIconSizePercent = prefs.playerBarInt("otherIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+        timeMode = prefs.playerBarEnum<PlayerTimeMode>("timeMode") ?: PlayerTimeMode.PLAYER_DEFAULT,
     ).normalized()
 
     fun write(prefs: SharedPreferences, style: PlayerUiCustomization) {
@@ -562,8 +615,27 @@ internal object PlayerUiCustomizationStore {
             .putBoolean(ICON_TEXT_OUTLINE, normalized.iconTextOutlineEnabled)
             .putStringSet(HIDDEN_CONTROLS, normalized.hiddenControls.mapTo(mutableSetOf()) { it.prefValue })
             .putString(CONTROL_ORDER, normalized.controlOrder.joinToString(",") { it.prefValue })
+            .putString("${PREFIX}_seekbarPlayedColor", normalized.seekbarPlayedColor?.name)
+            .putString("${PREFIX}_seekbarBufferedColor", normalized.seekbarBufferedColor?.name)
+            .putString("${PREFIX}_seekbarUnplayedColor", normalized.seekbarUnplayedColor?.name)
+            .putString("${PREFIX}_chapterMarkerColor", normalized.chapterMarkerColor?.name)
+            .putString("${PREFIX}_chapterMarkerShape", normalized.chapterMarkerShape.name)
+            .putInt("${PREFIX}_chapterMarkerSizePercent", normalized.chapterMarkerSizePercent)
+            .putBoolean("${PREFIX}_currentChapterEmphasis", normalized.currentChapterEmphasis)
+            .putInt("${PREFIX}_buttonFocusOutlineWidthDp", normalized.buttonFocusOutlineWidthDp)
+            .putInt("${PREFIX}_buttonFocusHighlightOpacityPercent", normalized.buttonFocusHighlightOpacityPercent)
+            .putInt("${PREFIX}_buttonFocusEnlargementPercent", normalized.buttonFocusEnlargementPercent)
+            .putInt("${PREFIX}_primaryPlayIconSizePercent", normalized.primaryPlayIconSizePercent)
+            .putInt("${PREFIX}_otherIconSizePercent", normalized.otherIconSizePercent)
+            .putString("${PREFIX}_timeMode", normalized.timeMode.name)
             .apply()
     }
+
+    private fun SharedPreferences.playerBarInt(key: String, fallback: Int): Int =
+        (all["${PREFIX}_$key"] as? Int) ?: fallback
+
+    private inline fun <reified T : Enum<T>> SharedPreferences.playerBarEnum(key: String): T? =
+        enumValues<T>().firstOrNull { it.name == (all["${PREFIX}_$key"] as? String) }
 
     fun reset(prefs: SharedPreferences) = write(prefs, PlayerUiCustomization.DEFAULT)
 
@@ -660,3 +732,14 @@ internal const val MIN_SEEKBAR_INSET_DP = 0
 internal const val MAX_SEEKBAR_INSET_DP = 48
 internal const val MIN_TIME_CONTROL_GAP_DP = 0
 internal const val MAX_TIME_CONTROL_GAP_DP = 32
+internal const val DEFAULT_PLAYER_BAR_SCALE_PERCENT = 100
+internal const val MIN_CHAPTER_MARKER_SIZE_PERCENT = 50
+internal const val MAX_CHAPTER_MARKER_SIZE_PERCENT = 200
+internal const val DEFAULT_BUTTON_FOCUS_OUTLINE_WIDTH_DP = 1
+internal const val MIN_BUTTON_FOCUS_OUTLINE_WIDTH_DP = 0
+internal const val MAX_BUTTON_FOCUS_OUTLINE_WIDTH_DP = 4
+internal const val DEFAULT_BUTTON_FOCUS_HIGHLIGHT_OPACITY_PERCENT = 100
+internal const val MIN_BUTTON_FOCUS_ENLARGEMENT_PERCENT = 100
+internal const val MAX_BUTTON_FOCUS_ENLARGEMENT_PERCENT = 120
+internal const val MIN_PLAYER_ICON_SIZE_PERCENT = 50
+internal const val MAX_PLAYER_ICON_SIZE_PERCENT = 150
