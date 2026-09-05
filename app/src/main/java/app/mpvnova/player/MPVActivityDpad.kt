@@ -39,6 +39,22 @@ internal fun MPVActivity.firstControlButtonIndex(controls: List<View>): Int {
     return if (firstNonSeekbar >= 0) firstNonSeekbar else 0
 }
 
+internal fun MPVActivity.upperPlayerBarControlIndex(controls: List<View>): Int =
+    if (playerUiCustomization.seekbarPosition == PlayerSeekbarPosition.BELOW) {
+        firstControlButtonIndex(controls)
+    } else {
+        controls.indexOf(binding.playbackSeekbar).takeIf { it >= 0 } ?: firstControlButtonIndex(controls)
+    }
+
+internal fun MPVActivity.topControlJumpIndex(controls: List<View>): Int =
+    if (!dpadUpJumpsToTopControls || topActionsInPlayerBar) {
+        -1
+    } else {
+        controls.indexOf(binding.topPiPBtn).takeIf { it >= 0 }
+            ?: controls.indexOf(binding.topMenuBtn).takeIf { it >= 0 }
+            ?: -1
+    }
+
 internal fun MPVActivity.activateOrHideControlsFromVerticalDpad(
     ev: KeyEvent,
     controls: List<View>,

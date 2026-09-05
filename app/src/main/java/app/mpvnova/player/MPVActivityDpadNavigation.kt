@@ -35,7 +35,13 @@ internal fun MPVActivity.interceptDpadWithoutControls(ev: KeyEvent): Boolean {
 }
 
 internal fun MPVActivity.activateDpadSelection(ev: KeyEvent, controls: List<View>) {
-    btnSelected = if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) firstControlButtonIndex(controls) else 0
+    val seekbarBelow = playerUiCustomization.seekbarPosition == PlayerSeekbarPosition.BELOW
+    val towardSeekbar = (ev.keyCode == KeyEvent.KEYCODE_DPAD_UP) != seekbarBelow
+    btnSelected = if (towardSeekbar) {
+        controls.indexOf(binding.playbackSeekbar).takeIf { it >= 0 } ?: firstControlButtonIndex(controls)
+    } else {
+        firstControlButtonIndex(controls)
+    }
     updateSelectedDpadButton()
 }
 
@@ -110,21 +116,18 @@ private fun MPVActivity.nextSelectionForVerticalDpad(
     val current = selectedDpadView(controls)
     skipButtonVerticalTarget(ev, controls, current, seekbarSelected)?.let { return it }
     if (!topActionsInPlayerBar && (current === binding.topMenuBtn || current === binding.topPiPBtn)) {
-        return if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 0 else -1
+        return if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) upperPlayerBarControlIndex(controls) else -1
     }
     val isUp = ev.keyCode == KeyEvent.KEYCODE_DPAD_UP
+    val seekbarBelow = playerUiCustomization.seekbarPosition == PlayerSeekbarPosition.BELOW
     if (seekbarSelected) {
-        // Seekbar: DOWN moves to the player bar. UP hides the controls unless
-        // the optional top-controls jump is enabled and those controls exist.
-        if (!isUp) return if (controls.size > 1) 1 else -1
-        if (!dpadUpJumpsToTopControls) return -1
-        return controls.indexOf(binding.topPiPBtn).takeIf { it >= 0 }
-            ?: controls.indexOf(binding.topMenuBtn).takeIf { it >= 0 }
-            ?: -1
+        if (isUp == seekbarBelow) return if (controls.size > 1) firstControlButtonIndex(controls) else -1
+        return if (isUp) topControlJumpIndex(controls) else -1
     }
-    // Bottom button: UP → seekbar when present; otherwise either vertical direction hides.
     val seekbarIndex = controls.indexOf(binding.playbackSeekbar)
-    return if (isUp && seekbarIndex >= 0) seekbarIndex else -1
+    if (seekbarIndex < 0) return -1
+    if (isUp != seekbarBelow) return seekbarIndex
+    return if (isUp) topControlJumpIndex(controls) else -1
 }
 
 internal fun MPVActivity.handleHorizontalDpad(

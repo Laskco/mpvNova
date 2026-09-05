@@ -10,15 +10,18 @@ internal fun MPVActivity.skipButtonVerticalTarget(
     seekbarSelected: Boolean,
 ): Int? {
     val isUp = ev.keyCode == KeyEvent.KEYCODE_DPAD_UP
+    val seekbarBelow = playerUiCustomization.seekbarPosition == PlayerSeekbarPosition.BELOW
+    val isPlayerBarButton = current in controls && current !== binding.playbackSeekbar &&
+        (topActionsInPlayerBar || (current !== binding.topMenuBtn && current !== binding.topPiPBtn))
+    val atUpperPlayerBarRow = if (seekbarBelow) isPlayerBarButton else seekbarSelected
     var target: Int? = null
     if (current === binding.skipSegmentBtn) {
         target = if (isUp) {
             -1
         } else {
-            controls.indexOf(binding.playbackSeekbar).takeIf { it >= 0 }
-                ?: firstControlButtonIndex(controls)
+            upperPlayerBarControlIndex(controls)
         }
-    } else if (seekbarSelected && isUp && skipButtonVisible) {
+    } else if (atUpperPlayerBarRow && isUp && skipButtonVisible) {
         target = SKIP_BUTTON_SELECTION_INDEX
     }
     return target
