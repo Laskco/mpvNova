@@ -109,7 +109,7 @@ private fun MPVActivity.nextSelectionForVerticalDpad(
 ): Int {
     val current = selectedDpadView(controls)
     skipButtonVerticalTarget(ev, controls, current, seekbarSelected)?.let { return it }
-    if (current === binding.topMenuBtn || current === binding.topPiPBtn) {
+    if (!topActionsInPlayerBar && (current === binding.topMenuBtn || current === binding.topPiPBtn)) {
         return if (ev.keyCode == KeyEvent.KEYCODE_DPAD_DOWN) 0 else -1
     }
     val isUp = ev.keyCode == KeyEvent.KEYCODE_DPAD_UP
