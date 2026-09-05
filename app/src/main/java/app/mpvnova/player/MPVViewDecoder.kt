@@ -121,10 +121,7 @@ internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPrefere
     setRuntimeOption("vd-lavc-threads", "0")
     setRuntimeOption("framedrop", "no")
     setRuntimeOption("gpu-api", "auto")
-    setRuntimeOption("cache", "auto")
-    val cacheBytes = defaultDemuxerCacheBytes().toString()
-    setRuntimeOption("demuxer-max-bytes", cacheBytes)
-    setRuntimeOption("demuxer-max-back-bytes", cacheBytes)
+    applyNetworkSettings()
 }
 
 internal fun MPVView.setRuntimeVo(vo: String) {

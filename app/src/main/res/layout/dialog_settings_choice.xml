@@ -34,11 +34,26 @@
         android:scrollbars="vertical">
 
         <LinearLayout
-            android:id="@+id/choiceRows"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingEnd="6dp" />
+            android:paddingEnd="6dp">
+
+            <TextView
+                android:id="@+id/choiceMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                android:textColor="@color/tv_text_dim"
+                android:textSize="14sp"
+                android:visibility="gone" />
+
+            <LinearLayout
+                android:id="@+id/choiceRows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </LinearLayout>
     </app.mpvnova.player.MaxHeightScrollView>
 
     <LinearLayout

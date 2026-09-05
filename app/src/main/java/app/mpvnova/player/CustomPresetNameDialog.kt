@@ -20,10 +20,7 @@ internal fun MPVActivity.showCustomPresetNameDialog(
     chrome: PlayerDialogChrome,
     onSave: (String) -> Unit,
 ) {
-    val editorDialog = topPlayerDialog
-    val activitySoftInputMode = window.attributes.softInputMode
-    val editorWindowState = editorDialog?.window?.freezeForPresetKeyboard()
-    window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+    val onInputShown = preparePlayerTextInput(topPlayerDialog)
     val binding = DialogCustomPresetNameBinding.inflate(layoutInflater)
     val editing = !currentName.isNullOrBlank()
     binding.customPresetDialogTitle.setText(
@@ -55,7 +52,14 @@ internal fun MPVActivity.showCustomPresetNameDialog(
     }
     UiFont.applyToViewTree(binding.root)
     showWidePlayerDialog(dialog, CUSTOM_PRESET_NAME_DIALOG_LAYOUT, chrome)
-    trackPresetKeyboard(dialog, editorDialog, editorWindowState, activitySoftInputMode)
+    onInputShown(dialog)
+}
+
+internal fun MPVActivity.preparePlayerTextInput(backgroundDialog: Dialog?): (AlertDialog) -> Unit {
+    val activitySoftInputMode = window.attributes.softInputMode
+    val backgroundWindowState = backgroundDialog?.window?.freezeForPresetKeyboard()
+    window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING)
+    return { dialog -> trackPresetKeyboard(dialog, backgroundDialog, backgroundWindowState, activitySoftInputMode) }
 }
 
 @Suppress("DEPRECATION")

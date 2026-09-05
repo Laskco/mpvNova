@@ -2,7 +2,7 @@ package app.mpvnova.player
 
 private const val DRAWER_SECTION_SPACER_DP = 4
 
-internal enum class DrawerTab { VIDEO, PROCESSING, AUDIO, SUBTITLES, PLAYBACK, INTERFACE }
+internal enum class DrawerTab { VIDEO, PROCESSING, AUDIO, SUBTITLES, PLAYBACK, NETWORK, INTERFACE }
 
 internal enum class PlayerDrawerActionGroup { VIDEO, PROCESSING, AUDIO_SUBTITLE, PLAYBACK, INTERFACE, STATS }
 
@@ -355,6 +355,7 @@ internal sealed class PlayerDrawerRow {
     object Stats : PlayerDrawerRow()
     data class Preference(val preference: PlayerDrawerPreference) : PlayerDrawerRow()
     data class Option(val option: PlayerDrawerOption) : PlayerDrawerRow()
+    data class Network(val setting: NetworkSetting) : PlayerDrawerRow()
     data class Spacer(val heightDp: Int) : PlayerDrawerRow()
 }
 
@@ -366,6 +367,7 @@ internal fun MPVActivity.buildPlayerDrawerRows(tab: DrawerTab): List<PlayerDrawe
         DrawerTab.AUDIO -> addAudioRows(rows)
         DrawerTab.SUBTITLES -> addSubtitleRows(rows)
         DrawerTab.PLAYBACK -> addPlaybackRows(rows)
+        DrawerTab.NETWORK -> NetworkSetting.entries.forEach { rows.add(PlayerDrawerRow.Network(it)) }
         DrawerTab.INTERFACE -> addInterfaceRows(rows)
     }
     return rows

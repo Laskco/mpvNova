@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="network_title">Network</string>
+    <string name="network_summary">Buffering, memory use, and connection settings.</string>
+    <string name="network_buffering">Buffering</string>
+    <string name="network_stalls">When the connection stalls</string>
+    <string name="network_advanced">Advanced</string>
+    <string name="network_preset">Buffering preset</string>
+    <string name="network_preset_summary">Choose a starting point or restore defaults. Individual changes are saved as Custom.</string>
+    <string name="network_default">Default</string>
+    <string name="network_default_summary">Restore all network settings to mpvNova and mpv.conf defaults.</string>
+    <string name="network_option_default_summary">Use the original mpvNova or mpv.conf value.</string>
+    <string name="network_light">Low memory</string>
+    <string name="network_light_summary">32 MiB ahead, 8 MiB behind, up to 30 seconds. Uses less memory.</string>
+    <string name="network_balanced">Balanced</string>
+    <string name="network_balanced_summary">64 MiB ahead, 16 MiB behind, up to 2 minutes. A moderate buffer for everyday streaming.</string>
+    <string name="network_unsteady">Unsteady connection</string>
+    <string name="network_unsteady_summary">96 MiB ahead, 16 MiB behind, up to 3 minutes. Refills 5 seconds after a stall. Cannot fix a consistently slow server.</string>
+    <string name="network_large">High-bitrate video</string>
+    <string name="network_large_summary">256 MiB ahead, 32 MiB behind, up to 3 minutes. More space for large video streams; uses more memory.</string>
+    <string name="network_custom">Custom</string>
+    <string name="network_custom_value">Custom value…</string>
+    <string name="network_forward">Video buffer size</string>
+    <string name="network_forward_summary">Memory limit for video buffered ahead. More can help brief connection drops; it does not make downloads faster. Updates during playback.</string>
+    <string name="network_backward">Rewind buffer size</string>
+    <string name="network_backward_summary">Keeps recently played data for faster backward seeks. Set to 0 to keep none. Updates during playback; discarded data must be fetched again.</string>
+    <string name="network_target">Buffer ahead</string>
+    <string name="network_target_summary">How far ahead to buffer network streams. The memory limit may be reached sooner. Default fills up to the memory limit. Updates during playback.</string>
+    <string name="network_pause">Wait for the buffer to refill</string>
+    <string name="network_pause_summary">Wait for more data after a stall instead of repeatedly stuttering. Updates during playback.</string>
+    <string name="network_wait">Refill before resuming</string>
+    <string name="network_wait_summary">Seconds to buffer after a stall. More can reduce repeated pauses but means a longer wait. Limited by available buffer space. Updates during playback.</string>
+    <string name="network_readahead">Local file read-ahead</string>
+    <string name="network_readahead_summary">Mainly for local files. Network caching uses the larger of this and Buffer ahead, within the memory limit. Updates during playback.</string>
+    <string name="network_stream">Stream read buffer</string>
+    <string name="network_stream_summary">Small low-level input buffer, separate from Video buffer size. Usually best left at Default. Applies when a stream is opened again.</string>
+    <string name="network_timeout">Connection timeout</string>
+    <string name="network_timeout_summary">How long to wait for a stalled network operation before giving up. Protocol support varies. Applies when a stream is opened again.</string>
+    <string name="network_next_stream_notice">Saved. Stream read buffer and timeout changes take effect when a stream is opened again.</string>
+    <string name="network_memory_limit">Custom forward and backward buffers are limited to %1$d MiB combined on this device. Reduce the other buffer to free space.</string>
+    <string name="network_mib_value">%1$s MiB</string>
+    <string name="network_kib_value">%1$s KiB</string>
+    <string name="network_seconds_value">%1$s seconds</string>
+    <string name="network_value_range">Enter a whole number from %1$s to %2$s.</string>
+    <string name="network_next_stream_value">%1$s - applies to the next stream</string>
+</resources>

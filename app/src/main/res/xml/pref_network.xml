@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+    <PreferenceCategory app:key="network_buffering" app:title="@string/network_buffering" app:iconSpaceReserved="false" />
+    <PreferenceCategory app:key="network_stalls" app:title="@string/network_stalls" app:iconSpaceReserved="false" />
+    <PreferenceCategory app:key="network_advanced" app:title="@string/network_advanced" app:iconSpaceReserved="false" />
+</PreferenceScreen>

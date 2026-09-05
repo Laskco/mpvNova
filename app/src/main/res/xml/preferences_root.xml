@@ -17,6 +17,11 @@
         app:summary="@string/pref_header_video_summary"
         app:title="@string/pref_header_video" />
     <Preference
+        app:fragment="app.mpvnova.player.preferences.NetworkPreference"
+        app:icon="@drawable/round_link_24"
+        app:summary="@string/network_summary"
+        app:title="@string/network_title" />
+    <Preference
         app:fragment="app.mpvnova.player.preferences.PreferenceActivity$UIPreference"
         app:icon="@drawable/round_video_settings_24"
         app:summary="@string/pref_header_ui_summary"

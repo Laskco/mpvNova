@@ -56,6 +56,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     internal var configuredHwdecCodecs = MPV_VIEW_HWDEC_CODECS
     private val appliedManagedShaderPaths = linkedSetOf<String>()
     internal val heldMpvKeys = MpvHeldKeyTracker()
+    internal val networkOptionSession = NetworkOptionSession()
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -170,6 +171,8 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     }
 
     override fun postInitOptions() {
+        networkOptionSession.initialize(::getOptionString)
+        applyNetworkSettings()
         configuredHwdecCodecs = getOptionString("hwdec-codecs").ifBlank { MPV_VIEW_HWDEC_CODECS }
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
         applyMpeg2SoftwareFallbackSetting(preferences.mpeg2SoftwareFallbackEnabled())

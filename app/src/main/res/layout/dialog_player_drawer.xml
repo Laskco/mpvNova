@@ -89,16 +89,23 @@
         android:alpha="0.18"
         android:background="@color/tv_text_dim" />
 
-    <LinearLayout
-        android:id="@+id/drawerTabColumn"
+    <ScrollView
+        android:id="@+id/drawerTabScroll"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1.1"
-        android:orientation="vertical"
+        android:fillViewport="true"
+        android:scrollbars="none"
         android:paddingStart="14dp"
         android:paddingTop="20dp"
         android:paddingEnd="20dp"
         android:paddingBottom="20dp">
+
+        <LinearLayout
+            android:id="@+id/drawerTabColumn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
@@ -156,6 +163,15 @@
             android:text="@string/drawer_tab_playback" />
 
         <Button
+            android:id="@+id/tabBtnNetwork"
+            style="@style/Mpv.DrawerTabButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:nextFocusLeft="@id/drawerContentList"
+            android:text="@string/network_title" />
+
+        <Button
             android:id="@+id/tabBtnInterface"
             style="@style/Mpv.DrawerTabButton"
             android:layout_width="match_parent"
@@ -163,5 +179,6 @@
             android:layout_marginTop="4dp"
             android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_interface" />
-    </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

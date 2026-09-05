@@ -113,6 +113,7 @@ private fun MPVActivity.bindDrawerTabSwitching(binding: DialogPlayerDrawerBindin
         DrawerTab.AUDIO to binding.tabBtnAudio,
         DrawerTab.SUBTITLES to binding.tabBtnSubtitles,
         DrawerTab.PLAYBACK to binding.tabBtnPlayback,
+        DrawerTab.NETWORK to binding.tabBtnNetwork,
         DrawerTab.INTERFACE to binding.tabBtnInterface,
     )
     for ((tab, button) in pairs) {
@@ -142,6 +143,7 @@ internal fun MPVActivity.selectDrawerTab(
         binding.tabBtnAudio,
         binding.tabBtnSubtitles,
         binding.tabBtnPlayback,
+        binding.tabBtnNetwork,
         binding.tabBtnInterface,
     ).forEach { it.isSelected = (it === active) }
 
@@ -151,6 +153,7 @@ internal fun MPVActivity.selectDrawerTab(
         DrawerTab.AUDIO -> R.string.drawer_section_audio
         DrawerTab.SUBTITLES -> R.string.drawer_section_subtitles
         DrawerTab.PLAYBACK -> R.string.drawer_section_playback
+        DrawerTab.NETWORK -> R.string.network_title
         DrawerTab.INTERFACE -> R.string.drawer_section_interface
     }
     binding.drawerStaticHeader.drawerRowEyebrow.setText(R.string.mpv_activity)
@@ -176,6 +179,7 @@ private fun drawerTabButton(binding: DialogPlayerDrawerBinding, tab: DrawerTab):
     DrawerTab.AUDIO -> binding.tabBtnAudio
     DrawerTab.SUBTITLES -> binding.tabBtnSubtitles
     DrawerTab.PLAYBACK -> binding.tabBtnPlayback
+    DrawerTab.NETWORK -> binding.tabBtnNetwork
     DrawerTab.INTERFACE -> binding.tabBtnInterface
 }
 

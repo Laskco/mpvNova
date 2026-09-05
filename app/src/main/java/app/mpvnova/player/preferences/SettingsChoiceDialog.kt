@@ -33,8 +33,12 @@ internal fun Fragment.showSettingsChoiceDialog(title: CharSequence, items: List<
     showSettingsChoiceDialog(requireActivity(), layoutInflater, title, items)
 }
 
-internal fun Activity.showSettingsChoiceDialog(title: CharSequence, items: List<SettingsChoiceItem>) {
-    showSettingsChoiceDialog(this, layoutInflater, title, items)
+internal fun Activity.showSettingsChoiceDialog(
+    title: CharSequence,
+    items: List<SettingsChoiceItem>,
+    message: CharSequence? = null,
+) {
+    showSettingsChoiceDialog(this, layoutInflater, title, items, message)
 }
 
 private fun showSettingsChoiceDialog(
@@ -42,9 +46,12 @@ private fun showSettingsChoiceDialog(
     inflater: LayoutInflater,
     title: CharSequence,
     items: List<SettingsChoiceItem>,
+    message: CharSequence? = null,
 ) {
     val binding = DialogSettingsChoiceBinding.inflate(inflater)
     binding.choiceTitle.text = title
+    binding.choiceMessage.text = message
+    binding.choiceMessage.isVisible = !message.isNullOrBlank()
     binding.choiceScroll.maxHeightPx = TypedValue.applyDimension(
         TypedValue.COMPLEX_UNIT_DIP, CHOICE_LIST_MAX_HEIGHT_DP, activity.resources.displayMetrics
     ).toInt()

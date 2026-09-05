@@ -79,6 +79,7 @@ internal class PlayerDrawerAdapter(
         PlayerDrawerRow.Stats -> VIEW_TYPE_STATS
         is PlayerDrawerRow.Preference -> VIEW_TYPE_PREFERENCE
         is PlayerDrawerRow.Option -> VIEW_TYPE_OPTION
+        is PlayerDrawerRow.Network -> VIEW_TYPE_OPTION
         is PlayerDrawerRow.Spacer -> VIEW_TYPE_SPACER
     }
 
@@ -101,6 +102,7 @@ internal class PlayerDrawerAdapter(
             PlayerDrawerRow.Stats -> (holder as StatsHolder).bind()
             is PlayerDrawerRow.Preference -> (holder as PreferenceHolder).bind(row.preference)
             is PlayerDrawerRow.Option -> (holder as OptionHolder).bind(row.option)
+            is PlayerDrawerRow.Network -> (holder as OptionHolder).bindNetwork(row.setting)
             is PlayerDrawerRow.Spacer -> (holder as SpacerHolder).bind(row)
         }
     }
@@ -118,6 +120,16 @@ internal class PlayerDrawerAdapter(
             val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
             if (holder is PreferenceHolder) holder.refreshValueAndDisabledState()
             else notifyItemChanged(index)
+        }
+    }
+
+    private fun refreshNetworkRows() {
+        scrollbarHeightCache = null
+        rows.forEachIndexed { index, row ->
+            if (row is PlayerDrawerRow.Network) {
+                val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
+                if (holder is OptionHolder) holder.bindNetwork(row.setting) else notifyItemChanged(index)
+            }
         }
     }
 
@@ -213,6 +225,18 @@ internal class PlayerDrawerAdapter(
     private inner class OptionHolder(
         private val binding: DrawerPrefRowBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        fun bindNetwork(setting: NetworkSetting) = with(binding) {
+            prefRowTitle.setText(setting.titleRes)
+            prefRowSummary.setText(setting.summaryRes)
+            prefRowValue.text = activity.networkValueLabel(setting)
+            activity.applyOptionValueLayout(prefRowValue)
+            prefRowValue.alpha = 1f
+            prefRowValue.isSelected = root.hasFocus()
+            root.alpha = 1f
+            root.setOnFocusChangeListener { _, focused -> prefRowValue.isSelected = focused }
+            root.setOnClickListener { activity.showNetworkSetting(setting, ::refreshNetworkRows) }
+        }
+
         fun bind(option: PlayerDrawerOption) = with(binding) {
             prefRowTitle.setText(option.titleRes)
             prefRowSummary.setText(option.summaryRes)
@@ -293,6 +317,7 @@ private fun PlayerDrawerRow.measureDrawerRowHeight(
     return view.measuredHeight + (margins?.topMargin ?: 0) + (margins?.bottomMargin ?: 0)
 }
 
+@Suppress("CyclomaticComplexMethod") // Exhaustive layout binding for the drawer row types.
 private fun PlayerDrawerRow.inflateMeasureRow(parent: RecyclerView, inflater: LayoutInflater): View {
     return when (this) {
         is PlayerDrawerRow.Button -> DrawerRowFullButtonBinding.inflate(inflater, parent, false)
@@ -317,6 +342,13 @@ private fun PlayerDrawerRow.inflateMeasureRow(parent: RecyclerView, inflater: La
                 it.prefRowTitle.setText(option.titleRes)
                 it.prefRowSummary.setText(option.summaryRes)
                 it.prefRowValue.text = "HW+"
+            }
+            .root
+        is PlayerDrawerRow.Network -> DrawerPrefRowBinding.inflate(inflater, parent, false)
+            .also {
+                it.prefRowTitle.setText(setting.titleRes)
+                it.prefRowSummary.setText(setting.summaryRes)
+                it.prefRowValue.text = parent.context.networkValueLabel(setting)
             }
             .root
         is PlayerDrawerRow.Spacer -> DrawerRowSpacerBinding.inflate(inflater, parent, false)
