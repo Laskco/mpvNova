@@ -42,7 +42,7 @@ Newer Vega OS Fire TV sticks are a different non-Android target. mpvNova's APK b
 
 Fire OS support is best-effort. Fire OS is not an official upstream mpv / mpv-android target, so device-specific playback, decoder, MediaCodec, graphics driver, or native library bugs usually need fixes in upstream mpv/mpv-android, FFmpeg, libplacebo, Android's media stack, or device firmware. mpvNova can ship app-level compatibility fixes and safe defaults, but it cannot directly fix Fire OS playback issues that live in the upstream playback stack or vendor platform.
 
-For mobile-focused Android mpv options, use projects such as [mpvEx](https://github.com/marlboro-advance/mpvEx) or [mpvKt](https://github.com/abdallahmehiz/mpvKt).
+For mobile-focused Android mpv options, use projects such as [mpvEx](https://github.com/marlboro-advance/mpvEx), [mpvKt](https://github.com/abdallahmehiz/mpvKt), or [mpvRx](https://github.com/Riteshp2001/mpvRx).
 
 ---
 
