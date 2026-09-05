@@ -6,7 +6,17 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.widget.Toast
+import java.io.File
+import java.lang.ref.WeakReference
+import java.util.concurrent.CancellationException
+import java.util.concurrent.RejectedExecutionException
+import java.util.concurrent.SynchronousQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 
 // Thin trampoline for external VIEW intents: launches the real player for a result and relays
 // that result back to the caller. It routes by caller package so the player window matches what
@@ -17,19 +27,41 @@ import android.util.Log
 //    (MPVActivity) that stops the caller.
 // Both player variants build the same result; the trampoline is a lightweight classic Activity
 // that reliably relays it.
+// Lifecycle callbacks and legacy intent/result filtering belong to this same small bridge.
+@Suppress("TooManyFunctions")
 class ExternalPlayerActivity : Activity() {
+    private var pendingSubtitleCopy: ExternalSubtitleCopyRequest? = null
+    private var subtitleCopyTimeout: Runnable? = null
+    private val subtitleCachePaths = arrayListOf<String>()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (savedInstanceState == null)
+        savedInstanceState?.getStringArrayList(STATE_SUBTITLE_CACHE_PATHS)?.let(subtitleCachePaths::addAll)
+        subtitleCachePaths.forEach { protectExternalSubtitleCache(File(it), this) }
+        applicationContext.reclaimExternalSubtitleCaches()
+        if (savedInstanceState == null || savedInstanceState.getBoolean(STATE_SUBTITLE_COPY_PENDING, false))
             startPlayer(intent)
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         startPlayer(intent)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(STATE_SUBTITLE_COPY_PENDING, pendingSubtitleCopy != null)
+        outState.putStringArrayList(STATE_SUBTITLE_CACHE_PATHS, ArrayList(subtitleCachePaths))
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onDestroy() {
+        clearPendingSubtitleCopy(cancel = true)
+        super.onDestroy()
+    }
+
     private fun startPlayer(source: Intent) {
+        clearPendingSubtitleCopy(cancel = true)
         val caller = source.getStringExtra(EXTRA_EXTERNAL_CALLER_PACKAGE) ?: resolveCallerPackage()
         val playerClass = if (caller == STREMIO_PACKAGE) {
             TranslucentMPVActivity::class.java
@@ -47,24 +79,99 @@ class ExternalPlayerActivity : Activity() {
             }
             source.categories?.forEach { addCategory(it) }
             copyAllowedExtras(source, this)
-            materializeContentSubtitles(source, this)
             putExtra(EXTRA_EXTERNAL_PLAYER_RESULT, true)
             caller?.let { putExtra(EXTRA_EXTERNAL_CALLER_PACKAGE, it) }
-            if (containsContentUri(EXTERNAL_ALLOWED_EXTRA_KEYS))
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
 
+        if (!source.hasContentSubtitles()) {
+            launchPreparedPlayer(playerIntent)
+        } else {
+            prepareContentSubtitles(source, playerIntent)
+        }
+    }
+
+    private fun prepareContentSubtitles(source: Intent, playerIntent: Intent) {
+        val request = ExternalSubtitleCopyRequest()
+        pendingSubtitleCopy = request
+        val activityRef = WeakReference(this)
+        val appContext = applicationContext
+        val sourceSnapshot = Intent(source)
+        val timeout = Runnable {
+            if (pendingSubtitleCopy === request) {
+                Log.w(TAG, "External subtitle preparation timed out; keeping only ready tracks")
+                completeSubtitleCopy(request, sourceSnapshot, playerIntent)
+            }
+        }
+        subtitleCopyTimeout = timeout
+        MAIN_HANDLER.postDelayed(timeout, SUBTITLE_COPY_TIMEOUT_MS)
+        try {
+            request.future = SUBTITLE_IO_EXECUTOR.submit {
+                val result = runCatching {
+                    appContext.materializeContentSubtitles(sourceSnapshot, request)
+                }
+                if (result.exceptionOrNull() is CancellationException) return@submit
+                result.onFailure { Log.w(TAG, "Unable to prepare external subtitles", it) }
+                MAIN_HANDLER.post {
+                    val accepted = activityRef.get()
+                        ?.completeSubtitleCopy(request, sourceSnapshot, playerIntent) == true
+                    if (!accepted) request.cancel()
+                }
+            }
+        } catch (error: RejectedExecutionException) {
+            Log.w(TAG, "Subtitle workers busy; omitting unprepared content subtitles", error)
+            completeSubtitleCopy(request, sourceSnapshot, playerIntent)
+        }
+    }
+
+    private fun completeSubtitleCopy(
+        request: ExternalSubtitleCopyRequest,
+        source: Intent,
+        playerIntent: Intent,
+    ): Boolean {
+        if (isFinishing || isDestroyed || pendingSubtitleCopy !== request) return false
+        val prepared = request.takeCompletedSubtitles()
+        val omitted = playerIntent.applyPreparedSubtitles(source, prepared)
+        clearPendingSubtitleCopy(cancel = false)
+        prepared.directory?.let {
+            protectExternalSubtitleCache(it, this)
+            subtitleCachePaths.add(it.absolutePath)
+        }
+        if (omitted > 0) {
+            Log.w(TAG, "Omitted $omitted unavailable external subtitle track(s)")
+            Toast.makeText(this, R.string.external_subtitles_unavailable, Toast.LENGTH_LONG).show()
+        }
+        launchPreparedPlayer(playerIntent)
+        return true
+    }
+
+    private fun clearPendingSubtitleCopy(cancel: Boolean) {
+        subtitleCopyTimeout?.let(MAIN_HANDLER::removeCallbacks)
+        subtitleCopyTimeout = null
+        if (cancel) pendingSubtitleCopy?.cancel()
+        pendingSubtitleCopy = null
+    }
+
+    private fun launchPreparedPlayer(playerIntent: Intent) {
+        if (playerIntent.containsContentUri(EXTERNAL_ALLOWED_EXTRA_KEYS))
+            playerIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
         try {
             startActivityForResult(playerIntent, REQUEST_PLAYBACK)
         } catch (e: ActivityNotFoundException) {
             Log.w(TAG, "Unable to start player for external intent", e)
+            discardSubtitleCaches()
             setResult(RESULT_CANCELED)
             finish()
         } catch (e: SecurityException) {
             Log.w(TAG, "Unable to start player for external intent", e)
+            discardSubtitleCaches()
             setResult(RESULT_CANCELED)
             finish()
         }
+    }
+
+    private fun discardSubtitleCaches() {
+        subtitleCachePaths.forEach { discardExternalSubtitleCache(File(it)) }
+        subtitleCachePaths.clear()
     }
 
     private fun resolveCallerPackage(): String? {
@@ -110,6 +217,8 @@ class ExternalPlayerActivity : Activity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (requestCode == REQUEST_PLAYBACK) {
+            clearPendingSubtitleCopy(cancel = true)
+            discardSubtitleCaches()
             val resultIntent = buildResultIntent(data)
             resultIntent.clearPermissionFlags()
             if (data != null) {
@@ -158,6 +267,16 @@ class ExternalPlayerActivity : Activity() {
     companion object {
         private const val TAG = "ExternalPlayerActivity"
         private const val REQUEST_PLAYBACK = 1
+        private const val SUBTITLE_COPY_TIMEOUT_MS = 15_000L
+        private const val STATE_SUBTITLE_COPY_PENDING = "external_subtitle_copy_pending"
+        private const val STATE_SUBTITLE_CACHE_PATHS = "external_subtitle_cache_paths"
+        private val MAIN_HANDLER = Handler(Looper.getMainLooper())
+        // No pending queue: two uncooperative providers cannot accumulate later launch requests.
+        private val SUBTITLE_IO_EXECUTOR = ThreadPoolExecutor(
+            2, 2, 0L, TimeUnit.MILLISECONDS, SynchronousQueue(),
+            { runnable -> Thread(runnable, "external-subtitle-io") },
+        )
+
         private val ALLOWED_RESULT_EXTRA_KEYS = setOf(
             "duration",
             "end_by",

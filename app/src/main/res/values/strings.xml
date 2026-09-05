@@ -77,6 +77,7 @@
     <string name="dialog_section_modes">Available modes</string>
     <string name="dialog_section_timing_summary">Adjust subtitle sync without leaving playback.</string>
     <string name="dialog_subtitle_section_label">Available subtitles</string>
+    <string name="external_subtitles_unavailable">Some external subtitles could not be loaded.</string>
     <string name="dialog_subtitle_mode_label">Listening mode</string>
     <string name="dialog_subtitle_primary_summary">Choose the main subtitle track or keep a second one ready.</string>
     <string name="dialog_subtitle_secondary_summary">Pick a backup subtitle track that can stay separate from the primary one.</string>
