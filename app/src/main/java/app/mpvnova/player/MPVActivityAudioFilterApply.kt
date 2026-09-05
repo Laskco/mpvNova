@@ -18,6 +18,10 @@ internal fun MPVActivity.buildAudioFilterChain(): String {
         filters += buildNightModeAudioStageFilter()
         if (isVoiceBoostOn())
             filters += drcVoiceBoostPresets[voiceBoostLevel]
+        if (isVoiceBoostOn() &&
+            (nightModeLevel == NIGHT_MODE_DRC_VOICE_LEVEL || nightModeLevel == NIGHT_MODE_DRC_VOICE_HIGH_LEVEL)
+        )
+            filters += "@drcvoicepeak:lavfi=[$drcVoiceLimiterFilterBody]"
     } else {
         if (isDownmixOn())
             surroundDialogueDownmixFilter()?.let { filters += it }

@@ -71,8 +71,25 @@ internal fun MPVActivity.buildDrcPlusAudioStageFilter(): String {
 internal fun MPVActivity.buildNightModeAudioStageFilter(): String {
     return when (nightModeLevel) {
         NIGHT_MODE_DRC_PLUS_LEVEL -> buildDrcPlusAudioStageFilter()
+        NIGHT_MODE_DRC_VOICE_LEVEL,
+        NIGHT_MODE_DRC_VOICE_HIGH_LEVEL -> buildDrcVoiceAudioStageFilter()
         else -> buildDrcAudioStageFilter()
     }
+}
+
+internal fun MPVActivity.buildDrcVoiceAudioStageFilter(): String {
+    val stageFilters = mutableListOf<String>()
+    if (isVolumeBoostOn())
+        stageFilters += "volume=${drcVolumeMultiplier()}"
+    // Apply an explicitly selected center downmix before EQ and the final peak limiter.
+    stageFilters += buildDrcAresampleFilter()
+    stageFilters += if (nightModeLevel == NIGHT_MODE_DRC_VOICE_HIGH_LEVEL) {
+        drcVoiceHighFilterBody
+    } else {
+        drcVoiceFilterBody
+    }
+    stageFilters += "aformat=sample_fmts=$AUDIO_FILTER_OUTPUT_SAMPLE_FORMAT"
+    return "$drcAudioStageFilterLabel:lavfi=[${stageFilters.joinToString(",")}]"
 }
 
 internal fun MPVActivity.getVoiceBoostLabel(): String = getString(voiceBoostPresetLabelIds[voiceBoostLevel])

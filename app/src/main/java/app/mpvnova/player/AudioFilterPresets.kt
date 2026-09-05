@@ -22,12 +22,26 @@ internal val drcPlusCompressorFilterBody =
     "acompressor=threshold=0.025:ratio=10:attack=3:release=130:makeup=2.3:knee=2:" +
         "detection=peak:link=maximum"
 internal val drcPlusLimiterFilterBody = "alimiter=limit=0.95:attack=5:release=50:level=false"
+internal val drcVoiceLimiterFilterBody = "alimiter=limit=0.90:attack=5:release=80:level=false"
+// Keep normal DRC's quiet-passage lift; shape speech and compress peaks with makeup gain.
+internal val drcVoiceFilterBody = buildDrcVoiceFilterBody("2.5", "2.4")
+internal val drcVoiceHighFilterBody = buildDrcVoiceFilterBody("4", "3.0")
+
+private fun buildDrcVoiceFilterBody(presenceGain: String, makeup: String): String =
+    "$drcFilterBody," +
+        "bass=g=-9:f=180:t=q:w=0.7," +
+        "equalizer=f=2400:t=q:w=0.8:g=$presenceGain," +
+        "acompressor=threshold=0.18:ratio=4:attack=5:release=220:makeup=$makeup:knee=2.8:" +
+        "detection=rms:link=maximum," +
+        drcVoiceLimiterFilterBody
 internal val drcDecoderScaleOff = "0"
 internal val drcPlusEac3DecoderScale = "0.8"
 
 internal const val NIGHT_MODE_OFF_LEVEL = 0
 internal const val NIGHT_MODE_DRC_LEVEL = 1
 internal const val NIGHT_MODE_DRC_PLUS_LEVEL = 2
+internal const val NIGHT_MODE_DRC_VOICE_LEVEL = 3
+internal const val NIGHT_MODE_DRC_VOICE_HIGH_LEVEL = 4
 
 internal val volumeBoostStepsDb = VOLUME_BOOST_STEPS_DB
 internal val centerBoostMixLevels = doubleArrayOf(0.0, 3.0, 3.5, 4.0, 4.5, 5.0)
@@ -56,6 +70,8 @@ internal val nightModePresetLabelIds = intArrayOf(
     R.string.filter_value_off,
     R.string.night_mode_preset_drc,
     R.string.night_mode_preset_drc_plus,
+    R.string.night_mode_preset_drc_voice,
+    R.string.night_mode_preset_drc_voice_high,
 )
 
 internal val audioNormPresetLabelIds = intArrayOf(
@@ -74,6 +90,8 @@ internal val nightModePresets: List<String> = listOf(
     "",
     "$nightModeFilterLabel:lavfi=[$drcFilterBody]",
     "$nightModeFilterLabel:lavfi=[$drcPlusCompressorFilterBody,$drcPlusLimiterFilterBody]",
+    "$nightModeFilterLabel:lavfi=[$drcVoiceFilterBody]",
+    "$nightModeFilterLabel:lavfi=[$drcVoiceHighFilterBody]",
 )
 
 internal val audioNormPresets: List<String> = listOf(

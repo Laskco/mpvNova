@@ -135,6 +135,8 @@
     <string name="voice_boost_preset_loud">Speech max</string>
     <string name="night_mode_preset_drc">DRC</string>
     <string name="night_mode_preset_drc_plus" translatable="false">DRC+</string>
+    <string name="night_mode_preset_drc_voice">DRC Voice</string>
+    <string name="night_mode_preset_drc_voice_high">DRC Voice High</string>
     <string name="filter_blocked_by_drc">Blocked by\nDRC</string>
     <string name="filter_blocked_by_audio_norm">Blocked by\nAudio\nNormalization</string>
     <string name="audio_norm_preset_light">-18 LUFS</string>
