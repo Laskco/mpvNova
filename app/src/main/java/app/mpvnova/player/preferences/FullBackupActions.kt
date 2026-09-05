@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import android.widget.Toast
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
@@ -31,7 +32,8 @@ import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /** Complete, portable backup of user-owned mpvNova state. */
-@Suppress("TooManyFunctions")
+// Keep archive validation and its restore/rollback transaction together.
+@Suppress("TooManyFunctions", "LargeClass")
 object FullBackupActions {
     const val MIME_TYPE = "application/zip"
 
@@ -109,6 +111,7 @@ object FullBackupActions {
         val appContext = activity.applicationContext
         BACKUP_IO_EXECUTOR.execute {
             val result = runCatching { action(appContext) }
+                .onFailure { Log.e("FullBackupActions", "Backup import failed", it) }
             val current = activityRef.get() ?: return@execute
             current.runOnUiThread {
                 progressRef.get()?.dismiss()
@@ -336,8 +339,13 @@ object FullBackupActions {
     private fun applyRestorePlan(context: Context, plan: RestorePlan) {
         val rollback = File(context.cacheDir, "backup-rollback-${System.nanoTime()}")
         val currentPrefs = snapshotPreferences(PreferenceManager.getDefaultSharedPreferences(context))
-        snapshotUserFiles(context, rollback)
+        var retainRollback = false
+        var failure: Exception? = null
         try {
+            snapshotUserFiles(context, rollback)
+            File(rollback, SETTINGS_ENTRY).writeText(encodePreferences(currentPrefs).toString(2), Charsets.UTF_8)
+            // Only a complete snapshot is safe to restore after live state changes.
+            retainRollback = true
             replaceOptionalFile(plan.mpvConfig, File(context.filesDir, MPV_CONFIG))
             replaceOptionalFile(plan.inputConfig, File(context.filesDir, INPUT_CONFIG))
             replaceUserFonts(context, plan.fonts)
@@ -348,18 +356,52 @@ object FullBackupActions {
                 replaceOptionalFile(plan.screensaver, restoredLogo)
                 plan.preferences[PREF_SCREENSAVER_LOGO_URI] = Uri.fromFile(restoredLogo).toString()
             } else {
-                restoredLogo.delete()
+                deleteRequiredFile(restoredLogo)
             }
 
             if (!writePreferences(PreferenceManager.getDefaultSharedPreferences(context), plan.preferences)) {
                 throw IOException("Could not persist restored preferences")
             }
+            retainRollback = false
         } catch (@Suppress("TooGenericExceptionCaught") error: Exception) {
-            restoreUserFiles(context, rollback)
-            writePreferences(PreferenceManager.getDefaultSharedPreferences(context), currentPrefs)
+            failure = error
+            if (retainRollback) {
+                retainRollback = !rollbackRestorePlan(context, rollback, currentPrefs, error)
+            }
             throw error
         } finally {
-            rollback.deleteRecursively()
+            if (!retainRollback) cleanupRollbackSnapshot(rollback, failure)
+        }
+    }
+
+    private fun rollbackRestorePlan(
+        context: Context,
+        rollback: File,
+        currentPrefs: Map<String, Any>,
+        error: Exception,
+    ): Boolean {
+        val filesRestored = runCatching { restoreUserFiles(context, rollback) }
+            .onFailure {
+                val message = "File rollback failed; recovery data retained at $rollback"
+                error.addSuppressed(IOException(message, it))
+            }.isSuccess
+        val preferencesRestored = runCatching {
+            if (!writePreferences(PreferenceManager.getDefaultSharedPreferences(context), currentPrefs)) {
+                throw IOException("Could not persist original preferences")
+            }
+        }.onFailure {
+            val message = "Preference rollback failed; recovery data retained at $rollback"
+            error.addSuppressed(IOException(message, it))
+        }.isSuccess
+        return filesRestored && preferencesRestored
+    }
+
+    private fun cleanupRollbackSnapshot(rollback: File, failure: Exception?) {
+        runCatching {
+            if (!rollback.deleteRecursively()) throw IOException("Could not clean up backup snapshot at $rollback")
+        }.onFailure { cleanupError ->
+            failure?.addSuppressed(cleanupError)
+                ?: Log.w("FullBackupActions", "Backup snapshot cleanup failed", cleanupError)
         }
     }
 
@@ -398,7 +440,7 @@ object FullBackupActions {
     }
 
     private fun replaceUserFonts(context: Context, fonts: List<File>) {
-        userFontFiles(context).forEach { it.delete() }
+        userFontFiles(context).forEach(::deleteRequiredFile)
         val targetDir = File(context.filesDir, "fonts").apply { mkdirs() }
         fonts.forEach { source ->
             val target = File(targetDir, safeFilename(source.name))
@@ -410,7 +452,7 @@ object FullBackupActions {
 
     private fun replaceUserShaders(context: Context, shaders: List<File>) {
         val targetDir = UserShaderManager.directory(context)
-        targetDir.listFiles()?.filter { it.isFile }?.forEach { it.delete() }
+        targetDir.listFiles()?.filter { it.isFile }?.forEach(::deleteRequiredFile)
         shaders.forEach { source ->
             requireValidBackup(UserShaderManager.validateManagedFile(source), "Invalid shader file")
             source.copyTo(File(targetDir, safeFilename(source.name)), overwrite = true)
@@ -420,7 +462,7 @@ object FullBackupActions {
 
     private fun replaceOptionalFile(source: File?, target: File) {
         if (source == null) {
-            target.delete()
+            deleteRequiredFile(target)
             return
         }
         target.parentFile?.mkdirs()
@@ -429,6 +471,10 @@ object FullBackupActions {
         if ((!target.exists() || target.delete()) && temporary.renameTo(target)) return
         temporary.delete()
         throw IOException("Could not replace ${target.name}")
+    }
+
+    private fun deleteRequiredFile(target: File) {
+        if (target.exists() && !target.delete()) throw IOException("Could not delete ${target.absolutePath}")
     }
 
     private fun screensaverAsset(context: Context, prefs: SharedPreferences): ScreensaverAsset? {
@@ -483,10 +529,12 @@ object FullBackupActions {
         }
     }
 
-    private fun encodePreferences(prefs: SharedPreferences): JSONObject {
+    private fun encodePreferences(prefs: SharedPreferences): JSONObject =
+        encodePreferences(prefs.all.filterKeys { it != UserShaderManager.PREF_FOLDER_URIS })
+
+    private fun encodePreferences(preferences: Map<String, *>): JSONObject {
         val values = JSONObject()
-        prefs.all.toSortedMap().forEach { (key, value) ->
-            if (key == UserShaderManager.PREF_FOLDER_URIS) return@forEach
+        preferences.toSortedMap().forEach { (key, value) ->
             val entry = JSONObject()
             when (value) {
                 is Boolean -> entry.put("type", "boolean").put("value", value)
