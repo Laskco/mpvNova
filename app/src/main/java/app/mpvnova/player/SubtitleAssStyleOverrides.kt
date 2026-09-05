@@ -20,6 +20,8 @@ internal data class AssStyleOverrideSpec(
     val italic: Boolean,
     val spacing: Double,
     val blur: Double,
+    val outlineOpacity: Int = FULL_OPACITY_PERCENT,
+    val shadowOpacity: Int = FULL_OPACITY_PERCENT,
 )
 
 internal fun buildAssStyleOverrides(spec: AssStyleOverrideSpec): List<String> {
@@ -36,14 +38,14 @@ internal fun buildAssStyleOverrides(spec: AssStyleOverrideSpec): List<String> {
     }
     val backColor = when {
         backgroundEnabled -> assSubtitleColor(spec.backgroundRgb, spec.backgroundOpacity)
-        shadowSize > 0.0 -> assSubtitleColor(spec.shadowRgb, FULL_OPACITY_PERCENT)
+        shadowSize > 0.0 -> assSubtitleColor(spec.shadowRgb, spec.shadowOpacity)
         else -> assSubtitleColor(TRANSPARENT_RGB, 0)
     }
 
     return listOf(
         "FontName=${spec.fontFamily}",
         "PrimaryColour=${assSubtitleColor(spec.textRgb, spec.textOpacity)}",
-        "OutlineColour=${assSubtitleColor(spec.borderRgb, FULL_OPACITY_PERCENT)}",
+        "OutlineColour=${assSubtitleColor(spec.borderRgb, spec.outlineOpacity)}",
         "BackColour=$backColor",
         "Bold=${if (spec.bold) -1 else 0}",
         "Italic=${if (spec.italic) -1 else 0}",

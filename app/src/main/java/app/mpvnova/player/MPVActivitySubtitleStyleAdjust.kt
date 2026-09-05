@@ -93,7 +93,9 @@ private fun MPVActivity.adjustSubtitleValueControl(
         SubtitleStyleDialog.Control.SPACING ->
             subStyleSpacingIndex = clampIndex(subStyleSpacingIndex, delta, SUBTITLE_SPACING_STEPS.size)
         SubtitleStyleDialog.Control.FONT -> adjustSubtitleFont(delta)
-        else -> Unit
+        SubtitleStyleDialog.Control.SCALE -> adjustSubScale(delta)
+        SubtitleStyleDialog.Control.POSITION -> adjustSubPos(delta)
+        else -> adjustSubtitleExtras(control, delta)
     }
 }
 

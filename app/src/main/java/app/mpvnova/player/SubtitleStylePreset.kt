@@ -28,6 +28,7 @@ internal data class SubtitleStylePreset(
     val includeLayout: Boolean,
     val scaleLevel: Int,
     val posPct: Int,
+    val extras: SubtitleStyleExtras = SubtitleStyleExtras(),
 )
 
 private const val SUB_STYLE_PRESETS_KEY = "sub_style_presets"
@@ -71,6 +72,7 @@ private fun presetToJson(p: SubtitleStylePreset): JSONObject = JSONObject().appl
     put("scaleLevel", p.scaleLevel)
     put("scaleStepsVersion", SUB_SCALE_STEPS_VERSION)
     put("posPct", p.posPct)
+    put("extras", p.extras.normalized().toJson())
 }
 
 private fun presetFromJson(o: JSONObject): SubtitleStylePreset? {
@@ -102,5 +104,6 @@ private fun presetFromJson(o: JSONObject): SubtitleStylePreset? {
             o.optInt("scaleStepsVersion", 1),
         ),
         posPct = o.optInt("posPct", DEFAULT_SUB_POSITION_PERCENT),
+        extras = SubtitleStyleExtras.fromJson(o.optJSONObject("extras")),
     )
 }

@@ -16,6 +16,18 @@ internal fun MPVActivity.openSubtitleStyleDialog(
     impl.onAdjust = { control, delta -> adjustSubtitleStyle(control, delta) }
     lateinit var dialog: AlertDialog
     bindSubtitleStyleNavigation(impl) { dialog.dismiss() }
+    impl.onDone = { dialog.dismiss() }
+    impl.onCyclePreset = { delta -> editingSubtitleStylePreset = null; cycleSubtitleStylePreset(delta) }
+    impl.onReset = {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.sub_editor_reset)
+            .setMessage(R.string.sub_editor_reset_confirm)
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .setPositiveButton(R.string.sub_editor_reset) { _, _ ->
+                resetSubtitleEditorStyle()
+                impl.refresh()
+            }.create().also { showPlayerDialog(it) }
+    }
 
     dialog = with(AlertDialog.Builder(this)) {
         val inflater = LayoutInflater.from(context)
@@ -26,12 +38,13 @@ internal fun MPVActivity.openSubtitleStyleDialog(
     showWidePlayerDialog(
         dialog,
         PlayerDialogLayout(
-            widthFraction = 0.6f,
-            maxWidthDp = 820f,
-            heightFraction = 0.9f,
-            maxHeightDp = 880f,
+            widthFraction = 0.78f,
+            maxWidthDp = 860f,
+            heightFraction = 0.78f,
+            maxHeightDp = 520f,
         )
     )
+    bindSubtitlePreviewWindow(dialog, impl)
 }
 
 private fun MPVActivity.bindSubtitleStyleNavigation(
@@ -55,6 +68,7 @@ private fun MPVActivity.handleSubtitleStyleDismiss(
     dialog: AlertDialog,
     restore: StateRestoreCallback,
 ) {
+    subtitleStyleDialog?.onPreviewHeightChanged = null
     restore()
     if (!subtitleStyleNavigationPending) {
         val returnAction = subtitleStyleReturnAction
@@ -116,7 +130,7 @@ internal fun MPVActivity.subtitleStyleState(): SubtitleStyleDialog.State {
     return SubtitleStyleDialog.State(
         title = editingSubtitleStylePreset?.name?.let {
             getString(R.string.sub_style_preset_editing, it)
-        } ?: getString(R.string.sub_style_title),
+        } ?: getString(R.string.sub_editor_title),
         masterOn = on,
         imageSubtitleGrayOn = subStyleGrayImageSubs,
         textColor = colorRow(subStyleTextColorIndex, on),
@@ -161,6 +175,8 @@ internal fun MPVActivity.subtitleStyleState(): SubtitleStyleDialog.State {
         forceAllOn = subStyleForceAllAss,
         forceAllEnabled = overrideRows.forceAllEnabled,
         preview = subtitleStylePreviewSpec(),
+        presetName = currentSubtitleStylePresetName(),
+        extraRows = subtitleExtraRows(on, edgeApplies, shadowApplies),
     )
 }
 

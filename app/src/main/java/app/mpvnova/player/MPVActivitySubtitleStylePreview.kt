@@ -7,7 +7,6 @@ import java.util.Locale
 
 private const val SUB_PREVIEW_SHADOW_BLUR_DP = 1.5f
 private const val SUB_PREVIEW_SPACING_EM_FACTOR = 0.04f
-private const val FULLY_OPAQUE_PERCENT = 100
 
 internal fun MPVActivity.subtitleStylePreviewSpec(): SubtitleStylePreviewView.Spec {
     val density = resources.displayMetrics.density
@@ -19,13 +18,13 @@ internal fun MPVActivity.subtitleStylePreviewSpec(): SubtitleStylePreviewView.Sp
     val letterSpacing = (SUBTITLE_SPACING_STEPS[subStyleSpacingIndex] * SUB_PREVIEW_SPACING_EM_FACTOR).toFloat()
 
     return SubtitleStylePreviewView.Spec(
-        text = getString(R.string.sub_style_preview_text),
+        text = getString(R.string.sub_editor_sample),
         textColor = subtitleArgb(
             SUBTITLE_COLOR_OPTIONS[subStyleTextColorIndex].rgb,
             SUBTITLE_OPACITY_PERCENT_STEPS[subStyleTextOpacityIndex],
         ),
         outlineColor = if (outlineActive) {
-            subtitleArgb(SUBTITLE_COLOR_OPTIONS[subStyleBorderColorIndex].rgb, FULLY_OPAQUE_PERCENT)
+            subtitleArgb(SUBTITLE_COLOR_OPTIONS[subStyleBorderColorIndex].rgb, subStyleExtras.outlineOpacity)
         } else {
             Color.TRANSPARENT
         },
@@ -40,7 +39,7 @@ internal fun MPVActivity.subtitleStylePreviewSpec(): SubtitleStylePreviewView.Sp
             Color.TRANSPARENT
         },
         shadowColor = if (shadowOn) {
-            subtitleArgb(SUBTITLE_COLOR_OPTIONS[subStyleShadowColorIndex].rgb, FULLY_OPAQUE_PERCENT)
+            subtitleArgb(SUBTITLE_COLOR_OPTIONS[subStyleShadowColorIndex].rgb, subStyleExtras.shadowOpacity)
         } else {
             Color.TRANSPARENT
         },
@@ -49,8 +48,25 @@ internal fun MPVActivity.subtitleStylePreviewSpec(): SubtitleStylePreviewView.Sp
         blurRadiusPx = (SUBTITLE_BLUR_STEPS[subStyleBlurIndex] * density).toFloat(),
         letterSpacingEm = letterSpacing,
         typeface = subtitleTypefaceFor(subStyleFontFamily, subStyleBold, subStyleItalic),
+        fontSize = subtitlePreviewNumber(
+            subStyleExtras.fontSize, "sub-font-size", SUBTITLE_EDITOR_DEFAULT_FONT_SIZE,
+        ),
+        scale = subScaleSteps[subScaleLevel].toFloat(),
+        lineSpacing = subtitlePreviewNumber(subStyleExtras.lineSpacing, "sub-line-spacing", 0),
+        sideMargin = subtitlePreviewNumber(
+            subStyleExtras.sideMargin, "sub-margin-x", SUBTITLE_EDITOR_DEFAULT_SIDE_MARGIN,
+        ),
+        alignment = subStyleExtras.alignment.takeUnless { it == SubtitleJustify.AUTO }
+            ?: SubtitleJustify.entries.firstOrNull { it.mpvValue == subStyleSavedDefaults?.get("sub-align-x") }
+            ?: SubtitleJustify.CENTER,
+        justify = subStyleJustify,
+        positionPercent = subPosSteps[subPosLevel],
     )
 }
+
+private fun MPVActivity.subtitlePreviewNumber(custom: Int?, property: String, default: Int): Float =
+    custom?.toFloat() ?: subStyleSavedDefaults?.get(property)?.toFloatOrNull()?.takeIf { it.isFinite() }
+        ?: default.toFloat()
 
 internal fun MPVActivity.subtitleTypefaceFor(
     family: String,

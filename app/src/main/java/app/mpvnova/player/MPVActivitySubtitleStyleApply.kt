@@ -20,11 +20,15 @@ private val SUB_STYLE_PROPS = listOf(
     "sub-italic",
     "sub-ass-override",
     "sub-ass-style-overrides",
+    "sub-font-size",
+    "sub-hinting",
+    "sub-line-spacing",
+    "sub-margin-x",
+    "sub-align-x",
 )
 
 private const val SUB_SHADOW_OFFSET_OFF = 0.0
 private const val SUB_TRANSPARENT = 0x000000
-private const val FULLY_OPAQUE_PERCENT = 100
 
 internal fun MPVActivity.applyCustomSubtitleStyle() {
     if (customSubStyleEnabled) {
@@ -58,6 +62,8 @@ private fun MPVActivity.applyAssStyleOverrides() {
                 italic = subStyleItalic,
                 spacing = SUBTITLE_SPACING_STEPS[subStyleSpacingIndex],
                 blur = SUBTITLE_BLUR_STEPS[subStyleBlurIndex],
+                outlineOpacity = subStyleExtras.outlineOpacity,
+                shadowOpacity = subStyleExtras.shadowOpacity,
             ),
         )
         customSubStyleEnabled && subStyleOverrideAss -> buildAssAttributeOverrides(
@@ -115,7 +121,7 @@ private fun MPVActivity.writeCustomSubtitleStyle() {
     mpvSetPropertyString("sub-color", mpvSubtitleColor(textColor.rgb, textOpacity))
 
     val borderColor = SUBTITLE_COLOR_OPTIONS[subStyleBorderColorIndex]
-    mpvSetPropertyString("sub-border-color", mpvSubtitleColor(borderColor.rgb, FULLY_OPAQUE_PERCENT))
+    mpvSetPropertyString("sub-border-color", mpvSubtitleColor(borderColor.rgb, subStyleExtras.outlineOpacity))
     mpvSetPropertyDouble("sub-border-size", SUBTITLE_BORDER_SIZE_STEPS[subStyleBorderSizeIndex])
     mpvSetPropertyDouble("sub-blur", SUBTITLE_BLUR_STEPS[subStyleBlurIndex])
 
@@ -137,6 +143,9 @@ private fun MPVActivity.writeCustomSubtitleStyle() {
     mpvSetPropertyString("sub-ass-justify", if (subStyleJustify == SubtitleJustify.AUTO) "no" else "yes")
 
     applySubFont()
+    subStyleExtras.mpvOptions().forEach { (property, custom) ->
+        (custom ?: subStyleSavedDefaults?.get(property))?.let { mpvSetPropertyString(property, it) }
+    }
     mpvSetPropertyString("sub-bold", if (subStyleBold) "yes" else "no")
     mpvSetPropertyString("sub-italic", if (subStyleItalic) "yes" else "no")
     // Mutually-exclusive ASS override levels (at most one is on):
@@ -165,7 +174,7 @@ private fun MPVActivity.applySubEdge() {
         }
         SubtitleEdgeStyle.DROP_SHADOW -> {
             val shadowColor = SUBTITLE_COLOR_OPTIONS[subStyleShadowColorIndex]
-            mpvSetPropertyString("sub-shadow-color", mpvSubtitleColor(shadowColor.rgb, FULLY_OPAQUE_PERCENT))
+            mpvSetPropertyString("sub-shadow-color", mpvSubtitleColor(shadowColor.rgb, subStyleExtras.shadowOpacity))
             mpvSetPropertyDouble("sub-shadow-offset", SUBTITLE_SHADOW_SIZE_STEPS[subStyleShadowSizeIndex])
         }
     }
@@ -176,6 +185,7 @@ private fun MPVActivity.applySubFont() {
 }
 
 internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences) {
+    subStyleExtras = SubtitleStyleExtras.read(prefs)
     customSubStyleEnabled = persistSubFilters && prefs.getBoolean("custom_sub_style_enabled", false)
     subStyleTextColorIndex = subtitleColorOptionIndex(
         prefs.getString("sub_style_text_color", SUBTITLE_TEXT_COLOR_DEFAULT_ID) ?: SUBTITLE_TEXT_COLOR_DEFAULT_ID
@@ -232,6 +242,7 @@ internal fun MPVActivity.normalizeAssOverrideModes() {
 internal fun MPVActivity.writeSubtitleStyleSettings() {
     val prefs = getDefaultSharedPreferences(applicationContext)
     with(prefs.edit()) {
+        putString(SubtitleStyleExtras.PREF_KEY, subStyleExtras.normalized().toJson().toString())
         putBoolean("custom_sub_style_enabled", customSubStyleEnabled)
         putString("sub_style_text_color", SUBTITLE_COLOR_OPTIONS[subStyleTextColorIndex].id)
         putInt("sub_style_text_opacity", SUBTITLE_OPACITY_PERCENT_STEPS[subStyleTextOpacityIndex])

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="sub_editor_title">Subtitle customization</string>
+    <string name="sub_editor_text">Text</string>
+    <string name="sub_editor_edges">Edges &amp; background</string>
+    <string name="sub_editor_advanced">Advanced</string>
+    <string name="sub_editor_layout">Layout</string>
+    <string name="sub_editor_enabled">Enabled</string>
+    <string name="sub_editor_preview">Live subtitle style preview</string>
+    <string name="sub_editor_sample">A familiar voice in the distance.\nA new story begins.</string>
+    <string name="sub_editor_size">Font size</string>
+    <string name="sub_editor_hinting">Font hinting</string>
+    <string name="sub_editor_hinting_light">Light</string>
+    <string name="sub_editor_hinting_normal">Normal</string>
+    <string name="sub_editor_hinting_native">Native</string>
+    <string name="sub_editor_line_spacing">Line spacing</string>
+    <string name="sub_editor_side_margin">Side margins</string>
+    <string name="sub_editor_alignment">Horizontal alignment</string>
+    <string name="sub_editor_outline_opacity">Outline opacity</string>
+    <string name="sub_editor_shadow_opacity">Shadow opacity</string>
+    <string name="sub_editor_default">Player default</string>
+    <string name="sub_editor_pixels">%1$d px</string>
+    <string name="sub_editor_reset">Reset style</string>
+    <string name="sub_editor_reset_confirm">Reset subtitle styling? Saved presets, subtitle size and position will be kept.</string>
+    <string name="sub_editor_ass_note">ASS overrides can alter signs and typesetting. Force on all subtitles removes original styling and positioning. Size and line spacing can also affect ASS. Bitmap subtitles only support size, position and grayscale. The sample previews text styling; authored rendering may differ.</string>
+    <string name="sub_editor_fonts_note">Custom fonts may render incorrectly or reduce readability. Font hinting can affect ASS positioning and animation. Judge hinting on the playing subtitles; the sample does not reproduce libass hinting.</string>
+</resources>

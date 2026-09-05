@@ -262,9 +262,11 @@ private fun MPVActivity.captureSubtitleStylePreset(
     includeLayout = includeLayout,
     scaleLevel = scaleLevel.coerceIn(0, subScaleSteps.lastIndex),
     posPct = posPct.coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT),
+    extras = subStyleExtras.normalized(),
 )
 
 private fun MPVActivity.applySubtitleStylePreset(p: SubtitleStylePreset) {
+    subStyleExtras = p.extras.normalized()
     val grayImageSubsChanged = subStyleGrayImageSubs != p.grayImageSubs
     subStyleTextColorIndex = subtitleColorOptionIndex(p.textColorId)
     subStyleTextOpacityIndex = nearestOpacityIndex(p.textOpacity)
