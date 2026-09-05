@@ -20,11 +20,12 @@ internal fun MPVActivity.updatePlayerTitleWidth() {
         binding.playerTitleSeason,
         binding.playerTitleEpisodeNumber,
         binding.playerTitlePrimary,
-        binding.playerTitleSecondary,
     ).forEach { textView ->
         if (textView.maxWidth != cappedWidth) textView.maxWidth = cappedWidth
     }
-    binding.playerTitleSecondary.maxWidth = episodeTitleMaxWidth(cappedWidth)
+    val episodeWidth = episodeTitleMaxWidth(cappedWidth)
+    if (binding.playerTitleSecondary.maxWidth != episodeWidth)
+        binding.playerTitleSecondary.maxWidth = episodeWidth
     fitPrimaryPlayerTitle(cappedWidth)
 }
 
@@ -96,8 +97,9 @@ private fun TextView.fitPlayerTitleText(
     preferredSizeSp: Float,
     minimumSizeSp: Float,
 ) {
-    val value = text ?: return
-    if (value.isBlank() || availableWidth <= 0) return
+    val value = transformationMethod?.getTransformation(text, this) ?: text ?: return
+    val textWidth = availableWidth - compoundPaddingLeft - compoundPaddingRight
+    if (value.isBlank() || textWidth <= 0) return
 
     val originalTextSize = paint.textSize
     val chosenSizeSp = generateSequence(preferredSizeSp) { sizeSp ->
@@ -108,7 +110,7 @@ private fun TextView.fitPlayerTitleText(
             sizeSp,
             resources.displayMetrics,
         )
-        StaticLayout.Builder.obtain(value, 0, value.length, paint, availableWidth)
+        StaticLayout.Builder.obtain(value, 0, value.length, paint, textWidth)
             .setAlignment(Layout.Alignment.ALIGN_CENTER)
             .setBreakStrategy(breakStrategy)
             .setHyphenationFrequency(hyphenationFrequency)

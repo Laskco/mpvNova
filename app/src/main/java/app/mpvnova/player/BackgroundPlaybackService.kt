@@ -96,7 +96,8 @@ private fun Service.buildBackgroundNotification(
                 val b1 = Bitmap.createScaledBitmap(it, THUMBNAIL_SAMPLE_SIZE, THUMBNAIL_SAMPLE_SIZE, true)
                 val b2 = Bitmap.createScaledBitmap(b1, 1, 1, true)
                 builder.setColor(b2.getPixel(0, 0))
-                b2.recycle(); b1.recycle()
+                if (b2 !== b1 && b2 !== it) b2.recycle()
+                if (b1 !== it) b1.recycle()
             }
         }
     }
@@ -139,6 +140,8 @@ private fun Service.notifyBackgroundPlayback(
     )
 }
 
+// Service lifecycle and mpv observer overloads share main-thread notification state.
+@Suppress("TooManyFunctions")
 class BackgroundPlaybackService : Service(), MpvEventObserver {
     override fun onCreate() {
         super.onCreate()
@@ -147,11 +150,21 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
     }
 
     private lateinit var thumbnailHandler: Handler
+    private var destroyed = false
+    private var notificationStarted = false
+    private var notificationPending = false
+    private val notificationRunnable = Runnable {
+        notificationPending = false
+        if (!destroyed && notificationStarted)
+            notifyBackgroundPlayback(cachedMetadata, paused, shouldShowPrevNext)
+    }
     private val thumbnailRunnable = Runnable {
-        grabThumbnail()
-        // Let the activity refresh the media-session artwork to match the new thumbnail.
-        thumbnailChanged?.let { it() }
-        notifyBackgroundPlayback(cachedMetadata, paused, shouldShowPrevNext)
+        if (!destroyed && MpvRuntimeOwnership.hasOwner()) {
+            grabThumbnail()
+            // Let the activity refresh the media-session artwork to match the new thumbnail.
+            thumbnailChanged?.let { it() }
+            requestNotificationUpdate()
+        }
     }
 
     private var cachedMetadata = Utils.AudioMetadata()
@@ -159,6 +172,10 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
     private var shouldShowPrevNext: Boolean = false
 
     override fun onStartCommand(intent: Intent, flags: Int, startId: Int): Int {
+        if (!MpvRuntimeOwnership.hasOwner()) {
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         Log.v(TAG, "BackgroundPlaybackService: starting")
 
         cachedMetadata.readAll()
@@ -172,11 +189,14 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
             0
         }
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
+        notificationStarted = true
 
         return START_NOT_STICKY // Android can't restart this service on its own
     }
 
     override fun onDestroy() {
+        destroyed = true
+        notificationStarted = false
         removeMpvObserver(this)
 
         thumbnailHandler.removeCallbacksAndMessages(null)
@@ -191,38 +211,72 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
     override fun onBind(intent: Intent): IBinder? { return null }
 
     override fun eventProperty(property: String) {
-        if (!cachedMetadata.update(property))
+        if (property != "metadata")
             return
-        notifyBackgroundPlayback(cachedMetadata, paused, shouldShowPrevNext)
+        // Read native values during the callback, before runtime teardown can finish.
+        val metadata = Utils.AudioMetadata().apply { readAll() }
+        postServiceUpdate {
+            cachedMetadata = metadata
+            requestNotificationUpdate()
+        }
     }
 
     override fun eventProperty(property: String, value: Boolean) {
         if (property != "pause")
             return
-        paused = value
-        notifyBackgroundPlayback(cachedMetadata, paused, shouldShowPrevNext)
+        postServiceUpdate {
+            if (paused != value) {
+                paused = value
+                requestNotificationUpdate()
+            }
+        }
     }
 
-    override fun eventProperty(property: String, value: Long) = Unit
+    override fun eventProperty(property: String, value: Long) {
+        if (property != "playlist-count")
+            return
+        postServiceUpdate {
+            val showPrevNext = value > 1
+            if (shouldShowPrevNext != showPrevNext) {
+                shouldShowPrevNext = showPrevNext
+                requestNotificationUpdate()
+            }
+        }
+    }
 
     override fun eventProperty(property: String, value: Double) = Unit
 
     override fun eventProperty(property: String, value: String) {
-        if (!cachedMetadata.update(property, value))
+        if (property != "media-title")
             return
-        notifyBackgroundPlayback(cachedMetadata, paused, shouldShowPrevNext)
+        postServiceUpdate {
+            if (cachedMetadata.update(property, value)) requestNotificationUpdate()
+        }
     }
 
     override fun event(eventId: Int) {
         if (eventId == MpvEvent.MPV_EVENT_SHUTDOWN) {
-            stopSelf()
+            postServiceUpdate { stopSelf() }
         } else if (eventId == MpvEvent.MPV_EVENT_VIDEO_RECONFIG) {
-            // ensure it doesn't run too often
-            thumbnailHandler.removeCallbacks(thumbnailRunnable)
-            thumbnailHandler.postDelayed(thumbnailRunnable, THUMBNAIL_REFRESH_DELAY_MS)
+            postServiceUpdate {
+                // ensure it doesn't run too often
+                thumbnailHandler.removeCallbacks(thumbnailRunnable)
+                thumbnailHandler.postDelayed(thumbnailRunnable, THUMBNAIL_REFRESH_DELAY_MS)
+            }
         }
     }
 
+    private fun postServiceUpdate(update: () -> Unit) {
+        // Native callbacks may still be in flight when the service is destroyed.
+        thumbnailHandler.post { if (!destroyed) update() }
+    }
+
+    private fun requestNotificationUpdate() {
+        if (!notificationStarted || notificationPending)
+            return
+        notificationPending = true
+        thumbnailHandler.post(notificationRunnable)
+    }
 
     companion object {
         /* thumbnail to display alongside the permanent notification */

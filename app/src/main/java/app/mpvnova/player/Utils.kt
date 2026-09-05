@@ -3,6 +3,7 @@ package app.mpvnova.player
 import android.app.Activity
 import android.content.Context
 import android.content.res.AssetManager
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -472,10 +473,13 @@ internal object Utils {
     }
 
     class AudioMetadata {
+        @Volatile
         var mediaTitle: String? = null
             private set
+        @Volatile
         var mediaArtist: String? = null
             private set
+        @Volatile
         var mediaAlbum: String? = null
             private set
 
@@ -527,20 +531,27 @@ internal object Utils {
      */
     class PlaybackStateCache {
         val meta = AudioMetadata()
+        @Volatile
         var cachePause = false
             private set
+        @Volatile
         var pause = false
             private set
         /** playback position in ms */
+        @Volatile
         var position = -1L
             private set
         /** duration in ms */
+        @Volatile
         var duration = 0L
             private set
+        @Volatile
         var playlistPos = 0
             private set
+        @Volatile
         var playlistCount = 0
             private set
+        @Volatile
         var speed = 1f
             private set
 
@@ -550,11 +561,13 @@ internal object Utils {
         val durationSec get() = (duration / MILLIS_PER_SECOND_FLOAT).roundToInt()
 
         /** callback for properties of type <code>MPV_FORMAT_NONE</code> */
+        @Synchronized
         fun update(property: String): Boolean {
             return meta.update(property)
         }
 
         /** callback for properties of type <code>MPV_FORMAT_STRING</code> */
+        @Synchronized
         fun update(property: String, value: String): Boolean {
             return if (meta.update(property, value)) {
                 true
@@ -572,6 +585,7 @@ internal object Utils {
         }
 
         /** callback for properties of type <code>MPV_FORMAT_FLAG</code> */
+        @Synchronized
         fun update(property: String, value: Boolean): Boolean {
             return when (property) {
                 "pause" -> {
@@ -587,6 +601,7 @@ internal object Utils {
         }
 
         /** callback for properties of type <code>MPV_FORMAT_INT64</code> */
+        @Synchronized
         fun update(property: String, value: Long): Boolean {
             return when (property) {
                 "time-pos" -> {
@@ -606,6 +621,7 @@ internal object Utils {
         }
 
         /** callback for properties of type <code>MPV_FORMAT_DOUBLE</code> */
+        @Synchronized
         fun update(property: String, value: Double): Boolean {
             return when (property) {
                 "time-pos/full" -> {
@@ -621,6 +637,7 @@ internal object Utils {
         }
 
         /** reset playback data when a file ends */
+        @Synchronized
         fun eof() {
             position = -1L
             duration = 0L
@@ -628,19 +645,25 @@ internal object Utils {
 
         private val mediaMetadataBuilder = MediaMetadata.Builder()
         private val playbackStateBuilder = PlaybackState.Builder()
+        private var publishedSession: MediaSession? = null
+        private var publishedMetadata: MetadataSnapshot? = null
 
-        private fun buildMediaMetadata(includeThumb: Boolean): MediaMetadata {
+        private data class MetadataSnapshot(
+            val album: String?,
+            val artist: String?,
+            val title: String?,
+            val duration: Long,
+            val artwork: Bitmap?,
+        )
+
+        private fun buildMediaMetadata(metadata: MetadataSnapshot): MediaMetadata {
             return with (mediaMetadataBuilder) {
-                putText(MediaMetadata.METADATA_KEY_ALBUM, meta.mediaAlbum)
-                if (includeThumb) {
-                    // put even if it's null to reset any previous art
-                    putBitmap(MediaMetadata.METADATA_KEY_ART,
-                        BackgroundPlaybackService.thumbnail
-                    )
-                }
-                putText(MediaMetadata.METADATA_KEY_ARTIST, meta.mediaArtist)
-                putLong(MediaMetadata.METADATA_KEY_DURATION, duration.takeIf { it > 0 } ?: -1)
-                putText(MediaMetadata.METADATA_KEY_TITLE, meta.mediaTitle)
+                putText(MediaMetadata.METADATA_KEY_ALBUM, metadata.album)
+                // Include null so disabling artwork clears the previous image.
+                putBitmap(MediaMetadata.METADATA_KEY_ART, metadata.artwork)
+                putText(MediaMetadata.METADATA_KEY_ARTIST, metadata.artist)
+                putLong(MediaMetadata.METADATA_KEY_DURATION, metadata.duration)
+                putText(MediaMetadata.METADATA_KEY_TITLE, metadata.title)
                 build()
             }
         }
@@ -669,9 +692,22 @@ internal object Utils {
             }
         }
 
+        @Synchronized
         fun write(session: MediaSession, includeThumb: Boolean = true) {
+            val metadata = MetadataSnapshot(
+                meta.mediaAlbum,
+                meta.mediaArtist,
+                meta.mediaTitle,
+                duration.takeIf { it > 0 } ?: -1,
+                BackgroundPlaybackService.thumbnail.takeIf { includeThumb },
+            )
             with (session) {
-                setMetadata(buildMediaMetadata(includeThumb))
+                // Position updates need a playback state, not another artwork Binder transfer.
+                if (publishedSession !== session || publishedMetadata != metadata) {
+                    setMetadata(buildMediaMetadata(metadata))
+                    publishedSession = session
+                    publishedMetadata = metadata
+                }
                 val ps = buildPlaybackState()
                 isActive = ps.state != PlaybackState.STATE_NONE
                 setPlaybackState(ps)

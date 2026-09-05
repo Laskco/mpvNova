@@ -601,7 +601,7 @@ private fun MPVActivity.applyPlayerTitleVisibility() {
         playerTitleStyle.episodeNumber.visible,
     )
     binding.playerTitleContextSeparator.apply {
-        text = playerTitleStyle.separator.text
+        setTextIfChanged(playerTitleStyle.separator.text)
         val separatorVisible = seasonVisible && episodeVisible &&
             playerTitleStyle.separator != PlayerTitleSeparator.NONE
         visibility = separatorVisible.toVisibility()

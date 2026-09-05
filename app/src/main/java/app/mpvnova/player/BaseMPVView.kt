@@ -7,6 +7,8 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
 
 // Contains only the essential code needed to get a picture on the screen
 
@@ -169,18 +171,25 @@ private fun String.isValidVoForRestore(): Boolean {
 }
 
 private object BundledFfmpegVersionLogger {
+    private val scheduled = AtomicBoolean(false)
+
     fun log(context: Context) {
         val nativeLibDir = context.applicationInfo.nativeLibraryDir ?: return
-        val libavcodec = File(nativeLibDir, "libavcodec.so")
-        if (libavcodec.isFile) {
-            logVersion(libavcodec)
-        } else {
-            Log.w(TAG, "Bundled FFmpeg check skipped: libavcodec.so not found in $nativeLibDir")
+        if (!scheduled.compareAndSet(false, true))
+            return
+        // This diagnostic scans the binary; keep it off the playback startup path.
+        thread(name = "ffmpeg-version") {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_BACKGROUND)
+            logVersion(File(nativeLibDir, "libavcodec.so"))
         }
     }
 
     private fun logVersion(libavcodec: File) {
         try {
+            if (!libavcodec.isFile) {
+                Log.w(TAG, "Bundled FFmpeg check skipped: libavcodec.so not found in ${libavcodec.parent}")
+                return
+            }
             val result = NativeLibraryVersion.find(libavcodec, "FFmpeg version ")
             if (result != null) {
                 Log.i(TAG, "Bundled $result")

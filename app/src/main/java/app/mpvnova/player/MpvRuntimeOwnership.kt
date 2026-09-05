@@ -20,4 +20,7 @@ internal object MpvRuntimeOwnership {
 
     @Synchronized
     fun isOwnedBy(candidate: Any): Boolean = owner === candidate
+
+    @Synchronized
+    fun hasOwner(): Boolean = owner != null
 }
