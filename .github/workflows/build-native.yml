@@ -66,6 +66,14 @@ jobs:
               APP_ABI=x86_64
           fi
 
+      - name: Verify subtitle assembly (${{ matrix.arch }})
+        run: |
+          arch=${{ matrix.arch }}
+          expected=1
+          if [ "$arch" = "armv7l" ]; then expected=0; fi
+          grep -qx "#define CONFIG_ASM $expected" "buildscripts/deps/libass/_build_$arch/config.h"
+          echo "libass assembly: $expected ($arch)"
+
       - name: Collect .so files
         run: |
           arch=${{ matrix.arch }}
@@ -77,13 +85,17 @@ jobs:
           elif [ "$arch" = "x86_64" ]; then abi="x86_64"
           fi
 
-          cp buildscripts/prefix/$arch/lib/*.so collected/ 2>/dev/null || true
-          cp app/src/main/libs/$abi/*.so collected/ 2>/dev/null || true
+          cp buildscripts/prefix/$arch/lib/*.so collected/
+          cp app/src/main/libs/$abi/*.so collected/
+          for lib in libplayer libmpv libavcodec libavdevice libavfilter libavformat libavutil libswresample libswscale libc++_shared; do
+            test -s "collected/$lib.so"
+          done
 
       - name: Upload .so files
         uses: actions/upload-artifact@v7
         with:
           name: native-libs-${{ matrix.arch }}
+          if-no-files-found: error
           path: collected/*.so
 
   bundle:
