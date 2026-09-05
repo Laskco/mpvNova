@@ -619,9 +619,7 @@ open class MPVActivity : AppCompatActivity() {
         commitPendingSeekbarSeek()
         cancelScreensaver()
         val shouldBackground = shouldBackground()
-        if (shouldBackground)
-            BackgroundPlaybackService.grabThumbnail()
-        else
+        if (!shouldBackground)
             BackgroundPlaybackService.thumbnail = null
         // Flush synchronously — handler queue gets purged below.
         updateMediaSessionNow()

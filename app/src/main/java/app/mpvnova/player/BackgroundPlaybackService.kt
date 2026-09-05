@@ -190,6 +190,8 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
         }
         ServiceCompat.startForeground(this, NOTIFICATION_ID, notification, type)
         notificationStarted = true
+        thumbnailHandler.removeCallbacks(thumbnailRunnable)
+        thumbnailHandler.postDelayed(thumbnailRunnable, THUMBNAIL_REFRESH_DELAY_MS)
 
         return START_NOT_STICKY // Android can't restart this service on its own
     }
@@ -286,7 +288,7 @@ class BackgroundPlaybackService : Service(), MpvEventObserver {
         /* Set by MPVActivity; to notify on thumbnail changes */
         var thumbnailChanged: (() -> Unit)? = null
 
-        fun grabThumbnail() {
+        private fun grabThumbnail() {
             val fmt = mpvGetPropertyString("video-format")
             thumbnail = if (fmt.isNullOrEmpty())
                 null
