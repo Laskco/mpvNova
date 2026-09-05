@@ -60,8 +60,7 @@ internal fun MPVActivity.cycleDecoderMode() {
     if (canSelectGpuNextDirect())
         modes.add(MPVView.DECODER_MODE_GNEXT_DIRECT)
     modes.add(MPVView.DECODER_MODE_MPV_CONF)
-    if (shieldDecoderModeEnabled)
-        modes.add(MPVView.DECODER_MODE_SHIELD_H10P)
+    modes.add(MPVView.DECODER_MODE_SHIELD_H10P)
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         modes.add(1, MPVView.DECODER_MODE_HW_PLUS)
     val currentMode = currentDecoderUiMode()
@@ -80,6 +79,9 @@ internal fun MPVActivity.currentDecoderUiMode(): String {
     return sessionDecoderMode
         ?: preferredDecoderMode.takeIf {
             !autoDecoderFallback && it == MPVView.DECODER_MODE_MPV_CONF
+        }
+        ?: MPVView.DECODER_MODE_SHIELD_H10P.takeIf {
+            player.isHi10pFallbackModeActive()
         }
         ?: player.currentDecoderMode
 }

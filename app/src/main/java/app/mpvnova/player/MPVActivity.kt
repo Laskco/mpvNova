@@ -429,17 +429,15 @@ open class MPVActivity : AppCompatActivity() {
     internal var keepOpenSavedValue: String? = null
     internal var sessionDecoderMode: String? = null
     internal var autoDecoderFallback = true
-    internal var shieldDecoderModeEnabled = true
-    internal var hi10pFallbackOnOtherDevicesEnabled = false
+    internal var hi10pFallbackEnabled = isNvidiaShieldDevice()
     internal var shieldDecoderFallback = MPVView.SHIELD_DECODER_FALLBACK_COPY
-    internal var shieldMpeg2SoftwareFallbackEnabled = true
-    internal var mpeg2SoftwareFallbackOnOtherDevicesEnabled = false
+    internal var mpeg2SoftwareFallbackEnabled = isNvidiaShieldDevice()
     internal var preferredDecoderMode = ""
-    // Autopause: pause while controls overlay is visible. Shield variant
-    // defaults on (Hi10p SW can't share CPU with the UI).
+    // Autopause: pause while controls overlay is visible. Hi10P variant
+    // defaults on for Shield (Hi10p SW can't share CPU with the UI).
     // controlsOverlayAutoPaused = we paused (vs user) → safe to auto-resume.
     internal var autoPauseControlsOverlayEnabled = false
-    internal var autoPauseShieldHi10pEnabled = true
+    internal var autoPauseHi10pEnabled = isNvidiaShieldDevice()
     internal var controlsOverlayAutoPaused = false
     internal var audioNormUnderrunHintShown = false
     internal var gpuNextRenderFallbackStage = 0

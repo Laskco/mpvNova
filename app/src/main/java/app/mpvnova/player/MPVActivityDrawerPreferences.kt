@@ -35,8 +35,8 @@ private fun MPVActivity.handleDrawerAutopausePreference(
             autoPauseControlsOverlayEnabled = newValue
             if (!newValue) controlsOverlayAutoPaused = false
         }
-        PlayerDrawerPreference.AUTOPAUSE_SHIELD -> {
-            autoPauseShieldHi10pEnabled = newValue
+        PlayerDrawerPreference.AUTOPAUSE_HI10P -> {
+            autoPauseHi10pEnabled = newValue
             if (!newValue) controlsOverlayAutoPaused = false
         }
         else -> Unit
@@ -138,29 +138,14 @@ private fun MPVActivity.handleDrawerVideoPreference(
 ) {
     when (preference) {
         PlayerDrawerPreference.DECODER_AUTO_FALLBACK -> handleDrawerAutoFallbackChange(newValue)
-        PlayerDrawerPreference.SHIELD_DECODER_MODE -> handleDrawerShieldDecoderModeChange(newValue)
-        PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES -> {
-            hi10pFallbackOnOtherDevicesEnabled = newValue
-            if (newValue) maybeApplyShieldHi10pFallback()
-        }
-        PlayerDrawerPreference.SHIELD_MPEG2_SOFTWARE_FALLBACK -> {
-            shieldMpeg2SoftwareFallbackEnabled = newValue
-            player.applyMpeg2SoftwareFallbackSetting(
-                shieldEnabled = newValue,
-                otherDeviceEnabled = mpeg2SoftwareFallbackOnOtherDevicesEnabled,
-            )
-        }
-        PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES -> {
-            mpeg2SoftwareFallbackOnOtherDevicesEnabled = newValue
-            player.applyMpeg2SoftwareFallbackSetting(
-                shieldEnabled = shieldMpeg2SoftwareFallbackEnabled,
-                otherDeviceEnabled = newValue,
-            )
+        PlayerDrawerPreference.HI10P_FALLBACK -> handleDrawerHi10pFallbackChange(newValue)
+        PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK -> {
+            mpeg2SoftwareFallbackEnabled = newValue
+            player.applyMpeg2SoftwareFallbackSetting(newValue)
         }
         else -> Unit
     }
-    if (preference == PlayerDrawerPreference.DECODER_AUTO_FALLBACK ||
-        preference == PlayerDrawerPreference.SHIELD_DECODER_MODE) {
+    if (preference == PlayerDrawerPreference.DECODER_AUTO_FALLBACK) {
         refreshDrawerRowsIfVisible(DrawerTab.VIDEO)
     }
 }
@@ -169,7 +154,7 @@ private fun MPVActivity.handleDrawerAutoFallbackChange(enabled: Boolean) {
     autoDecoderFallback = enabled
     if (enabled)
         return
-    preferredDecoderMode = normalizedPreferredDecoderMode(preferredDecoderMode, shieldDecoderModeEnabled)
+    preferredDecoderMode = normalizedPreferredDecoderMode(preferredDecoderMode)
     getDefaultSharedPreferences(applicationContext)
         .edit()
         .putString("preferred_decoder_mode", preferredDecoderMode)
@@ -179,20 +164,10 @@ private fun MPVActivity.handleDrawerAutoFallbackChange(enabled: Boolean) {
     updateDecoderButton()
 }
 
-private fun MPVActivity.handleDrawerShieldDecoderModeChange(enabled: Boolean) {
-    shieldDecoderModeEnabled = enabled
-    if (enabled || preferredDecoderMode != MPVView.DECODER_MODE_SHIELD_H10P)
-        return
-
-    preferredDecoderMode = defaultPreferredDecoderMode()
-    getDefaultSharedPreferences(applicationContext)
-        .edit()
-        .putString("preferred_decoder_mode", preferredDecoderMode)
-        .apply()
-    if (!autoDecoderFallback) {
-        sessionDecoderMode = preferredDecoderMode
-        player.applyDecoderMode(preferredDecoderMode)
-        updateDecoderButton()
+private fun MPVActivity.handleDrawerHi10pFallbackChange(enabled: Boolean) {
+    hi10pFallbackEnabled = enabled
+    if (enabled && sessionDecoderMode == null) {
+        maybeApplyShieldHi10pFallback()
     }
 }
 

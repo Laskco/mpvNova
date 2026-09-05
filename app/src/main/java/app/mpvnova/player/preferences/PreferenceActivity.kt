@@ -72,8 +72,8 @@ import app.mpvnova.player.UiFont
 import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.VideoFilterPreset
 import app.mpvnova.player.decoderModeDescriptionRes
-import app.mpvnova.player.defaultPreferredDecoderMode
 import app.mpvnova.player.normalizedPreferredDecoderMode
+import app.mpvnova.player.migrateDeviceCompatibilityPreferences
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.AppearanceColorChoice
@@ -1028,40 +1028,24 @@ class PreferenceActivity : AppCompatActivity(),
     class DeveloperPreference : StyledPreferenceFragment(R.xml.pref_developer)
 
     class AdvancePreference : StyledPreferenceFragment(R.xml.pref_advanced) {
+        override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+            PreferenceManager.getDefaultSharedPreferences(requireContext())
+                .migrateDeviceCompatibilityPreferences()
+            super.onCreatePreferences(savedInstanceState, rootKey)
+        }
+
         override fun onPreferencesLoaded() {
             val autoFallbackPref = findPreference<SwitchPreferenceCompat>("decoder_auto_fallback")
-            val shieldDecoderPref = findPreference<SwitchPreferenceCompat>("shield_decoder_mode")
-            val otherDeviceHi10pPref = findPreference<SwitchPreferenceCompat>(
-                app.mpvnova.player.PREF_HI10P_FALLBACK_OTHER_DEVICES
-            )
-            val otherDeviceMpeg2Pref = findPreference<SwitchPreferenceCompat>(
-                app.mpvnova.player.PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES
-            )
-            if (app.mpvnova.player.isNvidiaShieldDevice()) {
-                otherDeviceHi10pPref?.isEnabled = false
-                otherDeviceHi10pPref?.setSummary(
-                    R.string.pref_hi10p_fallback_other_devices_shield_summary
-                )
-                otherDeviceMpeg2Pref?.isEnabled = false
-                otherDeviceMpeg2Pref?.setSummary(
-                    R.string.pref_mpeg2_software_fallback_other_devices_shield_summary
-                )
-            }
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
 
-            fun refreshDecoderPreferenceOptions(
-                shieldDecoderEnabled: Boolean = shieldDecoderPref?.isChecked != false
-            ) {
+            fun refreshDecoderPreferenceOptions() {
                 if (preferredDecoderPref == null)
                     return
 
-                val (entries, values) = buildDecoderPreferenceOptions(shieldDecoderEnabled)
+                val (entries, values) = buildDecoderPreferenceOptions()
                 preferredDecoderPref.entries = entries
                 preferredDecoderPref.entryValues = values
-                preferredDecoderPref.value = normalizedPreferredDecoderMode(
-                    preferredDecoderPref.value,
-                    shieldDecoderEnabled,
-                )
+                preferredDecoderPref.value = normalizedPreferredDecoderMode(preferredDecoderPref.value)
                 preferredDecoderPref.summaryProvider = SummaryProvider<ListPreference> { pref ->
                     val entry = pref.entry?.toString()
                         ?: getString(R.string.pref_preferred_decoder_mode_summary)
@@ -1082,22 +1066,10 @@ class PreferenceActivity : AppCompatActivity(),
                 preferredDecoderPref?.isVisible = (newValue as? Boolean) == false
                 true
             }
-            shieldDecoderPref?.setOnPreferenceChangeListener { _, newValue ->
-                val enabled = (newValue as? Boolean) != false
-                if (!enabled &&
-                    preferredDecoderPref?.value == app.mpvnova.player.MPVView.DECODER_MODE_SHIELD_H10P
-                ) {
-                    preferredDecoderPref.value = defaultPreferredDecoderMode()
-                }
-                refreshDecoderPreferenceOptions(enabled)
-                true
-            }
         }
 
-        private fun buildDecoderPreferenceOptions(
-            includeShieldMode: Boolean
-        ): Pair<Array<CharSequence>, Array<CharSequence>> {
-            val options = preferredDecoderModeOptions(includeShieldMode)
+        private fun buildDecoderPreferenceOptions(): Pair<Array<CharSequence>, Array<CharSequence>> {
+            val options = preferredDecoderModeOptions()
             val entries = options.map { getString(it.titleRes) as CharSequence }.toTypedArray()
             val values = options.map { it.value as CharSequence }.toTypedArray()
             return Pair(entries, values)

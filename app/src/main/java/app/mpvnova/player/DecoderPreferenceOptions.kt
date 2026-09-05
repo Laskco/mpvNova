@@ -12,7 +12,7 @@ internal data class PreferredDecoderModeOption(
     val enabled: Boolean = true,
 )
 
-internal fun preferredDecoderModeOptions(includeShieldMode: Boolean): List<PreferredDecoderModeOption> = buildList {
+internal fun preferredDecoderModeOptions(): List<PreferredDecoderModeOption> = buildList {
     add(preferredDecoderModeOption(MPVView.DECODER_MODE_AUTO_SAFE))
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         add(preferredDecoderModeOption(MPVView.DECODER_MODE_HW_PLUS))
@@ -24,9 +24,7 @@ internal fun preferredDecoderModeOptions(includeShieldMode: Boolean): List<Prefe
         add(preferredDecoderModeOption(MPVView.DECODER_MODE_GNEXT_DIRECT))
     }
     add(preferredDecoderModeOption(MPVView.DECODER_MODE_MPV_CONF))
-    if (includeShieldMode) {
-        add(preferredDecoderModeOption(MPVView.DECODER_MODE_SHIELD_H10P))
-    }
+    add(preferredDecoderModeOption(MPVView.DECODER_MODE_SHIELD_H10P))
 }
 
 private fun preferredDecoderModeOption(mode: String): PreferredDecoderModeOption =
@@ -70,8 +68,8 @@ internal fun defaultPreferredDecoderMode(): String {
         MPVView.DECODER_MODE_HW
 }
 
-internal fun normalizedPreferredDecoderMode(mode: String?, includeShieldMode: Boolean): String {
-    val options = preferredDecoderModeOptions(includeShieldMode)
+internal fun normalizedPreferredDecoderMode(mode: String?): String {
+    val options = preferredDecoderModeOptions()
     val fallback = defaultPreferredDecoderMode().takeIf { preferred ->
         options.any { it.value == preferred }
     } ?: options.first().value
@@ -90,7 +88,7 @@ internal fun decoderModeCompactLabel(mode: String): String = when (mode) {
     MPVView.DECODER_MODE_SW -> "SW"
     MPVView.DECODER_MODE_GNEXT -> "G-NXT"
     MPVView.DECODER_MODE_GNEXT_DIRECT -> "G+DIR"
-    MPVView.DECODER_MODE_SHIELD_H10P -> "SHLD"
+    MPVView.DECODER_MODE_SHIELD_H10P -> "G+SW"
     MPVView.DECODER_MODE_MPV_CONF -> "CFG"
     else -> "HW"
 }

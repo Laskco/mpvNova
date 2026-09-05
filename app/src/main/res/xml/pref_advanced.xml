@@ -6,15 +6,13 @@
     <PreferenceCategory android:title="@string/settings_category_decoder" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat android:defaultValue="true" android:key="hardware_decoding" android:summary="@string/pref_hardware_decoding_summary" android:title="@string/pref_hardware_decoding_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="true" android:key="decoder_auto_fallback" android:summary="@string/pref_decoder_auto_fallback_summary" android:title="@string/pref_decoder_auto_fallback_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="false" android:dependency="decoder_auto_fallback" android:key="hi10p_fallback_other_devices" android:summary="@string/pref_hi10p_fallback_other_devices_summary" android:title="@string/pref_hi10p_fallback_other_devices_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="false" android:key="mpeg2_software_fallback_other_devices" android:summary="@string/pref_mpeg2_software_fallback_other_devices_summary" android:title="@string/pref_mpeg2_software_fallback_other_devices_title" app:iconSpaceReserved="false" />
         <ListPreference android:defaultValue="" android:key="preferred_decoder_mode" android:summary="@string/pref_preferred_decoder_mode_summary" android:title="@string/pref_preferred_decoder_mode_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="@string/settings_category_shield" app:iconSpaceReserved="false">
-        <SwitchPreferenceCompat android:defaultValue="true" android:key="shield_decoder_mode" android:summary="@string/pref_shield_decoder_mode_summary" android:title="@string/pref_shield_decoder_mode_title" app:iconSpaceReserved="false" />
-        <app.mpvnova.player.preferences.ShieldFallbackDialogPreference android:dependency="shield_decoder_mode" android:key="shield_decoder_fallback" android:title="@string/pref_shield_decoder_fallback_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="true" android:key="shield_mpeg2_software_fallback" android:summary="@string/pref_shield_mpeg2_software_fallback_summary" android:title="@string/pref_shield_mpeg2_software_fallback_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="true" android:key="autopause_shield_hi10p" android:summary="@string/pref_autopause_shield_hi10p_summary" android:title="@string/pref_autopause_shield_hi10p_title" app:iconSpaceReserved="false" />
+    <PreferenceCategory android:title="@string/settings_category_device_compatibility" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:key="hi10p_fallback" android:summary="@string/pref_hi10p_fallback_summary" android:title="@string/pref_hi10p_fallback_title" app:iconSpaceReserved="false" />
+        <app.mpvnova.player.preferences.ShieldFallbackDialogPreference android:key="shield_decoder_fallback" android:title="@string/pref_shield_decoder_fallback_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:key="mpeg2_software_fallback" android:summary="@string/pref_mpeg2_software_fallback_summary" android:title="@string/pref_mpeg2_software_fallback_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:key="autopause_hi10p" android:summary="@string/pref_autopause_shield_hi10p_summary" android:title="@string/pref_autopause_shield_hi10p_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/settings_category_configuration" app:iconSpaceReserved="false">
         <app.mpvnova.player.preferences.ConfigEditDialogPreference android:title="@string/pref_edit_mpv_conf" app:dialogMessage="@string/pref_edit_mpv_conf_message" app:filename="mpv.conf" app:iconSpaceReserved="false" />

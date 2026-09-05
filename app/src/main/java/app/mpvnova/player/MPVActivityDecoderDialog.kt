@@ -13,8 +13,7 @@ internal fun MPVActivity.decoderRawItems(currentMode: String): MutableList<Pair<
     if (supportsGpuNextDirect())
         items.add(decoderItem(MPVView.DECODER_MODE_GNEXT_DIRECT, currentMode))
     items.add(decoderItem(MPVView.DECODER_MODE_MPV_CONF, currentMode))
-    if (shieldDecoderModeEnabled)
-        items.add(decoderItem(MPVView.DECODER_MODE_SHIELD_H10P, currentMode))
+    items.add(decoderItem(MPVView.DECODER_MODE_SHIELD_H10P, currentMode))
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
         items.add(1, decoderItem(MPVView.DECODER_MODE_HW_PLUS, currentMode))
     return items

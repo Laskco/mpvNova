@@ -17,7 +17,7 @@ import app.mpvnova.player.toShieldDecoderFallback
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
- * Picker for the Shield Hi10P fallback tunings. A plain ListPreference can't
+ * Picker for the Hi10P fallback tunings. A plain ListPreference can't
  * render the per-option descriptions readably on TV, so this builds the same
  * title-plus-description rows the in-player option dialogs use.
  */

@@ -154,8 +154,7 @@ internal fun MPVActivity.applySessionDecoderModeIfNeeded() {
     val mode = sessionMode ?: preferredDecoderMode.takeIf {
         !autoDecoderFallback && it.isNotBlank()
     }
-    val blockedShieldMode = mode == MPVView.DECODER_MODE_SHIELD_H10P && !shieldDecoderModeEnabled
-    if (mode == null || blockedShieldMode) {
+    if (mode == null) {
         return
     } else if (mode == MPVView.DECODER_MODE_MPV_CONF && sessionMode == null) {
         updateDecoderButton()

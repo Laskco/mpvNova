@@ -166,13 +166,12 @@ internal fun MPVActivity.pauseForDialog(): StateRestoreCallback {
 
 // Controls-overlay autopause:
 //   - autoPauseControlsOverlayEnabled (general): opt-in, any file.
-//   - autoPauseShieldHi10pEnabled (default on): Shield Hi10p H.264, where SW
+//   - autoPauseHi10pEnabled (default on for Shield): Hi10p H.264, where SW
 //     decode is too close to real-time to share with UI work.
 internal fun MPVActivity.shouldAutoPauseForControlsOverlay(): Boolean {
-    val shieldHi10pCase = autoPauseShieldHi10pEnabled &&
-        isNvidiaShieldDevice() &&
+    val hi10pCase = autoPauseHi10pEnabled &&
         player.isHi10pH264Video()
-    return autoPauseControlsOverlayEnabled || shieldHi10pCase
+    return autoPauseControlsOverlayEnabled || hi10pCase
 }
 
 internal fun MPVActivity.maybeAutoPauseForControlsOverlay() {

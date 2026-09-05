@@ -8,8 +8,8 @@ import app.mpvnova.player.databinding.DialogShieldFallbackItemBinding
 
 internal fun MPVActivity.pickPreferredDecoderMode() {
     val restore = keepPlaybackForDialog()
-    val options = preferredDecoderModeOptions(shieldDecoderModeEnabled)
-    val currentMode = normalizedPreferredDecoderMode(preferredDecoderMode, shieldDecoderModeEnabled)
+    val options = preferredDecoderModeOptions()
+    val currentMode = normalizedPreferredDecoderMode(preferredDecoderMode)
     val items = options.map { option ->
         MediaPickerDialog.Item(
             label = preferredDecoderPickerLabel(option),

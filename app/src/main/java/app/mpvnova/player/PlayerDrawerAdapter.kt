@@ -176,7 +176,7 @@ internal class PlayerDrawerAdapter(
         fun bind(preference: PlayerDrawerPreference) = with(binding) {
             boundPreference = preference
             prefRowTitle.setText(preference.titleRes)
-            prefRowSummary.setText(preference.summaryResForDevice())
+            prefRowSummary.setText(preference.summaryRes)
             activity.applyPreferenceValueLayout(prefRowValue)
             refreshPrefRowValue(prefRowValue, prefs.rawValue(preference))
             applyDisabledState()
@@ -205,25 +205,9 @@ internal class PlayerDrawerAdapter(
         }
 
         private fun isDisabled(preference: PlayerDrawerPreference): Boolean =
-            (preference.isOtherDeviceDecoderFallback() && isNvidiaShieldDevice()) ||
-                (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
+            (preference == PlayerDrawerPreference.MINIMAL_SEEKBAR_WHILE_SEEKING &&
                 !activity.playerUiCustomization.seekbarVisible) ||
                 preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
-
-        private fun PlayerDrawerPreference.isOtherDeviceDecoderFallback(): Boolean =
-            this == PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES ||
-                this == PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES
-
-        private fun PlayerDrawerPreference.summaryResForDevice(): Int {
-            if (!isNvidiaShieldDevice()) return summaryRes
-            return when (this) {
-                PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES ->
-                    R.string.pref_hi10p_fallback_other_devices_shield_summary
-                PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES ->
-                    R.string.pref_mpeg2_software_fallback_other_devices_shield_summary
-                else -> summaryRes
-            }
-        }
     }
 
     private inner class OptionHolder(
@@ -364,7 +348,12 @@ private fun drawerStableScrollOffset(
 }
 
 private fun SharedPreferences.rawValue(preference: PlayerDrawerPreference): Boolean {
-    return getBoolean(preference.key, preference.defaultValue)
+    return when (preference) {
+        PlayerDrawerPreference.HI10P_FALLBACK -> hi10pFallbackEnabled()
+        PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK -> mpeg2SoftwareFallbackEnabled()
+        PlayerDrawerPreference.AUTOPAUSE_HI10P -> autoPauseHi10pEnabled()
+        else -> getBoolean(preference.key, preference.defaultValue)
+    }
 }
 
 private fun MPVActivity.applyPreferenceValueLayout(valueView: TextView) {

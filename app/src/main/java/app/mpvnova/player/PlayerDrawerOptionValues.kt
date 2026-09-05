@@ -3,7 +3,7 @@ package app.mpvnova.player
 @Suppress("CyclomaticComplexMethod")
 internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String = when (option) {
     PlayerDrawerOption.PREFERRED_DECODER -> {
-        val mode = normalizedPreferredDecoderMode(preferredDecoderMode, shieldDecoderModeEnabled)
+        val mode = normalizedPreferredDecoderMode(preferredDecoderMode)
         decoderModeCompactLabel(mode)
     }
     PlayerDrawerOption.SHIELD_FALLBACK -> shieldFallbackOption(shieldDecoderFallback).compactLabel

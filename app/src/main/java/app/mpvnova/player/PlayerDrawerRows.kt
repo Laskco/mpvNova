@@ -76,12 +76,12 @@ internal enum class PlayerDrawerPreference(
         "autopause_controls_overlay",
         false,
     ),
-    AUTOPAUSE_SHIELD(
+    AUTOPAUSE_HI10P(
         PlayerDrawerPreferenceGroup.AUTOPAUSE,
         R.string.pref_autopause_shield_hi10p_title,
         R.string.pref_autopause_shield_hi10p_summary,
-        "autopause_shield_hi10p",
-        true,
+        PREF_AUTOPAUSE_HI10P,
+        isNvidiaShieldDevice(),
     ),
     KEEP_CONTROLS_VISIBLE(
         PlayerDrawerPreferenceGroup.INTERFACE,
@@ -191,33 +191,19 @@ internal enum class PlayerDrawerPreference(
         "decoder_auto_fallback",
         true,
     ),
-    SHIELD_DECODER_MODE(
+    HI10P_FALLBACK(
         PlayerDrawerPreferenceGroup.VIDEO,
-        R.string.pref_shield_decoder_mode_title,
-        R.string.pref_shield_decoder_mode_summary,
-        "shield_decoder_mode",
-        true,
+        R.string.pref_hi10p_fallback_title,
+        R.string.pref_hi10p_fallback_summary,
+        PREF_HI10P_FALLBACK,
+        isNvidiaShieldDevice(),
     ),
-    HI10P_FALLBACK_OTHER_DEVICES(
+    MPEG2_SOFTWARE_FALLBACK(
         PlayerDrawerPreferenceGroup.VIDEO,
-        R.string.pref_hi10p_fallback_other_devices_title,
-        R.string.pref_hi10p_fallback_other_devices_summary,
-        PREF_HI10P_FALLBACK_OTHER_DEVICES,
-        false,
-    ),
-    MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES(
-        PlayerDrawerPreferenceGroup.VIDEO,
-        R.string.pref_mpeg2_software_fallback_other_devices_title,
-        R.string.pref_mpeg2_software_fallback_other_devices_summary,
-        PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES,
-        false,
-    ),
-    SHIELD_MPEG2_SOFTWARE_FALLBACK(
-        PlayerDrawerPreferenceGroup.VIDEO,
-        R.string.pref_shield_mpeg2_software_fallback_title,
-        R.string.pref_shield_mpeg2_software_fallback_summary,
-        PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK,
-        true,
+        R.string.pref_mpeg2_software_fallback_title,
+        R.string.pref_mpeg2_software_fallback_summary,
+        PREF_MPEG2_SOFTWARE_FALLBACK,
+        isNvidiaShieldDevice(),
     ),
     LOW_QUALITY_DECODING(
         PlayerDrawerPreferenceGroup.PROCESSING,
@@ -415,14 +401,10 @@ private fun MPVActivity.addVideoRows(rows: MutableList<PlayerDrawerRow>) {
     if (!autoDecoderFallback) {
         rows.addOption(PlayerDrawerOption.PREFERRED_DECODER)
     }
-    rows.addPref(PlayerDrawerPreference.SHIELD_DECODER_MODE)
-    rows.addPref(PlayerDrawerPreference.HI10P_FALLBACK_OTHER_DEVICES)
-    rows.addPref(PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES)
-    if (shieldDecoderModeEnabled) {
-        rows.addOption(PlayerDrawerOption.SHIELD_FALLBACK)
-    }
-    rows.addPref(PlayerDrawerPreference.SHIELD_MPEG2_SOFTWARE_FALLBACK)
-    rows.addPref(PlayerDrawerPreference.AUTOPAUSE_SHIELD)
+    rows.addPref(PlayerDrawerPreference.HI10P_FALLBACK)
+    rows.addOption(PlayerDrawerOption.SHIELD_FALLBACK)
+    rows.addPref(PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK)
+    rows.addPref(PlayerDrawerPreference.AUTOPAUSE_HI10P)
 }
 
 private fun MPVActivity.addAudioRows(rows: MutableList<PlayerDrawerRow>) {

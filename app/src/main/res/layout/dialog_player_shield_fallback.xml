@@ -26,7 +26,7 @@
         android:textColor="@color/tv_text"
         android:textSize="24sp"
         android:textStyle="bold"
-        tools:text="Shield Hi10P fallback" />
+        tools:text="Hi10P fallback tuning" />
 
     <TextView
         android:id="@+id/fallbackHeader"
@@ -37,19 +37,30 @@
         android:textColor="@color/tv_text_dim"
         android:textSize="12sp" />
 
+    <!-- Keep the usual list height, but let short windows shrink it before the action row. -->
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="300dp"
+        android:layout_weight="1"
         android:layout_marginTop="14dp"
         android:clipToPadding="true"
         android:fillViewport="true"
-        android:overScrollMode="never">
+        android:overScrollMode="never"
+        android:scrollbarDefaultDelayBeforeFade="1200"
+        android:scrollbarFadeDuration="240"
+        android:scrollbarSize="3dp"
+        android:scrollbarStyle="insideInset"
+        android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+        android:scrollbars="vertical"
+        tools:ignore="InefficientWeight">
 
         <LinearLayout
             android:id="@+id/fallbackOptions"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:orientation="vertical"
+            android:paddingEnd="6dp" />
     </ScrollView>
 
     <LinearLayout

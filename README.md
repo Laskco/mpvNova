@@ -25,7 +25,7 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 - 16 built-in color themes, AMOLED mode, and pure black surfaces
 - Full backup and restore for settings, configuration files, fonts, artwork, and managed shaders
 - Dialogue-focused audio tools for stereo and surround playback
-- Device-aware decoder paths including gpu-next and optional Shield Hi10P fallback handling
+- Device-aware decoder paths including gpu-next and configurable Hi10P and MPEG2 software fallbacks
 - In-app update checks backed by GitHub releases
 - Leanback launcher support and TV banner assets
 - Built for sideloading on Android TV, Google TV, and Android-based Fire OS TV devices
@@ -136,10 +136,10 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
 - Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
 - Audio panel with Voice Boost, Volume Boost, DRC, Audio Normalization, Channel Downmix, surround-state feedback, and filter persistence
-- In-player decoder picker with `HW+`, `HW`, `SW`, `G-NEXT`, and optional `Shield Anime (Hi10P)` modes
-- Advanced decoder settings for hardware decoding, automatic fallback, and Shield Hi10P fallback behavior
-- Shield Hi10P fallback always software-decodes (no hardware can decode Hi10P) and offers two flavors: the default `G-NEXT SW — no tuning` (strictly stock playback) or `G-NEXT SW — light tuning` (loop-filter skip on non-reference frames, 1 s audio buffer, Lanczos-sharp upscaling)
-- Player UI autopause options: a general "Pause when controls show" toggle, plus a Shield-specific "Pause Hi10P on Shield" toggle (on by default) that pauses playback while the controls overlay is visible so the SW decoder is not competing with the UI for CPU on Hi10P files
+- In-player decoder picker with `Auto (safe)`, `HW+`, `HW`, `SW`, `G-NEXT Copy`, `G-NEXT Direct`, `G-NEXT SW Hi10P fallback`, and custom `mpv.conf` modes. G-NEXT Direct remains disabled on NVIDIA Shield
+- Shared device compatibility settings for Hi10P and MPEG2 software fallback, defaulting on for NVIDIA Shield and off elsewhere while preserving saved choices. The Hi10P toggle controls automatic fallback; manual decoder selection remains available independently
+- Hi10P fallback always uses G-NEXT software decoding with three tuning choices: no tuning (default), light tuning (non-reference loop-filter skipping, a 1 s audio buffer, and Lanczos-sharp upscaling), or light tuning plus late-frame dropping. Tuning may worsen A/V sync on some streams; switch back to no tuning if that happens
+- Player UI autopause options: a general "Pause when controls show" toggle, plus "Pause Hi10P while controls are open" to reduce contention between software decoding and the UI. The Hi10P-specific toggle defaults on for NVIDIA Shield and off elsewhere
 - Player-side video adjustment panels for brightness, contrast, gamma, and saturation, with optional remembered values
 - Managed GPU shader library with file and folder importing, remembered-folder refresh, per-shader toggles, ordering, removal, and live playback updates; advanced shaders configured through `mpv.conf` remain separate
 - Live `G-NEXT` path display for direct, copy, or software-backed playback paths, plus automatic decoder fallback for known trouble cases

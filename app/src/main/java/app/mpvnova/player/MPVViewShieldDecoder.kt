@@ -54,9 +54,11 @@ private fun MPVView.applyShieldHi10pFramedropFallback(sharedPreferences: SharedP
 
 // New builds request hwdec=no directly. Keep the legacy copy-tuning check so
 // an already-running session from the old path still highlights Shield Hi10P.
-internal fun MPVView.isShieldH10pFallbackModeActive(): Boolean {
-    if (!isNvidiaShieldDevice() ||
-        !isHi10pH264Video() ||
+internal fun MPVView.isShieldH10pFallbackModeActive(): Boolean =
+    isNvidiaShieldDevice() && isHi10pFallbackModeActive()
+
+internal fun MPVView.isHi10pFallbackModeActive(): Boolean {
+    if (!isHi10pH264Video() ||
         !matchesShieldOption("vo", MPV_VIEW_VO_GPU_NEXT)
     ) {
         return false

@@ -19,11 +19,14 @@ import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.MPVView
 import app.mpvnova.player.MpvLogRingBuffer
 import app.mpvnova.player.NativeLibraryVersion
-import app.mpvnova.player.PREF_HI10P_FALLBACK_OTHER_DEVICES
-import app.mpvnova.player.PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK
+import app.mpvnova.player.PREF_AUTOPAUSE_HI10P
 import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.R
 import app.mpvnova.player.Utils
+import app.mpvnova.player.autoPauseHi10pEnabled
+import app.mpvnova.player.hi10pFallbackEnabled
+import app.mpvnova.player.isNvidiaShieldDevice
+import app.mpvnova.player.mpeg2SoftwareFallbackEnabled
 import app.mpvnova.player.toShieldDecoderFallback
 import app.mpvnova.player.sanitizeMpvLogText
 import java.io.File
@@ -49,6 +52,7 @@ object SupportActions {
         "top_actions_in_playerbar",
         "dpad_up_jumps_to_top_controls",
         "autopause_controls_overlay",
+        PREF_AUTOPAUSE_HI10P,
         "autopause_shield_hi10p",
         "back_hides_controls_first",
         "exit_with_double_back",
@@ -157,19 +161,13 @@ object SupportActions {
         val hasTouchscreen = packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
         val hasFakeTouch = packageManager.hasSystemFeature(PackageManager.FEATURE_FAKETOUCH)
         val autoDecoder = prefs.getBoolean("decoder_auto_fallback", true)
-        val shieldDecoder = prefs.getBoolean("shield_decoder_mode", true)
-        val hi10pFallbackOnOtherDevices = prefs.getBoolean(
-            PREF_HI10P_FALLBACK_OTHER_DEVICES,
-            false,
-        )
-        val shieldDecoderFallback = prefs.getString(
+        val hi10pFallback = prefs.hi10pFallbackEnabled()
+        val hi10pTuning = prefs.getString(
             "shield_decoder_fallback",
             MPVView.SHIELD_DECODER_FALLBACK_DEFAULT,
         ).toShieldDecoderFallback()
-        val shieldMpeg2Fallback = prefs.getBoolean(
-            PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK,
-            true,
-        )
+        val mpeg2Fallback = prefs.mpeg2SoftwareFallbackEnabled()
+        val autoPauseHi10p = prefs.autoPauseHi10pEnabled()
         val preferredDecoder = prefs.getString("preferred_decoder_mode", null)
             ?.takeIf { it.isNotBlank() }
             ?: "default"
@@ -195,13 +193,14 @@ object SupportActions {
                     "faketouch=${if (hasFakeTouch) "yes" else "no"}"
             )
             appendLine("Decoder setting: $decoder")
-            appendLine("Shield decoder mode: ${if (shieldDecoder) "enabled" else "disabled"}")
+            appendLine("NVIDIA Shield detected: ${if (isNvidiaShieldDevice()) "yes" else "no"}")
             appendLine(
                 "Hi10P fallback on this device: " +
-                    if (hi10pFallbackOnOtherDevices) "enabled" else "disabled"
+                    if (hi10pFallback) "enabled" else "disabled"
             )
-            appendLine("Shield Hi10P fallback: $shieldDecoderFallback")
-            appendLine("Shield MPEG2 software fallback: ${if (shieldMpeg2Fallback) "enabled" else "disabled"}")
+            appendLine("Hi10P fallback tuning: $hi10pTuning")
+            appendLine("MPEG2 software fallback: ${if (mpeg2Fallback) "enabled" else "disabled"}")
+            appendLine("Pause Hi10P while controls are open: ${if (autoPauseHi10p) "enabled" else "disabled"}")
             appendLine("mpv: ${nativeVersion(context, "libmpv.so", "mpv v")}")
             appendLine("FFmpeg: ${nativeVersion(context, "libavcodec.so", "FFmpeg version ")}")
         }

@@ -172,13 +172,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     override fun postInitOptions() {
         configuredHwdecCodecs = getOptionString("hwdec-codecs").ifBlank { MPV_VIEW_HWDEC_CODECS }
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        applyMpeg2SoftwareFallbackSetting(
-            shieldEnabled = preferences.getBoolean(PREF_SHIELD_MPEG2_SOFTWARE_FALLBACK, true),
-            otherDeviceEnabled = preferences.getBoolean(
-                PREF_MPEG2_SOFTWARE_FALLBACK_OTHER_DEVICES,
-                false,
-            ),
-        )
+        applyMpeg2SoftwareFallbackSetting(preferences.mpeg2SoftwareFallbackEnabled())
         mpvSetOptionString("save-position-on-quit", "no")
         reconcileManagedShaders()
     }
