@@ -951,7 +951,6 @@
     <string name="player_ui_preset_floating">Dock</string>
     <string name="player_ui_preset_edge_to_edge">Edge to edge</string>
     <string name="player_ui_preset_custom">Custom</string>
-    <string name="player_ui_preset_status">Current preset: %1$s</string>
     <string name="player_ui_preset_default_summary">The full mpvNova player bar.</string>
     <string name="player_ui_preset_minimal_summary">Only the four protected playback controls.</string>
     <string name="player_ui_preset_cinema_summary">A lighter bar with fewer utility controls.</string>
@@ -1011,8 +1010,6 @@
     <string name="player_title_style_panel_content_spacing">Space between lines</string>
     <string name="player_title_style_panel_alignment">Horizontal position</string>
     <string name="player_title_style_panel_vertical_offset">Distance from top</string>
-    <string name="player_title_style_visibility">Visibility</string>
-    <string name="player_title_style_separator">Separator</string>
     <string name="player_title_style_reset_part">Reset selected</string>
     <string name="player_title_style_reset_part_named">Reset %1$s</string>
     <string name="player_title_style_reset_all">Reset all</string>
