@@ -19,6 +19,7 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 - Remote-friendly player HUD with strong D-pad focus behavior
 - Live player bar customization with presets, sizing, surfaces, seekbar styling, and control ordering
 - Custom subtitle, audio, chapter, decoder, video-adjustment, advanced playback, and settings panels
+- Network buffering presets and custom controls in Settings and the player drawer
 - Managed GPU shaders with in-app importing, ordering, enabling, refreshing, and removal
 - Live clock and title customization with independent styling and layout controls
 - Smart subtitle matching for binge-watching, tied to persisted subtitle settings
@@ -80,7 +81,7 @@ For mobile-focused Android mpv options, use projects such as [mpvEx](https://git
 </div>
 
 <div align="center">
-  <img src="docs/screenshots/player-subtitle-style.png" alt="Subtitle style panel" width="96%" />
+  <img src="docs/screenshots/player-subtitle-style.png" alt="Subtitle customization with tabbed controls, saved presets, and a separate live preview" width="96%" />
 </div>
 
 <div align="center">
@@ -134,8 +135,10 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
 - Automatic intro, recap, and outro skipping with per-segment controls, manual fallback buttons, and skip notifications
 - Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
+- Tabbed subtitle customization with font size and hinting, colors, spacing, outlines, shadows, background, layout, and saved presets. The separate live preview grows with the text; the three ASS override modes remain available for styled subtitles
 - Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
 - Audio panel with Voice Boost, Volume Boost, DRC, Audio Normalization, Channel Downmix, surround-state feedback, and filter persistence
+- Network settings with buffering presets, custom memory and read-ahead limits, rebuffering controls, and connection options, accessible from both Settings and the in-player Network tab
 - In-player decoder picker with `Auto (safe)`, `HW+`, `HW`, `SW`, `G-NEXT Copy`, `G-NEXT Direct`, `G-NEXT SW Hi10P fallback`, and custom `mpv.conf` modes. G-NEXT Direct remains disabled on NVIDIA Shield
 - Shared device compatibility settings for Hi10P and MPEG2 software fallback, defaulting on for NVIDIA Shield and off elsewhere while preserving saved choices. The Hi10P toggle controls automatic fallback; manual decoder selection remains available independently
 - Hi10P fallback always uses G-NEXT software decoding with three tuning choices: no tuning (default), light tuning (non-reference loop-filter skipping, a 1 s audio buffer, and Lanczos-sharp upscaling), or light tuning plus late-frame dropping. Tuning may worsen A/V sync on some streams; switch back to no tuning if that happens
@@ -145,9 +148,27 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Live `G-NEXT` path display for direct, copy, or software-backed playback paths, plus automatic decoder fallback for known trouble cases
 - Appearance themes for White, Crimson, Ocean, Cyan, Violet, Emerald, Lime, Amber, Gold, Copper, Indigo, Rose, Slate, Chrome, Oyster, and Ivory, plus AMOLED mode and pure black surfaces
 - Full backup and restore for app preferences, mpv configuration, input bindings, fonts, screensaver artwork, and managed shaders
-- Settings pages update the hero title to the active section, including Appearance, General, Video, Player UI, Advanced, and Support
+- Settings pages update the hero title to the active section, including Appearance, General, Video, Network, Player UI, Advanced, and Support
 - Home-screen update prompt, manual update checks, APK handoff to Android's installer, and release-note history from Settings
 - Resume-position handling, media-title cleanup for launcher/stream sources, readable stats overlays, and support/debug export tools
+
+---
+
+## Network And Buffering
+
+Open **Settings > Network**, or the **Network** tab in the player settings drawer during playback.
+
+Choose **Default**, **Low memory**, **Balanced**, **Unsteady connection**, or **High-bitrate video** as a starting point. Individual adjustments are shown as **Custom**. Default restores the original mpvNova or `mpv.conf` values.
+
+- **Video buffer size** and **Rewind buffer size** control how much data is kept ahead of and behind playback
+- **Buffer ahead** sets the target time buffered for network streams; the memory limit can be reached before that target
+- **Wait for the buffer to refill** and **Refill before resuming** control recovery after a stall
+- **Local file read-ahead** adjusts read-ahead for local playback; network caching uses the larger of this value and Buffer ahead, within the memory limit
+- **Stream read buffer** and **Connection timeout** provide advanced input and connection controls
+
+Buffer sizes, read-ahead, and rebuffering controls update during playback when changed from the drawer. **Stream read buffer and Connection timeout apply when a stream is opened again**, not to the already-open connection. Timeout support depends on the protocol.
+
+Numeric controls offer suggested values and custom input. Combined forward and rewind buffers have device-aware memory limits, including lower limits on 32-bit and low-memory devices. Larger buffers use more RAM and can help with brief stalls, but cannot make a consistently slow server or connection faster.
 
 ---
 
