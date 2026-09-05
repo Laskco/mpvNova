@@ -17,7 +17,9 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
         MpvEvent.MPV_EVENT_FILE_LOADED -> handleMpvFileLoaded()
         MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> handleMpvPlaybackRestart()
     }
-    if (eventId in STREAM_LOADING_DONE_EVENTS)
+    if (eventId in STREAM_LOADING_DONE_EVENTS &&
+        !(eventId == MpvEvent.MPV_EVENT_END_FILE && suppressEndFileFinishForReplace)
+    )
         clearStreamLoading()
 }
 
@@ -33,18 +35,23 @@ private fun MPVActivity.handleMpvPlaybackRestart() {
 }
 
 private fun MPVActivity.handleMpvEndFile() {
-    capturePlaybackResultSnapshot(updateCompletion = true)
-    if (playbackCompletionReached) {
-        clearFinishedPositions()
-    } else {
-        saveResumePosition(resultPositionMs, resultDurationMs)
-    }
-    psc.eof()
-    updateMediaSession()
     // A new external intent that replaced the file stops the outgoing one with an
-    // END_FILE; that is not a real playback end, so it must not return to the caller.
-    val replacedOutgoingFile = suppressEndFileFinishForReplace
-    suppressEndFileFinishForReplace = false
+    // END_FILE. Its progress was saved before switching to the incoming identity.
+    val replacedOutgoingFile = synchronized(fileReplacementLock) {
+        val replaced = suppressEndFileFinishForReplace
+        if (!replaced) {
+            onloadCommands.clear()
+            capturePlaybackResultSnapshot(updateCompletion = true)
+            if (playbackCompletionReached) {
+                clearFinishedPositions()
+            } else {
+                saveResumePosition(resultPositionMs, resultDurationMs)
+            }
+        }
+        psc.eof()
+        replaced
+    }
+    updateMediaSession()
     if (!replacedOutgoingFile) markPlaybackEnded()
     if (!replacedOutgoingFile && shouldFinishExternalPlaybackOnEndFile()) {
         Log.v(
@@ -57,10 +64,6 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
-    // The new file is loading: if a replace armed the suppress flag but the outgoing
-    // file never fired END_FILE (nothing was playing), clear it here so this file's
-    // genuine end still returns to the caller.
-    suppressEndFileFinishForReplace = false
     playbackEnded = false
     resetPlaybackResultState()
     audioNormUnderrunHintShown = false
@@ -98,14 +101,19 @@ private fun MPVActivity.handleMpvStartFile() {
 
 private fun MPVActivity.runOnloadCommands() {
     val commands = onloadCommands.toTypedArray()
-    onloadCommands.clear()
-    for (command in commands)
-        mpvCommand(command)
+    // Keep launch options through playlist redirects; mpv resets file-local
+    // options between the redirecting entry and its actual media target.
+    for (command in commands) {
+        // A remote subtitle must not block event delivery or replacement intents.
+        // mpv cancels these asynchronous sub-add jobs when their file ends.
+        mpvCommand(if (command.firstOrNull() == "sub-add") arrayOf("async", *command) else command)
+    }
     if (statsLuaMode > 0 && !playbackHasStarted)
         showConfiguredStatsPage()
 }
 
 private fun MPVActivity.handleMpvFileLoaded() {
+    onloadCommands.clear()
     applyFireTvVideoEdgeCropIfNeeded()
     applyRememberedTrack("sub")
     applyRememberedTrack("audio")

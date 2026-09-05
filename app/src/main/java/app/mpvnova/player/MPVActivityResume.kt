@@ -47,16 +47,16 @@ internal fun MPVActivity.legacyResumeKey(identity: ResumeIdentity) = "resume:${i
 internal fun MPVActivity.saveResumePosition(
     positionMs: Long = psc.position,
     durationMs: Long = psc.duration,
-) {
-    val identity = if (shouldSavePosition)
+) = synchronized(fileReplacementLock) {
+    val identity = if (shouldSavePosition && !suppressEndFileFinishForReplace)
         resumeIdentityFromSource(currentResumeSource)
     else
         null
-    if (identity == null) return
+    if (identity == null) return@synchronized
     val pos = positionMs
     val dur = durationMs
     if (dur <= 0L)
-        return
+        return@synchronized
 
     val prefs = getDefaultSharedPreferences(applicationContext)
     val key = resumeKey(identity)

@@ -38,6 +38,11 @@ fun mpvCommand(cmd: Array<out String>) {
     MPVLib.command(cmd)
 }
 
+internal fun mpvLoadReplacementFile(filepath: String): Long {
+    ensureNativeLibrariesLoaded()
+    return MPVLib.loadFile(filepath)
+}
+
 fun mpvSetOptionString(name: String, value: String): Int {
     ensureNativeLibrariesLoaded()
     return MPVLib.setOptionString(name, value)

@@ -61,6 +61,7 @@ open class MPVActivity : AppCompatActivity() {
 
     internal var activityIsStopped = false
 
+    @Volatile
     internal var activityIsForeground = true
     internal var didResumeBackgroundPlayback = false
     internal var userIsOperatingSeekbar = false
@@ -261,8 +262,10 @@ open class MPVActivity : AppCompatActivity() {
     }
 
     internal val stopServiceRunnable = Runnable {
-        val intent = Intent(this, BackgroundPlaybackService::class.java)
-        applicationContext.stopService(intent)
+        if (MpvRuntimeOwnership.isOwnedBy(player)) {
+            val intent = Intent(this, BackgroundPlaybackService::class.java)
+            applicationContext.stopService(intent)
+        }
     }
 
     internal val clockRunnable = object : Runnable {
@@ -458,9 +461,11 @@ open class MPVActivity : AppCompatActivity() {
     internal var playbackCompletionReached = false
     internal var resultPositionMs = -1L
     internal var resultDurationMs = 0L
-    // Armed before a replacing loadfile from a new external intent: the outgoing file's
-    // END_FILE (reason STOP) must not be mistaken for a real playback end and bounce the
-    // caller out. Consumed on that END_FILE; cleared on the new file's START_FILE.
+    internal val fileReplacementLock = Any()
+    internal var pendingReplacementEntryId: Long? = null
+    @Volatile internal var fileReplacementGeneration = 0L
+    // Stay armed across intermediate files until the requested entry actually starts.
+    @Volatile
     internal var suppressEndFileFinishForReplace = false
     internal var onloadCommands = mutableListOf<Array<String>>()
     internal var streamOpenLoading = false
@@ -578,8 +583,7 @@ open class MPVActivity : AppCompatActivity() {
             prepareStreamLoading(filepath)
             if (this.newIntentReplace) {
                 prepareDecoderForFileLoad(filepath)
-                suppressEndFileFinishForReplace = true
-                mpvCommand(arrayOf("loadfile", filepath, "replace"))
+                loadReplacementFile(filepath)
                 showToast(getString(R.string.notice_file_play))
             } else {
                 mpvCommand(arrayOf("loadfile", filepath, "append"))
@@ -592,12 +596,12 @@ open class MPVActivity : AppCompatActivity() {
             applySavedDelayDefaults()
             prepareStreamLoading(filepath)
             prepareDecoderForFileLoad(filepath)
-            suppressEndFileFinishForReplace = true
-            mpvCommand(arrayOf("loadfile", filepath))
+            loadReplacementFile(filepath)
         }
     }
 
     override fun onPause() {
+        cancelPendingDpadLongClick()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (isInPictureInPictureMode) {
                 Log.v(MPV_ACTIVITY_TAG, "Playback continuing in picture-in-picture")
@@ -610,6 +614,7 @@ open class MPVActivity : AppCompatActivity() {
     }
 
     internal fun onPauseImpl() {
+        cancelPendingDpadLongClick()
         player.releaseAllMpvKeys()
         commitPendingSeekbarSeek()
         cancelScreensaver()
@@ -721,6 +726,7 @@ open class MPVActivity : AppCompatActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         if (!hasFocus) {
+            cancelPendingDpadLongClick()
             player.releaseAllMpvKeys()
             commitPendingSeekbarSeek()
         }

@@ -90,6 +90,26 @@ void *event_thread(void *arg)
             sendPropertyUpdateToJava(env, mp_property);
             break;
         default:
+            if (mp_event->event_id == MPV_EVENT_START_FILE) {
+                const auto *start = static_cast<mpv_event_start_file*>(mp_event->data);
+                int64_t entry_id = start ? start->playlist_entry_id : -1;
+                mpv_event_property entry_property = {
+                    "file-event-entry-id", MPV_FORMAT_INT64, &entry_id
+                };
+                sendPropertyUpdateToJava(env, &entry_property);
+            } else if (mp_event->event_id == MPV_EVENT_END_FILE) {
+                const auto *end = static_cast<mpv_event_end_file*>(mp_event->data);
+                int64_t reason = end ? end->reason : -1;
+                mpv_event_property reason_property = {
+                    "end-file-reason", MPV_FORMAT_INT64, &reason
+                };
+                sendPropertyUpdateToJava(env, &reason_property);
+                int64_t entry_id = end ? end->playlist_entry_id : -1;
+                mpv_event_property entry_property = {
+                    "file-event-entry-id", MPV_FORMAT_INT64, &entry_id
+                };
+                sendPropertyUpdateToJava(env, &entry_property);
+            }
             ALOGV("event: %s\n", mpv_event_name(mp_event->event_id));
             sendEventToJava(env, mp_event->event_id);
             break;

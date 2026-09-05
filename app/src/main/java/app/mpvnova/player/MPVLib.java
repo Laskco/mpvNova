@@ -26,6 +26,7 @@ public final class MPVLib {
     public static native void detachSurface();
 
     public static native void command(String[] cmd);
+    public static native long loadFile(String path);
 
     public static native int setOptionString(String name, String value);
 

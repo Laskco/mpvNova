@@ -18,7 +18,10 @@ internal fun MPVActivity.initListeners() {
 
 internal fun MPVActivity.finishWithResult(code: Int, includeTimePos: Boolean = false) {
     if (Looper.myLooper() != Looper.getMainLooper()) {
-        runOnUiThread { finishWithResult(code, includeTimePos) }
+        val generation = fileReplacementGeneration
+        runOnUiThread {
+            if (fileReplacementGeneration == generation) finishWithResult(code, includeTimePos)
+        }
         return
     }
     if (isFinishing) // only count first call

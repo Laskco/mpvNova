@@ -1,7 +1,6 @@
 package app.mpvnova.player
 
 import android.content.Context
-import android.content.Intent
 import android.content.res.Configuration
 import android.media.AudioFocusRequest
 import android.os.Build
@@ -84,6 +83,8 @@ private fun MPVActivity.setupAudioSessionId() {
 
 /** onDestroy: drop scheduled callbacks + clear coalescing flags. */
 internal fun MPVActivity.cancelAllScheduledWork() {
+    cancelPendingDpadLongClick()
+    binding.controls.removeCallbacks(subtitleControlsPositionRunnable)
     periodicSaveHandler.removeCallbacks(periodicSaveRunnable)
     eventUiHandler.removeCallbacksAndMessages(null)
     fadeHandler.removeCallbacksAndMessages(null)
@@ -98,9 +99,12 @@ internal fun MPVActivity.cancelAllScheduledWork() {
 
 /** onDestroy: release the media session and abandon audio focus. */
 internal fun MPVActivity.releaseMediaAndAudioFocus() {
-    with(BackgroundPlaybackService) {
-        mediaToken = null
-        thumbnailChanged = null
+    if (MpvRuntimeOwnership.isOwnedBy(player)) {
+        with(BackgroundPlaybackService) {
+            mediaToken = null
+            thumbnailChanged = null
+            thumbnail = null
+        }
     }
     mediaSession?.let {
         it.isActive = false
@@ -128,11 +132,4 @@ private fun abandonAudioFocusModern(manager: AudioManager, request: AudioFocusRe
 @Suppress("DEPRECATION")
 private fun MPVActivity.abandonAudioFocusLegacy(manager: AudioManager) {
     manager.abandonAudioFocus(audioFocusChangeListener)
-}
-
-/** onNewIntent: foreground replacement path — refresh resume source + extras. */
-internal fun MPVActivity.applyNewIntentReplacement(intent: Intent, filepath: String, nextResumeSource: String?) {
-    currentResumeSource = nextResumeSource
-    prepareMediaTitleFromIntent(intent, filepath)
-    parseIntentExtras(intent.extras)
 }

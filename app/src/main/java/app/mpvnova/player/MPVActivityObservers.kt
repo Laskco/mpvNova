@@ -19,6 +19,9 @@ internal class MpvActivityLifecycleObserver(private val activity: MPVActivity) :
  */
 internal class MpvActivityEventObserver(private val activity: MPVActivity) : MpvEventObserver {
 
+    private var pendingEndFileReason: Long? = null
+    private var pendingFileEntryId: Long? = null
+
     override fun eventProperty(property: String): Unit = with(activity) {
         val metaUpdated = psc.update(property)
         if (metaUpdated) updateMediaSession()
@@ -36,6 +39,14 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun eventProperty(property: String, value: Long): Unit = with(activity) {
+        if (property == END_FILE_REASON_PROPERTY) {
+            pendingEndFileReason = value
+            return
+        }
+        if (property == FILE_EVENT_ENTRY_ID_PROPERTY) {
+            pendingFileEntryId = value.takeUnless { it == -1L }
+            return
+        }
         if (psc.update(property, value)) updateMediaSession()
         if (!activityIsForeground) return
         eventUiHandler.post { eventLongPropertyUi(property) }
@@ -64,7 +75,14 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun event(eventId: Int) {
-        activity.handleMpvEvent(eventId)
+        val endFileReason = pendingEndFileReason
+        val fileEntryId = pendingFileEntryId
+        pendingEndFileReason = null
+        pendingFileEntryId = null
+        if (eventId == MpvEvent.MPV_EVENT_END_FILE &&
+            endFileReason == MPV_END_FILE_REASON_REDIRECT
+        ) return
+        activity.handleMpvFileEvent(eventId, fileEntryId)
     }
 
     /** Event-thread side-effects that must run regardless of foreground state. */
@@ -89,6 +107,12 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         }
         if (property == "pause" || property == "current-tracks/audio/selected")
             handleAudioFocus()
+    }
+
+    private companion object {
+        const val END_FILE_REASON_PROPERTY = "end-file-reason"
+        const val FILE_EVENT_ENTRY_ID_PROPERTY = "file-event-entry-id"
+        const val MPV_END_FILE_REASON_REDIRECT = 5L
     }
 }
 

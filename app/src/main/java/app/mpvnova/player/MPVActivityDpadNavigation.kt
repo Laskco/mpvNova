@@ -201,7 +201,8 @@ private fun MPVActivity.scheduleDpadLongClick(view: View?) {
         return
 
     val runnable = Runnable {
-        if (pendingDpadLongClickView === view && view.performLongClick()) {
+        val canPerform = activityIsForeground && !isFinishing && pendingDpadLongClickView === view
+        if (canPerform && view.performLongClick()) {
             dpadLongClickPerformed = true
             showControls()
         }
@@ -213,7 +214,7 @@ private fun MPVActivity.scheduleDpadLongClick(view: View?) {
     view.postDelayed(runnable, DPAD_LONG_PRESS_MS)
 }
 
-private fun MPVActivity.cancelPendingDpadLongClick() {
+internal fun MPVActivity.cancelPendingDpadLongClick() {
     val view = pendingDpadLongClickView
     val runnable = pendingDpadLongClickRunnable
     if (view != null && runnable != null)

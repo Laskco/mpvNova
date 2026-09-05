@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <locale.h>
 #include <atomic>
@@ -27,6 +28,7 @@ extern "C" {
     jni_func(void, destroy);
 
     jni_func(void, command, jobjectArray jarray);
+    jni_func(jlong, loadFile, jstring jpath);
 };
 
 JavaVM *g_vm;
@@ -115,4 +117,42 @@ jni_func(void, command, jobjectArray jarray) {
     }
 
     mpv_command(g_mpv, arguments);
+}
+
+jni_func(jlong, loadFile, jstring jpath) {
+    if (!g_mpv || !jpath) {
+        ALOGE("loadfile replace requires an initialized player and a path");
+        return -1;
+    }
+
+    const std::string path = get_utf8_string(env, jpath);
+    if (env->ExceptionCheck()) {
+        ALOGE("loadfile replace UTF-8 conversion failed");
+        return -1;
+    }
+    const char *arguments[] = {"loadfile", path.c_str(), "replace", NULL};
+    mpv_node result = {};
+    const int status = mpv_command_ret(g_mpv, arguments, &result);
+    if (status < 0) {
+        ALOGE("loadfile replace failed: %s", mpv_error_string(status));
+        return -1;
+    }
+
+    jlong entry_id = -1;
+    if (result.format == MPV_FORMAT_NODE_MAP && result.u.list) {
+        const mpv_node_list *map = result.u.list;
+        for (int i = 0; i < map->num; ++i) {
+            if (strcmp(map->keys[i], "playlist_entry_id") == 0 &&
+                map->values[i].format == MPV_FORMAT_INT64) {
+                entry_id = static_cast<jlong>(map->values[i].u.int64);
+                break;
+            }
+        }
+    }
+    mpv_free_node_contents(&result);
+    if (entry_id < 0) {
+        ALOGE("loadfile replace returned no valid playlist_entry_id");
+        return -1;
+    }
+    return entry_id;
 }
