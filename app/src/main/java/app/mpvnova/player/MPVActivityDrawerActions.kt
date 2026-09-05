@@ -42,6 +42,7 @@ private fun MPVActivity.handleVideoDrawerAction(
     dismiss: () -> Unit,
 ) {
     when (action) {
+        PlayerDrawerAction.VIDEO_EDGE_CLEANUP -> showVideoEdgeCleanup { refreshDrawerRowsIfVisible(DrawerTab.VIDEO) }
         PlayerDrawerAction.DECODER -> {
             dismissDrawerExpectingReopen(dismiss); pickDecoder()
         }

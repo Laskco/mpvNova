@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="video_edge_cleanup_title">Bottom-edge artifact cleanup</string>
+    <string name="video_edge_cleanup_summary">Crops bottom picture rows to hide artifacts; does not fix the decoder. Automatic keeps the Fire TV workaround. On affects all videos on this device. Existing custom crops are left unchanged.</string>
+    <string-array name="video_edge_cleanup_entries">
+        <item>Automatic</item>
+        <item>Off</item>
+        <item>On - trim 8 pixels</item>
+        <item>On - trim 16 pixels</item>
+        <item>On - trim 24 pixels</item>
+        <item>On - trim 32 pixels</item>
+    </string-array>
+    <string-array name="video_edge_cleanup_values">
+        <item>auto</item>
+        <item>off</item>
+        <item>8</item>
+        <item>16</item>
+        <item>24</item>
+        <item>32</item>
+    </string-array>
+</resources>

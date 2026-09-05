@@ -73,7 +73,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastDpadSeekApplyMs = 0L
     internal var lastAppliedSeekMs = Long.MIN_VALUE
     internal var firstPlaybackRestartMs = 0L
-    internal var fireTvVideoEdgeCropApplied = false
+    internal val videoEdgeCropSession = VideoEdgeCropSession()
     internal var lastClockInfoTick = Long.MIN_VALUE
     internal var lastDisplayedSpeed = Float.NaN
     @DrawableRes
@@ -665,6 +665,7 @@ open class MPVActivity : AppCompatActivity() {
         applyPlayerScreenBrightnessPreference()
 
         activityIsForeground = true
+        if (playbackHasStarted) applyFireTvVideoEdgeCropIfNeeded()
         scheduleScreensaver()
         stopServiceHandler.removeCallbacks(stopServiceRunnable)
         stopServiceHandler.postDelayed(stopServiceRunnable, BACKGROUND_SERVICE_STOP_DELAY_MS)

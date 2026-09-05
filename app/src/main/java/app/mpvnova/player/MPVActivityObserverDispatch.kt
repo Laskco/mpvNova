@@ -48,6 +48,8 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
 )
 
 private val LONG_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
+    "video-dec-params/w" to { applyFireTvVideoEdgeCropIfNeeded() },
+    "video-dec-params/h" to { applyFireTvVideoEdgeCropIfNeeded() },
     "playlist-pos" to { updatePlaylistButtons() },
     "playlist-count" to { updatePlaylistButtons() },
 )

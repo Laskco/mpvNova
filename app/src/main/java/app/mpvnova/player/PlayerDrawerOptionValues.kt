@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 @Suppress("CyclomaticComplexMethod")
 internal fun MPVActivity.drawerOptionValue(option: PlayerDrawerOption): String = when (option) {
+    PlayerDrawerOption.VIDEO_EDGE_CLEANUP -> videoEdgeCleanupLabel()
     PlayerDrawerOption.PREFERRED_DECODER -> {
         val mode = normalizedPreferredDecoderMode(preferredDecoderMode)
         decoderModeCompactLabel(mode)

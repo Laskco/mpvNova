@@ -38,33 +38,29 @@ internal fun fireTvVideoEdgeCrop(
 }
 
 internal fun MPVActivity.applyFireTvVideoEdgeCropIfNeeded() {
-    if (fireTvVideoEdgeCropApplied)
-        return
     val track = selectedVideoTrackEdgeInfo()
-    if (Build.MODEL.equals(FIRE_TV_STICK_4K_2019_MODEL, ignoreCase = true)) {
-        Log.i(
-            MPV_ACTIVITY_TAG,
-            "Fire TV decoder edge probe codec=${track.codec} " +
-                "doviProfile=${track.dolbyVisionProfile} gamma=${track.gamma} " +
-                "size=${track.width}x${track.height}",
-        )
+    val mode = videoEdgeCleanupValue()
+    val crop = videoEdgeCleanupCrop(mode, Build.MODEL, track)
+    videoEdgeCropSession.update(crop, { mpvGetPropertyString("video-crop") }) { value ->
+        setRuntimeOption("video-crop", value)
+        Log.i(MPV_ACTIVITY_TAG, "Video edge cleanup mode=$mode requested=$value " +
+            "applied=${mpvGetPropertyString("video-crop")} size=${track.width}x${track.height} " +
+            "codec=${track.codec} doviProfile=${track.dolbyVisionProfile} gamma=${track.gamma}")
     }
-    val crop = fireTvVideoEdgeCrop(Build.MODEL, track) ?: return
-    setRuntimeOption("video-crop", crop)
-    fireTvVideoEdgeCropApplied = true
-    val appliedCrop = mpvGetPropertyString("video-crop")
-    Log.i(
-        MPV_ACTIVITY_TAG,
-        "Fire TV decoder edge crop requested=$crop applied=$appliedCrop " +
-            "codec=${track.codec} doviProfile=${track.dolbyVisionProfile} gamma=${track.gamma}",
-    )
 }
 
 internal fun MPVActivity.clearFireTvVideoEdgeCrop() {
-    if (!fireTvVideoEdgeCropApplied)
-        return
-    setRuntimeOption("video-crop", "")
-    fireTvVideoEdgeCropApplied = false
+    videoEdgeCropSession.clear({ mpvGetPropertyString("video-crop") }) { setRuntimeOption("video-crop", it) }
+}
+
+internal fun videoEdgeCleanupCrop(mode: String, model: String, track: VideoTrackEdgeInfo): String? {
+    val rows = mode.takeIf { it in VIDEO_EDGE_CLEANUP_VALUES }?.toIntOrNull()
+    return when {
+        mode == "auto" -> fireTvVideoEdgeCrop(model, track)
+        rows != null && track.width > 0 && track.height > rows ->
+            "${track.width}x${track.height - rows}+0+0"
+        else -> null
+    }
 }
 
 private fun selectedVideoTrackEdgeInfo(): VideoTrackEdgeInfo {
@@ -76,8 +72,8 @@ private fun selectedVideoTrackEdgeInfo(): VideoTrackEdgeInfo {
             "current-tracks/video/dolby-vision-profile",
         ),
         gamma = firstStringProperty("video-params/gamma", "video-dec-params/gamma"),
-        width = firstIntProperty(prefix?.let { "$it/demux-w" }, "video-params/w") ?: 0,
-        height = firstIntProperty(prefix?.let { "$it/demux-h" }, "video-params/h") ?: 0,
+        width = firstIntProperty("video-dec-params/w", prefix?.let { "$it/demux-w" }) ?: 0,
+        height = firstIntProperty("video-dec-params/h", prefix?.let { "$it/demux-h" }) ?: 0,
     )
 }
 
@@ -94,11 +90,11 @@ private fun firstStringProperty(vararg names: String?): String = names
     .asSequence()
     .filterNotNull()
     .mapNotNull(::mpvGetPropertyString)
-    .firstOrNull()
+    .firstOrNull { it.isNotBlank() }
     .orEmpty()
 
 private fun firstIntProperty(vararg names: String?): Int? = names
     .asSequence()
     .filterNotNull()
     .mapNotNull(::mpvGetPropertyInt)
-    .firstOrNull()
+    .firstOrNull { it > 0 }

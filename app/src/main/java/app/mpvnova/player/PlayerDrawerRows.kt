@@ -10,6 +10,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     DECODER(PlayerDrawerActionGroup.VIDEO),
     PREFERRED_DECODER(PlayerDrawerActionGroup.VIDEO),
     SHIELD_FALLBACK(PlayerDrawerActionGroup.VIDEO),
+    VIDEO_EDGE_CLEANUP(PlayerDrawerActionGroup.VIDEO),
     ASPECT(PlayerDrawerActionGroup.VIDEO),
     CONTRAST(PlayerDrawerActionGroup.VIDEO),
     BRIGHTNESS(PlayerDrawerActionGroup.VIDEO),
@@ -259,6 +260,11 @@ internal enum class PlayerDrawerOption(
     val titleRes: Int,
     val summaryRes: Int,
 ) {
+    VIDEO_EDGE_CLEANUP(
+        PlayerDrawerAction.VIDEO_EDGE_CLEANUP,
+        R.string.video_edge_cleanup_title,
+        R.string.video_edge_cleanup_summary,
+    ),
     PREFERRED_DECODER(
         PlayerDrawerAction.PREFERRED_DECODER,
         R.string.pref_preferred_decoder_mode_title,
@@ -406,6 +412,7 @@ private fun MPVActivity.addVideoRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.HI10P_FALLBACK)
     rows.addOption(PlayerDrawerOption.SHIELD_FALLBACK)
     rows.addPref(PlayerDrawerPreference.MPEG2_SOFTWARE_FALLBACK)
+    rows.addOption(PlayerDrawerOption.VIDEO_EDGE_CLEANUP)
     rows.addPref(PlayerDrawerPreference.AUTOPAUSE_HI10P)
 }
 

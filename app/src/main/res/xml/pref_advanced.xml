@@ -9,6 +9,7 @@
         <ListPreference android:defaultValue="" android:key="preferred_decoder_mode" android:summary="@string/pref_preferred_decoder_mode_summary" android:title="@string/pref_preferred_decoder_mode_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/settings_category_device_compatibility" app:iconSpaceReserved="false">
+        <ListPreference android:key="video_edge_cleanup" android:defaultValue="off" android:title="@string/video_edge_cleanup_title" android:dialogMessage="@string/video_edge_cleanup_summary" android:entries="@array/video_edge_cleanup_entries" android:entryValues="@array/video_edge_cleanup_values" app:useSimpleSummaryProvider="true" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:key="hi10p_fallback" android:summary="@string/pref_hi10p_fallback_summary" android:title="@string/pref_hi10p_fallback_title" app:iconSpaceReserved="false" />
         <app.mpvnova.player.preferences.ShieldFallbackDialogPreference android:key="shield_decoder_fallback" android:title="@string/pref_shield_decoder_fallback_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:key="mpeg2_software_fallback" android:summary="@string/pref_mpeg2_software_fallback_summary" android:title="@string/pref_mpeg2_software_fallback_title" app:iconSpaceReserved="false" />
