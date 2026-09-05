@@ -19,6 +19,7 @@ def hasReleaseSigning = [releaseStoreFile, releaseStorePassword, releaseKeyAlias
 android {
     namespace = 'app.mpvnova.player'
     compileSdk = 37
+    ndkVersion = '29.0.14206865'
 
     defaultConfig {
         minSdk = 23
@@ -70,14 +71,13 @@ android {
 
     packaging {
         jniLibs {
-            // These bundled mpv/FFmpeg libraries are already packaged as-is by AGP.
+            // Keep the pre-stripped player libraries intact; let the NDK strip libc++.
             keepDebugSymbols += [
                 "**/libavcodec.so",
                 "**/libavdevice.so",
                 "**/libavfilter.so",
                 "**/libavformat.so",
                 "**/libavutil.so",
-                "**/libc++_shared.so",
                 "**/libmpv.so",
                 "**/libplayer.so",
                 "**/libswresample.so",
