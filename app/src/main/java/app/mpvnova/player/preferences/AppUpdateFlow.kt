@@ -4,7 +4,10 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
+import androidx.annotation.RequiresApi
 import androidx.core.content.FileProvider
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
@@ -35,29 +38,29 @@ internal fun AppUpdateManager.showUpdateResult(
 }
 
 internal fun AppUpdateManager.downloadUpdate(release: ReleaseInfo) {
-    showBusy(activity.getString(R.string.update_downloading, release.assetName))
-    Thread {
-        val result = runCatching {
+    runUpdateOperation(
+        message = activity.getString(R.string.update_downloading, release.assetName),
+        operation = {
             cleanupUpdateCache()
             downloadApk(release)
-        }
-        runOnUiThread {
-            hideBusy()
-            result.fold(
-                onSuccess = { file -> showDownloadedUpdateDialog(release, file) },
-                onFailure = { error ->
-                    showError(
-                        activity.getString(
-                            R.string.update_download_failed,
-                            error.cleanMessage(),
-                        )
+        },
+        onDiscard = ::releaseDownloadedApk,
+    ) { result ->
+        result.fold(
+            onSuccess = { file -> showDownloadedUpdateDialog(release, file) },
+            onFailure = { error ->
+                showError(
+                    activity.getString(
+                        R.string.update_download_failed,
+                        error.cleanMessage(),
                     )
-                }
-            )
-        }
-    }.start()
+                )
+            }
+        )
+    }
 }
 
+@Suppress("DEPRECATION")
 internal fun AppUpdateManager.installDownloadedApk(tagName: String?, apkFile: File) {
     if (!apkFile.exists()) {
         showError(activity.getString(R.string.update_download_missing))
@@ -65,43 +68,54 @@ internal fun AppUpdateManager.installDownloadedApk(tagName: String?, apkFile: Fi
     }
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !activity.packageManager.canRequestPackageInstalls()) {
-        pendingInstallApk = apkFile
-        rememberPendingUpdate(tagName, apkFile)
-        showGlassDialog(
-            GlassDialogOptions(
-                title = activity.getString(R.string.update_install_permission_title),
-                notes = activity.getString(R.string.update_install_permission_message),
-                primaryText = activity.getString(R.string.update_open_permission_settings),
-                onPrimary = {
-                val intent = Intent(
-                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                    Uri.parse("package:${activity.packageName}")
-                )
-                activity.startActivity(intent)
-                },
-            )
-        )
+        showInstallPermissionDialog(tagName, apkFile)
         return
     }
 
-    val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
-    val uri = FileProvider.getUriForFile(activity, authority, apkFile)
-    val installIntent = Intent(Intent.ACTION_VIEW)
-        .setDataAndType(uri, APK_MIME_TYPE)
-        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-
     try {
-        rememberPendingUpdate(tagName, apkFile)
-        activity.startActivity(installIntent)
+        val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
+        val uri = FileProvider.getUriForFile(activity, authority, apkFile)
+        val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
+            .setDataAndType(uri, APK_MIME_TYPE)
+            .putExtra(Intent.EXTRA_RETURN_RESULT, true)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        launchApkInstaller(tagName, apkFile, installIntent)
     } catch (error: ActivityNotFoundException) {
         showError(activity.getString(R.string.update_installer_missing, error.cleanMessage()))
+    } finally {
+        releaseDownloadedApk(apkFile)
     }
 }
 
-internal fun AppUpdateManager.runOnUiThread(block: () -> Unit) {
-    activity.runOnUiThread {
-        if (!activity.isFinishing && !activity.isDestroyed)
-            block()
+@RequiresApi(Build.VERSION_CODES.O)
+private fun AppUpdateManager.showInstallPermissionDialog(tagName: String?, apkFile: File) {
+    cancelPendingInstall()
+    pendingInstallApk = apkFile
+    pendingInstallTag = tagName
+    val options = GlassDialogOptions(
+        title = activity.getString(R.string.update_install_permission_title),
+        notes = activity.getString(R.string.update_install_permission_message),
+        primaryText = activity.getString(R.string.update_open_permission_settings),
+        onPrimary = {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${activity.packageName}")
+            )
+            activity.startActivity(intent)
+            permissionSettingsOpened = true
+        },
+    )
+    var shown = false
+    try {
+        showGlassDialog(options).setOnDismissListener {
+            Handler(Looper.getMainLooper()).post {
+                if (!permissionSettingsOpened && pendingInstallApk == apkFile)
+                    cancelPendingInstall()
+            }
+        }
+        shown = true
+    } finally {
+        if (!shown)
+            cancelPendingInstall()
     }
 }

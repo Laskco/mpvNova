@@ -2,6 +2,8 @@ package app.mpvnova.player.preferences
 
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
+import android.os.Handler
+import android.os.Looper
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
@@ -47,7 +49,12 @@ internal fun AppUpdateManager.showDownloadedUpdateDialog(release: ReleaseInfo, a
             primaryText = activity.getString(R.string.update_install),
             onPrimary = { installDownloadedApk(release.tagName, apkFile) }
         )
-    )
+    ).setOnDismissListener {
+        Handler(Looper.getMainLooper()).post {
+            if (pendingInstallApk != apkFile)
+                releaseDownloadedApk(apkFile)
+        }
+    }
 }
 
 internal fun AppUpdateManager.showBusy(message: String) {
