@@ -18,6 +18,8 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.FileObserver;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
@@ -264,6 +266,10 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     public Loader<List<File>> getLoader() {
         return new AsyncTaskLoader<>(requireContext()) {
             FileObserver fileObserver;
+            private final Handler observerHandler = new Handler(Looper.getMainLooper());
+            private final Runnable refreshFiles = () -> {
+                if (isStarted()) onContentChanged();
+            };
 
             @Override
             public List<File> loadInBackground() {
@@ -300,6 +306,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
 
                 // Start watching for changes
+                stopWatching();
                 fileObserver = createFileObserver(mCurrentPath);
                 fileObserver.startWatching();
 
@@ -315,7 +322,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                     return new FileObserver(path, mask) {
                         @Override
                         public void onEvent(int event, String path) {
-                            onContentChanged();
+                            scheduleRefresh();
                         }
                     };
                 }
@@ -327,19 +334,31 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 return new FileObserver(path, mask) {
                     @Override
                     public void onEvent(int event, String path) {
-                        onContentChanged();
+                        scheduleRefresh();
                     }
                 };
             }
 
-            /**
-             * Handles a request to completely reset the Loader.
-             */
+            private void scheduleRefresh() {
+                // FileObserver delivers on its own thread; Loader state belongs to the main thread.
+                observerHandler.removeCallbacks(refreshFiles);
+                observerHandler.post(refreshFiles);
+            }
+
+            @Override
+            protected void onStopLoading() {
+                cancelLoad();
+                stopWatching();
+            }
+
             @Override
             protected void onReset() {
                 super.onReset();
+                onStopLoading();
+            }
 
-                // Stop watching
+            private void stopWatching() {
+                observerHandler.removeCallbacks(refreshFiles);
                 if (fileObserver != null) {
                     fileObserver.stopWatching();
                     fileObserver = null;
