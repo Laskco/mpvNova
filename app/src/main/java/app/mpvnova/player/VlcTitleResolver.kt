@@ -115,6 +115,7 @@ object VlcTitleResolver {
     private fun normalizeReleaseTitle(value: String): String? {
         return value
             .replace(RELEASE_SEPARATOR_PATTERN, " ")
+            .let(::cleanTitleBrackets)
             .replace(RELEASE_WHITESPACE_PATTERN, " ")
             .trim(' ', '.', '_', '-')
             .takeIf { it.isNotBlank() }

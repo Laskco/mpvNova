@@ -21,7 +21,8 @@ internal object PlayerTitleResolver {
                 ?: episodeTitleParts(fallbackTitle)
                 ?: candidates.firstOrNull()
             if (primaryParts == null) {
-                PlayerTitlePresentation(fallbackTitle)
+                cleanTitleBrackets(fallbackTitle).takeIf { it.isNotBlank() }
+                    ?.let { PlayerTitlePresentation(it) }
             } else {
                 val episodeTitle = candidates.firstNotNullOfOrNull { candidate ->
                     candidate.episodeTitle.takeIf {
@@ -67,7 +68,8 @@ internal object PlayerTitleResolver {
     private fun normalizeTitle(value: String): String? {
         return value
             .replace(RELEASE_SEPARATOR_PATTERN, " ")
-            .trim(' ', '-', '_', '.', '[', ']', '(', ')')
+            .let(::cleanTitleBrackets)
+            .trim(' ', '-', '_', '.')
             .replace(RELEASE_WHITESPACE_PATTERN, " ")
             .trim()
             .takeIf { it.isNotBlank() }
