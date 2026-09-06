@@ -24,7 +24,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/tmdb_category" app:iconSpaceReserved="false">
-        <SwitchPreferenceCompat android:defaultValue="false" android:key="tmdb_title_lookup" android:summary="@string/tmdb_lookup_summary" android:title="@string/tmdb_lookup_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:icon="@drawable/tmdb_logo" android:key="tmdb_title_lookup" android:summary="@string/tmdb_lookup_summary" android:title="@string/tmdb_lookup_title" app:iconSpaceReserved="false" />
         <Preference android:key="tmdb_read_token" android:title="@string/tmdb_token_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 

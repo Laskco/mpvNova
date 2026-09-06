@@ -53,7 +53,7 @@ token field is masked. Clear the field and save to remove the token.
 Title metadata is provided by [The Movie Database](https://www.themoviedb.org).
 This product uses the TMDB API but is not endorsed or certified by TMDB.
 
-The unmodified TMDB logo in the About screen is the existing TMDB brand asset
+The unmodified TMDB logo beside the title-lookup setting is the existing TMDB brand asset
 also used by NuvioTV (`rating_tmdb.png`). TMDB's
 [attribution requirements](https://www.themoviedb.org/about/logos-attribution)
 apply to that asset and the API data.
