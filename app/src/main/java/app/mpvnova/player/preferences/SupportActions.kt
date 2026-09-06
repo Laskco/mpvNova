@@ -40,6 +40,7 @@ import java.util.zip.ZipOutputStream
 
 object SupportActions {
     private val PLAYER_UI_KEYS = arrayOf(
+        "tmdb_title_lookup",
         "display_media_title",
         "display_clock_overlay",
         "display_clock_date",

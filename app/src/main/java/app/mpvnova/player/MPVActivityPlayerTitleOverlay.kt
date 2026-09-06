@@ -56,7 +56,7 @@ private fun MPVActivity.resolvePlayerTitlePresentation(title: String): PlayerTit
         sourceTitle = currentPlayerTitleSource,
         mediaTitle = psc.meta.mediaTitle,
         fileName = currentFileName,
-    ) ?: PlayerTitlePresentation(title)
+    ).let { tmdbTitleController.resolve(it ?: PlayerTitlePresentation(title), currentFileName) }
 
 private fun MPVActivity.bindPlayerTitlePresentation(
     presentation: PlayerTitlePresentation,

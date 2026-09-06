@@ -964,6 +964,7 @@ class PreferenceActivity : AppCompatActivity(),
 
     class UIPreference : StyledPreferenceFragment(R.xml.pref_ui) {
         override fun onPreferencesLoaded() {
+            bindTmdbPreferences()
             findPreference<Preference>("reset_player_ui_settings")?.setOnPreferenceClickListener {
                 showSettingsConfirmationDialog(
                     title = getString(R.string.pref_reset_player_ui_confirm_title),

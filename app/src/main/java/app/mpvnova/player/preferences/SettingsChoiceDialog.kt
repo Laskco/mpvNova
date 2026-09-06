@@ -90,6 +90,7 @@ internal fun Fragment.showSettingsInputDialog(
     message: CharSequence?,
     initialValue: String,
     inputType: Int = InputType.TYPE_CLASS_TEXT,
+    validate: (String) -> CharSequence? = { null },
     onConfirm: (String) -> Unit,
 ) {
     val binding = DialogSettingsInputBinding.inflate(layoutInflater)
@@ -102,8 +103,15 @@ internal fun Fragment.showSettingsInputDialog(
     val dialog = AlertDialog.Builder(requireActivity()).setView(binding.root).create()
     binding.inputCancelBtn.setOnClickListener { dialog.dismiss() }
     binding.inputOkBtn.setOnClickListener {
-        onConfirm(binding.inputValue.text?.toString().orEmpty())
-        dialog.dismiss()
+        val value = binding.inputValue.text?.toString().orEmpty()
+        val error = validate(value)
+        if (error == null) {
+            onConfirm(value)
+            dialog.dismiss()
+        } else {
+            binding.inputValue.error = error
+            binding.inputValue.requestFocus()
+        }
     }
     dialog.show()
     dialog.styleAsTvPanel()

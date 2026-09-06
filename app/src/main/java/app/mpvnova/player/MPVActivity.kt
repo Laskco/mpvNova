@@ -372,6 +372,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var currentItemTitle: String? = null
     internal var currentFileName: String? = null
     internal var currentVideoTitle: String? = null
+    internal val tmdbTitleController by lazy { TmdbTitleController(this) { updatePlayerTitleOverlay() } }
     internal var playerTitleStyle = PlayerTitleStyle.DEFAULT
     internal var appliedPlayerTitleStyle: PlayerTitleStyle? = null
     internal var playerTextStylePreviewActive = false
@@ -531,6 +532,7 @@ open class MPVActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.v(MPV_ACTIVITY_TAG, "Exiting.")
+        tmdbTitleController.close()
         activityIsForeground = false
         player.releaseAllMpvKeys()
         cancelAllScheduledWork()

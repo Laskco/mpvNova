@@ -23,6 +23,11 @@
         <SwitchPreferenceCompat android:defaultValue="false" android:key="display_clock_24_hour" android:summary="@string/pref_display_clock_24_hour_summary" android:title="@string/pref_display_clock_24_hour_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
+    <PreferenceCategory android:title="@string/tmdb_category" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="tmdb_title_lookup" android:summary="@string/tmdb_lookup_summary" android:title="@string/tmdb_lookup_title" app:iconSpaceReserved="false" />
+        <Preference android:key="tmdb_read_token" android:title="@string/tmdb_token_title" app:iconSpaceReserved="false" />
+    </PreferenceCategory>
+
     <PreferenceCategory android:title="@string/settings_category_seek_display" app:iconSpaceReserved="false">
         <SwitchPreferenceCompat android:defaultValue="false" android:key="hide_controls_while_seeking" android:summary="@string/pref_hide_controls_while_seeking_summary" android:title="@string/pref_hide_controls_while_seeking_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="minimal_seekbar_while_seeking" android:summary="@string/pref_minimal_seekbar_while_seeking_summary" android:title="@string/pref_minimal_seekbar_while_seeking_title" app:iconSpaceReserved="false" />

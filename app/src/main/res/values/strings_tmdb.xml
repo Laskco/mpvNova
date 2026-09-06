@@ -1,0 +1,18 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="tmdb_category">Title lookup</string>
+    <string name="tmdb_logo_description">The Movie Database</string>
+    <string name="tmdb_lookup_title">Look up titles with TMDB</string>
+    <string name="tmdb_lookup_summary">Use TMDB titles for matching shows and episodes, or movies with a known year. Sends cleaned titles and season/episode numbers to TMDB. Keeps local titles when no clear match is found. Episode ordering can differ between releases and TMDB.</string>
+    <string name="tmdb_token_title">TMDB API Key</string>
+    <string name="tmdb_token_missing">Not set</string>
+    <string name="tmdb_token_saved">Key saved. Save again to verify with TMDB.</string>
+    <string name="tmdb_key_checking">Key saved. Checking with TMDB\u2026</string>
+    <string name="tmdb_key_verified">Last check: verified by TMDB</string>
+    <string name="tmdb_key_rejected">Rejected by TMDB. Check or replace your API key.</string>
+    <string name="tmdb_key_unavailable">Could not verify with TMDB. Key is saved; check your connection and save again to retry.</string>
+    <string name="tmdb_token_removed">Credential removed</string>
+    <string name="tmdb_token_help">Enter the 32-character API Key from themoviedb.org/settings/api. Do not enter the API Read Access Token or your account password. Saving checks the key with TMDB. Stored only on this device and excluded from backups and support exports. Clear this field and save to remove it.</string>
+    <string name="tmdb_token_invalid">Enter the 32-character TMDB API Key using letters A-F and numbers 0-9, not the read access token or account password. Clear the field to remove the saved credential.</string>
+    <string name="tmdb_token_save_failed">Could not save the credential. Please try again.</string>
+    <string name="tmdb_attribution">This product uses the TMDB API but is not endorsed or certified by TMDB.</string>
+</resources>
