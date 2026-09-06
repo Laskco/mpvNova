@@ -17,27 +17,57 @@ internal object PlayerTitleResolver {
         return displayTitle?.trim()?.takeIf { it.isNotBlank() }?.let { fallbackTitle ->
             val candidates = listOfNotNull(sourceTitle, fallbackTitle, mediaTitle, fileName)
                 .mapNotNull(::episodeTitleParts)
+            val release = AnimeReleaseTitle.parse(sourceTitle) ?: AnimeReleaseTitle.parse(fileName)
             val primaryParts = episodeTitleParts(sourceTitle)
                 ?: episodeTitleParts(fallbackTitle)
                 ?: candidates.firstOrNull()
             if (primaryParts == null) {
-                cleanTitleBrackets(fallbackTitle).takeIf { it.isNotBlank() }
-                    ?.let { PlayerTitlePresentation(it) }
+                if (release != null && acceptsRelease(sourceTitle, release)) {
+                    release.copy(episodeTitle = release.episodeTitle
+                        ?: embeddedEpisodeTitle(mediaTitle, release.title, sourceTitle, fileName))
+                } else {
+                    cleanTitleBrackets(fallbackTitle).takeIf { it.isNotBlank() }
+                        ?.let { PlayerTitlePresentation(it) }
+                }
             } else {
                 val episodeTitle = candidates.firstNotNullOfOrNull { candidate ->
                     candidate.episodeTitle.takeIf {
                         candidate.season == primaryParts.season &&
-                            candidate.episode == primaryParts.episode
+                            candidate.episode == primaryParts.episode &&
+                            sameSeriesTitle(candidate.seriesTitle, primaryParts.seriesTitle)
                     }
                 }
                 PlayerTitlePresentation(
                     title = primaryParts.seriesTitle.ifBlank { fallbackTitle },
                     season = primaryParts.season,
                     episode = primaryParts.episode,
-                    episodeTitle = episodeTitle,
+                    episodeTitle = episodeTitle ?: embeddedEpisodeTitle(
+                        mediaTitle, primaryParts.seriesTitle, sourceTitle, fileName),
                 )
             }
-        }
+        }?.let(::cleanEpisodeTitle)
+    }
+
+    private fun acceptsRelease(sourceTitle: String?, release: PlayerTitlePresentation): Boolean =
+        sourceTitle.isNullOrBlank() || AnimeReleaseTitle.parse(sourceTitle) != null ||
+            sameSeriesTitle(sourceTitle, release.title)
+
+    private fun embeddedEpisodeTitle(
+        mediaTitle: String?, seriesTitle: String, sourceTitle: String?, fileName: String?,
+    ): String? {
+        val title = mediaTitle?.trim()?.takeIf { it.isNotBlank() && it.length <= MAX_EMBEDDED_TITLE_LENGTH }
+            ?: return null
+        val duplicatesSource = title == fileName || title == sourceTitle || sameSeriesTitle(title, seriesTitle)
+        return title.takeUnless { duplicatesSource || isReleaseMetadata(it) }
+            ?.let(::cleanTitleBrackets)?.takeIf { it.any(Char::isLetter) }
+    }
+
+    private fun isReleaseMetadata(title: String): Boolean {
+        val isPath = title.contains("://") || title.contains('\\')
+        val isFilename = FINAL_MEDIA_EXTENSION_PATTERN.containsMatchIn(title) ||
+            SEASON_EPISODE_CAPTURE_PATTERN.containsMatchIn(title)
+        val isCredit = RELEASE_TAG_PATTERN.containsMatchIn(title) || ENCODER_CREDIT_PATTERN.containsMatchIn(title)
+        return isPath || isFilename || isCredit
     }
 
     private fun episodeTitleParts(candidate: String?): EpisodeTitleParts? {
@@ -99,4 +129,8 @@ internal object PlayerTitleResolver {
     private val FINAL_MEDIA_EXTENSION_PATTERN =
         Regex("(?i)\\.(?:mkv|mp4|m4v|webm|avi|mov|ts|m2ts)$")
     private val MEDIA_EXTENSIONS = setOf("mkv", "mp4", "m4v", "webm", "avi", "mov", "ts", "m2ts")
+    private const val MAX_EMBEDDED_TITLE_LENGTH = 512
+    private val ENCODER_CREDIT_PATTERN = Regex(
+        """(?i)\b(?:encoded|encoding|ripped|rip|muxed|uploaded|release)\s+by\b|\bwww\.|\.(?:com|net|org)\b""",
+    )
 }
