@@ -1,0 +1,18 @@
+[package]
+name = "mpvnova-anitomy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "mpvnova_anitomy"
+crate-type = ["cdylib"]
+
+[dependencies]
+anitomy-ng = "=1.0.9"
+jni = { version = "=0.21.1", default-features = false }
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = "symbols"

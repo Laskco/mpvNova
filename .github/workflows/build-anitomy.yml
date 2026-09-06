@@ -1,0 +1,24 @@
+name: build-anitomy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  parser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install pinned Android NDK
+        run: sdkmanager "ndk;29.0.14206865"
+      - name: Build parser for all Android architectures
+        shell: pwsh
+        run: ./buildscripts/build-anitomy.ps1 -AndroidNdk "$env:ANDROID_HOME/ndk/29.0.14206865"
+      - name: Upload parser libraries
+        uses: actions/upload-artifact@v7
+        with:
+          name: anitomy-android-all-abis
+          if-no-files-found: error
+          path: app/src/main/jniLibs/*/libmpvnova_anitomy.so

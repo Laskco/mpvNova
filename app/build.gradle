@@ -80,6 +80,7 @@ android {
                 "**/libavutil.so",
                 "**/libmpv.so",
                 "**/libplayer.so",
+                "**/libmpvnova_anitomy.so",
                 "**/libswresample.so",
                 "**/libswscale.so",
             ]
