@@ -21,7 +21,7 @@ v_fontconfig=2.18.3
 v_libass=0.17.5
 v_libplacebo=7.371.0
 v_curl=8.21.0
-v_mpv=9ce79bcaa0132660a2e45b6bfc1fb0c199665277
+v_mpv=7b8915bc1d04c7e1b61184e00c7fbfaab1911e75
 
 
 ## Dependency tree

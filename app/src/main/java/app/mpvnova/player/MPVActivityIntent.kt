@@ -55,7 +55,9 @@ internal fun MPVActivity.resolveUri(data: Uri): String? {
         "content" -> translateContentUri(data)
         // mpv supports data URIs but needs data:// to pass it through correctly
         "data" -> "data://${data.schemeSpecificPart}"
-        "http", "https", "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
+        // mpv escapes its HTTP request separately; keep the original filename for sub-auto.
+        "http", "https" -> data.toString()
+        "rtmp", "rtmps", "rtp", "rtsp", "mms", "mmst", "mmsh",
         "tcp", "udp", "lavf", "ftp"
         -> encodeUnsafeNetworkUrlCharacters(data.toString())
         else -> null

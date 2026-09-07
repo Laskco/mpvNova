@@ -19,6 +19,7 @@ meson setup $build --cross-file "$prefix_dir"/crossfile.txt \
 	--default-library shared \
 	-Diconv=disabled -Dlua=enabled \
 	-Dlibmpv=true -Dcplayer=false \
+	-Dlibcurl=enabled \
 	-Dmanpage-build=disabled
 
 ninja -C $build -j$cores
