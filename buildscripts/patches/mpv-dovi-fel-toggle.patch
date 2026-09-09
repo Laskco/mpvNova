@@ -1,0 +1,357 @@
+diff --git a/DOCS/man/options.rst b/DOCS/man/options.rst
+index 8267e17630..e9a6d7134a 100644
+--- a/DOCS/man/options.rst
++++ b/DOCS/man/options.rst
+@@ -1962,6 +1962,18 @@ Video
+     compensation, assuming use of the default quantization matrix, assuming YUV
+     4:2:0 and skipping a few checks to detect damaged bitstreams.
+ 
++``--vd-lavc-dovi-fel=<yes|no>`` (mpvNova)
++    Decode Dolby Vision Profile 7 enhancement layers (default: no). When
++    disabled, do not create or automatically pair an enhancement-layer
++    decoder, and remove interleaved enhancement-layer video before base-layer
++    decoding. Keep the base layer and any RPU metadata carried with it.
++    Separate-track sources whose RPU exists only in the enhancement track
++    fall back to their base layer without that metadata.
++
++    Set this before loading the file. Reload the file after changing it;
++    unlike the format filter's enhancement-layer option, this controls the
++    decoding pipeline itself. Other Dolby Vision profiles are unaffected.
++
+ ``--vd-lavc-o=<key>=<value>[,<key>=<value>[,...]]``
+     Pass AVOptions to libavcodec decoder. Note, a patch to make the ``o=``
+     unneeded and pass all unknown options through the AVOption system is
+diff --git a/demux/demux_lavf.c b/demux/demux_lavf.c
+index ef91c07ffa..b38ad91f14 100644
+--- a/demux/demux_lavf.c
++++ b/demux/demux_lavf.c
+@@ -53,6 +53,7 @@
+ 
+ #include "demux.h"
+ #include "dovi_split.h"
++#include "video/decode/vd_lavc.h"
+ #include "stheader.h"
+ #include "options/m_config.h"
+ #include "options/m_option.h"
+@@ -1318,6 +1319,12 @@ static void handle_layered_video_group(demuxer_t *demuxer, AVStreamGroup *stg)
+     if (!el_sh || !bl_sh)
+         return;
+ 
++    el_sh->dependent_track = true;
++    if (!mp_vd_lavc_dovi_fel_enabled(demuxer->global)) {
++        MP_VERBOSE(demuxer, "Dolby Vision FEL decoding disabled; not pairing EL track.\n");
++        return;
++    }
++
+     // Group storage is attached to the BL so its lifetime tracks the demuxer.
+     struct sh_stream_group *group = talloc_zero(bl_sh, struct sh_stream_group);
+     MP_TARRAY_APPEND(group, group->members, group->num_members, bl_sh);
+diff --git a/demux/demux_mkv.c b/demux/demux_mkv.c
+index e9159d752b..ade497112d 100644
+--- a/demux/demux_mkv.c
++++ b/demux/demux_mkv.c
+@@ -56,6 +56,7 @@
+ #include "video/mp_image.h"
+ #include "demux.h"
+ #include "dovi_split.h"
++#include "video/decode/vd_lavc.h"
+ #include "packet_pool.h"
+ #include "stheader.h"
+ #include "ebml.h"
+@@ -2312,6 +2313,12 @@ static void pair_dovi_tracks(demuxer_t *demuxer)
+     struct sh_stream *bl_sh = bl_track->stream;
+     struct sh_stream *el_sh = el_track->stream;
+ 
++    el_sh->dependent_track = true;
++    if (!mp_vd_lavc_dovi_fel_enabled(demuxer->global)) {
++        MP_VERBOSE(demuxer, "Dolby Vision FEL decoding disabled; not pairing EL track.\n");
++        return;
++    }
++
+     // Group storage is attached to the BL so its lifetime tracks the demuxer.
+     struct sh_stream_group *group = talloc_zero(bl_sh, struct sh_stream_group);
+     MP_TARRAY_APPEND(group, group->members, group->num_members, bl_sh);
+diff --git a/demux/dovi_split.c b/demux/dovi_split.c
+index cfe27185da..5d2a247e24 100644
+--- a/demux/dovi_split.c
++++ b/demux/dovi_split.c
+@@ -31,6 +31,7 @@
+ #include "demux/stheader.h"
+ #include "dovi_split.h"
+ #include "mpv_talloc.h"
++#include "video/decode/vd_lavc.h"
+ 
+ struct mp_dovi_split {
+     struct mp_log *log;
+@@ -55,6 +56,11 @@ struct mp_dovi_split *mp_dovi_split_create(struct demuxer *demuxer,
+         !bl->codec->codec || strcmp(bl->codec->codec, "hevc") != 0)
+         return NULL;
+ 
++    if (!mp_vd_lavc_dovi_fel_enabled(demuxer->global)) {
++        MP_VERBOSE(demuxer, "Dolby Vision FEL decoding disabled; not creating EL stream.\n");
++        return NULL;
++    }
++
+     const AVBitStreamFilter *def = av_bsf_get_by_name("dovi_split");
+     if (!def) {
+         MP_WARN(demuxer, "Dolby Vision EL: 'dovi_split' BSF not available in "
+diff --git a/video/decode/vd_lavc.c b/video/decode/vd_lavc.c
+index 6ecb233b49..76e9deab4a 100644
+--- a/video/decode/vd_lavc.c
++++ b/video/decode/vd_lavc.c
+@@ -22,8 +22,10 @@
+ #include <stdbool.h>
+ 
+ #include <libavcodec/avcodec.h>
++#include <libavcodec/bsf.h>
+ #include <libavformat/version.h>
+ #include <libavutil/common.h>
++#include <libavutil/dovi_meta.h>
+ #include <libavutil/hwcontext.h>
+ #include <libavutil/opt.h>
+ #include <libavutil/intreadwrite.h>
+@@ -39,6 +41,7 @@
+ #include "common/codecs.h"
+ 
+ #include "video/fmt-conversion.h"
++#include "video/decode/vd_lavc.h"
+ 
+ #include "filters/f_decoder_wrapper.h"
+ #include "filters/filter_internal.h"
+@@ -90,6 +93,7 @@ struct vd_lavc_params {
+     bool old_x264;
+     bool apply_cropping;
+     bool check_hw_profile;
++    bool dovi_fel;
+     char **avopts;
+     int dr;
+ };
+@@ -119,6 +123,7 @@ const struct m_sub_options vd_lavc_conf = {
+         {"vd-lavc-bitexact", OPT_BOOL(bitexact)},
+         {"vd-lavc-assume-old-x264", OPT_BOOL(old_x264)},
+         {"vd-lavc-check-hw-profile", OPT_BOOL(check_hw_profile)},
++        {"vd-lavc-dovi-fel", OPT_BOOL(dovi_fel)},
+         {"vd-lavc-o", OPT_KEYVALUELIST(avopts)},
+         {"vd-lavc-dr", OPT_CHOICE(dr,
+             {"auto", -1}, {"no", 0}, {"yes", 1})},
+@@ -130,6 +135,7 @@ const struct m_sub_options vd_lavc_conf = {
+     .defaults = &(const struct vd_lavc_params){
+         .film_grain = -1 /*auto*/,
+         .check_hw_profile = true,
++        .dovi_fel = false,
+         .skip_loop_filter = AVDISCARD_DEFAULT,
+         .skip_idct = AVDISCARD_DEFAULT,
+         .skip_frame = AVDISCARD_DEFAULT,
+@@ -139,6 +145,14 @@ const struct m_sub_options vd_lavc_conf = {
+     },
+ };
+ 
++bool mp_vd_lavc_dovi_fel_enabled(struct mpv_global *global)
++{
++    struct vd_lavc_params *opts = mp_get_config_group(NULL, global, &vd_lavc_conf);
++    bool enabled = opts->dovi_fel;
++    talloc_free(opts);
++    return enabled;
++}
++
+ #undef OPT_BASE_STRUCT
+ #define OPT_BASE_STRUCT struct hwdec_opts
+ 
+@@ -205,6 +219,10 @@ typedef struct lavc_ctx {
+     AVCodecContext *avctx;
+     AVFrame *pic;
+     AVPacket *avpkt;
++    AVPacket *dovi_in_pkt;
++    AVPacket *dovi_pkt;
++    AVBSFContext *dovi_bsf;
++    bool dovi_pkt_pending;
+     bool use_hwdec;
+     struct hwdec_info hwdec; // valid only if use_hwdec==true
+     bstr *attempted_hwdecs;
+@@ -724,6 +742,72 @@ static void reinit(struct mp_filter *vd)
+     ctx->wait_for_keyframe = ctx->use_hwdec ? HWDEC_WAIT_KEYFRAME_COUNT : 0;
+ }
+ 
++static int init_dovi_bsf(struct mp_filter *vd, AVCodecContext *avctx)
++{
++    vd_ffmpeg_ctx *ctx = vd->priv;
++
++    if (avctx->codec_id != AV_CODEC_ID_HEVC || ctx->opts->dovi_fel)
++        return 0;
++
++    bool has_fel = false;
++    for (int n = 0; n < avctx->nb_coded_side_data; n++) {
++        const AVPacketSideData *side_data = &avctx->coded_side_data[n];
++        if (side_data->type != AV_PKT_DATA_DOVI_CONF ||
++            side_data->size < sizeof(AVDOVIDecoderConfigurationRecord))
++            continue;
++
++        const AVDOVIDecoderConfigurationRecord *dovi = (void *)side_data->data;
++        has_fel = dovi->dv_profile == 7 && dovi->el_present_flag;
++        break;
++    }
++    if (!has_fel)
++        return 0;
++
++    const AVBitStreamFilter *filter = av_bsf_get_by_name("dovi_split");
++    if (!filter) {
++        MP_ERR(vd, "FFmpeg was built without the dovi_split filter.\n");
++        return AVERROR_BSF_NOT_FOUND;
++    }
++
++    AVBSFContext *bsf = NULL;
++    AVPacket *in_pkt = NULL;
++    AVPacket *out_pkt = NULL;
++    int ret = av_bsf_alloc(filter, &bsf);
++    if (ret < 0)
++        return ret;
++
++    ret = avcodec_parameters_from_context(bsf->par_in, avctx);
++    if (ret < 0)
++        goto fail;
++
++    bsf->time_base_in = ctx->codec_timebase;
++    ret = av_opt_set(bsf->priv_data, "mode", "bl_rpu", 0);
++    if (ret < 0)
++        goto fail;
++
++    ret = av_bsf_init(bsf);
++    if (ret < 0)
++        goto fail;
++
++    in_pkt = av_packet_alloc();
++    out_pkt = av_packet_alloc();
++    if (!in_pkt || !out_pkt) {
++        ret = AVERROR(ENOMEM);
++        goto fail;
++    }
++    ctx->dovi_in_pkt = in_pkt;
++    ctx->dovi_pkt = out_pkt;
++    ctx->dovi_bsf = bsf;
++    MP_VERBOSE(vd, "Dolby Vision FEL disabled: decoding base layer with RPU metadata.\n");
++    return 0;
++
++fail:
++    av_packet_free(&in_pkt);
++    av_packet_free(&out_pkt);
++    av_bsf_free(&bsf);
++    return ret;
++}
++
+ static void init_avctx(struct mp_filter *vd)
+ {
+     vd_ffmpeg_ctx *ctx = vd->priv;
+@@ -867,6 +951,11 @@ static void init_avctx(struct mp_filter *vd)
+         goto error;
+     }
+ 
++    if (init_dovi_bsf(vd, avctx) < 0) {
++        MP_ERR(vd, "Could not configure Dolby Vision FEL handling.\n");
++        goto error;
++    }
++
+ #ifdef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
+     if (avctx->width > 8192 || avctx->height > 8192) {
+         MP_ERR(vd, "Frame size too big %" PRIu32 "x%" PRIu32 ".\n", avctx->width, avctx->height);
+@@ -903,6 +992,13 @@ static void reset_avctx(struct mp_filter *vd)
+ 
+     if (ctx->avctx && avcodec_is_open(ctx->avctx))
+         avcodec_flush_buffers(ctx->avctx);
++    if (ctx->dovi_bsf)
++        av_bsf_flush(ctx->dovi_bsf);
++    if (ctx->dovi_in_pkt)
++        av_packet_unref(ctx->dovi_in_pkt);
++    if (ctx->dovi_pkt)
++        av_packet_unref(ctx->dovi_pkt);
++    ctx->dovi_pkt_pending = false;
+     ctx->flushing = false;
+     ctx->hwdec_request_reinit = false;
+     // Wait for the first keyframe after reset to ensure the decoder state is
+@@ -936,6 +1032,9 @@ static void uninit_avctx(struct mp_filter *vd)
+     flush_all(vd);
+     av_frame_free(&ctx->pic);
+     mp_free_av_packet(&ctx->avpkt);
++    av_packet_free(&ctx->dovi_in_pkt);
++    av_packet_free(&ctx->dovi_pkt);
++    av_bsf_free(&ctx->dovi_bsf);
+     av_buffer_unref(&ctx->cached_hw_frames_ctx);
+ 
+     avcodec_free_context(&ctx->avctx);
+@@ -1217,6 +1316,52 @@ static void handle_err(struct mp_filter *vd)
+     }
+ }
+ 
++static int send_dovi_packet(vd_ffmpeg_ctx *ctx, AVCodecContext *avctx,
++                            struct demux_packet *pkt)
++{
++    if (!ctx->dovi_bsf) {
++        mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
++        return avcodec_send_packet(avctx, pkt ? ctx->avpkt : NULL);
++    }
++
++    if (!pkt)
++        return avcodec_send_packet(avctx, NULL);
++
++    if (!ctx->dovi_pkt_pending) {
++        av_packet_unref(ctx->dovi_in_pkt);
++        int ret = av_packet_ref(ctx->dovi_in_pkt, pkt->avpacket);
++        if (ret < 0)
++            return ret;
++
++        ctx->dovi_in_pkt->data = pkt->buffer;
++        ctx->dovi_in_pkt->size = pkt->len;
++        ctx->dovi_in_pkt->pts = mp_pts_to_av(pkt->pts, &ctx->codec_timebase);
++        ctx->dovi_in_pkt->dts = mp_pts_to_av(pkt->dts, &ctx->codec_timebase);
++        if (ctx->codec_timebase.num > 0 && ctx->codec_timebase.den > 0)
++            ctx->dovi_in_pkt->duration = pkt->duration / av_q2d(ctx->codec_timebase);
++        if (pkt->keyframe)
++            ctx->dovi_in_pkt->flags |= AV_PKT_FLAG_KEY;
++
++        ret = av_bsf_send_packet(ctx->dovi_bsf, ctx->dovi_in_pkt);
++        if (ret < 0)
++            return ret;
++
++        ret = av_bsf_receive_packet(ctx->dovi_bsf, ctx->dovi_pkt);
++        if (ret == AVERROR(EAGAIN))
++            return 0;
++        if (ret < 0)
++            return ret;
++        ctx->dovi_pkt_pending = true;
++    }
++
++    int ret = avcodec_send_packet(avctx, ctx->dovi_pkt);
++    if (ret != AVERROR(EAGAIN)) {
++        av_packet_unref(ctx->dovi_pkt);
++        ctx->dovi_pkt_pending = false;
++    }
++    return ret;
++}
++
+ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
+ {
+     vd_ffmpeg_ctx *ctx = vd->priv;
+@@ -1245,9 +1390,7 @@ static int send_packet(struct mp_filter *vd, struct demux_packet *pkt)
+     if (avctx->skip_frame == AVDISCARD_ALL)
+         return 0;
+ 
+-    mp_set_av_packet(ctx->avpkt, pkt, &ctx->codec_timebase);
+-
+-    int ret = avcodec_send_packet(avctx, pkt ? ctx->avpkt : NULL);
++    int ret = send_dovi_packet(ctx, avctx, pkt);
+     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+         return ret;
+ 
+diff --git a/video/decode/vd_lavc.h b/video/decode/vd_lavc.h
+new file mode 100644
+index 0000000000..b973cc84b6
+--- /dev/null
++++ b/video/decode/vd_lavc.h
+@@ -0,0 +1,8 @@
++#pragma once
++
++#include <stdbool.h>
++
++struct mpv_global;
++
++// Read the startup FEL preference without exposing the decoder option struct.
++bool mp_vd_lavc_dovi_fel_enabled(struct mpv_global *global);
