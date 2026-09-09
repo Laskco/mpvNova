@@ -248,6 +248,13 @@ internal enum class PlayerDrawerPreference(
         PREF_PREFER_EXTERNAL_FORWARDED_SUBTITLES,
         false,
     ),
+    LIMIT_PREFERRED_LANGUAGE_SUBTITLES(
+        PlayerDrawerPreferenceGroup.SUBTITLES,
+        R.string.pref_limit_preferred_language_subtitles_title,
+        R.string.pref_limit_preferred_language_subtitles_summary,
+        PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES,
+        true,
+    ),
 }
 
 internal data class PlayerDrawerButtonSpec(
@@ -427,9 +434,10 @@ private fun MPVActivity.addAudioRows(rows: MutableList<PlayerDrawerRow>) {
 private fun MPVActivity.addSubtitleRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addButton(PlayerDrawerAction.OPEN_SUB, R.string.open_external_sub)
     rows.addPref(PlayerDrawerPreference.PREFER_EXTERNAL_FORWARDED_SUBTITLES)
+    rows.addPref(PlayerDrawerPreference.LIMIT_PREFERRED_LANGUAGE_SUBTITLES)
+    rows.addButton(PlayerDrawerAction.SUB_TRACK, R.string.btn_sub_track)
     if (player.sid != -1) {
         rows.addButton(PlayerDrawerAction.SUB_DELAY, R.string.sub_delay)
-        rows.addButton(PlayerDrawerAction.SUB_TRACK, R.string.btn_sub_track)
         rows.addPair(
             PlayerDrawerAction.SUB_SEEK_PREV to R.string.btn_sub_seek_prev,
             PlayerDrawerAction.SUB_SEEK_NEXT to R.string.btn_sub_seek_next,

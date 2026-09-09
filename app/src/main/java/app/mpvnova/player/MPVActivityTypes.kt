@@ -33,7 +33,7 @@ internal data class PlayerChromeSnapshot(
     val statsVisibility: Int,
     val skipVisibility: Int,
 )
-internal data class TrackMeta(val mpvId: Int, val title: String, val lang: String)
+internal data class TrackMeta(val mpvId: Int, val title: String, val lang: String, val forced: Boolean = false)
 
 internal val MPVActivity.activityContext: MPVActivity get() = this
 

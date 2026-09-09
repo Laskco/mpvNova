@@ -18,18 +18,13 @@ internal fun MPVActivity.listTrackMeta(type: String): List<TrackMeta> {
             val id = mpvGetPropertyInt("track-list/$index/id")
             val title = mpvGetPropertyString("track-list/$index/title") ?: ""
             val lang = mpvGetPropertyString("track-list/$index/lang") ?: ""
-            id?.let { TrackMeta(it, title, lang) }
+            val forced = mpvGetPropertyBoolean("track-list/$index/forced") == true
+            id?.let { TrackMeta(it, title, lang, forced) }
         } else {
             null
         }
     }
 }
-
-// Thin MPVActivity-receiver wrappers around the pure helpers in
-// TrackTitleMatching.kt — keeps call sites unchanged while the actual
-// logic is testable without an Activity.
-internal fun MPVActivity.langPrefixMatch(a: String, b: String): Boolean =
-    languagePrefixMatches(a, b)
 
 internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
     val prefs = getDefaultSharedPreferences(applicationContext)
@@ -40,6 +35,7 @@ internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
                 putBoolean(TRACK_MEMORY_SUB_OFF_KEY, true)
                 remove(titleKey)
                 remove(langKey)
+                remove(TRACK_MEMORY_SUB_FORCED_KEY)
                 apply()
             }
             Log.v(MPV_ACTIVITY_TAG, "track-memory: saved sub track off")
@@ -65,6 +61,7 @@ private fun MPVActivity.saveTrackMetaPick(
     prefs.edit().apply {
         if (type == "sub") {
             remove(TRACK_MEMORY_SUB_OFF_KEY)
+            putBoolean(TRACK_MEMORY_SUB_FORCED_KEY, meta.forced)
         }
         putString(titleKey, meta.title)
         putString(langKey, meta.lang)
@@ -86,20 +83,12 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
 
     val savedTitle = prefs.getString(titleKey, null)
     val savedLang = prefs.getString(langKey, "") ?: ""
+    val savedForced = type == "sub" && prefs.getBoolean(TRACK_MEMORY_SUB_FORCED_KEY, false)
 
     if (savedTitle != null) {
-        val compatible = listTrackMeta(type).filter {
-            savedLang.isEmpty() || langPrefixMatch(it.lang, savedLang)
-        }
-
-        val exactMatch = compatible.firstOrNull { it.title.equals(savedTitle, ignoreCase = true) }
-        if (exactMatch != null) {
-            setTrackForMemory(type, exactMatch.mpvId, exactMatch.title, score = 1.0, exact = true)
-        } else {
-            val (bestMatch, bestScore) = bestTrackTitleMatch(compatible, savedTitle, type)
-            if (bestMatch != null && bestScore >= TRACK_MEMORY_MIN_SCORE) {
-                setTrackForMemory(type, bestMatch.mpvId, bestMatch.title, bestScore, exact = false)
-            }
+        val (match, score) = rememberedTrackMatch(listTrackMeta(type), savedTitle, savedLang, type, savedForced)
+        if (match != null) {
+            setTrackForMemory(type, match.mpvId, match.title, score, exact = match.title.equals(savedTitle, true))
         }
     }
 }
@@ -125,3 +114,4 @@ internal fun MPVActivity.trackMemoryKeys(type: String): Pair<String, String> = w
 }
 
 private const val TRACK_MEMORY_SUB_OFF_KEY = "last_user_sub_off"
+private const val TRACK_MEMORY_SUB_FORCED_KEY = "last_user_sub_forced"

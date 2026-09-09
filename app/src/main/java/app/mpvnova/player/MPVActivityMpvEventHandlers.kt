@@ -117,10 +117,13 @@ private fun MPVActivity.runOnloadCommands() {
 }
 
 private fun MPVActivity.handleMpvFileLoaded() {
+    val preserveForwardedSubtitles = preferExternalForwardedSubtitles && onloadCommands.any {
+        it.firstOrNull() == "sub-add" && it.getOrNull(2) == "select"
+    }
     onloadCommands.clear()
     applyFireTvVideoEdgeCropIfNeeded()
-    applyRememberedTrack("sub")
     applyRememberedTrack("audio")
+    if (!preserveForwardedSubtitles && !applyPreferredLanguageSubtitles()) applyRememberedTrack("sub")
     guardNearEndStartPosition()
     showResumeToastIfNeeded()
     refreshAudioFiltersAfterFileLoad()

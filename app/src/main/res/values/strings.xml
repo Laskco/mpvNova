@@ -399,6 +399,8 @@
     <string name="pref_default_subtitle_language_title">Default subtitle language</string>
     <string name="pref_default_subtitle_language_message">Subtitle language(s) to be selected by default when playing a video with multiple subtitles.\nTwo- or three-letter languages codes work. Multiple values can be delimited by comma.</string>
     <string name="pref_prefer_external_forwarded_subtitles_title">Prefer forwarded external subtitles</string>
+    <string name="pref_limit_preferred_language_subtitles_title">Prefer forced and Signs &amp; Songs</string>
+    <string name="pref_limit_preferred_language_subtitles_summary">When opening a video with audio in your preferred language, select only forced or Signs &amp; Songs subtitles, otherwise leave subtitles off. Full subtitles can still be selected manually. Turn off to allow full subtitles automatically.</string>
     <string name="pref_prefer_external_forwarded_subtitles_summary">When another app forwards external subtitles, select them over embedded subtitles by default.</string>
 
     <string name="pref_hardware_decoding_title">Hardware decoding</string>
