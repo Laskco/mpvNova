@@ -47,6 +47,42 @@ internal fun titleSimilarityScore(saved: String, candidate: String): Double {
     return common.toDouble() / savedTokens.size.toDouble()
 }
 
+internal fun bestTrackTitleMatch(
+    tracks: List<TrackMeta>, savedTitle: String, type: String,
+): Pair<TrackMeta?, Double> {
+    var bestMatch: TrackMeta? = null
+    var bestScore = 0.0
+    tracks.forEach { track ->
+        val score = if (type == "sub") subtitleTitleSimilarityScore(savedTitle, track.title)
+            else titleSimilarityScore(savedTitle, track.title)
+        if (score > bestScore) {
+            bestScore = score
+            bestMatch = track
+        }
+    }
+    return bestMatch to bestScore
+}
+
+internal fun subtitleTitleSimilarityScore(saved: String, candidate: String): Double {
+    val savedSigns = isSignsSubtitleTitle(saved)
+    val candidateSigns = isSignsSubtitleTitle(candidate)
+    // Shared language/source/group words must not turn a Signs choice into full dialogue (or vice versa).
+    return when {
+        savedSigns != candidateSigns -> 0.0
+        savedSigns -> TRACK_MEMORY_MIN_SCORE +
+            (1.0 - TRACK_MEMORY_MIN_SCORE) * titleSimilarityScore(saved, candidate)
+        else -> titleSimilarityScore(saved, candidate)
+    }
+}
+
+private fun isSignsSubtitleTitle(title: String): Boolean =
+    SIGNS_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title)
+
+private val SIGNS_SUBTITLE_PATTERN = Regex(
+    """(?i)\bsigns\b|\bsign\s*(?:[&+/]|and)?\s*songs?\b|\bsign\s+only\b|\bs\s*[&+/]\s*s\b""",
+)
+private val FULL_SUBTITLE_PATTERN = Regex("""(?i)\b(?:full|dialog(?:ue)?s?|sdh|closed\s+captions?)\b""")
+
 /**
  * Two language tags agree if the first two letters match case-insensitively.
  * That's coarse enough to fold "en" / "eng" / "english" together — which

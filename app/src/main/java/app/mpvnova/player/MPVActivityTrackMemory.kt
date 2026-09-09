@@ -28,9 +28,6 @@ internal fun MPVActivity.listTrackMeta(type: String): List<TrackMeta> {
 // Thin MPVActivity-receiver wrappers around the pure helpers in
 // TrackTitleMatching.kt — keeps call sites unchanged while the actual
 // logic is testable without an Activity.
-internal fun MPVActivity.titleSimilarity(saved: String, candidate: String): Double =
-    titleSimilarityScore(saved, candidate)
-
 internal fun MPVActivity.langPrefixMatch(a: String, b: String): Boolean =
     languagePrefixMatches(a, b)
 
@@ -99,25 +96,12 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
         if (exactMatch != null) {
             setTrackForMemory(type, exactMatch.mpvId, exactMatch.title, score = 1.0, exact = true)
         } else {
-            val (bestMatch, bestScore) = bestTrackTitleMatch(compatible, savedTitle)
+            val (bestMatch, bestScore) = bestTrackTitleMatch(compatible, savedTitle, type)
             if (bestMatch != null && bestScore >= TRACK_MEMORY_MIN_SCORE) {
                 setTrackForMemory(type, bestMatch.mpvId, bestMatch.title, bestScore, exact = false)
             }
         }
     }
-}
-
-internal fun MPVActivity.bestTrackTitleMatch(tracks: List<TrackMeta>, savedTitle: String): Pair<TrackMeta?, Double> {
-    var bestMatch: TrackMeta? = null
-    var bestScore = 0.0
-    tracks.forEach { track ->
-        val score = titleSimilarity(savedTitle, track.title)
-        if (score > bestScore) {
-            bestScore = score
-            bestMatch = track
-        }
-    }
-    return bestMatch to bestScore
 }
 
 internal fun MPVActivity.setTrackForMemory(
