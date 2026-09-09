@@ -6,6 +6,10 @@ This process is supported on Linux and macOS. Windows (or WSL) will **not** work
 
 ## Download dependencies
 
+mpvNova applies `patches/mpv-dovi-fel-toggle.patch` to its pinned mpv source during dependency download. This makes enhancement-layer decoding default-off while retaining the base layer and in-band Dolby Vision RPU metadata. The patch covers decoder packet filtering and enhancement-stream creation/pairing; disabling only the output enhancement filter is not equivalent. The native CI workflow verifies the patch and that curl remains enabled.
+
+After an mpv revision change, check the patch against that revision and rebuild every shipped ABI. The runtime override is `vd-lavc-dovi-fel=yes` in `mpv.conf`, set before file loading; no Android settings toggle is exposed. See the [settings guide](../docs/settings-guide.md#decoders-and-device-compatibility) for user-facing behavior and limitations.
+
 `download.sh` will take care of installing the Android SDK, NDK and downloading the sources.
 
 If you're running on Debian/Ubuntu or RHEL/Fedora it will also install the necessary dependencies for you.

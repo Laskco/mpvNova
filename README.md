@@ -33,6 +33,8 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 
 For the inherited playback feature set, scripting support, and core behavior that mpvNova builds on top of, see upstream [mpv-android](https://github.com/mpv-android/mpv-android).
 
+For the controls added by this fork, see the [mpvNova settings guide](docs/settings-guide.md), including defaults, subtitle styling, audio presets, network buffering, and decoder compatibility.
+
 ---
 
 ## TV Devices Only
@@ -133,7 +135,7 @@ mpvNova inherits mpv-android's playback foundation: hardware/software decoding, 
 - Live clock and title customization for layout, fonts, sizing, weight, spacing, colors, text case, outlines, shadows, background plates, and visibility
 - Interface font selection with bundled typefaces and immediate updates across the app
 - Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
-- Automatic intro, recap, and outro skipping with per-segment controls, manual fallback buttons, and skip notifications
+- Automatic intro, recap, and outro skipping from supplied timestamps, with manual fallback buttons and skip notifications
 - Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
 - Tabbed subtitle customization with font size and hinting, colors, spacing, outlines, shadows, background, layout, and saved presets. The separate live preview grows with the text; the three ASS override modes remain available for styled subtitles
 - Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
@@ -169,6 +171,16 @@ Choose **Default**, **Low memory**, **Balanced**, **Unsteady connection**, or **
 Buffer sizes, read-ahead, and rebuffering controls update during playback when changed from the drawer. **Stream read buffer and Connection timeout apply when a stream is opened again**, not to the already-open connection. Timeout support depends on the protocol.
 
 Numeric controls offer suggested values and custom input. Combined forward and rewind buffers have device-aware memory limits, including lower limits on 32-bit and low-memory devices. Larger buffers use more RAM and can help with brief stalls, but cannot make a consistently slow server or connection faster.
+
+---
+
+## Dolby Vision And FEL
+
+**FEL decoding is disabled by default; Dolby Vision is not disabled.** For interleaved Dolby Vision Profile 7 video, mpvNova skips the enhancement-layer decoder and retains the base video and RPU metadata. This avoids the extra decoding path that prevented the tested Profile 7 remux from playing on NVIDIA Shield.
+
+There is no FEL toggle in the settings panel. Advanced users can opt in through **Settings > Advanced > Edit mpv.conf** with `vd-lavc-dovi-fel=yes`, then reopen the video. Remove that line or use `vd-lavc-dovi-fel=no` to restore the default. Enabling it can bring back playback failures on affected devices.
+
+Separate-track sources whose RPU metadata exists only in the enhancement track fall back to the base layer without that metadata. This is not a DV7-to-DV8.1 conversion, and does not guarantee Dolby Vision output on every device or display. See [decoder compatibility in the settings guide](docs/settings-guide.md#decoders-and-device-compatibility).
 
 ---
 
