@@ -175,11 +175,12 @@ internal fun MPVActivity.shouldAutoPauseForControlsOverlay(): Boolean {
 }
 
 internal fun MPVActivity.maybeAutoPauseForControlsOverlay() {
+    // Opening the controls must not query a stalled decoder when autopause is off.
+    if (controlsOverlayAutoPaused ||
+        (!autoPauseControlsOverlayEnabled && !autoPauseHi10pEnabled)) return
+    if (!shouldAutoPauseForControlsOverlay()) return
     val alreadyPausedOrUnknown = player.paused != false
-    val shouldPause = !controlsOverlayAutoPaused &&
-        shouldAutoPauseForControlsOverlay() &&
-        !alreadyPausedOrUnknown
-    if (shouldPause) {
+    if (!alreadyPausedOrUnknown) {
         controlsOverlayAutoPaused = true
         mpvSetPropertyBoolean("pause", true)
     }
