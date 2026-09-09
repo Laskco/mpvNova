@@ -1,6 +1,7 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '2.4.20'
+    // CodeQL's extractor can lag behind the compiler used for shipping builds.
+    ext.kotlin_version = providers.gradleProperty('codeqlKotlinVersion').getOrElse('2.4.20')
     repositories {
         gradlePluginPortal()
         mavenCentral()

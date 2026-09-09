@@ -38,6 +38,11 @@ jobs:
           build-mode: manual
 
       - name: Build for CodeQL
-        run: ./gradlew :app:assembleDefaultDebug --no-daemon
+        # CodeQL 2.27.0 requires Kotlin < 2.4.20. Remove the override once supported.
+        # Always compile under tracing instead of restoring cached compiler output.
+        run: >-
+          ./gradlew :app:assembleDefaultDebug --no-daemon
+          -PcodeqlKotlinVersion=2.4.10
+          --no-build-cache --no-configuration-cache --rerun-tasks
 
       - uses: github/codeql-action/analyze@v4
