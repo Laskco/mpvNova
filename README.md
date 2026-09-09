@@ -179,9 +179,9 @@ Numeric controls offer suggested values and custom input. Combined forward and r
 - JDK 21
 - Android SDK with current build tools
 - Git for version information in builds
-- Gradle wrapper `9.5.1`
-- Android Gradle Plugin `9.2.0`
-- Kotlin `2.3.21`
+- Gradle wrapper `9.7.1`
+- Android Gradle Plugin `9.4.0`
+- Kotlin `2.4.20`
 
 ### App-only build
 

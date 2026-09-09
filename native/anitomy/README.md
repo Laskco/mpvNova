@@ -1,6 +1,6 @@
 # Offline anime filename parser
 
-mpvNova uses **anitomy-ng 1.0.9**, pinned exactly in `Cargo.toml` with transitive
+mpvNova uses **anitomy-ng 1.0.10**, pinned exactly in `Cargo.toml` with transitive
 dependencies locked in `Cargo.lock`. `rust-toolchain.toml` pins Rust. The build
 uses Android NDK **29.0.14206865**, API 23, and 16 KiB-compatible ELF alignment.
 

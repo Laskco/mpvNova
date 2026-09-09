@@ -9,8 +9,8 @@ name = "mpvnova_anitomy"
 crate-type = ["cdylib"]
 
 [dependencies]
-anitomy-ng = "=1.0.9"
-jni = { version = "=0.21.1", default-features = false }
+anitomy-ng = "=1.0.10"
+jni = { version = "=0.22.4", default-features = false }
 
 [profile.release]
 lto = true

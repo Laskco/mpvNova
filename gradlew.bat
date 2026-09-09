@@ -1,59 +1,82 @@
-@ECHO OFF
-SETLOCAL
+@rem
+@rem Copyright 2015 the original author or authors.
+@rem
+@rem Licensed under the Apache License, Version 2.0 (the "License");
+@rem you may not use this file except in compliance with the License.
+@rem You may obtain a copy of the License at
+@rem
+@rem      https://www.apache.org/licenses/LICENSE-2.0
+@rem
+@rem Unless required by applicable law or agreed to in writing, software
+@rem distributed under the License is distributed on an "AS IS" BASIS,
+@rem WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+@rem See the License for the specific language governing permissions and
+@rem limitations under the License.
+@rem
+@rem SPDX-License-Identifier: Apache-2.0
+@rem
 
-SET DIRNAME=%~dp0
-IF "%DIRNAME%"=="" SET DIRNAME=.
-SET APP_BASE_NAME=%~n0
-SET APP_HOME=%DIRNAME%
+@if "%DEBUG%"=="" @echo off
+@rem ##########################################################################
+@rem
+@rem  gradlew startup script for Windows
+@rem
+@rem ##########################################################################
 
-FOR %%i IN ("%APP_HOME%") DO SET APP_HOME=%%~fi
+@rem Set local scope for the variables, and ensure extensions are enabled
+setlocal EnableExtensions
 
-SET DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
-SET WRAPPER_JAR=%APP_HOME%\gradle\wrapper\gradle-wrapper.jar
-SET JAVA_EXE=
+set DIRNAME=%~dp0
+if "%DIRNAME%"=="" set DIRNAME=.
+@rem This is normally unused
+set APP_BASE_NAME=%~n0
+set APP_HOME=%DIRNAME%
 
-IF NOT DEFINED GRADLE_USER_HOME (
-  SET GRADLE_USER_HOME=%APP_HOME%\.gradle-user-home
-)
+@rem Resolve any "." and ".." in APP_HOME to make it shorter.
+for %%i in ("%APP_HOME%") do set APP_HOME=%%~fi
 
-IF NOT EXIST "%WRAPPER_JAR%" (
-  ECHO ERROR: Could not find Gradle wrapper JAR at "%WRAPPER_JAR%".
-  EXIT /B 1
-)
+@rem Add default JVM options here. You can also use JAVA_OPTS and GRADLE_OPTS to pass JVM options to this script.
+set DEFAULT_JVM_OPTS="-Xmx64m" "-Xms64m"
 
-IF DEFINED JAVA_HOME (
-  IF EXIST "%JAVA_HOME%\bin\java.exe" (
-    SET JAVA_EXE=%JAVA_HOME%\bin\java.exe
-  )
-)
+@rem Find java.exe
+if defined JAVA_HOME goto findJavaFromJavaHome
 
-IF NOT DEFINED JAVA_EXE (
-  IF EXIST "C:\Program Files\Android\Android Studio\jbr\bin\java.exe" (
-    SET JAVA_EXE=C:\Program Files\Android\Android Studio\jbr\bin\java.exe
-  )
-)
+set JAVA_EXE=java.exe
+%JAVA_EXE% -version >NUL 2>&1
+if %ERRORLEVEL% equ 0 goto execute
 
-IF NOT DEFINED JAVA_EXE (
-  IF EXIST "C:\Program Files\Android\Android Studio\jre\bin\java.exe" (
-    SET JAVA_EXE=C:\Program Files\Android\Android Studio\jre\bin\java.exe
-  )
-)
+echo. 1>&2
+echo ERROR: JAVA_HOME is not set and no 'java' command could be found in your PATH. 1>&2
+echo. 1>&2
+echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+echo location of your Java installation. 1>&2
 
-IF NOT DEFINED JAVA_EXE (
-  SET JAVA_EXE=java
-)
+"%COMSPEC%" /c exit 1
 
-IF /I NOT "%JAVA_EXE%"=="java" IF NOT EXIST "%JAVA_EXE%" (
-  ECHO ERROR: Could not find a Java runtime.
-  ECHO Checked JAVA_HOME and the Android Studio bundled JBR locations.
-  EXIT /B 1
-)
+:findJavaFromJavaHome
+set JAVA_HOME=%JAVA_HOME:"=%
+set JAVA_EXE=%JAVA_HOME%/bin/java.exe
 
-IF /I "%JAVA_EXE%"=="java" (
-  %JAVA_EXE% %DEFAULT_JVM_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -jar "%WRAPPER_JAR%" %*
-) ELSE (
-  "%JAVA_EXE%" %DEFAULT_JVM_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -jar "%WRAPPER_JAR%" %*
-)
-SET EXIT_CODE=%ERRORLEVEL%
+if exist "%JAVA_EXE%" goto execute
 
-ENDLOCAL & EXIT /B %EXIT_CODE%
+echo. 1>&2
+echo ERROR: JAVA_HOME is set to an invalid directory: %JAVA_HOME% 1>&2
+echo. 1>&2
+echo Please set the JAVA_HOME variable in your environment to match the 1>&2
+echo location of your Java installation. 1>&2
+
+"%COMSPEC%" /c exit 1
+
+:execute
+@rem Setup the command line
+
+
+
+@rem Execute gradlew
+@rem endlocal doesn't take effect until after the line is parsed and variables are expanded
+@rem which allows us to clear the local environment before executing the java command
+endlocal & "%JAVA_EXE%" %DEFAULT_JVM_OPTS% %JAVA_OPTS% %GRADLE_OPTS% "-Dorg.gradle.appname=%APP_BASE_NAME%" -jar "%APP_HOME%\gradle\wrapper\gradle-wrapper.jar" %* & call :exitWithErrorLevel
+
+:exitWithErrorLevel
+@rem Use "%COMSPEC%" /c exit to allow operators to work properly in scripts
+"%COMSPEC%" /c exit %ERRORLEVEL%
