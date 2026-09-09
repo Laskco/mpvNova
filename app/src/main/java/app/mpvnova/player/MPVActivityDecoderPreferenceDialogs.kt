@@ -32,6 +32,7 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
                 .apply()
             if (!autoDecoderFallback) {
                 sessionDecoderMode = mode
+                gpuNextFallbackState.reset()
                 player.applyDecoderMode(mode)
                 updateDecoderButton()
             }

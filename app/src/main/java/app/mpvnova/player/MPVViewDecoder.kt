@@ -104,7 +104,6 @@ internal fun MPVView.fallbackGpuNextToGpu() {
 internal fun MPVView.fallbackGpuNextToCopyHwdec() {
     if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
-    setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
     setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
 }
 

@@ -1,7 +1,8 @@
 package app.mpvnova.player
 
-import android.util.Log
+import android.os.SystemClock
 import android.media.session.MediaSession
+import java.util.Locale
 
 internal fun MPVActivity.initMediaSession(): MediaSession {
     val session = MediaSession(this, MPV_ACTIVITY_TAG)
@@ -43,7 +44,6 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     },
     "hwdec-current" to {
         updateDecoderButton()
-        updateGpuNextRetryConfirmation()
     },
 )
 
@@ -67,7 +67,6 @@ private val STRING_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "video-params/gamma" to { applyFireTvVideoEdgeCropIfNeeded() },
     "current-vo" to {
         updateDecoderButton()
-        updateGpuNextRetryConfirmation()
     },
 )
 
@@ -113,15 +112,19 @@ internal fun MPVActivity.scheduleMetadataUiRefresh() {
 }
 
 internal fun MPVActivity.maybeApplyGpuNextRenderFallback(prefix: String, level: Int, text: String) {
-    if (!canApplyGpuNextRenderFallback(level) || !isGpuNextRenderFailure(prefix, text))
+    if (!autoDecoderFallback || sessionDecoderMode == MPVView.DECODER_MODE_MPV_CONF) return
+    val renderError = level <= MpvLogLevel.MPV_LOG_LEVEL_ERROR && isGpuNextRenderFailure(prefix, text)
+    if (!renderError ||
+        !player.requestedVideoOutput.trim().startsWith("gpu-next", ignoreCase = true)
+    )
         return
-    when (gpuNextFallbackAction()) {
+    when (gpuNextFallbackState.onRenderFailure(
+        SystemClock.uptimeMillis(),
+        player.hwdecActive.trim().lowercase(Locale.US),
+        normalizedHwdecOption(),
+    )) {
         GpuNextFallbackAction.RetryWithCopyHwdec -> retryGpuNextWithCopyHwdec(prefix, text)
-        GpuNextFallbackAction.WaitForCopyRetry -> Log.w(
-                MPV_ACTIVITY_TAG,
-                "Ignoring gpu-next failure log while mediacodec-copy retry is still stabilizing ($prefix: $text)"
-            )
-        GpuNextFallbackAction.KeepGpuNext -> keepGpuNextAfterRetry(prefix, text)
         GpuNextFallbackAction.FallbackToGpu -> fallbackGpuNextToGpu(prefix, text)
+        null -> Unit
     }
 }

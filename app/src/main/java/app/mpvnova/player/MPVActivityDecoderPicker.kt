@@ -20,6 +20,7 @@ internal fun MPVActivity.pickDecoder() {
     lateinit var dialog: AlertDialog
     impl.onItemClick = { idx ->
         sessionDecoderMode = rawItems[idx].second
+        gpuNextFallbackState.reset()
         player.applyDecoderMode(rawItems[idx].second)
         updateDecoderButton()
         dialog.dismiss()
@@ -67,6 +68,7 @@ internal fun MPVActivity.cycleDecoderMode() {
     val currentIndex = modes.indexOf(currentMode).takeIf { it >= 0 } ?: 0
     val nextMode = modes[(currentIndex + 1) % modes.size]
     sessionDecoderMode = nextMode
+    gpuNextFallbackState.reset()
     player.applyDecoderMode(nextMode)
     updateDecoderButton()
 }
@@ -76,6 +78,13 @@ internal fun MPVActivity.cycleSpeed() {
 }
 
 internal fun MPVActivity.currentDecoderUiMode(): String {
+    if (gpuNextFallbackState.rendererFallbackApplied) {
+        return if (player.hwdecActive.trim() == MPV_VIEW_HWDEC_NONE) {
+            MPVView.DECODER_MODE_SW
+        } else {
+            player.currentDecoderMode
+        }
+    }
     return sessionDecoderMode
         ?: preferredDecoderMode.takeIf {
             !autoDecoderFallback && it == MPVView.DECODER_MODE_MPV_CONF

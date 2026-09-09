@@ -118,7 +118,6 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
 
 internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLogObserver {
     override fun logMessage(prefix: String, level: Int, text: String) = activity.run {
-        updateGpuNextRetryFrameConfirmation(prefix, text)
         maybeApplyGpuNextRenderFallback(prefix, level, text)
         maybeShowAudioNormUnderrunHint(text)
     }

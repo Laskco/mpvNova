@@ -104,7 +104,7 @@ private fun MPVActivity.currentAutoSafeDecoderBadge(): String {
 }
 
 private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boolean {
-    return autoDecoderFallback &&
+    return autoDecoderFallback && !gpuNextFallbackState.rendererFallbackApplied &&
         isHi10pFallbackDeviceEnabled() &&
         player.isHi10pH264Video() &&
         (

@@ -445,15 +445,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var autoPauseHi10pEnabled = isNvidiaShieldDevice()
     internal var controlsOverlayAutoPaused = false
     internal var audioNormUnderrunHintShown = false
-    internal var gpuNextRenderFallbackStage = 0
-    internal var gpuNextCopyRetryConfirmed = false
-    internal var gpuNextCopyRetryDisplayedFrame = false
+    internal val gpuNextFallbackState = GpuNextFallbackState()
     internal var shieldHi10pPreloadApplied = false
-    // Sustained-error window for gpu-next — a single transient libplacebo
-    // log line must not trip the renderer fallback (that rebuilds the VO
-    // mid-playback and desyncs A/V/subs).
-    internal var gpuNextErrorWindowStartMs = 0L
-    internal var gpuNextErrorWindowCount = 0
 
 
     internal var playbackHasStarted = false

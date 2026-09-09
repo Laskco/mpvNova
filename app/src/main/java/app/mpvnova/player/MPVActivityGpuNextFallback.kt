@@ -4,9 +4,6 @@ import android.util.Log
 import java.util.Locale
 
 internal fun MPVActivity.retryGpuNextWithCopyHwdec(prefix: String, text: String) {
-    gpuNextRenderFallbackStage = 1
-    gpuNextCopyRetryConfirmed = false
-    gpuNextCopyRetryDisplayedFrame = false
     Log.w(
         MPV_ACTIVITY_TAG,
         "gpu-next render failure detected, retrying with mediacodec-copy ($prefix: $text)"
@@ -24,18 +21,8 @@ internal fun MPVActivity.retryGpuNextWithCopyHwdec(prefix: String, text: String)
     }
 }
 
-internal fun MPVActivity.keepGpuNextAfterRetry(prefix: String, text: String) {
-    gpuNextRenderFallbackStage = 2
-    Log.w(
-        MPV_ACTIVITY_TAG,
-        "gpu-next still reports render errors after the HW retry, but keeping " +
-            "gpu-next to match stock mpv behavior ($prefix: $text)"
-    )
-}
-
 internal fun MPVActivity.fallbackGpuNextToGpu(prefix: String, text: String) {
-    gpuNextRenderFallbackStage = 2
-    Log.w(MPV_ACTIVITY_TAG, "gpu-next render failure detected before HW retry, falling back to gpu ($prefix: $text)")
+    Log.w(MPV_ACTIVITY_TAG, "Sustained gpu-next render failure, falling back to gpu ($prefix: $text)")
     player.fallbackGpuNextToGpu()
     eventUiHandler.post {
         updateDecoderButton()
@@ -49,46 +36,12 @@ internal fun MPVActivity.fallbackGpuNextToGpu(prefix: String, text: String) {
     }
 }
 
-internal fun MPVActivity.isGpuNextRenderFailure(prefix: String, text: String): Boolean {
+internal fun isGpuNextRenderFailure(prefix: String, text: String): Boolean {
     val normalizedPrefix = prefix.trim().lowercase(Locale.US)
     val normalizedText = text.trim().lowercase(Locale.US)
     return normalizedPrefix.contains("gpu-next") &&
         GPU_NEXT_RENDER_FAILURE_TEXT.any { normalizedText.contains(it) } ||
         GPU_NEXT_GENERAL_FAILURE_TEXT.any { normalizedText.contains(it) }
-}
-
-internal fun MPVActivity.updateGpuNextRetryConfirmation() {
-    if (gpuNextRenderFallbackStage != 1 || gpuNextCopyRetryConfirmed)
-        return
-
-    val activeVo = player.activeVideoOutput.trim().lowercase(Locale.US)
-    val requestedVo = player.requestedVideoOutput.trim().lowercase(Locale.US)
-    val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
-
-    if (requestedVo.startsWith("gpu-next") &&
-        activeVo.startsWith("gpu-next") &&
-        activeHwdec == "mediacodec-copy"
-    ) {
-        gpuNextCopyRetryConfirmed = true
-        Log.w(MPV_ACTIVITY_TAG, "Confirmed gpu-next retry is running with mediacodec-copy")
-    }
-}
-
-internal fun MPVActivity.updateGpuNextRetryFrameConfirmation(prefix: String, text: String) {
-    if (gpuNextRenderFallbackStage != 1 || gpuNextCopyRetryDisplayedFrame)
-        return
-
-    val normalizedPrefix = prefix.trim().lowercase(Locale.US)
-    val normalizedText = text.trim().lowercase(Locale.US)
-    val frameShown =
-        normalizedPrefix == "cplayer" &&
-            (normalizedText.contains("first video frame after restart shown") ||
-                normalizedText.contains("playback restart complete"))
-
-    if (frameShown) {
-        gpuNextCopyRetryDisplayedFrame = true
-        Log.w(MPV_ACTIVITY_TAG, "Confirmed gpu-next retry produced video output")
-    }
 }
 
 internal fun MPVActivity.parseControlsTimeout(value: String?): Long {

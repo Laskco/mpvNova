@@ -64,12 +64,11 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    val restoreRendererAfterFailure = gpuNextFallbackState.rendererFallbackApplied
     playbackEnded = false
     resetPlaybackResultState()
     audioNormUnderrunHintShown = false
-    gpuNextRenderFallbackStage = 0
-    gpuNextCopyRetryConfirmed = false
-    gpuNextCopyRetryDisplayedFrame = false
+    gpuNextFallbackState.reset()
     pendingShieldFallbackResync = false
     shieldFallbackResumeAfter = false
     audioFiltersAwaitingPostLoadReconcile = true
@@ -92,6 +91,11 @@ private fun MPVActivity.handleMpvStartFile() {
         updateMetadataDisplay()
         refreshTimeInfoPanelVisibility()
         updatePlayerTitleOverlay()
+    }
+    if (restoreRendererAfterFailure && sessionDecoderMode == null &&
+        !player.requestedVideoOutput.trim().startsWith("gpu-next", ignoreCase = true)
+    ) {
+        player.applyDefaultDecoderForFileLoad()
     }
     applySessionDecoderModeIfNeeded()
     runOnloadCommands()

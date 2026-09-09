@@ -244,12 +244,8 @@ internal val FILE_EXTENSION_REGEX = Regex("""\.[a-z0-9]{2,5}$""")
 internal val NON_ALNUM_REGEX = Regex("""[^a-z0-9]+""")
 internal val TITLE_NON_ALNUM_REGEX = Regex("[^a-z0-9 ]")
 internal val WHITESPACE_REGEX = Regex("\\s+")
-internal val GPU_NEXT_RETRY_STAGES = setOf(1, 2)
 internal val GPU_NEXT_RENDER_FAILURE_TEXT = listOf(
-    "failed rendering image",
-    "failed rendering frame",
-    "failed creating pass",
-    "shader link log"
+    "failed rendering frame"
 )
 internal val GPU_NEXT_GENERAL_FAILURE_TEXT = listOf(
     "struct type mismatch between shaders",

@@ -1,57 +1,65 @@
 package app.mpvnova.player
 
-import android.os.SystemClock
-import java.util.Locale
-
 internal enum class GpuNextFallbackAction {
     RetryWithCopyHwdec,
-    WaitForCopyRetry,
-    KeepGpuNext,
     FallbackToGpu,
 }
 
-// A single transient libplacebo error must not flip the renderer mid-
-// playback — that rebuilds the VO while audio keeps draining its buffer
-// → A/V/sub desync (Hi10p+g-next).
-private const val GPU_NEXT_ERROR_WINDOW_MS = 1500L
-private const val GPU_NEXT_ERROR_WINDOW_THRESHOLD = 3
+private const val ERROR_WINDOW_MS = 1500L
+private const val ERROR_THRESHOLD = 3
+private const val ERROR_MIN_INTERVAL_MS = 50L
+private const val COPY_RETRY_GRACE_MS = 1500L
 
-internal fun MPVActivity.canApplyGpuNextRenderFallback(level: Int): Boolean {
-    // Gates: auto-fallback on, error-level log, VO is gpu-next, user didn't
-    // explicitly pick a gpu-next/custom path (else we'd override their choice).
-    val chosen = sessionDecoderMode ?: preferredDecoderMode
-    val userPickedGpuNextMode =
-        chosen == MPVView.DECODER_MODE_GNEXT ||
-            chosen == MPVView.DECODER_MODE_GNEXT_DIRECT ||
-            chosen == MPVView.DECODER_MODE_SHIELD_H10P ||
-            chosen == MPVView.DECODER_MODE_MPV_CONF
-    val gatesPassed = autoDecoderFallback &&
-        level <= MpvLogLevel.MPV_LOG_LEVEL_ERROR &&
-        player.requestedVideoOutput.trim().lowercase(Locale.US).startsWith("gpu-next") &&
-        !userPickedGpuNextMode
-    val now = SystemClock.uptimeMillis()
-    if (!gatesPassed) return false
-    // Sliding window: ≥THRESHOLD errors inside WINDOW_MS = sustained failure.
-    // Single OSD blips (common on Tegra) don't trip the rebuild.
-    if (now - gpuNextErrorWindowStartMs > GPU_NEXT_ERROR_WINDOW_MS) {
-        gpuNextErrorWindowStartMs = now
-        gpuNextErrorWindowCount = 0
+/** Recovery is scoped to the current file or explicit decoder selection. */
+internal class GpuNextFallbackState {
+    @Volatile
+    var rendererFallbackApplied = false
+        private set
+    private var copyRetryStartedMs: Long? = null
+    private var windowStartMs: Long? = null
+    private var lastErrorMs: Long? = null
+    private var errorCount = 0
+
+    @Synchronized
+    fun reset() {
+        rendererFallbackApplied = false
+        copyRetryStartedMs = null
+        clearErrors()
     }
-    gpuNextErrorWindowCount += 1
-    return gpuNextErrorWindowCount >= GPU_NEXT_ERROR_WINDOW_THRESHOLD
-}
 
-internal fun MPVActivity.gpuNextFallbackAction(): GpuNextFallbackAction {
-    val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
-    val requestedHwdec = normalizedHwdecOption()
-    val shouldRetryWithCopyHwdec = gpuNextRenderFallbackStage == 0 &&
-        activeHwdec != "mediacodec-copy" &&
-        requestedHwdec != "mediacodec-copy"
-    val copyRetryFinished = gpuNextCopyRetryConfirmed && gpuNextCopyRetryDisplayedFrame
-    return when {
-        shouldRetryWithCopyHwdec -> GpuNextFallbackAction.RetryWithCopyHwdec
-        gpuNextRenderFallbackStage == 1 && !copyRetryFinished -> GpuNextFallbackAction.WaitForCopyRetry
-        gpuNextRenderFallbackStage in GPU_NEXT_RETRY_STAGES && copyRetryFinished -> GpuNextFallbackAction.KeepGpuNext
-        else -> GpuNextFallbackAction.FallbackToGpu
+    @Synchronized
+    fun onRenderFailure(nowMs: Long, activeHwdec: String, requestedHwdec: String): GpuNextFallbackAction? {
+        // Wait only while rebuilding, not indefinitely for a hardware decoder
+        // that may be unavailable. Continued errors after this grace can recover.
+        val retrySettling = copyRetryStartedMs?.let { nowMs - it < COPY_RETRY_GRACE_MS } == true
+        if (rendererFallbackApplied || retrySettling) return null
+        if (windowStartMs?.let { nowMs - it > ERROR_WINDOW_MS } != false) {
+            clearErrors()
+            windowStartMs = nowMs
+        }
+        // One failed frame can produce several libplacebo error messages.
+        val distinctFailure = lastErrorMs?.let { nowMs - it >= ERROR_MIN_INTERVAL_MS } != false
+        if (distinctFailure) {
+            lastErrorMs = nowMs
+            errorCount++
+        }
+        return if (distinctFailure && errorCount >= ERROR_THRESHOLD) {
+            clearErrors()
+            if (copyRetryStartedMs == null && activeHwdec == "mediacodec" &&
+                requestedHwdec != "mediacodec-copy"
+            ) {
+                copyRetryStartedMs = nowMs
+                GpuNextFallbackAction.RetryWithCopyHwdec
+            } else {
+                rendererFallbackApplied = true
+                GpuNextFallbackAction.FallbackToGpu
+            }
+        } else null
+    }
+
+    private fun clearErrors() {
+        windowStartMs = null
+        lastErrorMs = null
+        errorCount = 0
     }
 }

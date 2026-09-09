@@ -160,6 +160,7 @@ private fun MPVActivity.handleDrawerAutoFallbackChange(enabled: Boolean) {
         .putString("preferred_decoder_mode", preferredDecoderMode)
         .apply()
     sessionDecoderMode = preferredDecoderMode
+    gpuNextFallbackState.reset()
     player.applyDecoderMode(preferredDecoderMode)
     updateDecoderButton()
 }
