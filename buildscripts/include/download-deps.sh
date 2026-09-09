@@ -96,7 +96,6 @@ if [ ! -d mpv ]; then
 	git clone https://github.com/mpv-player/mpv
 	git -C mpv checkout "$v_mpv"
 	patch -d mpv -p1 < ../patches/mpv-dovi-fel-toggle.patch
-	patch -d mpv -p1 < ../patches/mpv-curl-request-url.patch
 fi
 
 cd ..
