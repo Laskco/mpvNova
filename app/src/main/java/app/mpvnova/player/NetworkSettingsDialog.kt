@@ -105,6 +105,7 @@ private fun Activity.saveNetworkChange(onChanged: () -> Unit, save: () -> Unit) 
 private fun Activity.showNetworkCustomValue(setting: NetworkSetting, current: String, onChanged: () -> Unit) {
     val binding = DialogSettingsInputBinding.inflate(layoutInflater)
     binding.inputTitle.setText(setting.titleRes)
+    binding.inputTitle.labelFor = binding.inputValue.id
     binding.inputMessage.text = getString(
         R.string.network_value_range,
         networkNumberLabel(setting, setting.minimum.toString()),

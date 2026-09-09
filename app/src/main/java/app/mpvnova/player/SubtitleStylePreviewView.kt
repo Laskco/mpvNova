@@ -48,6 +48,7 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
     }
     private val boxPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var textLayout: StaticLayout? = null
+    private var blurFilter: BlurMaskFilter? = null
     private var originX = 0f
     private var originY = 0f
     private var effectScale = 1f
@@ -91,8 +92,8 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         val s = spec ?: return
-        if (width <= 0 || height <= 0 || s.text.isBlank()) return
-        val layout = textLayout ?: buildLayout(s, width).also { textLayout = it }
+        val layout = textLayout
+        if (layout == null || s.text.isBlank()) return
         val inset = PREVIEW_INSET_DP * resources.displayMetrics.density
         originY = inset + (height - 2 * inset - layout.height).coerceAtLeast(0f) *
             s.positionPercent.coerceIn(MIN_PERCENT, MAX_PERCENT) / MAX_PERCENT.toFloat()
@@ -100,9 +101,7 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
         canvas.translate(originX, originY)
         drawBackground(canvas, layout, s)
         paint.clearShadowLayer()
-        paint.maskFilter = if (s.blurRadiusPx > 0f) {
-            BlurMaskFilter(s.blurRadiusPx * effectScale, BlurMaskFilter.Blur.NORMAL)
-        } else null
+        paint.maskFilter = blurFilter
         if (s.outlineWidthPx > 0f && Color.alpha(s.outlineColor) > 0) {
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = s.outlineWidthPx * 2f * effectScale
@@ -132,6 +131,9 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
         paint.textSize = (BASE_TEXT_DP * density * s.fontSize / SUBTITLE_EDITOR_DEFAULT_FONT_SIZE * s.scale)
             .coerceAtLeast(1f)
         effectScale = (paint.textSize / (BASE_TEXT_DP * density)).coerceAtMost(1f)
+        blurFilter = if (s.blurRadiusPx > 0f) {
+            BlurMaskFilter(s.blurRadiusPx * effectScale, BlurMaskFilter.Blur.NORMAL)
+        } else null
         val boxWidth = (ceil(Layout.getDesiredWidth(s.text, paint)).toInt() + 1).coerceIn(1, availableWidth)
         val alignment = if (s.justify == SubtitleJustify.AUTO) s.alignment else s.justify
         val result = StaticLayout.Builder.obtain(s.text, 0, s.text.length, paint, boxWidth)

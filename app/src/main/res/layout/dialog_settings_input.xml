@@ -14,7 +14,6 @@
         android:id="@+id/inputTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:labelFor="@id/inputValue"
         android:textColor="@color/tv_text"
         android:textSize="24sp"
         android:textStyle="bold"
@@ -29,6 +28,7 @@
         android:textSize="13sp"
         tools:text="Use a three letter language code." />
 
+    <!-- Both dialog builders assign labelFor after setting the dynamic title. -->
     <EditText
         android:id="@+id/inputValue"
         android:layout_width="match_parent"
@@ -40,6 +40,7 @@
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
         android:singleLine="true"
+        tools:ignore="LabelFor"
         android:textColor="@color/tv_text"
         android:textColorHint="@color/tv_text_dim" />
 

@@ -56,7 +56,6 @@
             android:layout_marginStart="8dp"
             android:background="@drawable/bg_player_title_style_action"
             android:contentDescription="@string/appearance_editor_actions"
-            android:tooltipText="@string/appearance_editor_actions"
             android:padding="8dp"
             android:src="@drawable/round_more_horiz_24"
             android:stateListAnimator="@null" />
@@ -77,11 +76,13 @@
             android:textStyle="bold" />
     </LinearLayout>
 
+    <!-- These are selectable TV tabs, not a dialog action button bar. -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="48dp"
         android:layout_marginTop="12dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        tools:ignore="ButtonStyle">
 
         <Button
             android:id="@+id/titleStyleSeasonTab"

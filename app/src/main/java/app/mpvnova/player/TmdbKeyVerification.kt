@@ -10,10 +10,10 @@ internal enum class TmdbKeyVerification { VERIFIED, REJECTED, UNAVAILABLE }
 internal class TmdbKeyVerifier(private val request: (String, String) -> JSONObject = ::requestTmdbJson) {
     fun verify(key: String): TmdbKeyVerification = try {
         val response = request("authentication", key)
-        when (response.opt("success")) {
+        when (response.opt("success") as? Boolean) {
             true -> TmdbKeyVerification.VERIFIED
             false -> TmdbKeyVerification.REJECTED
-            else -> TmdbKeyVerification.UNAVAILABLE
+            null -> TmdbKeyVerification.UNAVAILABLE
         }
     } catch (error: TmdbHttpException) {
         if (error.status == HttpURLConnection.HTTP_UNAUTHORIZED) TmdbKeyVerification.REJECTED

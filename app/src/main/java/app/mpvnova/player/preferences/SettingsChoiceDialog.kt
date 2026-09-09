@@ -95,6 +95,7 @@ internal fun Fragment.showSettingsInputDialog(
 ) {
     val binding = DialogSettingsInputBinding.inflate(layoutInflater)
     binding.inputTitle.text = title
+    binding.inputTitle.labelFor = binding.inputValue.id
     binding.inputMessage.text = message ?: ""
     binding.inputMessage.isVisible = !message.isNullOrBlank()
     binding.inputValue.inputType = inputType

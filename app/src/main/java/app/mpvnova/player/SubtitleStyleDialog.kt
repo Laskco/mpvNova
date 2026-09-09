@@ -138,10 +138,10 @@ internal class SubtitleStyleDialog {
         }
         grid = SubtitleEditorGrid(binding.styleContent, columns, ::adjust).also { editor ->
             editor.build(tab, listOf(
-                R.string.sub_style_add_font to { onAddFont?.invoke(); Unit },
-                R.string.sub_style_remove_font to { onRemoveFont?.invoke(); Unit },
-                R.string.sub_style_edit_preset to { onEditPreset?.invoke(); Unit },
-                R.string.sub_style_delete_preset to { onDeletePreset?.invoke(); Unit },
+                R.string.sub_style_add_font to { onAddFont?.invoke() },
+                R.string.sub_style_remove_font to { onRemoveFont?.invoke() },
+                R.string.sub_style_edit_preset to { onEditPreset?.invoke() },
+                R.string.sub_style_delete_preset to { onDeletePreset?.invoke() },
             ))
             lastState?.let(editor::render)
         }

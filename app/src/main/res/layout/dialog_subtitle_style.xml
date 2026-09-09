@@ -128,12 +128,14 @@
                 android:textColor="@color/tv_text"
                 android:stateListAnimator="@null" />
         </LinearLayout>
+        <!-- Weighted height preserves the editor space when the live preview resizes. -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
             android:layout_marginTop="10dp"
-            android:background="@drawable/bg_tv_panel_card">
+            android:background="@drawable/bg_tv_panel_card"
+            tools:ignore="NestedWeights">
             <app.mpvnova.player.TvSmoothScrollView
                 android:id="@+id/styleScroll"
                 android:layout_width="match_parent"

@@ -13,6 +13,7 @@ import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
+import androidx.appcompat.widget.TooltipCompat
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.databinding.DialogPlayerTitleStyleControlBinding
 import app.mpvnova.player.databinding.DialogPlayerUiControlRowBinding
@@ -70,6 +71,7 @@ private class PlayerUiCustomizationPanelController(
         ?.name
 
     fun bind() {
+        TooltipCompat.setTooltipText(panel.playerUiMoreBtn, activity.getString(R.string.appearance_editor_actions))
         panel.playerUiMoreBtn.setOnClickListener { showEditorActions() }
         panel.playerUiPresetTab.setOnClickListener { select(PlayerUiEditorTab.PRESETS) }
         panel.playerUiSurfaceTab.setOnClickListener { select(PlayerUiEditorTab.SURFACE) }

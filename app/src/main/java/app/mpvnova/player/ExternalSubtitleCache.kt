@@ -259,7 +259,8 @@ internal fun deleteExternalSubtitleCache(directory: File) {
         // Allow Android's cache-root aliases, but never follow a child-directory
         // symlink or recurse into nested content. The parent is our own cache root.
         val canonical = directory.canonicalFile
-        if (canonical != File(directory.parentFile.canonicalFile, directory.name)) return@runCatching
+        val parent = directory.parentFile ?: return@runCatching
+        if (canonical != File(parent.canonicalFile, directory.name)) return@runCatching
         canonical.listFiles()?.forEach { it.delete() }
         if (canonical.exists() && !canonical.delete()) throw IOException("Could not delete subtitle cache")
     }.onFailure { Log.w("ExternalSubtitleCache", "Subtitle cache cleanup failed", it) }

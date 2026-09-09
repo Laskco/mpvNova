@@ -49,6 +49,9 @@ internal object CrashReporter {
         val stamp = timestampFormat.format(Date())
         val file = File(dir, "crash-$stamp.txt")
         val mpvLog = MpvLogRingBuffer.snapshot()
+        // Thread.threadId() is unavailable on older Android versions.
+        @Suppress("DEPRECATION")
+        val threadId = thread.id
         file.writeText(buildString {
             appendLine("mpvNova crash report")
             appendLine("Timestamp: $stamp")
@@ -60,7 +63,7 @@ internal object CrashReporter {
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL} (${Build.PRODUCT})")
             appendLine("Android: ${Build.VERSION.RELEASE} / API ${Build.VERSION.SDK_INT}")
             appendLine("ABIs: ${Build.SUPPORTED_ABIS?.joinToString().orEmpty()}")
-            appendLine("Thread: ${thread.name} (id=${thread.id}, priority=${thread.priority})")
+            appendLine("Thread: ${thread.name} (id=$threadId, priority=${thread.priority})")
             appendLine()
             appendLine("--- Stack trace ---")
             val sw = StringWriter()

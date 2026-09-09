@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="0dp"
@@ -8,8 +8,6 @@
     android:layout_marginEnd="4dp"
     android:layout_weight="1"
     android:background="@drawable/bg_player_title_style_control"
-    android:gravity="center_vertical"
-    android:orientation="vertical"
     android:paddingStart="8dp"
     android:paddingTop="6dp"
     android:paddingEnd="8dp"
@@ -24,15 +22,15 @@
         android:textColor="@color/tv_text_dim"
         android:textSize="10sp"
         android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
         tools:text="Font" />
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_marginTop="3dp"
-        android:layout_weight="1"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        app:layout_constraintTop_toBottomOf="@id/titleStyleControlLabel"
+        app:layout_constraintBottom_toBottomOf="parent">
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/titleStyleControlPrevious"
@@ -41,6 +39,9 @@
             android:background="@drawable/bg_player_title_style_step"
             android:contentDescription="@string/btn_decrease"
             android:padding="7dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:srcCompat="@drawable/ic_chevron_left_24"
             app:tint="@color/tv_text" />
 
@@ -50,7 +51,6 @@
             android:layout_height="34dp"
             android:layout_marginStart="5dp"
             android:layout_marginEnd="5dp"
-            android:layout_weight="1"
             android:background="@drawable/bg_player_title_style_value"
             android:ellipsize="end"
             android:gravity="center"
@@ -60,6 +60,10 @@
             android:textColor="@color/tv_text"
             android:textSize="11sp"
             android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/titleStyleControlPrevious"
+            app:layout_constraintEnd_toStartOf="@id/titleStyleControlNext"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             tools:text="Semibold" />
 
         <androidx.appcompat.widget.AppCompatImageButton
@@ -69,7 +73,10 @@
             android:background="@drawable/bg_player_title_style_step"
             android:contentDescription="@string/btn_increase"
             android:padding="7dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:srcCompat="@drawable/ic_chevron_right_24"
             app:tint="@color/tv_text" />
-    </LinearLayout>
-</LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>

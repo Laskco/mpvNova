@@ -1,6 +1,7 @@
 package app.mpvnova.player
 
 import android.content.SharedPreferences
+import androidx.appcompat.widget.TooltipCompat
 import app.mpvnova.player.databinding.DialogPlayerTitleStyleBinding
 import app.mpvnova.player.preferences.SettingsChoiceItem
 
@@ -33,6 +34,7 @@ internal class PlayerTitleStylePanelController(
     }
 
     fun bind() {
+        TooltipCompat.setTooltipText(panel.titleStyleMoreBtn, activity.getString(R.string.appearance_editor_actions))
         panel.titleStyleMoreBtn.setOnClickListener { showEditorActions() }
         panel.root.setTag(R.id.player_title_style_controls, controls)
         tabs.forEach { (part, button) -> button.setOnClickListener { select(part) } }
