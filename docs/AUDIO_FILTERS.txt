@@ -1,0 +1,527 @@
+mpvNova Audio Filters
+Version: 2026-06-08
+
+This document lists the actual mpv/FFmpeg lavfi filter chains used by the
+player audio controls.
+
+DRC VOICE (added 2026-09-05)
+==========================
+
+An optional third DRC preset, after DRC and DRC+. Existing preset indices,
+saved selections, defaults, and the original two chains are unchanged.
+
+    optional Volume Boost -> aresample -> normal DRC dynaudnorm ->
+    bass reduction -> speech presence EQ -> compressor with makeup gain -> limiter
+
+    dynaudnorm=f=100:p=1/sqrt(2):m=100:s=12:g=11,
+    bass=g=-9:f=180:t=q:w=0.7,
+    equalizer=f=2400:t=q:w=0.8:g=2.5,
+    acompressor=threshold=0.18:ratio=4:attack=5:release=220:makeup=2.4:knee=2.8:detection=rms:link=maximum,
+    alimiter=limit=0.90:attack=5:release=80:level=false
+
+The normal DRC quiet-passage lift is retained. Bass is reduced by up to 9 dB,
+speech presence around 2.4 kHz is boosted by 2.5 dB, and linked compression
+reduces louder passages with explicit makeup gain to avoid an overly quiet
+result. The limiter does not automatically boost its output back to 0 dBFS.
+Channels remain coupled; this does not force stereo or alter channel mapping.
+
+The speech EQ and compressor makeup gain were reduced from the initial
+4 dB / 3.0x values after listening feedback reported overly loud, harsh voices.
+Timing, compression ratio, bass reduction, and the limiter ceiling are unchanged.
+
+DRC Voice High is appended after DRC Voice and restores that initial tuning
+exactly: speech EQ gain 4 dB and compressor makeup 3.0x. Everything else in
+the Voice chain, including the optional post-Voice-Boost limiter, is identical.
+DRC Voice remains the gentler version at its existing saved index (3); High
+uses index 4 and must be selected explicitly. Neither changes the defaults.
+
+The usual DRC rules below also apply to DRC Voice: Audio Normalization is
+mutually exclusive, and user-selected Channel Downmix, Center Boost, Volume
+Boost, and Voice Boost remain available. With additional Voice Boost, a second
+peak limiter follows that EQ. Unlike DRC+, it never enables codec-level E-AC3
+DRC, so its compressor is the same for every decoded audio format.
+
+This is dynamics/EQ processing, not dialogue separation: music and speech
+sharing the same channels/frequencies cannot be independently controlled.
+Passthrough audio cannot be processed by decoded-audio filters.
+
+
+FILTER ORDER
+============
+
+mpvNova builds one mpv `af` chain from left to right. The left-most filter runs
+first, then each later filter receives the output of the previous one.
+
+When DRC or DRC+ is ON:
+
+    Channel Downmix -> DRC/DRC+ audio stage -> DRC-specific Voice Boost
+
+When DRC and DRC+ are OFF:
+
+    Channel Downmix -> Center Boost -> Audio Normalization -> Voice Boost -> Volume Boost
+
+DRC, DRC+, and Audio Normalization are mutually exclusive.
+
+Runtime rules:
+
+    1. Channel Downmix is always placed before dynamics filters.
+
+       If enabled on a 5.1/7.1 source, it converts the selected surround track
+       to stereo before DRC, DRC+, Audio Normalization, Voice Boost, or
+       Volume Boost.
+
+       If the source is already stereo, Channel Downmix does not add a filter.
+
+    2. Center Boost is independent.
+
+       Active values are numeric only:
+
+           3.0, 3.5, 4.0, 4.5, 5.0
+
+       When DRC or DRC+ is on, Center Boost is folded into that mode's
+       `aresample` options as `center_mix_level=<value>`.
+
+       When DRC and DRC+ are off, Center Boost adds its own `@centerboost`
+       aresample stage before Audio Normalization, Voice Boost, and Volume
+       Boost.
+
+    3. DRC and DRC+ are the primary dynamics path.
+
+       When either DRC level is on, Audio Normalization is blocked. Both
+       levels use the dedicated `@drcaudio` stage:
+
+           DRC:  optional Volume Boost multiplier -> dynaudnorm -> aresample
+           DRC+: optional Volume Boost multiplier -> aresample -> limiter
+                 plus compressor on non-E-AC3 tracks
+
+       Voice Boost can still run after DRC/DRC+, but it uses the DRC-specific
+       Voice Boost preset list.
+
+    4. Volume Boost behaves differently depending on DRC/DRC+/Audio Normalization.
+
+       When DRC or DRC+ is on, Volume Boost is folded into the `@drcaudio`
+       stage as a linear `volume=<multiplier>` filter.
+
+       When Audio Normalization is on, Volume Boost is appended after Audio
+       Normalization with a limiter.
+
+       When none of DRC, DRC+, or Audio Normalization is on, Volume Boost uses
+       its full compressor -> volume -> limiter chain.
+
+    5. Audio Normalization is the alternate dynamics path.
+
+       When Audio Normalization is on, DRC and DRC+ are blocked. The chain can
+       still use Channel Downmix before it, then Voice Boost and Volume Boost
+       after it.
+
+    5. Persist Filters does not add audio filters.
+
+       It only saves the current filter levels for the next file.
+
+Example chains:
+
+    DRC only:
+
+        @drcaudio:lavfi=[dynaudnorm=...,aresample=...]
+
+    DRC + Volume Boost:
+
+        @drcaudio:lavfi=[volume=<multiplier>,dynaudnorm=...,aresample=...]
+
+    Center Boost:
+
+        @centerboost:lavfi=[
+            aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>:center_mix_level=<value>
+        ]
+
+    DRC+:
+
+        @drcaudio:lavfi=[
+            aresample=...,
+            acompressor=threshold=0.025:ratio=10:attack=3:release=130:makeup=2.3:knee=2:detection=peak:link=maximum,
+            alimiter=limit=0.95:attack=5:release=50:level=false,
+            aformat=sample_fmts=<format>
+        ]
+
+    DRC+ with E-AC3:
+
+        ad-lavc-ac3drc=0.8
+        @drcaudio:lavfi=[
+            aresample=...,
+            alimiter=limit=0.95:attack=5:release=50:level=false,
+            aformat=sample_fmts=<format>
+        ]
+
+    DRC + Channel Downmix + Voice Boost:
+
+        @dialoguedownmix:lavfi=[pan=stereo|...],
+        @drcaudio:lavfi=[dynaudnorm=...,aresample=...],
+        @voiceboost:lavfi=[DRC-specific EQ preset]
+
+    Audio Normalization + Voice Boost + Volume Boost:
+
+        @dynaudnorm:lavfi=[normalization preset],
+        @voiceboost:lavfi=[normal EQ preset],
+        @volumeboost:lavfi=[volume=<dB>dB,alimiter=...]
+
+    Channel Downmix + Audio Normalization + Voice Boost + Volume Boost:
+
+        @dialoguedownmix:lavfi=[pan=stereo|...],
+        @dynaudnorm:lavfi=[normalization preset],
+        @voiceboost:lavfi=[normal EQ preset],
+        @volumeboost:lavfi=[volume=<dB>dB,alimiter=...]
+
+
+DRC
+===
+
+Core DRC body:
+
+    dynaudnorm=f=100:p=1/sqrt(2):m=100:s=12:g=11
+
+Runtime DRC stage:
+
+    @drcaudio:lavfi=[
+        volume=<linear multiplier if Volume Boost is on>,
+        dynaudnorm=f=100:p=1/sqrt(2):m=100:s=12:g=11,
+        aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>[:center_mix_level=<value>]
+    ]
+
+If Channel Downmix is active on a 5.1/7.1 source, Channel Downmix feeds DRC
+first and DRC treats the input/output layout as stereo.
+
+
+DRC+
+====
+
+DRC+ is the Vimu-derived DRC mode recovered from Vimu's native media engine.
+It is level 2 on the same DRC control. It blocks Audio Normalization the same
+way regular DRC does, and it still uses the DRC-specific Voice Boost presets.
+
+For non-E-AC3 selected audio tracks, including AC3, DRC+ builds:
+
+    @drcaudio:lavfi=[
+        volume=<linear multiplier if Volume Boost is on>,
+        aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>[:center_mix_level=<value>],
+        acompressor=threshold=0.025:ratio=10:attack=3:release=130:makeup=2.3:knee=2:detection=peak:link=maximum,
+        alimiter=limit=0.95:attack=5:release=50:level=false,
+        aformat=sample_fmts=<format>
+    ]
+
+For E-AC3 selected audio tracks, DRC+ skips the compressor and enables native
+decoder DRC scale:
+
+    ad-lavc-ac3drc=0.8
+
+    @drcaudio:lavfi=[
+        volume=<linear multiplier if Volume Boost is on>,
+        aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>[:center_mix_level=<value>],
+        alimiter=limit=0.95:attack=5:release=50:level=false,
+        aformat=sample_fmts=<format>
+    ]
+
+When DRC+ is off, or when the selected track is not E-AC3, mpvNova sets:
+
+    ad-lavc-ac3drc=0
+
+
+CENTER BOOST
+============
+
+Center Boost is a separate audio-filter row. It has five active numeric values:
+
+    3.0
+    3.5
+    4.0
+    4.5
+    5.0
+
+When DRC or DRC+ is active, the selected value is folded into the existing DRC
+aresample stage:
+
+    aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>:center_mix_level=<value>
+
+When DRC and DRC+ are off, Center Boost adds its own filter stage:
+
+    @centerboost:lavfi=[
+        aresample=<rate>:in_chlayout=<layout>:out_chlayout=<layout>:out_sample_fmt=<format>:center_mix_level=<value>
+    ]
+
+
+CHANNEL DOWNMIX
+===============
+
+Only applies when the selected audio track has 6 or more channels.
+
+Level 1:
+
+    @dialoguedownmix:lavfi=[
+        pan=stereo|
+        FL=0.88*FL+0.78*FC+0.24*BL+0.24*SL+0.08*BR+0.08*SR+0.18*LFE|
+        FR=0.88*FR+0.78*FC+0.24*BR+0.24*SR+0.08*BL+0.08*SL+0.18*LFE
+    ]
+
+Level 2:
+
+    @dialoguedownmix:lavfi=[
+        pan=stereo|
+        FL=0.84*FL+0.86*FC+0.20*BL+0.20*SL+0.06*BR+0.06*SR+0.16*LFE|
+        FR=0.84*FR+0.86*FC+0.20*BR+0.20*SR+0.06*BL+0.06*SL+0.16*LFE
+    ]
+
+Level 3:
+
+    @dialoguedownmix:lavfi=[
+        pan=stereo|
+        FL=0.80*FL+0.94*FC+0.17*BL+0.17*SL+0.05*BR+0.05*SR+0.14*LFE|
+        FR=0.80*FR+0.94*FC+0.17*BR+0.17*SR+0.05*BL+0.05*SL+0.14*LFE
+    ]
+
+Level 4:
+
+    @dialoguedownmix:lavfi=[
+        pan=stereo|
+        FL=0.76*FL+1.02*FC+0.14*BL+0.14*SL+0.04*BR+0.04*SR+0.12*LFE|
+        FR=0.76*FR+1.02*FC+0.14*BR+0.14*SR+0.04*BL+0.04*SL+0.12*LFE
+    ]
+
+Level 5:
+
+    @dialoguedownmix:lavfi=[
+        pan=stereo|
+        FL=0.72*FL+1.10*FC+0.12*BL+0.12*SL+0.03*BR+0.03*SR+0.10*LFE|
+        FR=0.72*FR+1.10*FC+0.12*BR+0.12*SR+0.03*BL+0.03*SL+0.10*LFE
+    ]
+
+
+VOLUME BOOST
+============
+
+Available levels:
+
+    0, +2, +4, +6, +8, +10, +12, +15, +18, +21 dB
+
+If DRC, DRC+, or Audio Normalization is active:
+
+    @volumeboost:lavfi=[
+        volume=<dB>dB,
+        alimiter=limit=<limit>:attack=2:release=20
+    ]
+
+Limiter value by boost amount:
+
+    <= +4 dB:  0.97
+    <= +8 dB:  0.95
+    <= +12 dB: 0.93
+    <= +15 dB: 0.91
+    >  +15 dB: 0.89
+
+If DRC and Audio Normalization are both off:
+
+    @volumeboost:lavfi=[
+        acompressor=threshold=<threshold>:ratio=<ratio>:attack=6:release=90:knee=3.0:link=average:detection=rms:makeup=1.02,
+        volume=<dB>dB,
+        alimiter=limit=<limit>:attack=2:release=20
+    ]
+
+Compressor/limiter values by boost amount:
+
+    <= +4 dB:  threshold=-19dB, ratio=1.6, limit=0.95
+    <= +8 dB:  threshold=-20dB, ratio=1.9, limit=0.93
+    <= +12 dB: threshold=-21dB, ratio=2.2, limit=0.91
+    <= +15 dB: threshold=-22dB, ratio=2.5, limit=0.89
+    >  +15 dB: threshold=-23dB, ratio=2.8, limit=0.87
+
+When DRC or DRC+ is active, Volume Boost is folded into the DRC audio stage as
+a linear multiplier.
+
+
+VOICE BOOST
+===========
+
+Normal Voice Boost is EQ-only.
+
+Level 1:
+
+    @voiceboost:lavfi=[
+        highpass=f=72:p=2,
+        equalizer=f=180:t=q:w=0.8:g=-0.5,
+        equalizer=f=360:t=q:w=1.0:g=-0.6,
+        equalizer=f=1250:t=q:w=1.1:g=0.8,
+        equalizer=f=2300:t=q:w=0.9:g=1.3,
+        equalizer=f=3400:t=q:w=0.9:g=1.0,
+        equalizer=f=6500:t=q:w=1.0:g=-0.2
+    ]
+
+Level 2:
+
+    @voiceboost:lavfi=[
+        highpass=f=76:p=2,
+        equalizer=f=180:t=q:w=0.8:g=-0.8,
+        equalizer=f=360:t=q:w=1.0:g=-0.9,
+        equalizer=f=1300:t=q:w=1.1:g=1.2,
+        equalizer=f=2400:t=q:w=0.9:g=1.8,
+        equalizer=f=3500:t=q:w=0.9:g=1.4,
+        equalizer=f=6600:t=q:w=1.0:g=-0.3
+    ]
+
+Level 3:
+
+    @voiceboost:lavfi=[
+        highpass=f=80:p=2,
+        equalizer=f=175:t=q:w=0.8:g=-1.1,
+        equalizer=f=360:t=q:w=1.0:g=-1.2,
+        equalizer=f=1400:t=q:w=1.1:g=1.6,
+        equalizer=f=2550:t=q:w=0.9:g=2.4,
+        equalizer=f=3650:t=q:w=0.9:g=1.8,
+        equalizer=f=6800:t=q:w=1.0:g=-0.4
+    ]
+
+Level 4:
+
+    @voiceboost:lavfi=[
+        highpass=f=84:p=2,
+        equalizer=f=170:t=q:w=0.8:g=-1.4,
+        equalizer=f=360:t=q:w=1.0:g=-1.5,
+        equalizer=f=1500:t=q:w=1.1:g=2.0,
+        equalizer=f=2700:t=q:w=0.9:g=3.0,
+        equalizer=f=3800:t=q:w=0.9:g=2.2,
+        equalizer=f=7000:t=q:w=1.0:g=-0.5
+    ]
+
+Level 5:
+
+    @voiceboost:lavfi=[
+        highpass=f=88:p=2,
+        equalizer=f=165:t=q:w=0.8:g=-1.8,
+        equalizer=f=360:t=q:w=1.0:g=-1.9,
+        equalizer=f=1600:t=q:w=1.1:g=2.4,
+        equalizer=f=2900:t=q:w=0.9:g=3.6,
+        equalizer=f=4000:t=q:w=0.9:g=2.6,
+        equalizer=f=7200:t=q:w=1.0:g=-0.6
+    ]
+
+
+DRC-SPECIFIC VOICE BOOST
+========================
+
+Used only when DRC or DRC+ is active.
+
+Level 1:
+
+    @voiceboost:lavfi=[
+        highpass=f=68:p=2,
+        equalizer=f=220:t=q:w=0.9:g=-0.4,
+        equalizer=f=520:t=q:w=1.0:g=-0.5,
+        equalizer=f=1050:t=q:w=1.1:g=0.8,
+        equalizer=f=1550:t=q:w=1.0:g=1.6,
+        equalizer=f=2400:t=q:w=0.95:g=1.8,
+        equalizer=f=3600:t=q:w=1.0:g=0.6,
+        equalizer=f=6200:t=q:w=1.0:g=-0.8
+    ]
+
+Level 2:
+
+    @voiceboost:lavfi=[
+        highpass=f=70:p=2,
+        equalizer=f=220:t=q:w=0.9:g=-0.7,
+        equalizer=f=520:t=q:w=1.0:g=-0.8,
+        equalizer=f=1100:t=q:w=1.1:g=1.2,
+        equalizer=f=1650:t=q:w=1.0:g=2.2,
+        equalizer=f=2500:t=q:w=0.95:g=2.4,
+        equalizer=f=3600:t=q:w=1.0:g=0.8,
+        equalizer=f=6400:t=q:w=1.0:g=-1.0
+    ]
+
+Level 3:
+
+    @voiceboost:lavfi=[
+        highpass=f=72:p=2,
+        equalizer=f=210:t=q:w=0.9:g=-1.0,
+        equalizer=f=500:t=q:w=1.0:g=-1.1,
+        equalizer=f=1150:t=q:w=1.1:g=1.6,
+        equalizer=f=1750:t=q:w=1.0:g=2.8,
+        equalizer=f=2600:t=q:w=0.95:g=3.0,
+        equalizer=f=3650:t=q:w=1.0:g=1.0,
+        equalizer=f=6600:t=q:w=1.0:g=-1.2
+    ]
+
+Level 4:
+
+    @voiceboost:lavfi=[
+        highpass=f=74:p=2,
+        equalizer=f=200:t=q:w=0.9:g=-1.3,
+        equalizer=f=480:t=q:w=1.0:g=-1.4,
+        equalizer=f=1200:t=q:w=1.1:g=2.0,
+        equalizer=f=1850:t=q:w=1.0:g=3.4,
+        equalizer=f=2750:t=q:w=0.95:g=3.6,
+        equalizer=f=3700:t=q:w=1.0:g=1.1,
+        equalizer=f=6800:t=q:w=1.0:g=-1.4
+    ]
+
+Level 5:
+
+    @voiceboost:lavfi=[
+        highpass=f=76:p=2,
+        equalizer=f=190:t=q:w=0.9:g=-1.6,
+        equalizer=f=460:t=q:w=1.0:g=-1.7,
+        equalizer=f=1250:t=q:w=1.1:g=2.4,
+        equalizer=f=1950:t=q:w=1.0:g=4.0,
+        equalizer=f=2900:t=q:w=0.95:g=4.2,
+        equalizer=f=3800:t=q:w=1.0:g=1.2,
+        equalizer=f=7000:t=q:w=1.0:g=-1.6
+    ]
+
+
+AUDIO NORMALIZATION
+===================
+
+Level 1:
+
+    @dynaudnorm:lavfi=[
+        dynaudnorm=framelen=500:gausssize=9:peak=0.94:maxgain=3.0:coupling=1,
+        equalizer=f=240:t=q:w=1.0:g=-0.5,
+        equalizer=f=2600:t=q:w=0.9:g=0.5,
+        acompressor=threshold=-20dB:ratio=1.35:attack=22:release=280:knee=2.5:link=average:detection=rms:makeup=1.02,
+        alimiter=limit=0.98:attack=2:release=24
+    ]
+
+Level 2:
+
+    @dynaudnorm:lavfi=[
+        dynaudnorm=framelen=460:gausssize=9:peak=0.94:maxgain=4.5:coupling=1,
+        equalizer=f=235:t=q:w=1.0:g=-0.7,
+        equalizer=f=2700:t=q:w=0.9:g=0.7,
+        acompressor=threshold=-21dB:ratio=1.55:attack=20:release=300:knee=2.8:link=average:detection=rms:makeup=1.05,
+        alimiter=limit=0.97:attack=2:release=22
+    ]
+
+Level 3:
+
+    @dynaudnorm:lavfi=[
+        dynaudnorm=framelen=420:gausssize=7:peak=0.93:maxgain=6.0:coupling=1,
+        equalizer=f=230:t=q:w=1.0:g=-0.9,
+        equalizer=f=2800:t=q:w=0.9:g=0.9,
+        acompressor=threshold=-22dB:ratio=1.75:attack=18:release=320:knee=3.0:link=average:detection=rms:makeup=1.08,
+        alimiter=limit=0.96:attack=2:release=20
+    ]
+
+Level 4:
+
+    @dynaudnorm:lavfi=[
+        dynaudnorm=framelen=380:gausssize=7:peak=0.93:maxgain=7.5:coupling=1,
+        equalizer=f=225:t=q:w=1.0:g=-1.1,
+        equalizer=f=2900:t=q:w=0.9:g=1.1,
+        acompressor=threshold=-23dB:ratio=1.95:attack=16:release=340:knee=3.2:link=average:detection=rms:makeup=1.10,
+        alimiter=limit=0.95:attack=2:release=18
+    ]
+
+Level 5:
+
+    @dynaudnorm:lavfi=[
+        dynaudnorm=framelen=340:gausssize=5:peak=0.92:maxgain=9.0:coupling=1,
+        equalizer=f=220:t=q:w=1.0:g=-1.3,
+        equalizer=f=3000:t=q:w=0.9:g=1.3,
+        acompressor=threshold=-24dB:ratio=2.15:attack=14:release=360:knee=3.5:link=average:detection=rms:makeup=1.12,
+        alimiter=limit=0.94:attack=2:release=18
+    ]
