@@ -14,7 +14,7 @@ internal object PlayerTitleResolver {
         mediaTitle: String?,
         fileName: String?,
     ): PlayerTitlePresentation? {
-        return displayTitle?.trim()?.takeIf { it.isNotBlank() }?.let { fallbackTitle ->
+        return VlcTitleResolver.titleSourceFromExtra(displayTitle)?.let { fallbackTitle ->
             val candidates = listOfNotNull(sourceTitle, fallbackTitle, mediaTitle, fileName)
                 .mapNotNull(::episodeTitleParts)
             val release = AnimeReleaseTitle.parse(sourceTitle) ?: AnimeReleaseTitle.parse(fileName)
@@ -55,7 +55,8 @@ internal object PlayerTitleResolver {
     private fun embeddedEpisodeTitle(
         mediaTitle: String?, seriesTitle: String, sourceTitle: String?, fileName: String?,
     ): String? {
-        val title = mediaTitle?.trim()?.takeIf { it.isNotBlank() && it.length <= MAX_EMBEDDED_TITLE_LENGTH }
+        val title = VlcTitleResolver.titleSourceFromExtra(mediaTitle)
+            ?.takeIf { it.length <= MAX_EMBEDDED_TITLE_LENGTH }
             ?: return null
         val duplicatesSource = title == fileName || title == sourceTitle || sameSeriesTitle(title, seriesTitle)
         return title.takeUnless { duplicatesSource || isReleaseMetadata(it) }
@@ -72,7 +73,6 @@ internal object PlayerTitleResolver {
 
     private fun episodeTitleParts(candidate: String?): EpisodeTitleParts? {
         val decoded = VlcTitleResolver.titleSourceFromExtra(candidate)
-            ?.substringBefore('?')
             ?.trim()
             ?.takeIf { it.isNotBlank() }
             ?: return null
@@ -96,13 +96,14 @@ internal object PlayerTitleResolver {
     }
 
     private fun normalizeTitle(value: String): String? {
-        return value
+        val safeValue = VlcTitleResolver.titleSourceFromExtra(value) ?: return null
+        return safeValue
             .replace(RELEASE_SEPARATOR_PATTERN, " ")
             .let(::cleanTitleBrackets)
             .trim(' ', '-', '_', '.')
             .replace(RELEASE_WHITESPACE_PATTERN, " ")
             .trim()
-            .takeIf { it.isNotBlank() }
+            .let(VlcTitleResolver::titleSourceFromExtra)
     }
 
     private fun looksLikeMediaExtension(value: String): Boolean =

@@ -3,8 +3,9 @@ package app.mpvnova.player
 import java.util.Locale
 
 internal fun cleanEpisodeTitle(presentation: PlayerTitlePresentation): PlayerTitlePresentation {
-    val value = presentation.episodeTitle?.trim() ?: return presentation
-    val cleaned = EpisodeTitlePrefix.remove(value, presentation)
+    val value = VlcTitleResolver.titleSourceFromExtra(presentation.episodeTitle)
+        ?: return presentation.copy(episodeTitle = null)
+    val cleaned = VlcTitleResolver.titleSourceFromExtra(EpisodeTitlePrefix.remove(value, presentation))
     return if (cleaned == presentation.episodeTitle) presentation else presentation.copy(episodeTitle = cleaned)
 }
 

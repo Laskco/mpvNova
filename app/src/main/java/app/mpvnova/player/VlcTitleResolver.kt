@@ -8,10 +8,14 @@ import java.util.Locale
 
 object VlcTitleResolver {
     fun titleSourceFromExtra(title: String?): String? {
-        return title
-            ?.takeIf { it.isNotBlank() }
-            ?.let { percentDecode(it).trim() }
-            ?.takeIf { it.isNotBlank() }
+        val decoded = title?.let { percentDecode(percentDecode(it)).trim() }
+            ?.takeIf { it.isNotBlank() && !it.contains("://") } ?: return null
+        // Titles may come from mpv's URL basename, not actual media metadata.
+        // Never display a URL or its authentication/query suffix as a title.
+        val suffix = listOfNotNull(QUERY_SUFFIX.find(decoded), CREDENTIAL_ASSIGNMENT.find(decoded))
+            .minByOrNull { it.range.first }
+        val candidate = (suffix?.let { decoded.substring(0, it.range.first) } ?: decoded).trim()
+        return candidate.takeIf { it.isNotBlank() && !OPAQUE_STREAM_ID.matches(it) }
     }
 
     fun itemTitleFromExtra(title: String?): String? {
@@ -28,15 +32,17 @@ object VlcTitleResolver {
                 uri.rawPath
                     ?.substringAfterLast('/')
                     ?.takeIf { it.isNotBlank() }
-                    ?: trimmed
             } else {
-                trimmed
+                trimmed.substringBefore('?').substringBefore('#')
+                    .substringAfter("://", missingDelimiterValue = "")
+                    .substringAfter('/', missingDelimiterValue = "")
+                    .substringAfterLast('/')
             }
         } else {
             File(trimmed.substringBefore('?')).name
         }
 
-        return percentDecode(candidate).trim().takeIf { it.isNotBlank() }
+        return titleSourceFromExtra(candidate)
     }
 
     fun queryTitleFromPathLike(path: String?): String? {
@@ -65,19 +71,14 @@ object VlcTitleResolver {
     }
 
     fun titleFromFileName(fileName: String?): String? {
-        val name = fileName?.takeIf { it.isNotBlank() } ?: return null
+        val name = titleSourceFromExtra(fileName) ?: return null
         val end = name.lastIndexOf(".")
         val withoutExtension = if (end <= 0) name else name.substring(0, end)
         return displayTitleFromCandidate(withoutExtension)
     }
 
     fun metaTitle(title: String?, fileName: String?, isStream: Boolean): String? {
-        val libTitle = title
-            ?.trim()
-            ?.takeIf { it.isNotBlank() }
-            ?.let { percentDecode(it).trim() }
-            ?.takeIf { it.isNotBlank() }
-            ?: return null
+        val libTitle = titleSourceFromExtra(title) ?: return null
         return when {
             !fileName.isNullOrBlank() && libTitle == fileName -> null
             isStream && libTitle.lowercase(Locale.ROOT).contains("://") -> null
@@ -87,7 +88,7 @@ object VlcTitleResolver {
     }
 
     fun resolve(itemTitle: String?, mediaTitle: String?, fileName: String?, isStream: Boolean): String? {
-        return itemTitle
+        return titleSourceFromExtra(itemTitle)
             ?: metaTitle(mediaTitle, fileName, isStream)
             ?: titleFromFileName(fileName)
     }
@@ -101,7 +102,7 @@ object VlcTitleResolver {
     }
 
     private fun displayTitleFromCandidate(candidate: String): String? {
-        val trimmed = candidate.trim().takeIf { it.isNotBlank() } ?: return null
+        val trimmed = titleSourceFromExtra(candidate) ?: return null
         val seasonEpisode = SEASON_EPISODE_PATTERN.find(trimmed)
         val releaseTag = RELEASE_TAG_PATTERN.find(trimmed)
         val displayTitle = when {
@@ -158,6 +159,14 @@ object VlcTitleResolver {
 
     private val SEASON_EPISODE_PATTERN =
         Regex("""(?i)(?:^|[ ._\-\[(])S\d{1,2}E\d{1,3}(?:E\d{1,3})?(?=$|[ ._\-\])])""")
+
+    private val QUERY_SUFFIX = Regex("""[?&#]\s*[\w.%+\-]+\s*=""")
+    private val CREDENTIAL_ASSIGNMENT = Regex(
+        """(?i)(?:^|\s)(?:token|access_token|api_key|apikey|authorization|signature|x-amz-signature)\s*="""
+    )
+    private val OPAQUE_STREAM_ID = Regex(
+        """(?i)(?:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}|[0-9a-f]{32,})(?:\.[a-z0-9]{2,5})?"""
+    )
 
     private val RELEASE_SEPARATOR_PATTERN = Regex("[._]+")
     private val RELEASE_WHITESPACE_PATTERN = Regex("\\s+")
