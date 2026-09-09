@@ -30,19 +30,20 @@ internal object PlayerTitleResolver {
                         ?.let { PlayerTitlePresentation(it) }
                 }
             } else {
-                val episodeTitle = candidates.firstNotNullOfOrNull { candidate ->
-                    candidate.episodeTitle.takeIf {
-                        candidate.season == primaryParts.season &&
-                            candidate.episode == primaryParts.episode &&
-                            sameSeriesTitle(candidate.seriesTitle, primaryParts.seriesTitle)
-                    }
+                val matchingParts = candidates.filter { candidate ->
+                    candidate.season == primaryParts.season && candidate.episode == primaryParts.episode &&
+                        compatibleEpisodeSeries(primaryParts.seriesTitle, candidate.seriesTitle)
                 }
+                val seriesTitle = matchingParts.firstOrNull { candidate ->
+                    isExpandedEpisodeSeries(primaryParts.seriesTitle, candidate.seriesTitle)
+                }?.seriesTitle ?: primaryParts.seriesTitle
+                val episodeTitle = matchingParts.firstNotNullOfOrNull { it.episodeTitle }
                 PlayerTitlePresentation(
-                    title = primaryParts.seriesTitle.ifBlank { fallbackTitle },
+                    title = seriesTitle.ifBlank { fallbackTitle },
                     season = primaryParts.season,
                     episode = primaryParts.episode,
                     episodeTitle = episodeTitle ?: embeddedEpisodeTitle(
-                        mediaTitle, primaryParts.seriesTitle, sourceTitle, fileName),
+                        mediaTitle, seriesTitle, sourceTitle, fileName),
                 )
             }
         }?.let(::cleanEpisodeTitle)
@@ -121,7 +122,7 @@ internal object PlayerTitleResolver {
     private val RELEASE_SEPARATOR_PATTERN = Regex("[._]+")
     private val RELEASE_WHITESPACE_PATTERN = Regex("\\s+")
     private val RELEASE_TAG_PATTERN = Regex(
-        "(?i)(?:^|[ ._\\-\\[(])(?:" +
+        "(?i)\\[(?:dvd|dvdrip)(?=[ ._\\-\\]])|(?:^|[ ._\\-\\[(])(?:" +
             "2160p|1080p|720p|480p|web[-_. ]?dl|webrip|blu[-_. ]?ray|bluray|bd|bdrip|hdrip|remux|" +
             "nf|cr|amzn|hulu|dsnp|multi|repack|proper|x264|x265|" +
             "h[ ._-]?264|h[ ._-]?265|hevc|av1|aac|eac3|ddp?5[ ._-]?1|flac" +
