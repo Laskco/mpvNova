@@ -52,7 +52,7 @@ Open **Settings > Player UI**, or the interface controls in the player drawer.
 | Auto-hide player controls | How long the controls remain visible after interaction. |
 | Keep controls visible while paused | Keeps controls visible when paused until you hide them or resume. Default off. |
 | Pause when controls show | Pauses while the controls overlay is open. Default off. This is separate from the Hi10P-only option below. |
-| Place Settings and PiP in player bar | Moves the top-right actions into the bar. Default off. PiP must also be enabled among the optional bar controls. |
+| Place Settings and PiP in player bar | Moves the top-right actions into the bar. This placement setting defaults off. When moved into the bar, PiP is hidden by default; enable it under Player UI customization > Controls to show it. |
 | D-pad up jumps to top controls | Up from the seekbar reaches the top-right actions. Default off; unavailable when those actions are in the bar. |
 | Bottom controls | Places the player controls at the bottom. Available in the player drawer. |
 | Back hides player UI first | The first Back press hides visible controls instead of starting the exit sequence. Default off. |
@@ -118,6 +118,8 @@ Open **Player UI customization** during playback. The tabs are **Presets**, **Su
 ### Controls And Editor Actions
 
 Reorder the controls and hide optional ones: Previous, Next, Speed, Decoder, Color filters, Stats, Voice Boost, Volume Boost, DRC, Audio Normalization, and PiP. Play, Chapters, Audio, Subtitles, and Settings are protected. Settings/PiP placement also depends on **Place Settings and PiP in player bar**.
+
+PiP is hidden by default in the player bar. Moving the actions into the bar does not automatically enable PiP; turn it on in the Controls tab.
 
 Editor actions include copying the title or clock panel's surface to the bar, undo/redo, reverting this editing session, and preset import/export. Surface copying leaves geometry and control order alone.
 
@@ -307,7 +309,7 @@ Open **Settings > Advanced** for startup preferences, or the player decoder pick
 | --- | --- |
 | Automatic decoder fallback | Allows mpvNova's known-problem fallback rules to override the selected path temporarily. Default on. This is different from mpv's Auto mode. |
 | Preferred decoder mode | Startup choice used when automatic decoder fallback is off. |
-| Auto (safe) | Uses mpv's safe automatic hardware-decoding selection and software fallback. Turning off mpvNova's automatic fallback removes its additional automatic recovery rules, not device restrictions or the native FEL default. |
+| Auto (safe) | Uses mpv's safe automatic hardware-decoding selection and software fallback. |
 | HW+ | MediaCodec direct hardware path, available on supported Android versions. |
 | HW | MediaCodec copy hardware path. |
 | SW | Software decoding on the normal renderer. |
@@ -334,7 +336,7 @@ The bar badge follows the active path, for example G+SW when gpu-next is softwar
 
 **FEL decoding is disabled by default, not Dolby Vision as a whole.** For interleaved Profile 7 sources, the patch prevents the extra enhancement-layer decoder from starting and removes enhancement video packets while retaining the base video and RPU metadata. Separate enhancement tracks are not automatically paired when FEL is disabled.
 
-This resolved playback of the tested Obsession Profile 7 remux on the user's Shield. It is not a guarantee for all files or devices, does not perform DV7-to-DV8.1 conversion, and does not add Dolby Vision output capability to a display or rendering path.
+This does not perform DV7-to-DV8.1 conversion or add Dolby Vision output capability to a display or rendering path.
 
 There is **no FEL switch in the app settings**. The old FEL and Dolby Vision processing switches were removed. To restore upstream enhancement-layer decoding intentionally, open **Settings > Advanced > Edit mpv.conf** and add:
 

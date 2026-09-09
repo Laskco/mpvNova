@@ -33,7 +33,10 @@ The goal is simple: keep mpv powerful, but make it feel natural on a TV from the
 
 For the inherited playback feature set, scripting support, and core behavior that mpvNova builds on top of, see upstream [mpv-android](https://github.com/mpv-android/mpv-android).
 
-For the controls added by this fork, see the [mpvNova settings guide](docs/settings-guide.md), including defaults, subtitle styling, audio presets, network buffering, and decoder compatibility.
+## Documentation
+
+- [mpvNova settings guide](docs/settings-guide.md): settings, defaults, player customization, subtitles, audio, network buffering, and decoder compatibility.
+- [Native build guide](buildscripts/README.md): rebuilding mpv and the bundled playback libraries.
 
 ---
 
@@ -176,7 +179,7 @@ Numeric controls offer suggested values and custom input. Combined forward and r
 
 ## Dolby Vision And FEL
 
-**FEL decoding is disabled by default; Dolby Vision is not disabled.** For interleaved Dolby Vision Profile 7 video, mpvNova skips the enhancement-layer decoder and retains the base video and RPU metadata. This avoids the extra decoding path that prevented the tested Profile 7 remux from playing on NVIDIA Shield.
+**FEL decoding is disabled by default; Dolby Vision is not disabled.** For interleaved Dolby Vision Profile 7 video, mpvNova skips the enhancement-layer decoder and retains the base video and RPU metadata.
 
 There is no FEL toggle in the settings panel. Advanced users can opt in through **Settings > Advanced > Edit mpv.conf** with `vd-lavc-dovi-fel=yes`, then reopen the video. Remove that line or use `vd-lavc-dovi-fel=no` to restore the default. Enabling it can bring back playback failures on affected devices.
 

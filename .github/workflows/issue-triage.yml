@@ -65,6 +65,8 @@ jobs:
                   '',
                   "mpvNova keeps its tracker focused on bugs in **mpvNova's own changes**. Please open a new issue using one of the templates and complete every required field and checkbox.",
                   '',
+                  'For mpvNova-specific settings and controls, see the [mpvNova settings guide](https://github.com/Laskco/mpvNova/blob/main/docs/settings-guide.md).',
+                  '',
                   'General mpv or mpv-android usage and bugs belong with the [mpv manual](https://mpv.io/manual/master/), [mpv FAQ](https://github.com/mpv-player/mpv/wiki/FAQ), or [mpv-android](https://github.com/mpv-android/mpv-android/issues).',
                 ].join('\n'),
               });
@@ -80,8 +82,9 @@ jobs:
             await github.rest.issues.createComment({
               ...common,
               body: [
-                'Thanks for the report. A couple of automated notes:',
+                'Thanks for the report. Some automated notes:',
                 '',
+                '- For mpvNova-specific settings and controls, see the [mpvNova settings guide](https://github.com/Laskco/mpvNova/blob/main/docs/settings-guide.md).',
                 '- mpvNova is a fork of [mpv-android](https://github.com/mpv-android/mpv-android). General mpv / mpv-android bugs and usage questions will be redirected to the [mpv manual](https://mpv.io/manual/master/), [mpv FAQ](https://github.com/mpv-player/mpv/wiki/FAQ), or [upstream](https://github.com/mpv-android/mpv-android/issues).',
                 '- If a maintainer marks this `needs-info` and it stays inactive, it is closed automatically after about 14 days.',
               ].join('\n'),
