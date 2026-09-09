@@ -74,7 +74,7 @@ private fun JSONObject.requireReleaseTag(): String {
 
 private fun requireApkAsset(apkAssets: List<JSONObject>): JSONObject {
     return chooseBestApkAsset(apkAssets)
-        ?: throw IOException("No APK asset was found on the latest release")
+        ?: throw IOException("No compatible release APK was found for this device on the latest release")
 }
 
 private fun JSONObject.requireDownloadUrl(): String {

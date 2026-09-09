@@ -2,6 +2,7 @@ package app.mpvnova.player.preferences
 
 import android.os.Build
 import org.json.JSONObject
+import java.util.Locale
 
 internal fun normalizedVersion(versionName: String): String {
     return versionName.removeSuffix("-oldapi")
@@ -70,39 +71,14 @@ internal fun chooseBestApkAssetName(
     supportedAbis: List<String>,
     sdkInt: Int = Build.VERSION.SDK_INT
 ): String? {
-    return when {
-        assetNames.isEmpty() -> null
-        assetNames.size == 1 -> assetNames.first()
-        else -> {
-            val api29Universal = assetNames.firstOrNull { name ->
-                val lowercaseName = name.lowercase()
-                sdkInt <= Build.VERSION_CODES.Q &&
-                    lowercaseName.contains("api29") &&
-                    lowercaseName.contains("universal")
-            }
-            val exactMatch = supportedAbis.firstNotNullOfOrNull { abi ->
-                assetNames.firstOrNull { name -> assetAbi(name) == abi.lowercase() }
-            }
-            val universal = assetNames.firstOrNull { assetName ->
-                val name = assetName.lowercase()
-                name.contains("universal") ||
-                    name.contains("all") ||
-                    name.contains("universal-release")
-            }
-            val abiNeutral = assetNames.firstOrNull { name ->
-                KNOWN_ABIS.none { abi -> name.contains(abi, ignoreCase = true) }
-            }
-            api29Universal ?: exactMatch ?: universal ?: abiNeutral ?: assetNames.first()
-        }
+    val compatibleAbis = supportedAbis.map { it.lowercase(Locale.ROOT) }.filter { it in KNOWN_ABIS }
+    if (sdkInt < Build.VERSION_CODES.M || compatibleAbis.isEmpty()) return null
+    // Keep the existing older-device compatibility policy, but never cross flavors as a fallback.
+    val flavor = if (sdkInt <= Build.VERSION_CODES.Q) "api29" else "default"
+    fun assetFor(abi: String): String? = assetNames.firstOrNull {
+        it.equals("app-$flavor-$abi-release.apk", ignoreCase = true)
     }
-}
-
-private fun assetAbi(assetName: String): String? {
-    val lowercaseName = assetName.lowercase()
-    return KNOWN_ABIS
-        .sortedByDescending(String::length)
-        .firstOrNull { abi -> lowercaseName.contains(abi.lowercase()) }
-        ?.lowercase()
+    return compatibleAbis.firstNotNullOfOrNull(::assetFor) ?: assetFor("universal")
 }
 
 private val MARKDOWN_HEADING_PREFIX_PATTERN = Regex("^#{1,6}\\s*")
