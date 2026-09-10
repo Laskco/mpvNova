@@ -434,8 +434,6 @@ private fun MPVActivity.addAudioRows(rows: MutableList<PlayerDrawerRow>) {
 private fun MPVActivity.addSubtitleRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addButton(PlayerDrawerAction.OPEN_SUB, R.string.open_external_sub)
     rows.addButton(PlayerDrawerAction.SUB_TRACK, R.string.btn_sub_track)
-    rows.addPref(PlayerDrawerPreference.PREFER_EXTERNAL_FORWARDED_SUBTITLES)
-    rows.addPref(PlayerDrawerPreference.LIMIT_PREFERRED_LANGUAGE_SUBTITLES)
     if (player.sid != -1) {
         rows.addButton(PlayerDrawerAction.SUB_DELAY, R.string.sub_delay)
         rows.addPair(
@@ -443,6 +441,8 @@ private fun MPVActivity.addSubtitleRows(rows: MutableList<PlayerDrawerRow>) {
             PlayerDrawerAction.SUB_SEEK_NEXT to R.string.btn_sub_seek_next,
         )
     }
+    rows.addPref(PlayerDrawerPreference.PREFER_EXTERNAL_FORWARDED_SUBTITLES)
+    rows.addPref(PlayerDrawerPreference.LIMIT_PREFERRED_LANGUAGE_SUBTITLES)
 }
 
 private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
