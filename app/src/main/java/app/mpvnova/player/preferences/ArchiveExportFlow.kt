@@ -1,7 +1,6 @@
 package app.mpvnova.player.preferences
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.ClipData
@@ -24,6 +23,7 @@ import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.R
 import java.io.File
 import java.io.IOException
+import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.Executors
 
@@ -64,7 +64,9 @@ private class ArchiveExportFlow(
 
     private fun saveToDownloads() {
         if (needsLegacyDownloadsPermission()) {
-            pendingLegacyDownloadsFlow = this
+            pendingLegacyDownloadsFlow = PendingLegacyDownloadsExport(
+                WeakReference(activity), archive, labels,
+            )
             ActivityCompat.requestPermissions(
                 activity,
                 arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
@@ -76,6 +78,7 @@ private class ArchiveExportFlow(
     }
 
     fun saveToDownloadsAfterPermission() {
+        if (activity.isFinishing || activity.isDestroyed) return
         val progress = activity.showSettingsProgressDialog(activity.getString(labels.saving))
         ARCHIVE_EXPORT_IO_EXECUTOR.execute {
             val result = runCatching {
@@ -234,13 +237,15 @@ fun handleSupportExportPermissionResult(
     grantResults: IntArray,
 ) {
     if (requestCode != REQUEST_WRITE_DOWNLOADS) return
-    val pendingFlow = pendingLegacyDownloadsFlow
+    val pendingExport = pendingLegacyDownloadsFlow
     pendingLegacyDownloadsFlow = null
-    if (pendingFlow != null) {
+    val activity = pendingExport?.activity?.get() ?: return
+    if (!activity.isFinishing && !activity.isDestroyed) {
+        val flow = ArchiveExportFlow(activity, pendingExport.archive, pendingExport.labels)
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            pendingFlow.saveToDownloadsAfterPermission()
+            flow.saveToDownloadsAfterPermission()
         } else {
-            pendingFlow.showSaveFailure()
+            flow.showSaveFailure()
         }
     }
 }
@@ -291,5 +296,12 @@ private val FULL_BACKUP_EXPORT_LABELS = ArchiveExportLabels(
     shareFailed = R.string.full_backup_export_share_failed,
 )
 
-@SuppressLint("StaticFieldLeak")
-private var pendingLegacyDownloadsFlow: ArchiveExportFlow? = null
+// Retain the request data, not the flow (which strongly owns its Activity).
+// A weak flow reference could lose a live request while the permission dialog is open.
+private data class PendingLegacyDownloadsExport(
+    val activity: WeakReference<Activity>,
+    val archive: File,
+    val labels: ArchiveExportLabels,
+)
+
+private var pendingLegacyDownloadsFlow: PendingLegacyDownloadsExport? = null

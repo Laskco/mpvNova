@@ -28,6 +28,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.loader.content.AsyncTaskLoader;
 import androidx.core.content.ContextCompat;
 import androidx.loader.content.Loader;
@@ -80,6 +81,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
     /**
      * This method is used to set the filter that determines the files to be shown
+     * The predicate runs on a worker thread and must not retain views or activity contexts.
      *
      * @param predicate filter implementation or null
      */
@@ -126,7 +128,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
         }
     }
 
-    @SuppressLint("InlinedApi")
+    @RequiresApi(Build.VERSION_CODES.R)
     private void launchAllFilesAccessSettings() {
         Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
         intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
@@ -262,18 +264,28 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
      */
     @NonNull
     @Override
+    // Retain the fragment's overridable compareFiles hook. The base fragment destroys this
+    // loader and releases views in onDestroyView; stop/reset/abandon release the observer.
+    // Worker inputs are snapshots. Cancellation cannot interrupt filesystem I/O, so a worker
+    // may retain the fragment until I/O returns, but not its released views or listener.
     @SuppressLint("StaticFieldLeak")
     public Loader<List<File>> getLoader() {
+        if (mCurrentPath == null || !mCurrentPath.isDirectory()) {
+            mCurrentPath = getRoot();
+        }
+        final File currentPath = mCurrentPath;
+        final boolean includeHidden = areHiddenItemsShown();
+        final FileFilter predicate = filterPredicate;
         return new AsyncTaskLoader<>(requireContext()) {
             FileObserver fileObserver;
             private final Handler observerHandler = new Handler(Looper.getMainLooper());
             private final Runnable refreshFiles = () -> {
-                if (isStarted()) onContentChanged();
+                if (isStarted() && !isAbandoned() && !isReset()) onContentChanged();
             };
 
             @Override
             public List<File> loadInBackground() {
-                File[] listFiles = mCurrentPath.listFiles();
+                File[] listFiles = currentPath.listFiles();
                 if (listFiles == null) {
                     Log.e(TAG, "FilePickerFragment: IO error while listing files");
                     return new ArrayList<>(0);
@@ -281,9 +293,11 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
                 ArrayList<File> files = new ArrayList<>(listFiles.length);
                 for (File f : listFiles) {
-                    if (f.isHidden() && !areHiddenItemsShown())
+                    if (isLoadInBackgroundCanceled())
+                        return new ArrayList<>(0);
+                    if (f.isHidden() && !includeHidden)
                         continue;
-                    if (filterPredicate != null && !filterPredicate.accept(f))
+                    if (predicate != null && !predicate.accept(f))
                         continue;
                     files.add(f);
                 }
@@ -300,14 +314,9 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
             protected void onStartLoading() {
                 super.onStartLoading();
 
-                // handle if directory does not exist. Fall back to root.
-                if (mCurrentPath == null || !mCurrentPath.isDirectory()) {
-                    mCurrentPath = getRoot();
-                }
-
                 // Start watching for changes
                 stopWatching();
-                fileObserver = createFileObserver(mCurrentPath);
+                fileObserver = createFileObserver(currentPath);
                 fileObserver.startWatching();
 
                 forceLoad();
@@ -357,6 +366,12 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 onStopLoading();
             }
 
+            @Override
+            protected void onAbandon() {
+                super.onAbandon();
+                onStopLoading();
+            }
+
             private void stopWatching() {
                 observerHandler.removeCallbacks(refreshFiles);
                 if (fileObserver != null) {
@@ -373,6 +388,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
      * <p/>
      * Default behaviour is to place directories before files, but sort them alphabetically
      * otherwise.
+     * Runs on the loader's worker thread; overrides must not access views or activity contexts.
      *
      * @param lhs File on the "left-hand side"
      * @param rhs File on the "right-hand side"

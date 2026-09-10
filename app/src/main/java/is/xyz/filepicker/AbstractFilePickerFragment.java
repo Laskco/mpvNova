@@ -72,8 +72,8 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
         mPositionMap = new HashMap<>();
 
         recyclerView = (RecyclerView) view.findViewById(android.R.id.list);
-        // improve performance if you know that changes in content
-        // do not change the size of the RecyclerView
+        // nnf_fragment_filepicker uses match_parent in both axes, independent of row content.
+        // Lint's wrap_content finding does not apply to this layout's android.R.id.list.
         //noinspection InvalidSetHasFixedSize
         recyclerView.setHasFixedSize(true);
         // use a linear layout manager
@@ -101,6 +101,19 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
         if (mCurrentPath == null)
             mCurrentPath = getRoot();
         refresh(mCurrentPath);
+    }
+
+    @Override
+    public void onDestroyView() {
+        // The fragment is retained, but loaders and adapters must not retain its old view.
+        LoaderManager.getInstance(this).destroyLoader(0);
+        recyclerView.setAdapter(null);
+        mAdapter = null;
+        recyclerView = null;
+        layoutManager = null;
+        mFiles = null;
+        isLoading = false;
+        super.onDestroyView();
     }
 
     protected View inflateRootView(LayoutInflater inflater, ViewGroup container) {
@@ -153,7 +166,7 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
             return;
         mCurrentPath = nextPath;
         // Skip loading anything if not initialized yet
-        if (getContext() == null)
+        if (getContext() == null || mAdapter == null)
             return;
         isLoading = true;
         if (hasPermission(nextPath)) {
@@ -211,6 +224,8 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
                                final List<T> data) {
         isLoading = false;
         mFiles = data;
+        if (mAdapter == null)
+            return;
         mAdapter.setList(data);
         onChangePath(mCurrentPath);
         String key = pathToString(mCurrentPath);

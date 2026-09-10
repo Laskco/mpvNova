@@ -1,6 +1,5 @@
 package is.xyz.filepicker;
 
-import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
@@ -67,6 +66,7 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
 
     /**
      * This method is used to set the filter that determines the documents to be shown
+     * The predicate runs on a worker thread and must not retain views or activity contexts.
      *
      * @param predicate filter implementation or null
      */
@@ -169,74 +169,104 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
 
     @NonNull
     @Override
-    @SuppressLint("StaticFieldLeak")
     public Loader<List<Uri>> getLoader() {
-        final Uri root = mRoot;
-        final Uri currentPath = mCurrentPath;
+        return new DocumentLoader(requireContext(), mRoot, mCurrentPath, mFilterPredicate);
+    }
 
-        // totally makes sense!
-        final String docId = currentPath.equals(root) ? DocumentsContract.getTreeDocumentId(currentPath) :
-                DocumentsContract.getDocumentId(currentPath);
-        final Uri childUri = DocumentsContract.buildChildDocumentsUriUsingTree(root, docId);
+    @Override
+    public void onLoadFinished(@NonNull Loader<List<Uri>> loader, List<Uri> data) {
+        // Only delivered results may update the UI's caches. Canceled workers never touch them.
+        if (data instanceof DocumentResult) {
+            DocumentResult result = (DocumentResult) data;
+            mLastRead.clear();
+            mLastRead.putAll(result.documents);
+            mParents.putAll(result.parents);
+        }
+        super.onLoadFinished(loader, data);
+    }
 
-        final String[] cols = new String[] {
+    private static final class DocumentResult extends ArrayList<Uri> {
+        final HashMap<Uri, Document> documents = new HashMap<>();
+        final HashMap<String, Uri> parents = new HashMap<>();
+    }
+
+    private static final class DocumentLoader extends AsyncTaskLoader<List<Uri>> {
+        private final Uri root;
+        private final Uri currentPath;
+        private final Uri childUri;
+        private final Predicate<Document> predicate;
+        private static final String[] COLUMNS = new String[] {
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
                 DocumentsContract.Document.COLUMN_DISPLAY_NAME,
         };
-        return new AsyncTaskLoader<>(requireContext()) {
-            @Override
-            public List<Uri> loadInBackground() {
-                final ContentResolver contentResolver = getContext().getContentResolver();
-                ArrayList<Document> files = new ArrayList<>();
-                try (Cursor c = contentResolver.query(childUri, cols, null, null, null, null)) {
-                    if (c == null) {
-                        return new ArrayList<>(0);
-                    }
 
-                    final int i1 = c.getColumnIndex(cols[0]);
-                    final int i2 = c.getColumnIndex(cols[1]);
-                    final int i3 = c.getColumnIndex(cols[2]);
-                    while (c.moveToNext()) {
-                        final String docId = c.getString(i1);
-                        final boolean isDir = c.getString(i2).equals(DocumentsContract.Document.MIME_TYPE_DIR);
-                        final Document doc = new Document(
-                                DocumentsContract.buildDocumentUriUsingTree(root, docId),
-                                isDir,
-                                c.getString(i3)
-                        );
-                        if (mFilterPredicate != null && !mFilterPredicate.test(doc))
-                            continue;
-                        files.add(doc);
+        DocumentLoader(Context context, Uri root, Uri currentPath, Predicate<Document> predicate) {
+            super(context.getApplicationContext());
+            this.root = root;
+            this.currentPath = currentPath;
+            this.predicate = predicate;
+            final String docId = currentPath.equals(root)
+                    ? DocumentsContract.getTreeDocumentId(currentPath)
+                    : DocumentsContract.getDocumentId(currentPath);
+            childUri = DocumentsContract.buildChildDocumentsUriUsingTree(root, docId);
+        }
 
-                        // There is no generic way to get a parent directory for another directory and this
-                        // can't be solved via mLastRead either, since by the time someone asks getParent()
-                        // we're already inside the new directory. Not to mention that this would be insufficient
-                        // when going back multiple times.
-                        if (isDir)
-                            mParents.put(docId, currentPath);
-                    }
+        @Override
+        public List<Uri> loadInBackground() {
+            final ContentResolver contentResolver = getContext().getContentResolver();
+            DocumentResult result = new DocumentResult();
+            ArrayList<Document> files = new ArrayList<>();
+            try (Cursor c = contentResolver.query(childUri, COLUMNS, null, null, null, null)) {
+                if (c == null) {
+                    return result;
                 }
 
-                Collections.sort(files);
+                final int i1 = c.getColumnIndex(COLUMNS[0]);
+                final int i2 = c.getColumnIndex(COLUMNS[1]);
+                final int i3 = c.getColumnIndex(COLUMNS[2]);
+                while (!isLoadInBackgroundCanceled() && c.moveToNext()) {
+                    final String docId = c.getString(i1);
+                    final boolean isDir = c.getString(i2).equals(DocumentsContract.Document.MIME_TYPE_DIR);
+                    final Document doc = new Document(
+                            DocumentsContract.buildDocumentUriUsingTree(root, docId),
+                            isDir,
+                            c.getString(i3)
+                    );
+                    if (predicate != null && !predicate.test(doc))
+                        continue;
+                    files.add(doc);
 
-                // extract the URIs because we (can) only return those
-                ArrayList<Uri> ret = new ArrayList<>(files.size());
-                for (Document doc : files)
-                    ret.add(doc.uri);
-                // but keep the cached data
-                mLastRead.clear();
-                for (Document doc : files)
-                    mLastRead.put(doc.uri, doc);
-                return ret;
+                    // Keep parents across directory changes so multiple levels of "up" still work.
+                    if (isDir)
+                        result.parents.put(docId, currentPath);
+                }
             }
 
-            @Override
-            protected void onStartLoading() {
-                super.onStartLoading();
-                forceLoad();
+            Collections.sort(files);
+            for (Document doc : files) {
+                result.add(doc.uri);
+                result.documents.put(doc.uri, doc);
             }
-        };
+            return result;
+        }
+
+        @Override
+        protected void onStartLoading() {
+            super.onStartLoading();
+            forceLoad();
+        }
+
+        @Override
+        protected void onStopLoading() {
+            cancelLoad();
+        }
+
+        @Override
+        protected void onReset() {
+            super.onReset();
+            onStopLoading();
+        }
     }
 
     /**
