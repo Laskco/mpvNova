@@ -44,7 +44,8 @@ internal fun limitedSubtitlesForPreferredAudio(
     // Without a configured subtitle language, use the selected (understood) audio language.
     val languages = subtitleLanguages.ifEmpty { listOf(audioLanguage) }
     return tracks.filter { track ->
-        isLimitedSubtitleTrack(track.title, track.forced) &&
+        val companionLanguage = track.lang.takeIf { subtitleLanguageMatches(it, audioLanguage) }.orEmpty()
+        isLimitedSubtitleTrack(track.title, track.forced, companionLanguage) &&
             (languages.any { subtitleLanguageMatches(track.lang, it) } ||
                 (track.lang.isBlank() && track.mpvId == currentSubtitle))
     }.sortedBy { track ->
@@ -52,7 +53,7 @@ internal fun limitedSubtitlesForPreferredAudio(
     }
 }
 
-private fun subtitleLanguageMatches(first: String, second: String): Boolean =
+internal fun subtitleLanguageMatches(first: String, second: String): Boolean =
     first.isNotBlank() && second.isNotBlank() && subtitleLanguageCode(first) == subtitleLanguageCode(second)
 
 private fun subtitleLanguageCode(value: String): String {

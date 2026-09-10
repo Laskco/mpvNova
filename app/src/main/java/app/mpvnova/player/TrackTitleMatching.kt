@@ -49,12 +49,16 @@ internal fun titleSimilarityScore(saved: String, candidate: String): Double {
 
 internal fun bestTrackTitleMatch(
     tracks: List<TrackMeta>, savedTitle: String, type: String, savedForced: Boolean = false,
+    savedLang: String = "",
 ): Pair<TrackMeta?, Double> {
     var bestMatch: TrackMeta? = null
     var bestScore = 0.0
     tracks.forEach { track ->
-        val score = if (type == "sub") subtitleTitleSimilarityScore(savedTitle, track.title, savedForced, track.forced)
-            else titleSimilarityScore(savedTitle, track.title)
+        val score = if (type == "sub") {
+            subtitleTitleSimilarityScore(savedTitle, track.title, savedForced, track.forced, savedLang, track.lang)
+        } else {
+            titleSimilarityScore(savedTitle, track.title)
+        }
         if (score > bestScore) {
             bestScore = score
             bestMatch = track
@@ -68,19 +72,20 @@ internal fun rememberedTrackMatch(
 ): Pair<TrackMeta?, Double> {
     val compatible = tracks.filter {
         (savedLang.isEmpty() || languagePrefixMatches(it.lang, savedLang)) &&
-            (type != "sub" || subtitleTrackKindsMatch(savedTitle, it.title, savedForced, it.forced))
+            (type != "sub" || subtitleTrackKindsMatch(savedTitle, it.title, savedForced, it.forced, savedLang, it.lang))
     }
     val exact = compatible.firstOrNull { it.title.equals(savedTitle, ignoreCase = true) }
     if (exact != null) return exact to 1.0
-    val (match, score) = bestTrackTitleMatch(compatible, savedTitle, type, savedForced)
+    val (match, score) = bestTrackTitleMatch(compatible, savedTitle, type, savedForced, savedLang)
     return match.takeIf { score >= TRACK_MEMORY_MIN_SCORE } to score
 }
 
 internal fun subtitleTitleSimilarityScore(
     saved: String, candidate: String, savedForced: Boolean = false, candidateForced: Boolean = false,
+    savedLang: String = "", candidateLang: String = "",
 ): Double {
-    val savedSigns = isLimitedSubtitleTrack(saved, savedForced)
-    val candidateSigns = isLimitedSubtitleTrack(candidate, candidateForced)
+    val savedSigns = isLimitedSubtitleTrack(saved, savedForced, savedLang)
+    val candidateSigns = isLimitedSubtitleTrack(candidate, candidateForced, candidateLang)
     // Shared language/source/group words must not turn a Signs choice into full dialogue (or vice versa).
     return when {
         savedSigns != candidateSigns -> 0.0
@@ -92,11 +97,21 @@ internal fun subtitleTitleSimilarityScore(
 
 internal fun subtitleTrackKindsMatch(
     saved: String, candidate: String, savedForced: Boolean, candidateForced: Boolean,
-): Boolean = isLimitedSubtitleTrack(saved, savedForced) == isLimitedSubtitleTrack(candidate, candidateForced)
+    savedLang: String = "", candidateLang: String = "",
+): Boolean = isLimitedSubtitleTrack(saved, savedForced, savedLang) ==
+    isLimitedSubtitleTrack(candidate, candidateForced, candidateLang)
 
-internal fun isLimitedSubtitleTrack(title: String, forced: Boolean): Boolean =
-    forced || isSignsSubtitleTitle(title) ||
+internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean =
+    forced || isSignsSubtitleTitle(title) || isSameLanguageAudioSubtitleTitle(title, language) ||
         (FORCED_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title))
+
+private fun isSameLanguageAudioSubtitleTitle(title: String, language: String): Boolean {
+    if (FULL_SUBTITLE_PATTERN.containsMatchIn(title)) return false
+    // A label such as "With English Audio" identifies the dub companion track,
+    // but English subtitles "With Japanese Audio" are still full subtitles.
+    val audioLanguage = AUDIO_SUBTITLE_PATTERN.find(title)?.groupValues?.get(1).orEmpty()
+    return subtitleLanguageMatches(language, audioLanguage)
+}
 
 private fun isSignsSubtitleTitle(title: String): Boolean =
     SIGNS_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title)
@@ -106,6 +121,7 @@ private val SIGNS_SUBTITLE_PATTERN = Regex(
 )
 private val FULL_SUBTITLE_PATTERN = Regex("""(?i)\b(?:full|dialog(?:ue)?s?|sdh|closed\s+captions?)\b""")
 private val FORCED_SUBTITLE_PATTERN = Regex("""(?i)\bforced\b""")
+private val AUDIO_SUBTITLE_PATTERN = Regex("""(?i)\b(?:with|for)\s+(?:the\s+)?([a-z]{2,})\s+(?:audio|dub)\b""")
 
 /**
  * Two language tags agree if the first two letters match case-insensitively.
