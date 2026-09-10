@@ -91,28 +91,9 @@ android {
     }
 
     lint {
-        disable += [
-            // Keep lint useful for build-breaking correctness checks while
-            // filtering noisy style/resource warnings that do not match this
-            // TV-focused fork or are already intentional upstream patterns.
-            "ChromeOsAbiSupport",
-            "ContentDescription",
-            "DiscouragedApi",
-            "GradleDependency",
-            "HardcodedText",
-            "IconLauncherShape",
-            "OldTargetApi",
-            "PictureInPictureIssue",
-            "PluralsCandidate",
-            "RtlSymmetry",
-            "ScopedStorage",
-            "SelectedPhotoAccess",
-            "SetTextI18n",
-            "SmallSp",
-            "TooManyViews",
-            "TypographyEllipsis",
-            "UseKtx",
-        ]
+        // Equivalent KTX rewrites are style preferences, not correctness fixes.
+        // Keep accessibility, compatibility, resource, and layout checks enabled.
+        disable += ["UseKtx"]
     }
 
     splits {

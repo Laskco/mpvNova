@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.Uri
 import android.widget.ImageView
@@ -33,6 +34,8 @@ internal fun MPVActivity.screensaverChoiceLabel(seconds: Int): String =
     screensaverTimeoutLabel(this, seconds)
 
 // Split the current value across the Hours / Minutes / Seconds fields.
+// Keep ungrouped ASCII integers for the numeric inputs and screensaverInputToSeconds parser.
+@SuppressLint("SetTextI18n")
 internal fun initScreensaverTimeInput(binding: DialogScreensaverTimeInputBinding, currentSeconds: Int) {
     binding.hoursInput.setText((currentSeconds / SECONDS_PER_HOUR).toString())
     binding.minutesInput.setText(((currentSeconds % SECONDS_PER_HOUR) / SECONDS_PER_MINUTE).toString())

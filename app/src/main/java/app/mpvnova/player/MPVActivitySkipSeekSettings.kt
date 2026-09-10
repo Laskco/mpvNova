@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.annotation.SuppressLint
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.databinding.DialogCustomSeekStepBinding
@@ -147,6 +148,8 @@ internal fun MPVActivity.setSeekStepSec(nextSec: Int) {
     refreshDrawerRowsIfVisible(DrawerTab.PLAYBACK)
 }
 
+// Keep ungrouped ASCII input so the toIntOrNull parser below round-trips the value.
+@SuppressLint("SetTextI18n")
 private fun MPVActivity.pickCustomSeekStep() {
     val restore = keepPlaybackForDialog()
     val binding = DialogCustomSeekStepBinding.inflate(layoutInflater)

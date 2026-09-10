@@ -1,13 +1,11 @@
 package app.mpvnova.player
 
-import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Looper
 import android.util.Log
 import android.view.View
 import java.util.Locale
 
-@SuppressLint("ClickableViewAccessibility")
 internal fun MPVActivity.initListeners() {
     bindClickListeners()
     bindLongClickListeners()

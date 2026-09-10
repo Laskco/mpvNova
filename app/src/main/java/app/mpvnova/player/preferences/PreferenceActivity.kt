@@ -322,6 +322,8 @@ class PreferenceActivity : AppCompatActivity(),
             }
         }
 
+        // PreferenceFragmentCompat's adapter hook needs the default adapter's preference-to-row
+        // mapping to preserve TV focus and styling. Keep the library-specific access in this hook.
         @SuppressLint("RestrictedApi")
         override fun onCreateAdapter(preferenceScreen: PreferenceScreen): RecyclerView.Adapter<*> {
             return object : PreferenceGroupAdapter(preferenceScreen) {
