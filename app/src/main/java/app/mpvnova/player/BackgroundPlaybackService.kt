@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationManager
@@ -7,6 +8,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.graphics.Bitmap
 import android.graphics.drawable.Icon
@@ -22,6 +24,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.PendingIntentCompat
 import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 import app.mpvnova.player.MpvEvent
 
 fun createBackgroundPlaybackNotificationChannel(context: Context) {
@@ -127,16 +130,25 @@ private fun Service.buildBackgroundNotification(
     return builder.build()
 }
 
-@SuppressLint("NotificationPermission")
 private fun Service.notifyBackgroundPlayback(
     metadata: Utils.AudioMetadata,
     paused: Boolean,
     shouldShowPrevNext: Boolean
 ) {
+    val notification = buildBackgroundNotification(metadata, paused, shouldShowPrevNext)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+        !notification.extras.containsKey(Notification.EXTRA_MEDIA_SESSION) &&
+        ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+        PackageManager.PERMISSION_GRANTED
+    ) return
+
     val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    // Media-session notifications are exempt from POST_NOTIFICATIONS; tokenless updates
+    // require the permission above. Do not gate startForeground on notification permission.
+    @SuppressLint("NotificationPermission")
     notificationManager.notify(
         NOTIFICATION_ID,
-        buildBackgroundNotification(metadata, paused, shouldShowPrevNext)
+        notification
     )
 }
 

@@ -19,9 +19,7 @@
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
-    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Shared paths use explicit all-files access; document-picker URIs use per-document grants. -->
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
@@ -46,6 +44,7 @@
         <package android:name="org.localsend.localsend_app" />
     </queries>
 
+    <!-- PiP is an explicit user action. Auto-enter would override that preference. -->
     <application
         android:name=".MpvNovaApplication"
         android:allowBackup="true"
@@ -54,12 +53,12 @@
         android:preserveLegacyExternalStorage="true"
         android:supportsRtl="true"
         android:icon="@mipmap/mpv_launcher_icon"
-        android:roundIcon="@mipmap/mpv_launcher_icon"
         android:banner="@mipmap/ic_banner"
         android:label="@string/mpv_activity"
         android:appCategory="video"
         android:localeConfig="@xml/locales_config"
-        tools:targetApi="tiramisu">
+        tools:targetApi="tiramisu"
+        tools:ignore="PictureInPictureIssue">
 
         <activity
             android:name=".ExternalPlayerActivity"
@@ -266,7 +265,6 @@
             android:name=".LauncherActivity"
             android:configChanges="orientation|screenSize"
             android:icon="@mipmap/mpv_launcher_icon"
-            android:roundIcon="@mipmap/mpv_launcher_icon"
             android:banner="@mipmap/ic_banner"
             android:theme="@style/AppTheme.Launcher"
             android:exported="true">

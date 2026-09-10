@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.app.PictureInPictureParams
 import android.app.RemoteAction
+import android.graphics.Rect
 import android.graphics.drawable.Icon
 import android.os.Build
 import android.util.Log
@@ -94,6 +95,8 @@ internal fun MPVActivity.buildPiPParams(fallbackAspectRatio: Rational? = null): 
         )
         setAspectRatio(aspect)
         setActions(actions)
+        val videoBounds = Rect()
+        if (player.getGlobalVisibleRect(videoBounds)) setSourceRectHint(videoBounds)
         build()
     }
 }
