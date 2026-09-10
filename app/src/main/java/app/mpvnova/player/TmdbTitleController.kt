@@ -68,7 +68,7 @@ internal class TmdbTitleController(
         pending = worker.submit {
             var outcome = "no unambiguous match"
             val match = try {
-                lookup.lookup(query, token).also { if (it != null) outcome = "matched" }
+                lookup.lookup(query, token) { outcome = it }
             } catch (error: TmdbHttpException) {
                 outcome = "HTTP ${error.status}"
                 null

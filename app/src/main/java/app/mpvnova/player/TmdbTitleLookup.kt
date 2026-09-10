@@ -5,8 +5,6 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
-import java.text.Normalizer
-import java.util.Locale
 
 internal data class TmdbTitleQuery(
     val title: String,
@@ -17,35 +15,8 @@ internal data class TmdbTitleQuery(
     val isEpisode: Boolean get() = season != null && episode != null
 
     companion object {
-        private val YEAR = Regex("""\s+\((\d{4})\)$""")
-        private const val MAX_QUERY_LENGTH = 256
-
-        @Suppress("ReturnCount") // Reject incomplete identities before making any network request.
-        fun from(local: PlayerTitlePresentation, filename: String? = null): TmdbTitleQuery? {
-            val title = local.title.trim()
-            val pathLike = title.contains('/') || title.contains('\\')
-            if (title.length !in 2..MAX_QUERY_LENGTH || pathLike) {
-                return null
-            }
-            val yearMatch = YEAR.find(title)
-            val name = yearMatch?.let { title.substring(0, it.range.first).trim() } ?: title
-            val season = local.season
-            val episode = local.episode
-            val year = yearMatch?.groupValues?.get(1)?.toIntOrNull()
-                ?: filenameMovieYear(local, name, filename)
-            // Absolute anime episode numbers are not necessarily TMDB season-relative numbers.
-            if (season != null || episode != null) {
-                val incomplete = season == null || episode == null
-                if (incomplete || season < 0 || episode <= 0) return null
-            } else if (year == null) {
-                // Without a type hint, a bare title could be either a movie or a TV series.
-                return null
-            }
-            return TmdbTitleQuery(name, year, season, episode).takeIf { name.any(Char::isLetter) }
-        }
-
-        private fun filenameMovieYear(local: PlayerTitlePresentation, name: String, filename: String?): Int? =
-            if (local.season == null && local.episode == null) TmdbFilenameYear.matchingYear(name, filename) else null
+        fun from(local: PlayerTitlePresentation, filename: String? = null): TmdbTitleQuery? =
+            TmdbQueryTitle.from(local, filename)
     }
 }
 
@@ -53,50 +24,94 @@ internal data class TmdbTitleMatch(val title: String, val episodeTitle: String?)
 
 internal class TmdbTitleLookup(private val request: (String, String) -> JSONObject = ::requestTmdbJson) {
     @Suppress("ReturnCount") // Each guard preserves the local title on an incomplete response.
-    fun lookup(query: TmdbTitleQuery, token: String): TmdbTitleMatch? {
+    fun lookup(query: TmdbTitleQuery, token: String, report: (String) -> Unit = {}): TmdbTitleMatch? {
+        report("no verified title match")
         val type = if (query.isEpisode) "tv" else "movie"
         val yearParameter = if (query.isEpisode) "first_air_date_year" else "year"
         val encoded = URLEncoder.encode(query.title, "UTF-8")
         val yearFilter = query.year?.let { "&$yearParameter=$it" }.orEmpty()
-        val search = request("search/$type?query=$encoded&include_adult=false&language=en-US$yearFilter", token)
-        val match = selectMatch(query, search) ?: return null
-        val id = match.optInt("id", -1).takeIf { it > 0 } ?: return null
+        val path = "search/$type?query=$encoded&include_adult=false&language=en-US$yearFilter"
+        val candidates = searchCandidates(path, token, report) ?: return null
+        val match = TmdbCandidateMatching(query, type, token, request, report).select(candidates) ?: return null
+        val id = match.strictInt("id")?.takeIf { it > 0 } ?: return null
         val titleKey = if (query.isEpisode) "name" else "title"
         val title = match.safeTitle(titleKey) ?: return null
-        if (!query.isEpisode) return TmdbTitleMatch(title, null)
-        val details = request("tv/$id/season/${query.season}/episode/${query.episode}?language=en-US", token)
-        if (details.optInt("season_number", -1) != query.season ||
-            details.optInt("episode_number", -1) != query.episode
+        if (!query.isEpisode) {
+            report("matched movie")
+            return TmdbTitleMatch(title, null)
+        }
+        report("verified series; episode unavailable")
+        val details = episodeDetails(id, query, token) ?: return null
+        if (details.strictInt("season_number") != query.season ||
+            details.strictInt("episode_number") != query.episode
         ) return null
-        return details.safeTitle("name")?.let { TmdbTitleMatch(title, it) }
+        return details.safeTitle("name")?.let {
+            report("matched series and episode")
+            TmdbTitleMatch(title, it)
+        }
     }
 
-    @Suppress("ReturnCount") // Incomplete or paginated searches cannot establish a unique match.
-    private fun selectMatch(query: TmdbTitleQuery, search: JSONObject): JSONObject? {
-        if (search.optInt("total_pages", 1) > 1) return null
-        val results = search.optJSONArray("results") ?: return null
-        val nameKey = if (query.isEpisode) "name" else "title"
-        val dateKey = if (query.isEpisode) "first_air_date" else "release_date"
-        val name = normalizedTmdbTitle(query.title)
-        val matches = (0 until results.length()).mapNotNull(results::optJSONObject).filter { result ->
-            val names = listOfNotNull(result.safeTitle(nameKey), result.safeTitle("original_$nameKey"))
-            val sameName = names.any { normalizedTmdbTitle(it) == name }
-            val sameYear = query.year == null ||
-                result.optString(dateKey).take(4).toIntOrNull() == query.year
-            sameName && sameYear
+    private fun episodeDetails(id: Int, query: TmdbTitleQuery, token: String): JSONObject? = try {
+        request("tv/$id/season/${query.season}/episode/${query.episode}?language=en-US", token)
+    } catch (error: TmdbHttpException) {
+        if (error.status == HttpURLConnection.HTTP_NOT_FOUND) null else throw error
+    }
+
+    @Suppress("ReturnCount") // Only complete, bounded search results can establish uniqueness.
+    private fun searchCandidates(path: String, token: String, report: (String) -> Unit): List<JSONObject>? {
+        report("incomplete search response")
+        val first = request(path, token)
+        val pages = first.strictInt("total_pages") ?: return null
+        val total = first.strictInt("total_results")?.takeIf { it >= 0 } ?: return null
+        if (pages > MAX_SEARCH_PAGES || pages < 0) {
+            report("search too broad; keeping local title")
+            return null
         }
-        return matches.singleOrNull()
+        if (pages == 0 && total != 0) return null
+        val candidates = mutableListOf<JSONObject>()
+        for (page in 1..maxOf(pages, 1)) {
+            val response = if (page == 1) first else request("$path&page=$page", token)
+            if (!hasSearchEnvelope(response, page, pages, total)) return null
+            candidates += pageCandidates(response) ?: return null
+        }
+        val unique = candidates.distinctBy { it.strictInt("id") }
+        if (candidates.size != total || unique.size != total) return null
+        report(if (candidates.isEmpty()) "search returned no results" else "no verified title match")
+        return unique
+    }
+
+    private fun hasSearchEnvelope(response: JSONObject, page: Int, pages: Int, total: Int): Boolean =
+        response.strictInt("page") == page && response.strictInt("total_pages") == pages &&
+            response.strictInt("total_results") == total
+
+    @Suppress("ReturnCount") // Malformed rows make the entire candidate set indeterminate.
+    private fun pageCandidates(response: JSONObject): List<JSONObject>? {
+        val results = response.optJSONArray("results") ?: return null
+        return (0 until results.length()).map { index ->
+            val result = results.optJSONObject(index) ?: return null
+            result.takeIf { (it.strictInt("id") ?: 0) > 0 } ?: return null
+        }
+    }
+
+    companion object {
+        private const val MAX_SEARCH_PAGES = 2
     }
 }
 
 private const val MAX_TMDB_TITLE_LENGTH = 512
 
-private fun JSONObject.safeTitle(key: String): String? =
-    (opt(key) as? String)?.trim()?.takeIf { it.length in 1..MAX_TMDB_TITLE_LENGTH && it.any(Char::isLetter) }
+internal fun JSONObject.safeTitle(key: String): String? = (opt(key) as? String)?.trim()?.takeIf {
+    it.length in 1..MAX_TMDB_TITLE_LENGTH && TmdbQueryTitle.hasSearchableText(it)
+}
 
-private fun normalizedTmdbTitle(value: String): String =
-    Normalizer.normalize(value, Normalizer.Form.NFD).lowercase(Locale.ROOT)
-        .filter(Char::isLetterOrDigit)
+internal fun JSONObject.strictInt(key: String): Int? {
+    val value = opt(key)
+    return when {
+        value is Int -> value
+        value is Long && value in Int.MIN_VALUE..Int.MAX_VALUE -> value.toInt()
+        else -> null
+    }
+}
 
 private const val TMDB_TIMEOUT_MS = 6000
 private const val TMDB_MAX_RESPONSE_BYTES = 512 * 1024
