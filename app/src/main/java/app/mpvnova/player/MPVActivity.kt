@@ -706,6 +706,8 @@ open class MPVActivity : AppCompatActivity() {
         } else {
             noteScreensaverActivity()
             when {
+                // A held vertical key must not hide and reopen controls through repeated navigation.
+                ev.isRepeatedPlayerVerticalKey() -> true
                 // Skip button (when shown) gets first crack: OK skips, other keys dismiss it.
                 handleSkipButtonKey(ev) -> true
                 // Built-in handlers first; forward the rest to libmpv.

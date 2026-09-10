@@ -4,6 +4,10 @@ package app.mpvnova.player
 
 import android.view.KeyEvent
 
+internal fun KeyEvent.isRepeatedPlayerVerticalKey(): Boolean =
+    action == KeyEvent.ACTION_DOWN && repeatCount > 0 &&
+        (keyCode == KeyEvent.KEYCODE_DPAD_UP || keyCode == KeyEvent.KEYCODE_DPAD_DOWN)
+
 // cf. https://github.com/mpv-player/mpv/blob/master/input/keycodes.h
 val keyMapping = mapOf(
     KeyEvent.KEYCODE_SPACE to "SPACE",
