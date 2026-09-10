@@ -24,7 +24,7 @@ internal object PlayerTitleResolver {
             if (primaryParts == null) {
                 if (release != null && acceptsRelease(sourceTitle, release)) {
                     release.copy(episodeTitle = release.episodeTitle
-                        ?: embeddedEpisodeTitle(mediaTitle, release.title, sourceTitle, fileName))
+                        ?: embeddedEpisodeTitle(mediaTitle, release, sourceTitle, fileName))
                 } else {
                     cleanTitleBrackets(fallbackTitle).takeIf { it.isNotBlank() }
                         ?.let { PlayerTitlePresentation(it) }
@@ -38,12 +38,14 @@ internal object PlayerTitleResolver {
                     isExpandedEpisodeSeries(primaryParts.seriesTitle, candidate.seriesTitle)
                 }?.seriesTitle ?: primaryParts.seriesTitle
                 val episodeTitle = matchingParts.firstNotNullOfOrNull { it.episodeTitle }
-                PlayerTitlePresentation(
+                val presentation = PlayerTitlePresentation(
                     title = seriesTitle.ifBlank { fallbackTitle },
                     season = primaryParts.season,
                     episode = primaryParts.episode,
-                    episodeTitle = episodeTitle ?: embeddedEpisodeTitle(
-                        mediaTitle, seriesTitle, sourceTitle, fileName),
+                    episodeTitle = episodeTitle,
+                )
+                if (episodeTitle != null) presentation else presentation.copy(
+                    episodeTitle = embeddedEpisodeTitle(mediaTitle, presentation, sourceTitle, fileName),
                 )
             }
         }?.let(::cleanEpisodeTitle)
@@ -54,13 +56,15 @@ internal object PlayerTitleResolver {
             sameSeriesTitle(sourceTitle, release.title)
 
     private fun embeddedEpisodeTitle(
-        mediaTitle: String?, seriesTitle: String, sourceTitle: String?, fileName: String?,
+        mediaTitle: String?, identity: PlayerTitlePresentation, sourceTitle: String?, fileName: String?,
     ): String? {
         val title = VlcTitleResolver.titleSourceFromExtra(mediaTitle)
             ?.takeIf { it.length <= MAX_EMBEDDED_TITLE_LENGTH }
             ?: return null
-        val duplicatesSource = title == fileName || title == sourceTitle || sameSeriesTitle(title, seriesTitle)
-        return title.takeUnless { duplicatesSource || isReleaseMetadata(it) }
+        val duplicatesSource = title == fileName || title == sourceTitle || sameSeriesTitle(title, identity.title)
+        // Validate and remove a redundant identity before deciding whether the remainder is release metadata.
+        val cleaned = cleanEpisodeTitle(identity.copy(episodeTitle = title)).episodeTitle
+        return cleaned?.takeUnless { duplicatesSource || isReleaseMetadata(it) }
             ?.let(::cleanTitleBrackets)?.takeIf { it.any(Char::isLetter) }
     }
 
