@@ -10,13 +10,16 @@
     android:paddingEnd="24dp"
     android:paddingBottom="22dp">
 
+    <!-- Dialog builders assign this label's setting-specific title at runtime. -->
     <TextView
         android:id="@+id/inputTitle"
+        android:labelFor="@id/inputValue"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:textColor="@color/tv_text"
         android:textSize="24sp"
         android:textStyle="bold"
+        tools:ignore="LabelFor"
         tools:text="Default audio language" />
 
     <TextView
@@ -28,7 +31,6 @@
         android:textSize="13sp"
         tools:text="Use a three letter language code." />
 
-    <!-- Both dialog builders assign labelFor after setting the dynamic title. -->
     <EditText
         android:id="@+id/inputValue"
         android:layout_width="match_parent"
@@ -40,7 +42,6 @@
         android:paddingStart="14dp"
         android:paddingEnd="14dp"
         android:singleLine="true"
-        tools:ignore="LabelFor"
         android:textColor="@color/tv_text"
         android:textColorHint="@color/tv_text_dim" />
 

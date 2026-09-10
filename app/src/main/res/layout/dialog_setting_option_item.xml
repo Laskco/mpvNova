@@ -64,6 +64,7 @@
         android:layout_height="22dp"
         android:layout_gravity="center_vertical"
         android:layout_marginStart="12dp"
+        android:contentDescription="@string/accessibility_selected"
         android:src="@drawable/ic_tv_check"
         android:visibility="invisible"
         app:tint="@color/tv_text"

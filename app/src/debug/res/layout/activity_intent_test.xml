@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:ignore="HardcodedText"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,28 +10,28 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/row1"
-        android:text="subs data uri" />
+        android:text="@string/debug_subs_data_uri" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/switch1"
-        android:text="no hwdec" />
+        android:text="@string/debug_no_hwdec" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch3"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/switch2"
-        android:text="force title" />
+        android:text="@string/debug_force_title" />
 
     <Button
         android:id="@+id/button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/row2"
-        android:text="Launch" />
+        android:text="@string/debug_launch" />
 
     <TextView
         android:id="@+id/info"
@@ -54,8 +52,8 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:labelFor="@id/editText1"
-            android:text="offset:" />
+            android:labelFor="@id/seekBar2"
+            android:text="@string/debug_offset_label" />
 
         <SeekBar
             android:id="@+id/seekBar2"
@@ -76,7 +74,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:labelFor="@id/editText1"
-            android:text="URL:" />
+            android:text="@string/debug_url_label" />
 
         <EditText
             android:id="@+id/editText1"

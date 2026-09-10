@@ -63,8 +63,7 @@
                 android:singleLine="true"
                 android:textColor="@color/tv_text"
                 android:textColorHint="@color/tv_text_dim"
-                android:textSize="16sp"
-                tools:ignore="LabelFor" />
+                android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/presetNameCount"
@@ -91,6 +90,7 @@
                 android:clipToPadding="false"
                 android:fillViewport="false"
                 android:paddingEnd="10dp"
+                android:paddingStart="0dp"
                 android:scrollbarDefaultDelayBeforeFade="1200"
                 android:scrollbarFadeDuration="240"
                 android:scrollbarSize="3dp"
@@ -103,7 +103,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:paddingEnd="10dp">
+                android:paddingEnd="10dp"
+                android:paddingStart="0dp">
 
                 <LinearLayout
                     android:id="@+id/presetIncludeLayoutRow"
@@ -149,7 +150,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="12dp"
-                        android:contentDescription="@string/sub_style_preset_include_layout"
+                        android:contentDescription="@string/accessibility_selected"
                         android:src="@drawable/ic_tv_check"
                         android:visibility="invisible"
                         app:tint="@color/tv_text"
@@ -176,6 +177,8 @@
                         android:background="@drawable/bg_tv_icon_chip">
 
                         <ImageView
+                            android:contentDescription="@null"
+                            android:importantForAccessibility="no"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:layout_gravity="center"
@@ -266,6 +269,8 @@
                         android:background="@drawable/bg_tv_icon_chip">
 
                         <ImageView
+                            android:contentDescription="@null"
+                            android:importantForAccessibility="no"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
                             android:layout_gravity="center"
@@ -381,7 +386,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="12dp"
-                        android:contentDescription="@string/sub_style_override_ass"
+                        android:contentDescription="@string/accessibility_selected"
                         android:src="@drawable/ic_tv_check"
                         android:visibility="invisible"
                         app:tint="@color/tv_text"
@@ -433,7 +438,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="12dp"
-                        android:contentDescription="@string/sub_style_force_all_ass"
+                        android:contentDescription="@string/accessibility_selected"
                         android:src="@drawable/ic_tv_check"
                         android:visibility="invisible"
                         app:tint="@color/tv_text"
@@ -485,7 +490,7 @@
                         android:layout_height="22dp"
                         android:layout_gravity="center_vertical"
                         android:layout_marginStart="12dp"
-                        android:contentDescription="@string/sub_style_selective_ass"
+                        android:contentDescription="@string/accessibility_selected"
                         android:src="@drawable/ic_tv_check"
                         android:visibility="invisible"
                         app:tint="@color/tv_text"

@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    tools:ignore="HardcodedText">
+    android:padding="16dp">
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch1"
@@ -13,7 +11,7 @@
         android:layout_height="wrap_content"
         android:checked="true"
         android:padding="16dp"
-        android:text="video only" />
+        android:text="@string/debug_video_only" />
 
     <androidx.appcompat.widget.SwitchCompat
         android:id="@+id/switch2"
@@ -22,7 +20,7 @@
         android:layout_toEndOf="@+id/switch1"
         android:checked="true"
         android:padding="16dp"
-        android:text="decoders only" />
+        android:text="@string/debug_decoders_only" />
 
     <TextView
         android:id="@+id/info"

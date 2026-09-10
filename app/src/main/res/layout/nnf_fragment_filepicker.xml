@@ -25,7 +25,6 @@
         android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
         android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
         android:scrollbars="vertical"
-        tools:ignore="RtlSymmetry"
         tools:listitem="@layout/nnf_filepicker_listitem_dir" />
 
 </FrameLayout>

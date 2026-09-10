@@ -182,8 +182,11 @@ private class PlayerUiCustomizationPanelController(
                     background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
                     isAllCaps = false
                     setTextColor(activity.getColor(R.color.tv_text))
-                    text = activity.getString(preset.labelRes()) + "\n" +
-                        activity.getString(preset.summaryRes())
+                    text = activity.getString(
+                        R.string.player_ui_preset_text_format,
+                        activity.getString(preset.labelRes()),
+                        activity.getString(preset.summaryRes()),
+                    )
                     textSize = 11f
                     gravity = Gravity.CENTER
                     isSelected = playerUiPresetFor(activity.playerUiCustomization) == preset
@@ -211,7 +214,11 @@ private class PlayerUiCustomizationPanelController(
                     background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
                     isAllCaps = false
                     setTextColor(activity.getColor(R.color.tv_text))
-                    text = preset.name + "\n" + activity.getString(R.string.custom_preset_saved_summary)
+                    text = activity.getString(
+                        R.string.player_ui_preset_text_format,
+                        preset.name,
+                        activity.getString(R.string.custom_preset_saved_summary),
+                    )
                     textSize = 11f
                     gravity = Gravity.CENTER
                     isSelected = activeCustomPresetName.equals(preset.name, ignoreCase = true)

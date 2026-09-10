@@ -166,12 +166,12 @@
                     android:gravity="start"
                     android:letterSpacing="0.01"
                     android:paddingStart="2dp"
+                    android:paddingEnd="0dp"
                     android:paddingBottom="4dp"
                     android:singleLine="true"
                     android:textColor="@color/tv_text"
                     android:textSize="16sp"
                     android:textStyle="bold"
-                    tools:ignore="RtlSymmetry"
                     tools:text="Wistoria: Wand and Sword - S01E08" />
 
             </LinearLayout>
@@ -383,7 +383,6 @@
                         android:textColor="@color/tv_text"
                         android:textSize="13sp"
                         android:textStyle="bold"
-                        tools:ignore="RtlSymmetry"
                         tools:text="03:29" />
 
                     <TextView
@@ -396,7 +395,7 @@
                         android:shadowDx="0"
                         android:shadowDy="1"
                         android:shadowRadius="2"
-                        android:text=" / "
+                        android:text="@string/player_time_separator"
                         android:textColor="@color/tv_text_mute"
                         android:textSize="13sp"
                         android:textStyle="bold" />
@@ -414,7 +413,6 @@
                         android:textColor="@color/tv_text_dim"
                         android:textSize="13sp"
                         android:textStyle="bold"
-                        tools:ignore="RtlSymmetry"
                         tools:text="23:48" />
                 </LinearLayout>
             </LinearLayout>
@@ -456,6 +454,7 @@
 
                 <ImageView
                     android:id="@+id/skipSegmentBtnIcon"
+                    android:contentDescription="@null"
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:layout_gravity="center"
@@ -541,7 +540,6 @@
                 android:textColor="@color/tv_text"
                 android:textSize="14sp"
                 android:textStyle="bold"
-                tools:ignore="RtlSymmetry"
                 tools:text="03:29 / 23:48" />
 
             <app.mpvnova.player.ChapterSeekBar
@@ -694,7 +692,7 @@
                     android:includeFontPadding="false"
                     android:paddingStart="5dp"
                     android:paddingEnd="5dp"
-                    android:text="•"
+                    android:text="@string/player_metadata_separator"
                     android:textColor="@color/tv_text_dim"
                     android:textSize="14sp" />
 

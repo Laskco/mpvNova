@@ -29,6 +29,7 @@
         android:layout_width="22dp"
         android:layout_height="22dp"
         android:layout_marginStart="14dp"
+        android:contentDescription="@string/accessibility_selected"
         android:src="@drawable/ic_tv_check"
         android:visibility="invisible"
         app:tint="@color/tv_text" />

@@ -50,8 +50,7 @@
             android:singleLine="true"
             android:textColor="@color/tv_text"
             android:textColorHint="@color/tv_text_dim"
-            android:textSize="16sp"
-            tools:ignore="LabelFor" />
+            android:textSize="16sp" />
 
         <TextView
             android:id="@+id/customPresetNameCount"

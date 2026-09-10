@@ -341,7 +341,7 @@ private fun PlayerDrawerRow.inflateMeasureRow(parent: RecyclerView, inflater: La
             .also {
                 it.prefRowTitle.setText(option.titleRes)
                 it.prefRowSummary.setText(option.summaryRes)
-                it.prefRowValue.text = "HW+"
+                it.prefRowValue.setText(R.string.drawer_measure_decoder_value)
             }
             .root
         is PlayerDrawerRow.Network -> DrawerPrefRowBinding.inflate(inflater, parent, false)

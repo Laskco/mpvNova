@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Chapter index notation; the integer is formatted using the resource locale. -->
+    <string name="chapter_number_format" translatable="false">#%1$d</string>
+    <!-- Measurement-only decoder token, kept identical to the existing width sample. -->
+    <string name="drawer_measure_decoder_value" translatable="false">HW+</string>
+    <!-- Preserve the existing two-line structure and independently translated text. -->
+    <string name="player_ui_preset_text_format" translatable="false">%1$s\n%2$s</string>
+    <string name="shader_manager_status_text_format" translatable="false">%1$s\n%2$s</string>
+    <!-- New English shader messages, pending translations like the existing shader resources. -->
+    <plurals name="shader_refresh_imported_count" tools:ignore="MissingTranslation">
+        <item quantity="one">Imported %1$d shader.</item>
+        <item quantity="other">Imported %1$d shaders.</item>
+    </plurals>
+    <plurals name="shader_refresh_unreadable_count" tools:ignore="MissingTranslation">
+        <item quantity="one">%1$d file or folder could not be read.</item>
+        <item quantity="other">%1$d files or folders could not be read.</item>
+    </plurals>
+</resources>

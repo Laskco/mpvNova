@@ -328,8 +328,7 @@
                     android:paddingEnd="16dp"
                     android:paddingBottom="6dp"
                     android:text=""
-                    app:showText="false"
-                    tools:ignore="RtlSymmetry" />
+                    app:showText="false" />
             </LinearLayout>
 
         </LinearLayout>

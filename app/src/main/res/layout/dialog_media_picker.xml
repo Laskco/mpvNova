@@ -95,6 +95,7 @@
                 android:minHeight="250dp"
                 android:paddingTop="8dp"
                 android:paddingEnd="10dp"
+                android:paddingStart="0dp"
                 android:paddingBottom="2dp"
                 android:scrollbarFadeDuration="240"
                 android:scrollbarDefaultDelayBeforeFade="1200"
@@ -123,6 +124,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:paddingEnd="10dp"
+                android:paddingStart="0dp"
                 android:scrollbarFadeDuration="240"
                 android:scrollbarDefaultDelayBeforeFade="1200"
                 android:scrollbarSize="3dp"
@@ -140,7 +142,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:paddingEnd="10dp">
+                    android:paddingEnd="10dp"
+                    android:paddingStart="0dp">
 
                     <LinearLayout
                         android:id="@+id/persistFiltersRow"
@@ -165,6 +168,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -205,6 +210,7 @@
                             android:layout_height="20dp"
                             android:layout_gravity="center_vertical"
                             android:layout_marginStart="10dp"
+                            android:contentDescription="@string/accessibility_selected"
                             android:src="@drawable/ic_tv_check"
                             android:visibility="invisible" />
                     </LinearLayout>
@@ -229,6 +235,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -319,6 +327,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -409,6 +419,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -507,6 +519,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -605,6 +619,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -695,6 +711,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -788,6 +806,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -828,6 +848,7 @@
                             android:layout_height="20dp"
                             android:layout_gravity="center_vertical"
                             android:layout_marginStart="10dp"
+                            android:contentDescription="@string/accessibility_selected"
                             android:src="@drawable/ic_tv_check"
                             android:visibility="invisible" />
                     </LinearLayout>
@@ -855,6 +876,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -927,6 +950,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -997,6 +1022,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -1090,6 +1117,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -1181,6 +1210,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -1272,6 +1303,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"
@@ -1363,6 +1396,8 @@
                             android:background="@drawable/bg_tv_icon_chip">
 
                             <ImageView
+                                android:contentDescription="@null"
+                                android:importantForAccessibility="no"
                                 android:layout_width="18dp"
                                 android:layout_height="18dp"
                                 android:layout_gravity="center"

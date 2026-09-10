@@ -24,6 +24,7 @@
         android:orientation="vertical"
         tools:ignore="NestedWeights">
 
+        <!-- Keep the asymmetric header inset aligned with the right-hand tab column. -->
         <include
             android:id="@+id/drawerStaticHeader"
             layout="@layout/drawer_row_header"
@@ -43,10 +44,12 @@
             android:background="@drawable/bg_tv_panel_card"
             android:clipToOutline="true"
             android:paddingStart="8dp"
+            android:paddingEnd="0dp"
             android:paddingTop="8dp"
             android:paddingBottom="4dp"
             tools:targetApi="s">
 
+            <!-- Preserve row hover clearance beside the right-hand tab column. -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/drawerContentList"
                 android:layout_width="match_parent"
@@ -112,11 +115,11 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="14dp"
             android:paddingStart="6dp"
+            android:paddingEnd="0dp"
             android:text="@string/action_settings"
             android:textColor="@color/tv_text"
             android:textSize="22sp"
-            android:textStyle="bold"
-            tools:ignore="RtlSymmetry" />
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/tabBtnVideo"

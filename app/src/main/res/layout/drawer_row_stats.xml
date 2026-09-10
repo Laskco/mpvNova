@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="8dp"
@@ -26,9 +25,9 @@
         android:layout_width="44dp"
         android:layout_height="54dp"
         android:layout_marginStart="8dp"
-        android:text="1"
-        android:textAllCaps="false"
-        tools:ignore="HardcodedText" />
+        android:contentDescription="@string/accessibility_stats_page_1"
+        android:text="@string/stats_page_1_number"
+        android:textAllCaps="false" />
 
     <Button
         android:id="@+id/drawerStatsPage2Button"
@@ -36,9 +35,9 @@
         android:layout_width="44dp"
         android:layout_height="54dp"
         android:layout_marginStart="8dp"
-        android:text="2"
-        android:textAllCaps="false"
-        tools:ignore="HardcodedText" />
+        android:contentDescription="@string/accessibility_stats_page_2"
+        android:text="@string/stats_page_2_number"
+        android:textAllCaps="false" />
 
     <Button
         android:id="@+id/drawerStatsPage3Button"
@@ -47,7 +46,7 @@
         android:layout_height="54dp"
         android:layout_marginStart="8dp"
         android:nextFocusRight="@id/tabBtnVideo"
-        android:text="3"
-        android:textAllCaps="false"
-        tools:ignore="HardcodedText" />
+        android:contentDescription="@string/accessibility_stats_page_3"
+        android:text="@string/stats_page_3_number"
+        android:textAllCaps="false" />
 </LinearLayout>

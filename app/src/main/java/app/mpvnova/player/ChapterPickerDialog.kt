@@ -80,7 +80,7 @@ internal class ChapterPickerDialog(
 
             fun bind(item: Item, selected: Boolean) = with(binding) {
                 root.isActivated = selected
-                chapterNumberText.text = "#${item.index + 1}"
+                chapterNumberText.text = root.context.getString(R.string.chapter_number_format, item.index + 1)
                 chapterTitleText.text = item.title
                 chapterTimeText.text = item.timecode
                 UiFont.applyWeight(chapterTitleText, bold = selected)

@@ -7,7 +7,7 @@
     <string name="player_title_extra_long_text">Long text</string>
     <string name="player_title_extra_default">Default</string>
     <string name="player_title_extra_wrap">Wrap</string>
-    <string name="player_title_extra_ellipsis">Shorten with ...</string>
+    <string name="player_title_extra_ellipsis">Shorten with &#8230;</string>
     <string name="player_title_extra_marquee">Scroll</string>
     <string name="player_title_extra_max_lines">Maximum lines</string>
     <string name="player_title_extra_line_spacing">Wrapped line spacing</string>

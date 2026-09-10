@@ -154,8 +154,9 @@ internal class ShaderManagerDialog(
                 result.onSuccess { imported ->
                     val message = when {
                         imported.errors.isNotEmpty() -> imported.errors.first()
-                        imported.imported > 0 && imported.skipped > 0 -> activity.getString(
-                            R.string.shader_import_result_with_skipped,
+                        imported.imported > 0 && imported.skipped > 0 -> activity.resources.getQuantityString(
+                            R.plurals.shader_import_result_with_skipped,
+                            imported.skipped,
                             imported.imported,
                             imported.skipped,
                         )
@@ -195,8 +196,16 @@ internal class ShaderManagerDialog(
                         refreshed.imported > 0 && refreshed.errors.isNotEmpty() ->
                             activity.getString(
                                 R.string.shader_refresh_partial,
-                                refreshed.imported,
-                                refreshed.errors.size,
+                                activity.resources.getQuantityString(
+                                    R.plurals.shader_refresh_imported_count,
+                                    refreshed.imported,
+                                    refreshed.imported,
+                                ),
+                                activity.resources.getQuantityString(
+                                    R.plurals.shader_refresh_unreadable_count,
+                                    refreshed.errors.size,
+                                    refreshed.errors.size,
+                                ),
                             )
                         refreshed.imported > 0 -> activity.resources.getQuantityString(
                             R.plurals.shader_refresh_result,
@@ -268,7 +277,11 @@ internal class ShaderManagerDialog(
         } else {
             activity.getString(R.string.shader_status_manager_off, shaders.size)
         }
-        binding.shaderManagerStatus.text = "$state\n${activity.getString(R.string.shader_performance_warning)}"
+        binding.shaderManagerStatus.text = activity.getString(
+            R.string.shader_manager_status_text_format,
+            state,
+            activity.getString(R.string.shader_performance_warning),
+        )
     }
 
     private fun configureSettingsWindow(window: Window?) {

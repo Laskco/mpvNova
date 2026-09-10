@@ -53,7 +53,6 @@
                 android:textColor="@color/tv_text"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                tools:ignore="LabelFor"
                 tools:text="1" />
 
             <TextView
@@ -61,6 +60,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center"
+                android:labelFor="@id/hoursInput"
                 android:text="@string/screensaver_field_hours"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
@@ -88,7 +88,6 @@
                 android:textColor="@color/tv_text"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                tools:ignore="LabelFor"
                 tools:text="30" />
 
             <TextView
@@ -96,6 +95,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center"
+                android:labelFor="@id/minutesInput"
                 android:text="@string/screensaver_field_minutes"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"
@@ -123,7 +123,6 @@
                 android:textColor="@color/tv_text"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                tools:ignore="LabelFor"
                 tools:text="0" />
 
             <TextView
@@ -131,6 +130,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:gravity="center"
+                android:labelFor="@id/secondsInput"
                 android:text="@string/screensaver_field_seconds"
                 android:textColor="@color/tv_text_dim"
                 android:textSize="12sp"

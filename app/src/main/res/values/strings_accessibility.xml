@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- New spoken labels use the existing English fallback pending translations. -->
+    <string name="accessibility_selected" tools:ignore="MissingTranslation">Selected</string>
+    <string name="accessibility_stats_page_1" tools:ignore="MissingTranslation">Statistics page 1: General</string>
+    <string name="accessibility_stats_page_2" tools:ignore="MissingTranslation">Statistics page 2: Timing</string>
+    <string name="accessibility_stats_page_3" tools:ignore="MissingTranslation">Statistics page 3: Cache</string>
+    <string name="player_time_separator" translatable="false">" / "</string>
+    <string name="player_metadata_separator" translatable="false">&#8226;</string>
+</resources>

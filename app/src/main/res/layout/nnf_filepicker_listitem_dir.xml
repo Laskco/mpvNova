@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nnf_item_container"
     android:layout_width="match_parent"
     android:layout_height="60dp"
@@ -23,6 +22,8 @@
 
         <ImageView
             android:id="@+id/item_icon"
+            android:contentDescription="@null"
+            android:importantForAccessibility="no"
             android:layout_width="28dp"
             android:layout_height="28dp"
             android:layout_gravity="center"
@@ -30,8 +31,7 @@
             android:scaleType="fitCenter"
             android:visibility="visible"
             app:srcCompat="@drawable/ic_folder_white_48dp"
-            app:tint="@color/tv_text"
-            tools:ignore="ContentDescription" />
+            app:tint="@color/tv_text" />
     </FrameLayout>
 
     <TextView

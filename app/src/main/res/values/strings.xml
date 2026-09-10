@@ -151,7 +151,7 @@
     <string name="error_no_file">No file given, exiting</string>
     <string name="notice_file_appended">File(s) appended to playlist</string>
     <string name="notice_file_play">Starting playback of file(s)</string>
-    <string name="exit_warning_playlist">%d playlist items remaining.\nDo you really want to exit?</string>
+    <string name="exit_warning_playlist">Playlist items remaining: %d.\nDo you really want to exit?</string>
     <string name="contrast">Contrast</string>
     <string name="video_brightness">Video brightness</string>
     <string name="video_hue">Hue</string>
@@ -315,7 +315,7 @@
     <string name="pref_release_history_title">Release notes history</string>
     <string name="pref_release_history_summary">View recently fetched mpvNova changelogs again.</string>
     <string name="update_available_title">App Update</string>
-    <string name="update_checking">Checking for the latest release...</string>
+    <string name="update_checking">Checking for the latest release&#8230;</string>
     <string name="update_new_version">New version: %1$s</string>
     <string name="update_notes_heading">Fixes and improvements</string>
     <string name="update_notes_empty">No release notes were provided.</string>
@@ -328,7 +328,7 @@
     <string name="about_features_unavailable_during_playback">Playback is active. Core feature details will be available after playback stops.</string>
     <string name="update_error_title">Update check failed</string>
     <string name="update_check_failed">Couldn\'t check for updates.\n\n%1$s</string>
-    <string name="update_downloading">Downloading %1$s...</string>
+    <string name="update_downloading">Downloading %1$s&#8230;</string>
     <string name="update_download_complete_title">Update downloaded</string>
     <string name="update_download_complete">Download complete. Ready to install %1$s.\n\nFile: %2$s</string>
     <string name="update_install">Install</string>
@@ -427,7 +427,8 @@
     <string name="screensaver_field_minutes">Minutes</string>
     <string name="screensaver_field_seconds">Seconds</string>
     <string name="screensaver_minutes_value">%1$d min</string>
-    <string name="screensaver_seconds_value">%1$d sec</string>
+    <!-- Unit abbreviation is invariant across counts. -->
+    <string name="screensaver_seconds_value" tools:ignore="PluralsCandidate">%1$d sec</string>
     <string name="screensaver_hours_value">%1$d hr</string>
     <string name="screensaver_hours_minutes_value">%1$d hr %2$d min</string>
     <string name="screensaver_summary_format">%1$s · %2$s</string>
@@ -570,15 +571,17 @@
     <string name="shader_manager_title">Shaders</string>
     <string name="shader_manager_summary">Import, order, and enable custom GPU shaders.</string>
     <string name="shader_manager_enabled">Use managed shaders</string>
-    <string name="shader_status">%1$d of %2$d enabled</string>
-    <string name="shader_status_manager_off">Manager off, %1$d saved</string>
+    <!-- "enabled" and "saved" do not change with the count; no count-dependent noun. -->
+    <string name="shader_status" tools:ignore="PluralsCandidate">%1$d of %2$d enabled</string>
+    <string name="shader_status_manager_off" tools:ignore="PluralsCandidate">Manager off, %1$d saved</string>
     <string name="shader_performance_warning">Shaders run on the GPU every frame and may reduce playback performance.</string>
     <string name="shader_add">Add shaders</string>
     <string name="shader_refresh">Refresh</string>
     <string name="shader_refreshing">Refreshing</string>
     <string name="shader_refresh_none">No new shaders found</string>
     <string name="shader_refresh_failed">Could not refresh shader folders</string>
-    <string name="shader_refresh_partial">Imported %1$d shaders. %2$d files or folders could not be read.</string>
+    <!-- Each sentence is independently pluralized before formatting. -->
+    <string name="shader_refresh_partial">%1$s %2$s</string>
     <plurals name="shader_refresh_result">
         <item quantity="one">Imported %1$d new shader. It starts disabled.</item>
         <item quantity="other">Imported %1$d new shaders. They start disabled.</item>
@@ -603,9 +606,13 @@
     <string name="shader_import_too_large">Shader is larger than 8 MB</string>
     <string name="shader_import_total_too_large">Managed shaders cannot use more than 32 MB</string>
     <string name="shader_import_empty">Shader file is empty</string>
-    <string name="shader_import_limit_reached">The manager supports up to %1$d shaders</string>
+    <!-- Only formatted with the fixed MAX_SHADER_COUNT (64), never a variable item count. -->
+    <string name="shader_import_limit_reached" tools:ignore="PluralsCandidate">The manager supports up to %1$d shaders</string>
     <string name="shader_import_unsupported">%1$s is not a supported shader file</string>
-    <string name="shader_import_result_with_skipped">Imported %1$d, skipped %2$d duplicate files</string>
+    <plurals name="shader_import_result_with_skipped">
+        <item quantity="one">Imported %1$d, skipped %2$d duplicate file</item>
+        <item quantity="other">Imported %1$d, skipped %2$d duplicate files</item>
+    </plurals>
     <plurals name="shader_import_result">
         <item quantity="one">Imported %1$d shader. It starts disabled.</item>
         <item quantity="other">Imported %1$d shaders. They start disabled.</item>

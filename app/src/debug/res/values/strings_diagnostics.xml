@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- English-only developer diagnostics; excluded from release source sets. -->
+    <string name="debug_video_only" translatable="false">video only</string>
+    <string name="debug_decoders_only" translatable="false">decoders only</string>
+    <string name="debug_subs_data_uri" translatable="false">subs data uri</string>
+    <string name="debug_no_hwdec" translatable="false">no hwdec</string>
+    <string name="debug_force_title" translatable="false">force title</string>
+    <string name="debug_launch" translatable="false">Launch</string>
+    <string name="debug_offset_label" translatable="false">offset:</string>
+    <string name="debug_url_label" translatable="false">URL:</string>
+</resources>
