@@ -101,9 +101,12 @@ internal fun subtitleTrackKindsMatch(
 ): Boolean = isLimitedSubtitleTrack(saved, savedForced, savedLang) ==
     isLimitedSubtitleTrack(candidate, candidateForced, candidateLang)
 
-internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean =
-    forced || isSignsSubtitleTitle(title) || isSameLanguageAudioSubtitleTitle(title, language) ||
-        (FORCED_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title))
+internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean {
+    val label = title.replace('_', ' ')
+    return forced || isSignsSubtitleTitle(label) || isSameLanguageAudioSubtitleTitle(label, language) ||
+        (FORCED_SUBTITLE_PATTERN.containsMatchIn(label) && !FULL_SUBTITLE_PATTERN.containsMatchIn(label) &&
+            !NOT_FORCED_SUBTITLE_PATTERN.containsMatchIn(label))
+}
 
 private fun isSameLanguageAudioSubtitleTitle(title: String, language: String): Boolean {
     if (FULL_SUBTITLE_PATTERN.containsMatchIn(title)) return false
@@ -121,6 +124,9 @@ private val SIGNS_SUBTITLE_PATTERN = Regex(
 )
 private val FULL_SUBTITLE_PATTERN = Regex("""(?i)\b(?:full|dialog(?:ue)?s?|sdh|closed\s+captions?)\b""")
 private val FORCED_SUBTITLE_PATTERN = Regex("""(?i)\bforced\b""")
+private val NOT_FORCED_SUBTITLE_PATTERN = Regex(
+    """(?i)\b(?:not|non|no)[\s-]+forced\b|\bforced\s*[:=]\s*(?:no|false|0)\b""",
+)
 private val AUDIO_SUBTITLE_PATTERN = Regex("""(?i)\b(?:with|for)\s+(?:the\s+)?([a-z]{2,})\s+(?:audio|dub)\b""")
 
 /**
