@@ -372,6 +372,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var currentItemTitle: String? = null
     internal var currentFileName: String? = null
     internal var currentVideoTitle: String? = null
+    internal var currentTrackSeriesKey: String? = null
     internal val tmdbTitleController by lazy { TmdbTitleController(this) { updatePlayerTitleOverlay() } }
     internal var playerTitleStyle = PlayerTitleStyle.DEFAULT
     internal var appliedPlayerTitleStyle: PlayerTitleStyle? = null

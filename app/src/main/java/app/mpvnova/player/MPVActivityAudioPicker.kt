@@ -7,7 +7,7 @@ internal fun MPVActivity.configureAudioPickerCallbacks(
 ) {
     impl.onItemClick = { idx ->
         val trackId = tracks[idx].mpvId
-        player.aid = trackId
+        selectTrackForFile("audio", trackId)
         saveUserTrackPick("audio", trackId)
         dismiss()
         trackSwitchNotification { TrackData(trackId, "audio") }

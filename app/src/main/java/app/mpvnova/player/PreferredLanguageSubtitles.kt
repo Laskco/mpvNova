@@ -1,16 +1,26 @@
 package app.mpvnova.player
 
+import android.content.SharedPreferences
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 import java.util.Locale
 import java.util.MissingResourceException
 
 internal const val PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES = "limit_preferred_language_subtitles"
 
+internal fun SharedPreferences.migratePreferredSubtitleOptIn() = synchronized(this) {
+    if (!getBoolean(PREF_SUBTITLE_OPT_IN_RESET, false)) {
+        edit().putBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)
+            .putBoolean(PREF_SUBTITLE_OPT_IN_RESET, true).apply()
+    }
+}
+
+private const val PREF_SUBTITLE_OPT_IN_RESET = "preferred_subtitles_opt_in_reset_v1"
+
 // Run once at file load, after restoring audio. Never fight a later manual subtitle selection.
 @Suppress("ReturnCount") // Disabled policy and non-preferred audio keep the existing behavior.
 internal fun MPVActivity.applyPreferredLanguageSubtitles(): Boolean {
     val prefs = getDefaultSharedPreferences(applicationContext)
-    if (!prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, true)) return false
+    if (!prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) return false
     val audioLanguage = listTrackMeta("audio").firstOrNull { it.mpvId == player.aid }?.lang.orEmpty()
     val candidates = limitedSubtitlesForPreferredAudio(
         audioLanguage,
@@ -21,16 +31,7 @@ internal fun MPVActivity.applyPreferredLanguageSubtitles(): Boolean {
     ) ?: return false
     // Constrain mpv's later autoselection too; explicit manual selections still work.
     mpvSetPropertyString("file-local-options/subs-with-matching-audio", "forced")
-    if (persistSubFilters && prefs.getBoolean("last_user_sub_off", false)) {
-        player.sid = -1
-    } else {
-        val remembered = if (persistSubFilters) prefs.getString("last_user_sub_title", null)?.let {
-            rememberedTrackMatch(candidates, it, prefs.getString("last_user_sub_lang", "").orEmpty(),
-                "sub", prefs.getBoolean("last_user_sub_forced", false)).first
-        } else null
-        player.sid = (remembered ?: candidates.firstOrNull { it.mpvId == player.sid }
-            ?: candidates.firstOrNull())?.mpvId ?: -1
-    }
+    selectTrackForFile("sub", candidates.firstOrNull()?.mpvId ?: -1)
     return true
 }
 
@@ -47,6 +48,7 @@ internal fun limitedSubtitlesForPreferredAudio(
         val companionLanguage = track.lang.takeIf { subtitleLanguageMatches(it, audioLanguage) }.orEmpty()
         isLimitedSubtitleTrack(track.title, track.forced, companionLanguage) &&
             (languages.any { subtitleLanguageMatches(track.lang, it) } ||
+                isLimitedSubtitleTrack(track.title, track.forced) ||
                 (track.lang.isBlank() && track.mpvId == currentSubtitle))
     }.sortedBy { track ->
         languages.indexOfFirst { subtitleLanguageMatches(track.lang, it) }.takeIf { it >= 0 } ?: Int.MAX_VALUE

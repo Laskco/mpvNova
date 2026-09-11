@@ -6,7 +6,7 @@
         <EditTextPreference android:defaultValue="eng" android:dialogMessage="@string/pref_default_audio_language_message" android:key="default_audio_language" android:title="@string/pref_default_audio_language_title" app:iconSpaceReserved="false" app:useSimpleSummaryProvider="true" />
         <EditTextPreference android:defaultValue="eng" android:dialogMessage="@string/pref_default_subtitle_language_message" android:key="default_subtitle_language" android:title="@string/pref_default_subtitle_language_title" app:iconSpaceReserved="false" app:useSimpleSummaryProvider="true" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="prefer_external_forwarded_subtitles" android:summary="@string/pref_prefer_external_forwarded_subtitles_summary" android:title="@string/pref_prefer_external_forwarded_subtitles_title" app:iconSpaceReserved="false" />
-        <SwitchPreferenceCompat android:defaultValue="true" android:key="limit_preferred_language_subtitles" android:summary="@string/pref_limit_preferred_language_subtitles_summary" android:title="@string/pref_limit_preferred_language_subtitles_title" app:iconSpaceReserved="false" />
+        <SwitchPreferenceCompat android:defaultValue="false" android:key="limit_preferred_language_subtitles" android:summary="@string/pref_limit_preferred_language_subtitles_summary" android:title="@string/pref_limit_preferred_language_subtitles_title" app:iconSpaceReserved="false" />
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/settings_category_playback_behavior" app:iconSpaceReserved="false">

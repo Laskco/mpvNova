@@ -253,7 +253,7 @@ internal enum class PlayerDrawerPreference(
         R.string.pref_limit_preferred_language_subtitles_title,
         R.string.pref_limit_preferred_language_subtitles_summary,
         PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES,
-        true,
+        false,
     ),
 }
 

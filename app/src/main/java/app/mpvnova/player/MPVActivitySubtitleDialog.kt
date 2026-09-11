@@ -34,7 +34,7 @@ private fun MPVActivity.handleSubPickerItemClick(
     dismissDialog: () -> Unit
 ) {
     val trackId = impl.items[index].tag as Int
-    player.sid = trackId
+    selectTrackForFile("sub", trackId)
     saveUserTrackPick("sub", trackId)
     dismissDialog()
     trackSwitchNotification { TrackData(trackId, SubTrackDialog.TRACK_TYPE) }

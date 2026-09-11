@@ -27,6 +27,7 @@ internal fun MPVActivity.listTrackMeta(type: String): List<TrackMeta> {
 }
 
 internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
+    if (saveSeriesTrackPick(type, mpvId)) return
     val prefs = getDefaultSharedPreferences(applicationContext)
     val (titleKey, langKey) = trackMemoryKeys(type)
     when {
@@ -76,7 +77,7 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
     val prefs = getDefaultSharedPreferences(applicationContext)
     val (titleKey, langKey) = trackMemoryKeys(type)
     if (type == "sub" && prefs.getBoolean(TRACK_MEMORY_SUB_OFF_KEY, false)) {
-        player.sid = -1
+        selectTrackForFile("sub", -1)
         Log.v(MPV_ACTIVITY_TAG, "track-memory: restored sub track off")
         return
     }
@@ -96,10 +97,7 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
 internal fun MPVActivity.setTrackForMemory(
     type: String, mpvId: Int, title: String, score: Double, exact: Boolean
 ) {
-    when (type) {
-        "sub"   -> player.sid = mpvId
-        "audio" -> player.aid = mpvId
-    }
+    selectTrackForFile(type, mpvId)
     android.util.Log.v(
         MPV_ACTIVITY_TAG,
         "track-memory: restored $type track #$mpvId " +

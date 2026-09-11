@@ -77,7 +77,8 @@ internal fun MPVActivity.swapPrimaryAndSecondarySub() {
     if (secondary == -1) return
     // Clear secondary first — mpv auto-rejects the same track in both slots.
     player.secondarySid = -1
-    player.sid = secondary
+    selectTrackForFile("sub", secondary)
+    saveUserTrackPick("sub", secondary)
     if (primary != -1) {
         player.secondarySid = primary
     }
