@@ -101,7 +101,12 @@ internal fun subtitleTrackKindsMatch(
 ): Boolean = isLimitedSubtitleTrack(saved, savedForced, savedLang) ==
     isLimitedSubtitleTrack(candidate, candidateForced, candidateLang)
 
-internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean {
+// Preserve the original classification for global track memory when the opt-in is off.
+internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean =
+    forced || isSignsSubtitleTitle(title) || isSameLanguageAudioSubtitleTitle(title, language) ||
+        (FORCED_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title))
+
+internal fun isCompanionSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean {
     val label = title.replace('_', ' ')
     return forced || isSignsSubtitleTitle(label) || isSameLanguageAudioSubtitleTitle(label, language) ||
         (FORCED_SUBTITLE_PATTERN.containsMatchIn(label) && !FULL_SUBTITLE_PATTERN.containsMatchIn(label) &&

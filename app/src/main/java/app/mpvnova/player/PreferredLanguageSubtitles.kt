@@ -46,9 +46,9 @@ internal fun limitedSubtitlesForPreferredAudio(
     val languages = subtitleLanguages.ifEmpty { listOf(audioLanguage) }
     return tracks.filter { track ->
         val companionLanguage = track.lang.takeIf { subtitleLanguageMatches(it, audioLanguage) }.orEmpty()
-        isLimitedSubtitleTrack(track.title, track.forced, companionLanguage) &&
+        isCompanionSubtitleTrack(track.title, track.forced, companionLanguage) &&
             (languages.any { subtitleLanguageMatches(track.lang, it) } ||
-                isLimitedSubtitleTrack(track.title, track.forced) ||
+                isCompanionSubtitleTrack(track.title, track.forced) ||
                 (track.lang.isBlank() && track.mpvId == currentSubtitle))
     }.sortedBy { track ->
         languages.indexOfFirst { subtitleLanguageMatches(track.lang, it) }.takeIf { it >= 0 } ?: Int.MAX_VALUE

@@ -3,8 +3,15 @@ package app.mpvnova.player
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 
 internal fun MPVActivity.selectTrackForFile(type: String, id: Int) {
-    val property = if (type == "audio") "aid" else "sid"
-    mpvSetPropertyString("file-local-options/$property", if (id == -1) "no" else id.toString())
+    if (getDefaultSharedPreferences(applicationContext).getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) {
+        val property = if (type == "audio") "aid" else "sid"
+        mpvSetPropertyString("file-local-options/$property", if (id == -1) "no" else id.toString())
+    } else {
+        when (type) {
+            "audio" -> player.aid = id
+            "sub" -> player.sid = id
+        }
+    }
 }
 
 internal fun MPVActivity.resolveTrackSeriesKey(): String? {
@@ -17,8 +24,12 @@ internal fun MPVActivity.resolveTrackSeriesKey(): String? {
 }
 
 internal fun MPVActivity.saveSeriesTrackPick(type: String, id: Int): Boolean {
-    val key = currentTrackSeriesKey ?: return false
     val prefs = getDefaultSharedPreferences(applicationContext)
+    // The setting can be enabled after this file has already loaded.
+    val key = if (prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) {
+        currentTrackSeriesKey ?: resolveTrackSeriesKey()?.also { currentTrackSeriesKey = it }
+    } else null
+    if (key == null) return false
     val cache = SeriesTrackSelectionCache(prefs.getString(SERIES_TRACK_SELECTIONS_KEY, null))
     val selection = SeriesTrackSelection(
         savedSeriesTrack(listTrackMeta("audio"), if (type == "audio") id else player.aid),
@@ -30,20 +41,23 @@ internal fun MPVActivity.saveSeriesTrackPick(type: String, id: Int): Boolean {
 }
 
 internal fun MPVActivity.applyFileTrackSelections(preserveForwardedSubtitles: Boolean) {
-    currentTrackSeriesKey = resolveTrackSeriesKey()
     val prefs = getDefaultSharedPreferences(applicationContext)
+    if (!prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) {
+        currentTrackSeriesKey = null
+        applyRememberedTrack("audio")
+        if (!preserveForwardedSubtitles) applyRememberedTrack("sub")
+        return
+    }
+    currentTrackSeriesKey = resolveTrackSeriesKey()
     val selection = currentTrackSeriesKey?.let {
         SeriesTrackSelectionCache(prefs.getString(SERIES_TRACK_SELECTIONS_KEY, null)).get(it)
     }
     val (audioId, subId) = selection?.resolve(listTrackMeta("audio"), listTrackMeta("sub")) ?: (null to null)
     if (audioId != null) selectTrackForFile("audio", audioId)
-    val useLegacy = currentTrackSeriesKey == null &&
-        !prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)
-    if (useLegacy) applyRememberedTrack("audio")
     when {
         subId != null -> selectTrackForFile("sub", subId)
         preserveForwardedSubtitles -> Unit
-        !applyPreferredLanguageSubtitles() && useLegacy -> applyRememberedTrack("sub")
+        else -> applyPreferredLanguageSubtitles()
     }
 }
 

@@ -14,13 +14,14 @@ internal data class SavedSeriesTrack(
 ) {
     fun match(tracks: List<TrackMeta>, type: String): Int? {
         if (off) return -1
+        val companion = type == "sub" && isCompanionSubtitleTrack(title, forced, language)
         val compatible = tracks.filter {
             (language.isBlank() || memoryLanguageMatches(it, type)) &&
-                (type != "sub" || subtitleTrackKindsMatch(title, it.title, forced, it.forced, language, it.lang))
+                (type != "sub" || companion == isCompanionSubtitleTrack(it.title, it.forced, it.lang))
         }
         val exact = compatible.firstOrNull { it.title.equals(title, ignoreCase = true) }
-        val scored = bestTrackTitleMatch(compatible, title, type, forced, language)
-            .takeIf { it.second >= TRACK_MEMORY_MIN_SCORE }?.first
+        val scored = compatible.maxByOrNull { titleSimilarityScore(title, it.title) }
+            ?.takeIf { companion || titleSimilarityScore(title, it.title) >= TRACK_MEMORY_MIN_SCORE }
         // Keep language and subtitle kind when releases rename their tracks. Never use old IDs.
         return (exact ?: scored ?: compatible.singleOrNull())?.mpvId
     }
@@ -28,8 +29,8 @@ internal data class SavedSeriesTrack(
     private fun memoryLanguageMatches(track: TrackMeta, type: String): Boolean {
         // Some English companion releases use enm (Middle English). Limit this repair to
         // explicitly identified companion subtitles, never audio or full dialogue tracks.
-        val limited = type == "sub" && isLimitedSubtitleTrack(title, forced) &&
-            isLimitedSubtitleTrack(track.title, track.forced)
+        val limited = type == "sub" && isCompanionSubtitleTrack(title, forced) &&
+            isCompanionSubtitleTrack(track.title, track.forced)
         fun normalized(value: String): String =
             if (limited && value.equals("enm", ignoreCase = true)) "eng" else value
         return subtitleLanguageMatches(normalized(language), normalized(track.lang))
