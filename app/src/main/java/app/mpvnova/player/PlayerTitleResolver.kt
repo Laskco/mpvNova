@@ -13,16 +13,32 @@ internal object PlayerTitleResolver {
         sourceTitle: String?,
         mediaTitle: String?,
         fileName: String?,
+    ): PlayerTitlePresentation? = resolveCleaned(
+        AnimeReleaseTitle.cleanSource(displayTitle, fileName),
+        AnimeReleaseTitle.cleanSource(sourceTitle, fileName),
+        AnimeReleaseTitle.cleanSource(mediaTitle, fileName),
+        AnimeReleaseTitle.cleanSource(fileName, fileName),
+        AnimeReleaseTitle.parse(sourceTitle) ?: AnimeReleaseTitle.parse(fileName),
+        sourceTitle?.let(AnimeReleaseTitle::parse) != null,
+    )
+
+    private fun resolveCleaned(
+        displayTitle: String?,
+        sourceTitle: String?,
+        mediaTitle: String?,
+        fileName: String?,
+        release: PlayerTitlePresentation?,
+        sourceIsFilename: Boolean,
     ): PlayerTitlePresentation? {
-        return VlcTitleResolver.titleSourceFromExtra(displayTitle)?.let { fallbackTitle ->
+        return VlcTitleResolver.titleSourceFromExtra(displayTitle)
+            ?.replace(FINAL_MEDIA_EXTENSION_PATTERN, "")?.let { fallbackTitle ->
             val candidates = listOfNotNull(sourceTitle, fallbackTitle, mediaTitle, fileName)
                 .mapNotNull(::episodeTitleParts)
-            val release = AnimeReleaseTitle.parse(sourceTitle) ?: AnimeReleaseTitle.parse(fileName)
             val primaryParts = episodeTitleParts(sourceTitle)
                 ?: episodeTitleParts(fallbackTitle)
                 ?: candidates.firstOrNull()
             if (primaryParts == null) {
-                if (release != null && acceptsRelease(sourceTitle, release)) {
+                if (release != null && acceptsRelease(sourceTitle, release, fileName, sourceIsFilename)) {
                     release.copy(episodeTitle = release.episodeTitle
                         ?: embeddedEpisodeTitle(mediaTitle, release, sourceTitle, fileName))
                 } else {
@@ -36,7 +52,7 @@ internal object PlayerTitleResolver {
                 }
                 val seriesTitle = matchingParts.firstOrNull { candidate ->
                     isExpandedEpisodeSeries(primaryParts.seriesTitle, candidate.seriesTitle)
-                }?.seriesTitle ?: primaryParts.seriesTitle
+                }?.seriesTitle ?: reconcileAbsoluteEpisode(primaryParts, release)
                 val episodeTitle = matchingParts.firstNotNullOfOrNull { it.episodeTitle }
                 val presentation = PlayerTitlePresentation(
                     title = seriesTitle.ifBlank { fallbackTitle },
@@ -51,9 +67,21 @@ internal object PlayerTitleResolver {
         }?.let(::cleanEpisodeTitle)
     }
 
-    private fun acceptsRelease(sourceTitle: String?, release: PlayerTitlePresentation): Boolean =
-        sourceTitle.isNullOrBlank() || AnimeReleaseTitle.parse(sourceTitle) != null ||
-            sameSeriesTitle(sourceTitle, release.title)
+    private fun acceptsRelease(
+        sourceTitle: String?, release: PlayerTitlePresentation, fileName: String?, sourceIsFilename: Boolean,
+    ): Boolean =
+        sourceTitle.isNullOrBlank() || sourceIsFilename ||
+            sameSeriesTitle(sourceTitle, release.title) ||
+            sourceTitle == VlcTitleResolver.titleFromFileName(fileName)
+
+    private fun reconcileAbsoluteEpisode(primary: EpisodeTitleParts, release: PlayerTitlePresentation?): String {
+        val title = release?.takeIf {
+            it.season == primary.season && (it.episode == null || it.episode == primary.episode)
+        }?.title
+            ?: return primary.seriesTitle
+        val redundantEpisode = Regex("""^${Regex.escape(title)}\s+-\s*\d{1,4}$""", RegexOption.IGNORE_CASE)
+        return if (redundantEpisode.matches(primary.seriesTitle)) title else primary.seriesTitle
+    }
 
     private fun embeddedEpisodeTitle(
         mediaTitle: String?, identity: PlayerTitlePresentation, sourceTitle: String?, fileName: String?,

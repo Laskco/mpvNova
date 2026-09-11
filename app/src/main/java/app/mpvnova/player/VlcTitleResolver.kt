@@ -102,7 +102,7 @@ object VlcTitleResolver {
     }
 
     private fun displayTitleFromCandidate(candidate: String): String? {
-        val trimmed = titleSourceFromExtra(candidate) ?: return null
+        val trimmed = titleSourceFromExtra(candidate)?.replace(FINAL_MEDIA_EXTENSION, "") ?: return null
         val seasonEpisode = SEASON_EPISODE_PATTERN.find(trimmed)
         val releaseTag = RELEASE_TAG_PATTERN.find(trimmed)
         val displayTitle = when {
@@ -169,6 +169,7 @@ object VlcTitleResolver {
     )
 
     private val RELEASE_SEPARATOR_PATTERN = Regex("[._]+")
+    private val FINAL_MEDIA_EXTENSION = Regex("""(?i)\.(?:mkv|mp4|m4v|webm|avi|mov|ts|m2ts)$""")
     private val RELEASE_WHITESPACE_PATTERN = Regex("\\s+")
 
     private val RELEASE_TAG_PATTERN = Regex(
