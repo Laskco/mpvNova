@@ -11,10 +11,13 @@ internal fun MPVActivity.addOnloadOption(key: String, value: String) {
 }
 
 internal fun MPVActivity.addAutomaticSubtitleOptions(filepath: String?) {
+    onloadCommands.removeAll(automaticSubtitleCommands.toSet())
+    automaticSubtitleCommands.clear()
     val file = filepath?.toCanonicalLocalFile() ?: return
     if (!file.isFile)
         return
 
+    val commandStart = onloadCommands.size
     val matchingSubtitles = matchingLocalSubtitleFiles(file)
     if (matchingSubtitles.isNotEmpty()) {
         addOnloadOption("sub-auto", "no")
@@ -32,6 +35,7 @@ internal fun MPVActivity.addAutomaticSubtitleOptions(filepath: String?) {
         addOnloadOption("sub-auto", "fuzzy")
         addOnloadOption("sub-file-paths", AUTOMATIC_SUBTITLE_PATHS)
     }
+    automaticSubtitleCommands.addAll(onloadCommands.subList(commandStart, onloadCommands.size))
 }
 
 internal fun MPVActivity.addIntentSubtitles(launchExtras: Bundle) {

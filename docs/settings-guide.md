@@ -380,6 +380,7 @@ Open **Settings > General**, or the player's playback controls.
 | Fast (keyframe) seeking | Faster but less precise seeks. Default off, which follows the original/configured behavior. |
 | Respect input.conf key bindings | With controls hidden, sends Left/Right to mpv instead of mpvNova's built-in seek handling. Default off. |
 | Playlist exit confirmation | Confirms exit when a playlist is loaded. Default on. |
+| Auto-next local files | Default on. Opening a local audio/video file queues the same media type from its folder in mpv's filename order, starting at the selected file. Subfolders are excluded. Requires readable folder access; single-document grants may not provide it. External-player sessions managed by another app and explicitly opened playlists are unchanged. Changes apply when opening a file, not to an existing queue. |
 
 Automatic skips display a notification. After rewinding into an already-skipped segment, the app offers a skip button instead of automatically skipping it again.
 

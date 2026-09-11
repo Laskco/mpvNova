@@ -57,6 +57,7 @@ internal fun MPVActivity.startPlayerForFile(filepath: String) {
     }
     applySavedSubFilterDefaults()
     applySavedDelayDefaults()
+    prepareLocalAutoNext(filepath)
     prepareStreamLoading(filepath)
     prepareDecoderForFileLoad(filepath)
     player.playFile(filepath)

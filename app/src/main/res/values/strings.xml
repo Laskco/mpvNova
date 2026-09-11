@@ -3,6 +3,8 @@
      them to be changed based on the locale and options. -->
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- Simple strings. -->
+    <string name="pref_local_auto_next_title">Auto-next local files</string>
+    <string name="pref_local_auto_next_summary">Automatically queue media from the same local folder. Requires folder access and does not apply to playback managed by another app. Changes apply when opening a file.</string>
     <string name="mpv_activity">mpvNova</string>
     <string name="title_activity_settings">Settings</string>
     <string name="dialog_ok">OK</string>

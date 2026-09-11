@@ -10,6 +10,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/settings_category_playback_behavior" app:iconSpaceReserved="false">
+        <SwitchPreferenceCompat android:defaultValue="true" android:key="local_auto_next" android:summary="@string/pref_local_auto_next_summary" android:title="@string/pref_local_auto_next_title" app:iconSpaceReserved="false" />
         <ListPreference android:defaultValue="@string/pref_background_play_default" android:entries="@array/background_play_entries" android:entryValues="@array/background_play_values" android:key="background_play" android:summary="@string/pref_background_play_summary" android:title="@string/pref_background_play_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="true" android:key="save_position" android:summary="@string/pref_save_position_summary" android:title="@string/pref_save_position_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="new_intent_replace" android:summary="@string/pref_new_intent_replace_summary" android:title="@string/pref_new_intent_replace_title" app:iconSpaceReserved="false" />

@@ -64,6 +64,7 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    restoreLocalAutoNextLaunchTitle()
     val restoreRendererAfterFailure = gpuNextFallbackState.rendererFallbackApplied
     playbackEnded = false
     currentTrackSeriesKey = null
@@ -99,13 +100,18 @@ private fun MPVActivity.handleMpvStartFile() {
         player.applyDefaultDecoderForFileLoad()
     }
     applySessionDecoderModeIfNeeded()
+    addAutomaticSubtitleOptions(currentMpvPath())
     runOnloadCommands()
     applyRememberedVideoAdjustments()
     playbackHasStarted = true
 }
 
 private fun MPVActivity.runOnloadCommands() {
-    val commands = onloadCommands.toTypedArray()
+    // Defer automatically discovered local tracks until the real media loads: a
+    // generated playlist can redirect and START_FILE again for the same filename.
+    val commands = onloadCommands.filterNot {
+        it.firstOrNull() == "sub-add" && it in automaticSubtitleCommands
+    }.toTypedArray()
     // Keep launch options through playlist redirects; mpv resets file-local
     // options between the redirecting entry and its actual media target.
     for (command in commands) {
@@ -118,10 +124,16 @@ private fun MPVActivity.runOnloadCommands() {
 }
 
 private fun MPVActivity.handleMpvFileLoaded() {
+    localAutoNextLaunch = null
     val preserveForwardedSubtitles = preferExternalForwardedSubtitles && onloadCommands.any {
         it.firstOrNull() == "sub-add" && it.getOrNull(2) == "select"
     }
+    val localSubtitles = automaticSubtitleCommands.filter { it.firstOrNull() == "sub-add" }
     onloadCommands.clear()
+    automaticSubtitleCommands.clear()
+    // These are confined local files, not forwarded URLs. Finish adding them before
+    // remembered/preferred track selection runs so a delayed add cannot override it.
+    localSubtitles.forEach { mpvCommand(it) }
     applyFireTvVideoEdgeCropIfNeeded()
     applyFileTrackSelections(preserveForwardedSubtitles)
     guardNearEndStartPosition()

@@ -385,6 +385,8 @@ open class MPVActivity : AppCompatActivity() {
 
     internal var ignoreAudioFocus = false
     internal var playlistExitWarning = true
+    internal var localAutoNextDirectoryMode: String? = null
+    internal var localAutoNextLaunch: LocalAutoNextLaunch? = null
     internal var newIntentReplace = false
 
     internal var persistAudioFilters = false
@@ -464,6 +466,7 @@ open class MPVActivity : AppCompatActivity() {
     @Volatile
     internal var suppressEndFileFinishForReplace = false
     internal var onloadCommands = mutableListOf<Array<String>>()
+    internal val automaticSubtitleCommands = mutableListOf<Array<String>>()
     internal var streamOpenLoading = false
     internal var streamCacheLoading = false
     internal var cachedChapters: List<MPVView.Chapter> = emptyList()
@@ -583,6 +586,7 @@ open class MPVActivity : AppCompatActivity() {
                 loadReplacementFile(filepath)
                 showToast(getString(R.string.notice_file_play))
             } else {
+                prepareLocalAutoNext(filepath, appending = true)
                 mpvCommand(arrayOf("loadfile", filepath, "append"))
                 showToast(getString(R.string.notice_file_appended))
             }

@@ -220,6 +220,13 @@ internal enum class PlayerDrawerPreference(
         "save_position",
         true,
     ),
+    LOCAL_AUTO_NEXT(
+        PlayerDrawerPreferenceGroup.PLAYBACK,
+        R.string.pref_local_auto_next_title,
+        R.string.pref_local_auto_next_summary,
+        PREF_LOCAL_AUTO_NEXT,
+        true,
+    ),
     FAST_SEEK(
         PlayerDrawerPreferenceGroup.PLAYBACK,
         R.string.pref_fast_seek_title,
@@ -468,6 +475,7 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
     rows.addPref(PlayerDrawerPreference.FAST_SEEK)
     rows.addPref(PlayerDrawerPreference.SEEK_KEYS_INPUTCONF)
     rows.addPref(PlayerDrawerPreference.SAVE_POSITION)
+    rows.addPref(PlayerDrawerPreference.LOCAL_AUTO_NEXT)
     rows.addPref(PlayerDrawerPreference.PLAYLIST_EXIT_WARNING)
 }
 
