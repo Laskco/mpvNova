@@ -19,8 +19,7 @@
     </PreferenceCategory>
 
     <PreferenceCategory android:title="@string/settings_category_skipping_seeking" app:iconSpaceReserved="false">
-        <ListPreference android:defaultValue="auto" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" android:key="skip_segments_mode" android:summary="@string/pref_skip_segments_mode_summary" android:title="@string/pref_skip_segments_mode_title" app:iconSpaceReserved="false" />
-        <ListPreference android:defaultValue="segment" android:entries="@array/skip_button_display_entries" android:entryValues="@array/skip_button_display_values" android:key="skip_button_display" android:summary="@string/pref_skip_button_display_summary" android:title="@string/pref_skip_button_display_title" app:iconSpaceReserved="false" />
+        <Preference android:title="@string/pref_segment_skipping_title" android:summary="@string/pref_segment_skipping_summary" app:fragment="app.mpvnova.player.preferences.SegmentSkippingPreference" app:iconSpaceReserved="false" />
         <ListPreference android:defaultValue="10" android:entries="@array/seek_step_entries" android:entryValues="@array/seek_step_values" android:key="seek_step_seconds" android:summary="@string/pref_seek_step_summary" android:title="@string/pref_seek_step_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="fast_seek_enabled" android:summary="@string/pref_fast_seek_summary" android:title="@string/pref_fast_seek_title" app:iconSpaceReserved="false" />
         <SwitchPreferenceCompat android:defaultValue="false" android:key="seek_keys_use_inputconf" android:summary="@string/pref_seek_keys_inputconf_summary" android:title="@string/pref_seek_keys_inputconf_title" app:iconSpaceReserved="false" />

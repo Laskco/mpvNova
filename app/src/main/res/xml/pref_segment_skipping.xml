@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <ListPreference android:key="intro_skip_mode" android:title="@string/skip_segment_intro" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" app:iconSpaceReserved="false" />
+    <ListPreference android:key="outro_skip_mode" android:title="@string/skip_segment_outro" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" app:iconSpaceReserved="false" />
+    <ListPreference android:key="recap_skip_mode" android:title="@string/skip_segment_recap" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" app:iconSpaceReserved="false" />
+    <ListPreference android:key="movie_credits_mode" android:title="@string/skip_segment_movie_credits" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" app:iconSpaceReserved="false" />
+    <ListPreference android:key="post_credits_mode" android:title="@string/skip_segment_post_credits" android:entries="@array/skip_segments_mode_entries" android:entryValues="@array/skip_segments_mode_values" app:iconSpaceReserved="false" />
+    <ListPreference android:defaultValue="segment" android:key="skip_button_display" android:title="@string/pref_skip_button_display_title" android:entries="@array/skip_button_display_entries" android:entryValues="@array/skip_button_display_values" app:iconSpaceReserved="false" />
+</PreferenceScreen>

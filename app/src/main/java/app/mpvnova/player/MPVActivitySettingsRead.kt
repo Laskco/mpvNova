@@ -17,7 +17,7 @@ internal fun MPVActivity.readPlaybackSettings(
     backgroundPlayMode = getString("background_play", R.string.pref_background_play_default)
     noUIPauseMode = getString("no_ui_pause", R.string.pref_no_ui_pause_default)
     shouldSavePosition = prefs.getBoolean("save_position", true)
-    skipSegmentsMode = readSkipSegmentsMode(prefs)
+    segmentSkipModes = readSegmentSkipModes(prefs.all)
     skipButtonDisplayMode = SkipButtonDisplayMode.fromPref(prefs.getString("skip_button_display", "segment"))
     seekStepMs = readSeekStepSeconds(prefs) * MILLIS_PER_SECOND_LONG
     seekKeysUseInputConf = prefs.getBoolean("seek_keys_use_inputconf", false)
@@ -77,17 +77,6 @@ private fun MPVActivity.readDelayDefaults(prefs: SharedPreferences) {
     savedSubDelayMs = prefs.getLong(PREF_SUB_DELAY_MS, 0L)
     savedSecondarySubDelayMs = prefs.getLong(PREF_SECONDARY_SUB_DELAY_MS, 0L)
     bluetoothAudioDelayMs = prefs.getLong(PREF_BLUETOOTH_AUDIO_DELAY_MS, 0L)
-}
-
-/** Skip mode, migrating the old `auto_skip_segments` boolean (true -> auto, false -> off). */
-private fun readSkipSegmentsMode(prefs: SharedPreferences): SkipSegmentsMode {
-    val value = when {
-        prefs.contains("skip_segments_mode") -> prefs.getString("skip_segments_mode", "auto")
-        prefs.contains("auto_skip_segments") ->
-            if (prefs.getBoolean("auto_skip_segments", true)) "auto" else "off"
-        else -> "auto"
-    }
-    return SkipSegmentsMode.fromPref(value)
 }
 
 private fun readSeekStepSeconds(prefs: SharedPreferences): Long {

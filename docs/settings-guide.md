@@ -374,8 +374,8 @@ Open **Settings > General**, or the player's playback controls.
 
 | Setting | Behavior |
 | --- | --- |
-| Skip intro and outro | Off, automatic skipping, or a manual skip button. Uses intro/outro/recap timestamps supplied by a launching app; it does not analyze video to discover segments. |
-| Skip button duration | Shows the button throughout the segment, or for 10 or 30 seconds. |
+| Segment skipping | Opens separate Intro, Outro, Recap, End Credits, and Post-Credits choices. Each supports Off, Auto-skip, or Skip button. Uses timestamps supplied by a launching app; it does not analyze video to discover segments. |
+| Skip button duration | Inside Segment skipping. Shows the button throughout the segment, or for 10 or 30 seconds. |
 | Seek step | Seconds per Left/Right press. Default 10 seconds; presets 5/10/15/30, or custom 1-3600 seconds. Holding accelerates seeking. |
 | Fast (keyframe) seeking | Faster but less precise seeks. Default off, which follows the original/configured behavior. |
 | Respect input.conf key bindings | With controls hidden, sends Left/Right to mpv instead of mpvNova's built-in seek handling. Default off. |
@@ -383,6 +383,8 @@ Open **Settings > General**, or the player's playback controls.
 | Auto-next local files | Default on. Opening a local audio/video file queues the same media type from its folder in mpv's filename order, starting at the selected file. Subfolders are excluded. Requires readable folder access; single-document grants may not provide it. External-player sessions managed by another app and explicitly opened playlists are unchanged. Changes apply when opening a file, not to an existing queue. |
 
 Automatic skips display a notification. After rewinding into an already-skipped segment, the app offers a skip button instead of automatically skipping it again.
+
+Existing intro/outro/recap preferences carry over to the three separate choices. On a fresh install, those three default to Auto-skip; End Credits and Post-Credits default to Skip button. Existing movie choices are preserved. Movie End Credits is independent of episode Outro, and an end-credits skip stops before a separately supplied post-credits scene. Post-Credits controls skipping the scene itself.
 
 The nearby Save position on quit, Play new files immediately, background-playback, and popup-playback preferences are inherited playback controls. Resume behavior also depends on launch information from the calling app; an automatic intro skip is not the same thing as restoring a saved position.
 

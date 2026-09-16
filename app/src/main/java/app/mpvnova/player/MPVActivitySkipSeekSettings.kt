@@ -26,7 +26,10 @@ internal const val SEEK_STEP_MAX_SEC = 3600
 
 private const val SEEK_STEP_CUSTOM_ID = "custom"
 
-internal fun MPVActivity.pickSkipMode() {
+internal fun MPVActivity.pickSkipMode(
+    kind: SkipSegmentKind,
+    onDismiss: () -> Unit,
+) {
     val restore = keepPlaybackForDialog()
     lateinit var dialog: AlertDialog
     val items = SKIP_SEGMENTS_MODE_CHOICES.map { mode ->
@@ -34,24 +37,24 @@ internal fun MPVActivity.pickSkipMode() {
             id = mode.prefValue,
             title = skipSegmentsModeLabel(mode),
             detail = skipSegmentsModeSummary(mode),
-            selected = mode == skipSegmentsMode,
+            selected = mode == segmentSkipModes[kind],
         )
     }
     val picker = OptionPickerDialog(
         eyebrowRes = R.string.option_picker_playback,
-        titleRes = R.string.pref_skip_segments_mode_title,
+        titleRes = kind.titleRes,
         items = items,
     )
     picker.onCancelClick = { dialog.cancel() }
     picker.onItemPicked = { item ->
-        setSkipMode(SkipSegmentsMode.fromPref(item.id))
+        setSkipMode(kind, SkipSegmentsMode.fromPref(item.id))
         dialog.dismiss()
     }
-    dialog = optionPickerDialog(picker, restore)
+    dialog = optionPickerDialog(picker, restore, onDismiss)
     showOptionPickerDialog(dialog)
 }
 
-internal fun MPVActivity.pickSkipButtonDisplay() {
+internal fun MPVActivity.pickSkipButtonDisplay(onDismiss: () -> Unit) {
     val restore = keepPlaybackForDialog()
     lateinit var dialog: AlertDialog
     val items = SKIP_BUTTON_DISPLAY_CHOICES.map { mode ->
@@ -72,15 +75,15 @@ internal fun MPVActivity.pickSkipButtonDisplay() {
         setSkipButtonDisplayMode(SkipButtonDisplayMode.fromPref(item.id))
         dialog.dismiss()
     }
-    dialog = optionPickerDialog(picker, restore)
+    dialog = optionPickerDialog(picker, restore, onDismiss)
     showOptionPickerDialog(dialog)
 }
 
-internal fun MPVActivity.setSkipMode(mode: SkipSegmentsMode) {
-    skipSegmentsMode = mode
-    if (mode != SkipSegmentsMode.BUTTON) hideSkipButton()
+internal fun MPVActivity.setSkipMode(kind: SkipSegmentKind, mode: SkipSegmentsMode) {
+    segmentSkipModes = segmentSkipModes + (kind to mode)
+    hideSkipButton()
     PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
-        .putString("skip_segments_mode", mode.prefValue).apply()
+        .putString(kind.preferenceKey, mode.prefValue).apply()
     refreshDrawerRowsIfVisible(DrawerTab.PLAYBACK)
 }
 

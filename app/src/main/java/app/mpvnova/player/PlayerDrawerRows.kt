@@ -38,8 +38,7 @@ internal enum class PlayerDrawerAction(val group: PlayerDrawerActionGroup) {
     CHAPTER_PICKER(PlayerDrawerActionGroup.PLAYBACK),
     CHAPTER_PREV(PlayerDrawerActionGroup.PLAYBACK),
     CHAPTER_NEXT(PlayerDrawerActionGroup.PLAYBACK),
-    SKIP_MODE(PlayerDrawerActionGroup.PLAYBACK),
-    SKIP_BUTTON_DISPLAY(PlayerDrawerActionGroup.PLAYBACK),
+    SEGMENT_SKIPPING(PlayerDrawerActionGroup.PLAYBACK),
     SEEK_STEP(PlayerDrawerActionGroup.PLAYBACK),
     UI_FONT(PlayerDrawerActionGroup.INTERFACE),
     APPEARANCE_COLORS(PlayerDrawerActionGroup.INTERFACE),
@@ -324,16 +323,6 @@ internal enum class PlayerDrawerOption(
         R.string.shader_manager_title,
         R.string.shader_manager_summary,
     ),
-    SKIP_MODE(
-        PlayerDrawerAction.SKIP_MODE,
-        R.string.pref_skip_segments_mode_title,
-        R.string.pref_skip_segments_mode_summary,
-    ),
-    SKIP_BUTTON_DISPLAY(
-        PlayerDrawerAction.SKIP_BUTTON_DISPLAY,
-        R.string.pref_skip_button_display_title,
-        R.string.pref_skip_button_display_summary,
-    ),
     SEEK_STEP(
         PlayerDrawerAction.SEEK_STEP,
         R.string.pref_seek_step_title,
@@ -467,10 +456,7 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
     }
     rows.add(PlayerDrawerRow.Stats)
     rows.add(PlayerDrawerRow.Spacer(DRAWER_SECTION_SPACER_DP))
-    rows.addOption(PlayerDrawerOption.SKIP_MODE)
-    if (skipSegmentsMode == SkipSegmentsMode.BUTTON) {
-        rows.addOption(PlayerDrawerOption.SKIP_BUTTON_DISPLAY)
-    }
+    rows.addButton(PlayerDrawerAction.SEGMENT_SKIPPING, R.string.pref_segment_skipping_title)
     rows.addOption(PlayerDrawerOption.SEEK_STEP)
     rows.addPref(PlayerDrawerPreference.FAST_SEEK)
     rows.addPref(PlayerDrawerPreference.SEEK_KEYS_INPUTCONF)

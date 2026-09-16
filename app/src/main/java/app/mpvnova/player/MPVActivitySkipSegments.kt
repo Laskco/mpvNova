@@ -29,9 +29,8 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
             val o = arr.optJSONObject(i) ?: return@mapNotNull null
             val start = o.optDouble("start", Double.NaN)
             val end = o.optDouble("end", Double.NaN)
-            if (start.isNaN() || end.isNaN() || end <= start) return@mapNotNull null
-            SkipSegment(o.optString("type", "intro"), start, end)
-        }
+            SkipSegment(skipSegmentType(o.optString("type", "intro")), start, end)
+        }.let(::normalizedSkipSegments)
     } catch (e: JSONException) {
         Log.w(MPV_ACTIVITY_TAG, "Failed to parse skip_segments", e)
         emptyList()
@@ -42,19 +41,20 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
 }
 
 /**
- * Called on each playback time tick. Depending on [MPVActivity.skipSegmentsMode]:
+ * Called on each playback time tick. Depending on the active segment's mode:
  *  - OFF: do nothing.
  *  - AUTO: seek past a new segment once; after rewinding across it, offer the Skip button.
  *  - BUTTON: show the Skip button for a new or rewind-rearmed segment.
  */
 internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
     rearmSkippedSegmentsAfterRewind(posSec)
-    if (skipSegmentsMode == SkipSegmentsMode.OFF || skipSegments.isEmpty()) {
+    if (skipSegments.isEmpty()) {
         hideSkipButton()
         return
     }
     val seg = skipSegments.firstOrNull { segment ->
-        posSec >= segment.start &&
+        segment.mode(segmentSkipModes) != SkipSegmentsMode.OFF &&
+            posSec >= segment.start &&
             posSec < segment.end - SKIP_SEGMENT_END_GUARD_SEC &&
             (segment.key() !in autoSkippedSegmentKeys ||
                 segment.key() in rewoundSkipSegmentKeys)
@@ -63,7 +63,7 @@ internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
         hideSkipButton() // left the active window (or it was handled)
         return
     }
-    when (skipSegmentsMode) {
+    when (seg.mode(segmentSkipModes)) {
         SkipSegmentsMode.AUTO -> {
             if (seg.key() in rewoundSkipSegmentKeys) {
                 showSkipButton(seg)
@@ -126,15 +126,18 @@ internal fun rewoundIntoOrBeforeSkippedSegment(
 internal fun MPVActivity.performSegmentSkip(seg: SkipSegment) {
     // Exact seek: lands precisely at the segment end (a keyframe seek overshoots into the
     // episode). The latency here is the network re-buffer of the jump, not the decode.
-    mpvCommand(arrayOf("seek", seg.end.toString(), "absolute+exact"))
-    val detail = getString(R.string.toast_skip_segment_detail, Utils.prettyTime(seg.end.toInt()))
+    val target = seg.seekTarget(psc.duration / MPV_MILLIS_PER_SECOND_DOUBLE)
+    mpvCommand(arrayOf("seek", target.toString(), "absolute+exact"))
+    val detail = getString(R.string.toast_skip_segment_detail, Utils.prettyTime(target.toInt()))
     eventUiHandler.post { showToast(skipSegmentLabel(seg.type), detail, cancel = false) }
-    Log.d(MPV_ACTIVITY_TAG, "Skipped ${seg.key()} -> ${seg.end}")
+    Log.d(MPV_ACTIVITY_TAG, "Skipped ${seg.key()} -> $target")
 }
 
 internal fun SkipSegment.key(): String = "$type:$start"
 
 internal fun MPVActivity.skipSegmentLabel(type: String): String = when (type.lowercase()) {
+    "end-credits" -> getString(R.string.skip_segment_movie_credits)
+    "post-credits" -> getString(R.string.skip_segment_post_credits)
     "recap" -> getString(R.string.skip_segment_recap)
     "ed", "mixed-ed", "outro", "credits", "ending" -> getString(R.string.skip_segment_outro)
     else -> getString(R.string.skip_segment_intro)

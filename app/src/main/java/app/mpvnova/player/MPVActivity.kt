@@ -285,7 +285,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var noUIPauseMode = ""
 
     internal var shouldSavePosition = false
-    internal var skipSegmentsMode = SkipSegmentsMode.AUTO
+    internal var segmentSkipModes = readSegmentSkipModes(emptyMap<String, Any>())
     internal var skipButtonDisplayMode = SkipButtonDisplayMode.SEGMENT
     // The segment the Skip button is currently prompting for (null = button hidden).
     internal var currentSkipButtonSegment: SkipSegment? = null

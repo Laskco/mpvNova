@@ -678,24 +678,7 @@ class PreferenceActivity : AppCompatActivity(),
 
     class GeneralPreference : StyledPreferenceFragment(R.xml.pref_general) {
         override fun onPreferencesLoaded() {
-            bindSkipButtonDisplayVisibility()
             bindSeekStepPreference()
-        }
-
-        private fun bindSkipButtonDisplayVisibility() {
-            val skipModePref = findPreference<ListPreference>("skip_segments_mode")
-            val displayPref = findPreference<ListPreference>("skip_button_display")
-            fun syncVisibility(value: String?) {
-                displayPref?.isVisible = value == "button"
-            }
-            syncVisibility(skipModePref?.value)
-            skipModePref?.setOnPreferenceChangeListener { _, newValue ->
-                syncVisibility(newValue as? String)
-                true
-            }
-            displayPref?.summaryProvider = SummaryProvider<ListPreference> { pref ->
-                pref.entry ?: getString(R.string.pref_skip_button_display_summary)
-            }
         }
 
         private fun bindSeekStepPreference() {
