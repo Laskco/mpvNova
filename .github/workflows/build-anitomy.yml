@@ -12,10 +12,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install pinned Android NDK
-        run: sdkmanager "ndk;30.0.16248370"
+        run: |
+          curl --fail --location --retry 3 https://dl.google.com/android/repository/android-ndk-r30-linux.zip -o "$RUNNER_TEMP/android-ndk.zip"
+          unzip -q "$RUNNER_TEMP/android-ndk.zip" -d "$RUNNER_TEMP"
       - name: Build parser for all Android architectures
         shell: pwsh
-        run: ./buildscripts/build-anitomy.ps1 -AndroidNdk "$env:ANDROID_HOME/ndk/30.0.16248370"
+        run: ./buildscripts/build-anitomy.ps1 -AndroidNdk "$env:RUNNER_TEMP/android-ndk-r30"
       - name: Upload parser libraries
         uses: actions/upload-artifact@v7
         with:
