@@ -14,9 +14,9 @@ try {
         if ($LASTEXITCODE -ne 0) { throw 'Host parser build failed' }
         return
     }
-    if (!$AndroidNdk) { throw 'Set ANDROID_NDK_HOME or pass -AndroidNdk with NDK 29.0.14206865.' }
-    $revision = Get-Content (Join-Path $AndroidNdk 'source.properties') | Select-String '^Pkg.Revision\s*=\s*29\.0\.14206865$'
-    if (!$revision) { throw 'This build is pinned to Android NDK 29.0.14206865.' }
+    if (!$AndroidNdk) { throw 'Set ANDROID_NDK_HOME or pass -AndroidNdk with NDK 30.0.16248370.' }
+    $revision = Get-Content (Join-Path $AndroidNdk 'source.properties') | Select-String '^Pkg.Revision\s*=\s*30\.0\.16248370$'
+    if (!$revision) { throw 'This build is pinned to Android NDK 30.0.16248370.' }
     $hostTag = if ($IsWindows) { 'windows-x86_64' } elseif ($IsMacOS) { 'darwin-x86_64' } else { 'linux-x86_64' }
     $suffix = if ($IsWindows) { '.exe' } else { '' }
     $bin = Join-Path $AndroidNdk "toolchains/llvm/prebuilt/$hostTag/bin"

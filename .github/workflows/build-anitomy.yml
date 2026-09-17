@@ -12,10 +12,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
       - name: Install pinned Android NDK
-        run: sdkmanager "ndk;29.0.14206865"
+        run: sdkmanager "ndk;30.0.16248370"
       - name: Build parser for all Android architectures
         shell: pwsh
-        run: ./buildscripts/build-anitomy.ps1 -AndroidNdk "$env:ANDROID_HOME/ndk/29.0.14206865"
+        run: ./buildscripts/build-anitomy.ps1 -AndroidNdk "$env:ANDROID_HOME/ndk/30.0.16248370"
       - name: Upload parser libraries
         uses: actions/upload-artifact@v7
         with:
