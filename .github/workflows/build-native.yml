@@ -74,10 +74,11 @@ jobs:
           grep -qx "#define CONFIG_ASM $expected" "buildscripts/deps/libass/_build_$arch/config.h"
           echo "libass assembly: $expected ($arch)"
 
-      - name: Verify native configuration and FEL patch (${{ matrix.arch }})
+      - name: Verify native configuration and patches (${{ matrix.arch }})
         run: |
           grep -qx '#define HAVE_LIBCURL 1' "buildscripts/deps/mpv/_build_${{ matrix.arch }}/config.h"
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
+          git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
           git -C buildscripts/deps/mpv diff --exit-code
           test -z "$(git -C buildscripts/deps/mpv status --porcelain --untracked-files=no)"
 

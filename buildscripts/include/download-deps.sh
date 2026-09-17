@@ -96,12 +96,14 @@ if [ ! -d mpv ]; then
 	git -C mpv checkout "$v_mpv"
 fi
 
-fel_patch="$PWD/../patches/mpv-dovi-fel-toggle.patch"
-if git -C mpv apply --check "$fel_patch" 2>/dev/null; then
-	git -C mpv apply "$fel_patch"
-elif ! git -C mpv apply --reverse --check "$fel_patch" 2>/dev/null; then
-	echo >&2 "mpv FEL patch does not match the dependency checkout."
-	exit 1
-fi
+for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url; do
+	patch="$PWD/../patches/$patch_name.patch"
+	if git -C mpv apply --check "$patch" 2>/dev/null; then
+		git -C mpv apply "$patch"
+	elif ! git -C mpv apply --reverse --check "$patch" 2>/dev/null; then
+		echo >&2 "mpv patch $patch_name does not match the dependency checkout."
+		exit 1
+	fi
+done
 
 cd ..
