@@ -2,7 +2,7 @@
 
 mpvNova uses **anitomy-ng 1.0.10**, pinned exactly in `Cargo.toml` with transitive
 dependencies locked in `Cargo.lock`. `rust-toolchain.toml` pins Rust. The build
-uses Android NDK **29.0.14206865**, API 23, and 16 KiB-compatible ELF alignment.
+uses Android NDK **30.0.16248370**, API 23, and 16 KiB-compatible ELF alignment.
 
 The JNI bridge returns alternating element-kind/value strings. Duplicate fields
 are preserved so the Kotlin resolver can reject ambiguous episode ranges. The
@@ -15,7 +15,7 @@ Install Rust through rustup and the pinned Android NDK. From the repository root
 using PowerShell 7 on Windows, Linux, or macOS:
 
 ```powershell
-./buildscripts/build-anitomy.ps1 -AndroidNdk /path/to/ndk/29.0.14206865
+./buildscripts/build-anitomy.ps1 -AndroidNdk /path/to/ndk/30.0.16248370
 ```
 
 This builds all four architectures and copies only `libmpvnova_anitomy.so` into
