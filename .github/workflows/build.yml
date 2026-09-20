@@ -46,3 +46,12 @@ jobs:
             app/build/outputs/apk/default/release/app-default-*-release.apk
             app/build/outputs/apk/api29/release/app-api29-universal-release.apk
             app/build/outputs/apk/api29/debug/app-api29-universal-debug.apk
+
+      - name: Upload R8 mappings and reports
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-r8-reports
+          if-no-files-found: error
+          path: |
+            app/build/outputs/mapping/defaultRelease/
+            app/build/outputs/mapping/api29Release/
