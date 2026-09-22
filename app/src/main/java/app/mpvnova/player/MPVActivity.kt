@@ -399,6 +399,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var secondaryPosLevel = DEFAULT_SECONDARY_SUB_POSITION_INDEX
     // The custom sub look is always saved, but only applied while the toggle is on.
     internal var customSubStyleEnabled = false
+    internal var preserveCompanionSubtitleStyle = false
+    internal var subStylePreservingCompanionTrack = false
     internal var subStyleTextColorIndex = subtitleColorOptionIndex(SUBTITLE_TEXT_COLOR_DEFAULT_ID)
     internal var subStyleTextOpacityIndex = nearestOpacityIndex(DEFAULT_SUBTITLE_TEXT_OPACITY_PERCENT)
     internal var subStyleBorderColorIndex = subtitleColorOptionIndex(SUBTITLE_BORDER_COLOR_DEFAULT_ID)
@@ -665,6 +667,7 @@ open class MPVActivity : AppCompatActivity() {
         applyPlayerScreenBrightnessPreference()
 
         activityIsForeground = true
+        if (playbackHasStarted) refreshCompanionSubtitleStyle()
         if (playbackHasStarted) applyFireTvVideoEdgeCropIfNeeded()
         scheduleScreensaver()
         stopServiceHandler.removeCallbacks(stopServiceRunnable)

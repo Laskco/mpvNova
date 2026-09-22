@@ -127,7 +127,7 @@ internal fun MPVActivity.cycleSubtitleStylePreset(delta: Int): String {
             subStyleGrayImageSubs = false
             applyCustomSubtitleStyle()
             if (grayImageSubsChanged)
-                rebuildSelectedImageSubtitleTracks()
+                rebuildSelectedSubtitleTracks()
             subScaleLevel = DEFAULT_SUB_SCALE_INDEX
             subPosLevel = DEFAULT_SUB_POSITION_INDEX
             applySubScaleProperty()
@@ -295,7 +295,7 @@ private fun MPVActivity.applySubtitleStylePreset(p: SubtitleStylePreset) {
     }
     applyCustomSubtitleStyle()
     if (grayImageSubsChanged)
-        rebuildSelectedImageSubtitleTracks()
+        rebuildSelectedSubtitleTracks()
     if (p.includeLayout) {
         applySubScaleProperty()
         applySubPosProperty()

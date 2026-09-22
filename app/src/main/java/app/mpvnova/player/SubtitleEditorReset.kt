@@ -24,6 +24,6 @@ internal fun MPVActivity.resetSubtitleEditorStyle() {
     subStyleExtras = SubtitleStyleExtras()
     editingSubtitleStylePreset = null
     applyCustomSubtitleStyle()
-    if (hadGray) rebuildSelectedImageSubtitleTracks()
+    if (hadGray) rebuildSelectedSubtitleTracks()
     writeSubtitleStyleSettings()
 }

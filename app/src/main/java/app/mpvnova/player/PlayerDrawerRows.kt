@@ -261,6 +261,13 @@ internal enum class PlayerDrawerPreference(
         PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES,
         false,
     ),
+    PRESERVE_COMPANION_SUBTITLE_STYLE(
+        PlayerDrawerPreferenceGroup.SUBTITLES,
+        R.string.pref_preserve_companion_subtitle_style_title,
+        R.string.pref_preserve_companion_subtitle_style_summary,
+        PREF_PRESERVE_COMPANION_SUBTITLE_STYLE,
+        false,
+    ),
 }
 
 internal data class PlayerDrawerButtonSpec(
@@ -439,6 +446,7 @@ private fun MPVActivity.addSubtitleRows(rows: MutableList<PlayerDrawerRow>) {
     }
     rows.addPref(PlayerDrawerPreference.PREFER_EXTERNAL_FORWARDED_SUBTITLES)
     rows.addPref(PlayerDrawerPreference.LIMIT_PREFERRED_LANGUAGE_SUBTITLES)
+    rows.addPref(PlayerDrawerPreference.PRESERVE_COMPANION_SUBTITLE_STYLE)
 }
 
 private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {

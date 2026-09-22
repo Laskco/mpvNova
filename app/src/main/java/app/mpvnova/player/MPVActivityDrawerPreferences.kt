@@ -192,6 +192,10 @@ private fun MPVActivity.handleDrawerSubtitlePreference(
     when (preference) {
         PlayerDrawerPreference.PREFER_EXTERNAL_FORWARDED_SUBTITLES ->
             preferExternalForwardedSubtitles = newValue
+        PlayerDrawerPreference.PRESERVE_COMPANION_SUBTITLE_STYLE -> {
+            preserveCompanionSubtitleStyle = newValue
+            refreshCompanionSubtitleStyle()
+        }
         else -> Unit
     }
 }

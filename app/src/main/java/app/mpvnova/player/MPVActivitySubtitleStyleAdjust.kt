@@ -8,7 +8,7 @@ internal fun MPVActivity.adjustSubtitleStyle(
         adjustSubtitleValueControl(control, delta)
     applyCustomSubtitleStyle()
     if (control == SubtitleStyleDialog.Control.IMAGE_SUB_GRAYSCALE)
-        rebuildSelectedImageSubtitleTracks()
+        rebuildSelectedSubtitleTracks()
     writeSubtitleStyleSettings()
     return subtitleStyleState()
 }
@@ -16,7 +16,7 @@ internal fun MPVActivity.adjustSubtitleStyle(
 // mpv applies sub-gray while decoding each bitmap subtitle palette. The option does not request a
 // decoder rebuild by itself, and sub-reload only reloads external subtitle files. Re-selecting the
 // active tracks rebuilds embedded PGS/DVD subtitle decoders without changing the user's choices.
-internal fun MPVActivity.rebuildSelectedImageSubtitleTracks() {
+internal fun MPVActivity.rebuildSelectedSubtitleTracks() {
     val primarySid = player.sid
     val secondarySid = player.secondarySid
     if (primarySid == -1 && secondarySid == -1)

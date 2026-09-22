@@ -31,22 +31,41 @@ private const val SUB_SHADOW_OFFSET_OFF = 0.0
 private const val SUB_TRANSPARENT = 0x000000
 
 internal fun MPVActivity.applyCustomSubtitleStyle() {
-    if (customSubStyleEnabled) {
+    subStylePreservingCompanionTrack = shouldPreserveSelectedSubtitleStyle()
+    val styleEnabled = customSubStyleEnabled && !subStylePreservingCompanionTrack
+    if (styleEnabled || subStylePreservingCompanionTrack)
         snapshotSubStyleBaselineIfNeeded()
+    if (styleEnabled) {
         writeCustomSubtitleStyle()
     } else {
         restoreSubStyleBaseline()
     }
-    applyAssStyleOverrides()
-    mpvSetPropertyString("sub-gray", if (subStyleGrayImageSubs) "yes" else "no")
+    if (subStylePreservingCompanionTrack)
+        mpvSetPropertyString("sub-ass-override", "no")
+    mpvSetPropertyString("sub-gray", if (subStyleGrayImageSubs && !subStylePreservingCompanionTrack) "yes" else "no")
+    applyAssStyleOverrides(styleEnabled)
+}
+
+private fun MPVActivity.shouldPreserveSelectedSubtitleStyle(): Boolean {
+    if (!preserveCompanionSubtitleStyle) return false
+    val selectedId = player.sid
+    return shouldPreserveCompanionSubtitleStyle(
+        true, listTrackMeta("sub").firstOrNull { it.mpvId == selectedId },
+    )
+}
+
+internal fun MPVActivity.refreshCompanionSubtitleStyle() {
+    if (shouldPreserveSelectedSubtitleStyle() != subStylePreservingCompanionTrack)
+        applyCustomSubtitleStyle()
 }
 
 // ASS style overrides are parsed as the track loads. Omitting a style name applies the value to
 // every style definition, which also covers releases that call dialogue "Main" or "Dialogue"
 // instead of "Default". Inline tags and positioning remain authored by the subtitle script.
-private fun MPVActivity.applyAssStyleOverrides() {
+private fun MPVActivity.applyAssStyleOverrides(styleEnabled: Boolean) {
     val overrides = when {
-        customSubStyleEnabled && subStyleSelectiveAss -> buildAssStyleOverrides(
+        subStylePreservingCompanionTrack -> emptyList()
+        styleEnabled && subStyleSelectiveAss -> buildAssStyleOverrides(
             AssStyleOverrideSpec(
                 fontFamily = subStyleFontFamily.ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY },
                 textRgb = SUBTITLE_COLOR_OPTIONS[subStyleTextColorIndex].rgb,
@@ -66,14 +85,15 @@ private fun MPVActivity.applyAssStyleOverrides() {
                 shadowOpacity = subStyleExtras.shadowOpacity,
             ),
         )
-        customSubStyleEnabled && subStyleOverrideAss -> buildAssAttributeOverrides(
+        styleEnabled && subStyleOverrideAss -> buildAssAttributeOverrides(
             bold = subStyleBold,
             italic = subStyleItalic,
         )
         else -> null
     }
     val baseline = subStyleSavedDefaults?.get("sub-ass-style-overrides").orEmpty()
-    val signature = overrides?.joinToString(prefix = "custom:", separator = "\u0000")
+    val prefix = if (subStylePreservingCompanionTrack) "original:" else "custom:"
+    val signature = overrides?.joinToString(prefix = prefix, separator = "\u0000")
         ?: "baseline:$baseline"
     val previous = subStyleAppliedAssOverrides
     if (signature == previous)
@@ -85,12 +105,16 @@ private fun MPVActivity.applyAssStyleOverrides() {
         overrides.forEach { value ->
             mpvCommand(arrayOf("change-list", "sub-ass-style-overrides", "append", value))
         }
-    } else if (previous?.startsWith("custom:") == true) {
+    } else if (previous?.startsWith("custom:") == true || previous?.startsWith("original:") == true) {
         mpvSetPropertyString("sub-ass-style-overrides", baseline)
     }
 
-    if (overrides != null || previous?.startsWith("custom:") == true)
+    if (subStylePreservingCompanionTrack || previous?.startsWith("original:") == true) {
+        // Unlike sub-reload, reselecting also rebuilds embedded ASS/bitmap subtitle decoders.
+        rebuildSelectedSubtitleTracks()
+    } else if (overrides != null || previous?.startsWith("custom:") == true) {
         mpvCommand(arrayOf("sub-reload"))
+    }
 }
 
 // Only carries to the next file when persist is on; the saved design sticks around either way.
@@ -110,7 +134,7 @@ private fun MPVActivity.snapshotSubStyleBaselineIfNeeded() {
 private fun MPVActivity.restoreSubStyleBaseline() {
     val saved = subStyleSavedDefaults ?: return
     for ((key, value) in saved) {
-        if (value != null)
+        if (value != null && !(subStylePreservingCompanionTrack && key == "sub-ass-style-overrides"))
             mpvSetPropertyString(key, value)
     }
 }
@@ -185,6 +209,7 @@ private fun MPVActivity.applySubFont() {
 }
 
 internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences) {
+    preserveCompanionSubtitleStyle = prefs.getBoolean(PREF_PRESERVE_COMPANION_SUBTITLE_STYLE, false)
     subStyleExtras = SubtitleStyleExtras.read(prefs)
     customSubStyleEnabled = persistSubFilters && prefs.getBoolean("custom_sub_style_enabled", false)
     subStyleTextColorIndex = subtitleColorOptionIndex(

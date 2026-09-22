@@ -101,5 +101,9 @@ internal fun MPVActivity.currentSubtitleDelayText(): String {
 }
 
 private fun MPVActivity.subtitleStyleToggleText(): String = getString(
-    if (customSubStyleEnabled) R.string.status_on else R.string.status_off
+    when {
+        subStylePreservingCompanionTrack -> R.string.sub_style_original_auto
+        customSubStyleEnabled -> R.string.status_on
+        else -> R.string.status_off
+    }
 )
