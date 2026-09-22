@@ -193,7 +193,8 @@ Open the player's **Subtitles** panel for tracks, **Open external subtitle**, an
 | --- | --- |
 | Default subtitle language | Preferred language for automatic selection. |
 | Prefer forwarded external subtitles | Gives subtitles supplied by a launching app priority over embedded subtitles. Default off. |
-| Prefer forced and Signs & Songs | With preferred-language audio, automatically selects forced or Signs & Songs subtitles; otherwise leaves full subtitles off. Default on. Full subtitles remain manually selectable. Foreign-language audio retains normal subtitle selection. |
+| Prefer forced and Signs & Songs | With preferred-language audio, automatically selects forced or Signs & Songs subtitles; otherwise leaves full subtitles off. Default off. Full subtitles remain manually selectable. Foreign-language audio retains normal subtitle selection. |
+| Preserve Signs & Songs / forced styling | Temporarily bypasses custom styling when the primary subtitle track is identified as Signs & Songs or forced. Default off. Works with automatic and manual track selection, independently of the selection preference above. |
 | Primary / secondary track | Selects the main subtitle and an optional second subtitle. |
 | Swap primary and secondary | Exchanges the selected tracks. |
 | Size, position, and delay | Adjusts subtitle scale, vertical placement, and synchronization through the custom panel. Secondary controls are separate where offered. |
@@ -204,6 +205,8 @@ A manual choice can override automatic selection. Remembered choices depend on m
 ## Subtitle Customization
 
 Open **Subtitle customization** from the subtitle controls. **Enabled** turns the custom style on or off. The separate preview is a sample of your style, not a full rendering of every authored ASS effect or an image subtitle.
+
+With **Preserve Signs & Songs / forced styling** enabled, matching tracks use their original styling and the subtitle controls show **Original (auto)**. Switching to a full-subtitle track restores your usual style setting without changing your saved design or presets. Detection uses track labels and forced flags; ASS/SSA format alone does not identify a Signs & Songs track.
 
 ### Text
 
