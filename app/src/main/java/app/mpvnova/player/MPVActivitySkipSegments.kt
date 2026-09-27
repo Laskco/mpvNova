@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import org.json.JSONArray
 import org.json.JSONException
+import kotlin.math.roundToLong
 
 // Stop skipping a hair before the segment end so playback lands cleanly past it.
 private const val SKIP_SEGMENT_END_GUARD_SEC = 1.0
@@ -128,6 +129,7 @@ internal fun MPVActivity.performSegmentSkip(seg: SkipSegment) {
     // episode). The latency here is the network re-buffer of the jump, not the decode.
     val target = seg.seekTarget(psc.duration / MPV_MILLIS_PER_SECOND_DOUBLE)
     mpvCommand(arrayOf("seek", target.toString(), "absolute+exact"))
+    synchronizeSegmentSeek((target * MPV_MILLIS_PER_SECOND_DOUBLE).roundToLong())
     val detail = getString(R.string.toast_skip_segment_detail, Utils.prettyTime(target.toInt()))
     eventUiHandler.post { showToast(skipSegmentLabel(seg.type), detail, cancel = false) }
     Log.d(MPV_ACTIVITY_TAG, "Skipped ${seg.key()} -> $target")

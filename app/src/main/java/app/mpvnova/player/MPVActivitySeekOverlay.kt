@@ -24,21 +24,26 @@ internal fun MPVActivity.seekFromHiddenControls(ev: KeyEvent) {
 }
 
 internal fun MPVActivity.showMinimalSeekOverlay() {
-    val durationMs = psc.duration.coerceAtLeast(0L)
-    if (durationMs <= 0L)
-        return
-    val positionMs = (pendingDpadSeekPreviewMs ?: psc.position).coerceIn(0L, durationMs)
-    binding.seekOverlayBar.setChapterGapMode(true)
-    binding.seekOverlayBar.progress = (positionMs * SEEK_OVERLAY_BAR_MAX / durationMs).toInt()
-    binding.seekOverlayTime.setTextIfChanged(
-        "${Utils.prettyTime((positionMs / MILLIS_PER_SECOND_LONG).toInt())} / " +
-            Utils.prettyTime(psc.durationSec)
-    )
+    if (psc.duration <= 0L) return
+    updateMinimalSeekOverlay(pendingDpadSeekPreviewMs ?: psc.position)
     fadeHandler.removeCallbacks(seekOverlayHideRunnable)
     binding.seekOverlay.animate().cancel()
     binding.seekOverlay.setVisibilityIfChanged(View.VISIBLE)
     binding.seekOverlay.alpha = 1f
     fadeHandler.postDelayed(seekOverlayHideRunnable, SEEK_OVERLAY_VISIBLE_MS)
+}
+
+internal fun MPVActivity.updateMinimalSeekOverlay(positionMs: Long) {
+    val durationMs = psc.duration.coerceAtLeast(0L)
+    if (durationMs <= 0L)
+        return
+    val displayPositionMs = positionMs.coerceIn(0L, durationMs)
+    binding.seekOverlayBar.setChapterGapMode(true)
+    binding.seekOverlayBar.progress = (displayPositionMs * SEEK_OVERLAY_BAR_MAX / durationMs).toInt()
+    binding.seekOverlayTime.setTextIfChanged(
+        "${Utils.prettyTime((displayPositionMs / MILLIS_PER_SECOND_LONG).toInt())} / " +
+            Utils.prettyTime(psc.durationSec)
+    )
 }
 
 internal fun MPVActivity.hideMinimalSeekOverlay() {
