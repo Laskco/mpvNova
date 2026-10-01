@@ -110,26 +110,18 @@ Optional: [Compile mpvNova for speed after sideloading](docs/speed-compilation.m
 
 ---
 
-## What mpvNova Adds
+## Features
 
-mpvNova keeps mpv-android's hardware and software decoding, libass and dual subtitles, scripting, URL playback, background playback, Picture-in-Picture, and keyboard support.
-
-This fork adds:
-
-- A TV home screen, remote navigation, and player panels for subtitles, audio, chapters, video, and decoder selection.
-- Customizable player bars, seekbars, clocks, and titles, with presets and live previews.
-- Interface fonts, 16 color themes, and a black-background mode.
-- Subtitle styling and presets, track memory, and options for selecting and preserving the styling of Signs & Songs and forced subtitles.
-- Separate Off, Auto-skip, and Skip button choices for intros, outros, recaps, end credits, and post-credits scenes. Timestamps must be supplied by the launching app.
-- Optional per-series aspect-ratio memory, disabled by default.
-- Voice Boost, Volume Boost, DRC, audio normalization, and channel downmix.
-- Network buffering presets and custom limits, available in Settings and during playback.
-- Decoder selection during playback, including `gpu-next`, with Hi10P and MPEG2 software fallback options. G-NEXT Direct is disabled on NVIDIA Shield.
-- Options to pause playback while controls are open, including a separate Hi10P setting.
-- Brightness, contrast, gamma, and saturation controls, plus a shader manager for importing, ordering, and enabling shaders.
-- Playback resume, title cleanup, playback statistics, and diagnostic exports.
-- Backup and restore for settings, mpv configuration, input bindings, fonts, screensaver artwork, and shaders.
-- In-app updates and release notes from GitHub.
+- TV interface and remote navigation
+- Customizable appearance and player controls
+- Subtitle styling and track preferences
+- Intro, outro, and credit skipping
+- Audio controls and video adjustments
+- Decoder and buffering settings
+- Shader management
+- Playback resume and per-series preferences
+- Settings backup and restore
+- In-app updates
 
 See the [settings guide](docs/settings-guide.md) for individual controls and defaults.
 
