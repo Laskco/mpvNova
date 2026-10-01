@@ -11,7 +11,7 @@ v_sdk_build_tools=36.0.0
 
 v_lua=5.2.4
 v_unibreak=8.0
-v_harfbuzz=14.5.0
+v_harfbuzz=14.5.1
 v_fribidi=1.0.17
 v_freetype=2.14.3
 v_mbedtls=3.6.7
@@ -19,10 +19,10 @@ v_dav1d=1.5.4
 v_libxml2=2.15.4
 v_fontconfig=2.18.3
 v_libass=0.17.5
-v_libplacebo=7.371.0
+v_libplacebo=7.374.0
 v_curl=8.22.0
 # Pin upstream mpv; apply the default-off FEL and external subtitle URL patches.
-v_mpv=7e4cb538a3f30d25920ad8e87ba6571540fb729f
+v_mpv=3186d369f9f090cd1363be0ac46a037824b702c6
 
 
 ## Dependency tree
@@ -47,8 +47,8 @@ dep_mpvnova=(mpv)
 ## for CI workflow
 
 # pinned ffmpeg revision
-v_ci_ffmpeg=n9.0.1
-v_ci_libplacebo=3330a515d62139259c26239014f286e233bd3a5c
+v_ci_ffmpeg=n9.0.2
+v_ci_libplacebo=92b5ac6db79f4d680eb656692f7bf51e9606f42a
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
