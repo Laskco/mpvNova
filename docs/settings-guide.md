@@ -353,6 +353,8 @@ For separate-track sources whose RPU exists only in the enhancement track, skipp
 
 ## Video Adjustments And Shaders
 
+In the player's **Video > Aspect ratio** menu, **Remember per series** saves your selected ratio for that series. It defaults off. When enabled, another episode of a recognized series restores its saved choice; an uncached series or movie starts at Original. Choosing Original also saves that choice. Series recognition uses the same title identification as audio/subtitle track memory, but this option is independent of those settings. Turning it off stops saving and restoring series ratios without changing the current picture.
+
 Open **Settings > Video**, or the video/advanced controls in the player.
 
 | Control | Behavior |

@@ -1,9 +1,11 @@
 package app.mpvnova.player
 
 import app.mpvnova.player.databinding.DialogOptionItemBinding
-import app.mpvnova.player.databinding.DialogOptionListBinding
+import app.mpvnova.player.databinding.DialogVideoProcessingBinding
+import app.mpvnova.player.databinding.DialogSettingToggleItemBinding
 import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
+import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 import kotlin.math.abs
 
 // mpv reports aspect overrides as floats, so a value is "selected" when it lands
@@ -14,14 +16,16 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
     val ratios = resources.getStringArray(R.array.aspect_ratios)
     val names = resources.getStringArray(R.array.aspect_ratio_names)
     val currentRatio = currentAspectRatioChoice()
-    val binding = DialogOptionListBinding.inflate(layoutInflater)
+    val binding = DialogVideoProcessingBinding.inflate(layoutInflater)
     lateinit var dialog: AlertDialog
-    binding.optionTitle.setText(R.string.aspect_ratio)
-    binding.cancelBtn.setOnClickListener { dialog.cancel() }
+    binding.videoProcessingEyebrow.setText(R.string.drawer_section_video)
+    binding.videoProcessingTitle.setText(R.string.aspect_ratio)
+    binding.videoProcessingSummary.isVisible = false
+    binding.videoProcessingDoneBtn.setOnClickListener { dialog.dismiss() }
     for (index in names.indices) {
         val itemBinding = DialogOptionItemBinding.inflate(
             layoutInflater,
-            binding.optionsContainer,
+            binding.videoProcessingRows,
             false
         )
         val isSelected = ratios[index] == currentRatio
@@ -30,10 +34,26 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
         itemBinding.root.isActivated = isSelected
         itemBinding.root.setOnClickListener {
             applyAspectRatioChoice(ratios[index])
+            saveSeriesAspectRatio(ratios[index])
             dialog.dismiss()
         }
-        binding.optionsContainer.addView(itemBinding.root)
+        binding.videoProcessingRows.addView(itemBinding.root)
     }
+    val toggle = DialogSettingToggleItemBinding.inflate(layoutInflater, binding.videoProcessingRows, false)
+    val prefs = getDefaultSharedPreferences(applicationContext)
+    toggle.optionToggleTitle.setText(R.string.aspect_ratio_remember_series)
+    toggle.optionToggleDetail.isVisible = false
+    toggle.optionToggle.isChecked = prefs.getBoolean(PREF_SERIES_ASPECT_RATIO, false)
+    toggle.root.setOnClickListener {
+        val enabled = !toggle.optionToggle.isChecked
+        toggle.optionToggle.isChecked = enabled
+        prefs.edit().putBoolean(PREF_SERIES_ASPECT_RATIO, enabled).apply()
+        if (enabled) {
+            saveSeriesAspectRatio(currentRatio)
+            applyAspectRatioChoice(currentRatio)
+        }
+    }
+    binding.videoProcessingRows.addView(toggle.root)
     handleInsetsAsPadding(binding.root)
     dialog = with(AlertDialog.Builder(this)) {
         setView(binding.root)
@@ -66,7 +86,11 @@ private fun aspectRatioEntryValue(entry: String): Double? {
     return entry.toDoubleOrNull()
 }
 
-private fun applyAspectRatioChoice(ratio: String) {
+private fun MPVActivity.applyAspectRatioChoice(ratio: String) {
+    if (getDefaultSharedPreferences(applicationContext).getBoolean(PREF_SERIES_ASPECT_RATIO, false)) {
+        applyFileAspectRatio(ratio)
+        return
+    }
     if (ratio == "panscan") {
         mpvSetPropertyString("video-aspect-override", "-1")
         mpvSetPropertyDouble("panscan", 1.0)
@@ -80,5 +104,7 @@ private fun aspectRatioDialogLayout(): PlayerDialogLayout {
     return PlayerDialogLayout(
         widthFraction = 0.56f,
         maxWidthDp = 620f,
+        heightFraction = 0.82f,
+        maxHeightDp = 560f,
     )
 }

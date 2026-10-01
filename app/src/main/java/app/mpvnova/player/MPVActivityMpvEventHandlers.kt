@@ -68,6 +68,7 @@ private fun MPVActivity.handleMpvStartFile() {
     val restoreRendererAfterFailure = gpuNextFallbackState.rendererFallbackApplied
     playbackEnded = false
     currentTrackSeriesKey = null
+    currentAspectSeriesKey = null
     resetPlaybackResultState()
     audioNormUnderrunHintShown = false
     gpuNextFallbackState.reset()
@@ -136,6 +137,7 @@ private fun MPVActivity.handleMpvFileLoaded() {
     localSubtitles.forEach { mpvCommand(it) }
     applyFireTvVideoEdgeCropIfNeeded()
     applyFileTrackSelections(preserveForwardedSubtitles)
+    applySeriesAspectRatio()
     guardNearEndStartPosition()
     showResumeToastIfNeeded()
     refreshAudioFiltersAfterFileLoad()
