@@ -11,48 +11,28 @@
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black&cacheSeconds=3600)](https://buymeacoffee.com/laskco)
 [![PayPal](https://img.shields.io/badge/PayPal-donate-00457C?logo=paypal&cacheSeconds=3600)](https://www.paypal.com/donate/?hosted_button_id=R87TNQANCT8KN)
 
-**mpvNova is an Android TV-first fork of [mpv-android](https://github.com/mpv-android/mpv-android), built on [libmpv](https://github.com/mpv-player/mpv). It keeps mpv's playback core while reshaping the app around couch-friendly navigation, a custom TV shell, and fast access to the controls that matter during playback.**
-
-The goal is simple: keep mpv powerful, but make it feel natural on a TV from the moment it opens.
-
-- TV-first home screen and launcher integration
-- Remote-friendly player HUD with strong D-pad focus behavior
-- Live player bar customization with presets, sizing, surfaces, seekbar styling, and control ordering
-- Custom subtitle, audio, chapter, decoder, video-adjustment, advanced playback, and settings panels
-- Network buffering presets and custom controls in Settings and the player drawer
-- Managed GPU shaders with in-app importing, ordering, enabling, refreshing, and removal
-- Live clock and title customization with independent styling and layout controls
-- Smart subtitle matching for binge-watching, tied to persisted subtitle settings
-- 16 built-in color themes, AMOLED mode, and pure black surfaces
-- Full backup and restore for settings, configuration files, fonts, artwork, and managed shaders
-- Dialogue-focused audio tools for stereo and surround playback
-- Device-aware decoder paths including gpu-next and configurable Hi10P and MPEG2 software fallbacks
-- In-app update checks backed by GitHub releases
-- Leanback launcher support and TV banner assets
-- Built for sideloading on Android TV, Google TV, and Android-based Fire OS TV devices
-
-For the inherited playback feature set, scripting support, and core behavior that mpvNova builds on top of, see upstream [mpv-android](https://github.com/mpv-android/mpv-android).
+mpvNova is a video player for Android TV, Google TV, and Android-based Fire TV devices. It is a fork of [mpv-android](https://github.com/mpv-android/mpv-android), built on [libmpv](https://github.com/mpv-player/mpv), with a TV interface, remote controls, and player customization.
 
 ## Documentation
 
-- [mpvNova settings guide](docs/settings-guide.md): settings, defaults, player customization, subtitles, audio, network buffering, and decoder compatibility.
+- [Settings guide](docs/settings-guide.md): controls, options, defaults, and device compatibility.
 - [Native build guide](buildscripts/README.md): rebuilding mpv and the bundled playback libraries.
 
 ---
 
 ## TV Devices Only
 
-mpvNova is built for Android TV, Google TV, and Android-based Amazon Fire TV / Fire TV Stick devices running Fire OS. Android phones and tablets are out of scope, and mobile UI support will not be added.
+mpvNova supports Android TV, Google TV, and Android-based Fire TV devices running Fire OS. Phones and tablets are not supported, and there are no plans for a mobile interface.
 
-Newer Vega OS Fire TV sticks are a different non-Android target. mpvNova's APK builds support Fire OS devices, not Vega OS devices that do not install Android APKs.
+Vega OS Fire TV devices cannot install Android APKs and are not supported.
 
-Fire OS support is best-effort. Fire OS is not an official upstream mpv / mpv-android target, so device-specific playback, decoder, MediaCodec, graphics driver, or native library bugs usually need fixes in upstream mpv/mpv-android, FFmpeg, libplacebo, Android's media stack, or device firmware. mpvNova can ship app-level compatibility fixes and safe defaults, but it cannot directly fix Fire OS playback issues that live in the upstream playback stack or vendor platform.
+Fire OS support is best-effort. Some playback problems require fixes in mpv, FFmpeg, libplacebo, or device firmware and cannot be resolved in the app alone.
 
-For mobile-focused Android mpv options, use projects such as [mpvEx](https://github.com/marlboro-advance/mpvEx), [mpvKt](https://github.com/abdallahmehiz/mpvKt), or [mpvRx](https://github.com/Riteshp2001/mpvRx).
+For phones and tablets, see [mpvEx](https://github.com/marlboro-advance/mpvEx), [mpvKt](https://github.com/abdallahmehiz/mpvKt), or [mpvRx](https://github.com/Riteshp2001/mpvRx).
 
 ---
 
-## Showcase
+## Screenshots
 <div align="center">
   <img src="docs/screenshots/home-screen.png" alt="mpvNova home screen" width="96%" />
 </div>
@@ -121,10 +101,10 @@ Download the latest APK from the [GitHub releases page](https://github.com/Laskc
 
 [![Download Release](https://img.shields.io/badge/Download-Release-blue?style=for-the-badge)](https://github.com/Laskco/mpvNova/releases/latest)
 
-- Use the **universal** APK if you want one build that works across device architectures
-- Use an ABI-specific APK only if you already know the target device architecture
-- On Android-based Fire TV / Fire TV Stick devices, use the **universal** APK or the `armeabi-v7a` APK for most stick models
-- After installation, future releases can also be checked from **Settings > App updates**
+- Use the **universal** APK if you are unsure which build you need.
+- Smaller builds are available for `arm64-v8a`, `armeabi-v7a`, `x86`, and `x86_64`.
+- For most Android-based Fire TV sticks, use **universal** or `armeabi-v7a`.
+- Check for updates under **Settings > App updates**.
 
 Optional: [Compile mpvNova for speed after sideloading](docs/speed-compilation.md).
 
@@ -132,60 +112,46 @@ Optional: [Compile mpvNova for speed after sideloading](docs/speed-compilation.m
 
 ## What mpvNova Adds
 
-mpvNova inherits mpv-android's playback foundation: hardware/software decoding, libass subtitles, dual subtitles, advanced rendering settings, URL playback, background playback, Picture-in-Picture, and keyboard input. The additions below are the TV-focused layer built for this fork.
+mpvNova keeps mpv-android's hardware and software decoding, libass and dual subtitles, scripting, URL playback, background playback, Picture-in-Picture, and keyboard support.
 
-- Android TV, Google TV, and Fire OS launcher support with leanback entry points, TV banner assets, and a couch-first home screen
-- Redesigned player HUD with stronger D-pad focus, chapter markers, title display, TV-scale timing, and a compact chapter picker
-- Live player bar customization with six presets, panel surfaces, opacity, backdrop, outline, size, spacing, seekbar and scrubber styling, playback-time layout, and reorderable optional controls; Play, Chapters, Audio, and Subtitles remain protected
-- Live clock and title customization for layout, fonts, sizing, weight, spacing, colors, text case, outlines, shadows, background plates, and visibility
-- Interface font selection with bundled typefaces and immediate updates across the app
-- Single-click chapter skipping, with remote/D-pad hold opening the chapter picker after a fixed delay
-- Automatic intro, recap, and outro skipping from supplied timestamps, with manual fallback buttons and skip notifications
-- Custom subtitle panel with dual-track display, quick primary/secondary swap, independent position, size, delay, and secondary subtitle controls
-- Tabbed subtitle customization with font size and hinting, colors, spacing, outlines, shadows, background, layout, and saved presets. The separate live preview grows with the text; the three ASS override modes remain available for styled subtitles
-- Smart subtitle memory: when **Persist subtitle settings** is enabled, mpvNova remembers a manually selected subtitle track and matches the closest language/title on the next file
-- Audio panel with Voice Boost, Volume Boost, DRC, Audio Normalization, Channel Downmix, surround-state feedback, and filter persistence
-- Network settings with buffering presets, custom memory and read-ahead limits, rebuffering controls, and connection options, accessible from both Settings and the in-player Network tab
-- In-player decoder picker with `Auto (safe)`, `HW+`, `HW`, `SW`, `G-NEXT Copy`, `G-NEXT Direct`, `G-NEXT SW Hi10P fallback`, and custom `mpv.conf` modes. G-NEXT Direct remains disabled on NVIDIA Shield
-- Shared device compatibility settings for Hi10P and MPEG2 software fallback, defaulting on for NVIDIA Shield and off elsewhere while preserving saved choices. The Hi10P toggle controls automatic fallback; manual decoder selection remains available independently
-- Hi10P fallback always uses G-NEXT software decoding with three tuning choices: no tuning (default), light tuning (non-reference loop-filter skipping, a 1 s audio buffer, and Lanczos-sharp upscaling), or light tuning plus late-frame dropping. Tuning may worsen A/V sync on some streams; switch back to no tuning if that happens
-- Player UI autopause options: a general "Pause when controls show" toggle, plus "Pause Hi10P while controls are open" to reduce contention between software decoding and the UI. The Hi10P-specific toggle defaults on for NVIDIA Shield and off elsewhere
-- Player-side video adjustment panels for brightness, contrast, gamma, and saturation, with optional remembered values
-- Managed GPU shader library with file and folder importing, remembered-folder refresh, per-shader toggles, ordering, removal, and live playback updates; advanced shaders configured through `mpv.conf` remain separate
-- Live `G-NEXT` path display for direct, copy, or software-backed playback paths, plus automatic decoder fallback for known trouble cases
-- Appearance themes for White, Crimson, Ocean, Cyan, Violet, Emerald, Lime, Amber, Gold, Copper, Indigo, Rose, Slate, Chrome, Oyster, and Ivory, plus AMOLED mode and pure black surfaces
-- Full backup and restore for app preferences, mpv configuration, input bindings, fonts, screensaver artwork, and managed shaders
-- Settings pages update the hero title to the active section, including Appearance, General, Video, Network, Player UI, Advanced, and Support
-- Home-screen update prompt, manual update checks, APK handoff to Android's installer, and release-note history from Settings
-- Resume-position handling, media-title cleanup for launcher/stream sources, readable stats overlays, and support/debug export tools
+This fork adds:
+
+- A TV home screen, remote navigation, and player panels for subtitles, audio, chapters, video, and decoder selection.
+- Customizable player bars, seekbars, clocks, and titles, with presets and live previews.
+- Interface fonts, 16 color themes, and a black-background mode.
+- Subtitle styling and presets, track memory, and options for selecting and preserving the styling of Signs & Songs and forced subtitles.
+- Separate Off, Auto-skip, and Skip button choices for intros, outros, recaps, end credits, and post-credits scenes. Timestamps must be supplied by the launching app.
+- Optional per-series aspect-ratio memory, disabled by default.
+- Voice Boost, Volume Boost, DRC, audio normalization, and channel downmix.
+- Network buffering presets and custom limits, available in Settings and during playback.
+- Decoder selection during playback, including `gpu-next`, with Hi10P and MPEG2 software fallback options. G-NEXT Direct is disabled on NVIDIA Shield.
+- Options to pause playback while controls are open, including a separate Hi10P setting.
+- Brightness, contrast, gamma, and saturation controls, plus a shader manager for importing, ordering, and enabling shaders.
+- Playback resume, title cleanup, playback statistics, and diagnostic exports.
+- Backup and restore for settings, mpv configuration, input bindings, fonts, screensaver artwork, and shaders.
+- In-app updates and release notes from GitHub.
+
+See the [settings guide](docs/settings-guide.md) for individual controls and defaults.
 
 ---
 
 ## Network And Buffering
 
-Open **Settings > Network**, or the **Network** tab in the player settings drawer during playback.
+Open **Settings > Network** or the **Network** tab in the player drawer. Choose a buffering preset or set your own buffer sizes, read-ahead, and connection options.
 
-Choose **Default**, **Low memory**, **Balanced**, **Unsteady connection**, or **High-bitrate video** as a starting point. Individual adjustments are shown as **Custom**. Default restores the original mpvNova or `mpv.conf` values.
+Most changes apply during playback. **Stream read buffer** and **Connection timeout** require reopening the stream. Larger buffers use more RAM; they do not fix a consistently slow connection.
 
-- **Video buffer size** and **Rewind buffer size** control how much data is kept ahead of and behind playback
-- **Buffer ahead** sets the target time buffered for network streams; the memory limit can be reached before that target
-- **Wait for the buffer to refill** and **Refill before resuming** control recovery after a stall
-- **Local file read-ahead** adjusts read-ahead for local playback; network caching uses the larger of this value and Buffer ahead, within the memory limit
-- **Stream read buffer** and **Connection timeout** provide advanced input and connection controls
-
-Buffer sizes, read-ahead, and rebuffering controls update during playback when changed from the drawer. **Stream read buffer and Connection timeout apply when a stream is opened again**, not to the already-open connection. Timeout support depends on the protocol.
-
-Numeric controls offer suggested values and custom input. Combined forward and rewind buffers have device-aware memory limits, including lower limits on 32-bit and low-memory devices. Larger buffers use more RAM and can help with brief stalls, but cannot make a consistently slow server or connection faster.
+See [Network and buffering](docs/settings-guide.md#network-and-buffering) for the full list of controls.
 
 ---
 
 ## Dolby Vision And FEL
 
-**FEL decoding is disabled by default; Dolby Vision is not disabled.** For interleaved Dolby Vision Profile 7 video, mpvNova skips the enhancement-layer decoder and retains the base video and RPU metadata.
+**Dolby Vision FEL decoding is disabled by default.** For interleaved Profile 7 video, mpvNova keeps the base video and RPU metadata without decoding the enhancement layer. Other Dolby Vision profiles are unaffected.
 
-There is no FEL toggle in the settings panel. Advanced users can opt in through **Settings > Advanced > Edit mpv.conf** with `vd-lavc-dovi-fel=yes`, then reopen the video. Remove that line or use `vd-lavc-dovi-fel=no` to restore the default. Enabling it can bring back playback failures on affected devices.
+To enable FEL decoding, add `vd-lavc-dovi-fel=yes` under **Settings > Advanced > Edit mpv.conf**, then reopen the video. Remove the line or set it to `no` to restore the default. Enabling FEL can cause playback failures on some devices.
 
-Separate-track sources whose RPU metadata exists only in the enhancement track fall back to the base layer without that metadata. This is not a DV7-to-DV8.1 conversion, and does not guarantee Dolby Vision output on every device or display. See [decoder compatibility in the settings guide](docs/settings-guide.md#decoders-and-device-compatibility).
+If a separate enhancement track contains the only RPU metadata, playback falls back to the base layer without it. This is not a DV7-to-DV8.1 conversion, and Dolby Vision output still depends on the device and display. See [decoder compatibility](docs/settings-guide.md#decoders-and-device-compatibility).
 
 ---
 
@@ -202,12 +168,12 @@ Separate-track sources whose RPU metadata exists only in the enhancement track f
 
 ### App-only build
 
-Use this when the bundled native libraries are already present and you mainly want to build or test the Android app layer.
+The repository includes the native libraries. Use Gradle to build the app without rebuilding them.
 
 **Windows**
 
 ```powershell
-cmd /c gradlew.bat :app:assembleDefaultDebug
+./gradlew.bat :app:assembleDefaultDebug
 ```
 
 **Linux / macOS**
@@ -218,15 +184,11 @@ cmd /c gradlew.bat :app:assembleDefaultDebug
 
 ### Full native rebuild
 
-Use this when you need to rebuild `libmpv`, FFmpeg, or the JNI/native layer.
-
-The native rebuild flow lives in [buildscripts/README.md](buildscripts/README.md). It is supported on Linux and macOS and is not intended to run natively on Windows.
-
-Native rebuilds are only needed when updating or changing bundled native components such as mpv, FFmpeg, libass, or related JNI code. Regular Android UI work can use the app-only Gradle build.
+To rebuild mpv, FFmpeg, or the JNI libraries, follow the [native build guide](buildscripts/README.md). Native playback builds require Linux or macOS. They are not needed for Android UI changes.
 
 ### APK Variants
 
-The Gradle config currently builds:
+Available APKs:
 
 - `universal`: all bundled ABIs in one APK
 - `arm64-v8a`
@@ -234,9 +196,7 @@ The Gradle config currently builds:
 - `x86`
 - `x86_64`
 
-There is also an `api29` flavor for older-target compatibility builds.
-
-For Amazon Appstore or Fire OS distribution, use the default flavor because it targets the current SDK while keeping `minSdk` low enough for older Android-based Fire TV devices.
+The `api29` flavor provides an alternative target-API-29 build. The in-app updater selects it on Android 10 and older.
 
 ---
 
@@ -244,17 +204,14 @@ For Amazon Appstore or Fire OS distribution, use the default flavor because it t
 
 ### Release signing
 
-Release signing is optional for local debug builds, but required for signed release APKs.
+Debug builds do not need a release key. To sign release APKs:
 
-- Keep your real signing files in `keystore.properties` and `keystore/`
-- Start from [keystore.properties.example](keystore.properties.example) for the local file shape
-- In CI or other non-local environments, use `MPVNOVA_STORE_FILE`, `MPVNOVA_STORE_PASSWORD`, `MPVNOVA_KEY_ALIAS`, and `MPVNOVA_KEY_PASSWORD`
+- Use [keystore.properties.example](keystore.properties.example) to create a local `keystore.properties`, and keep your key in `keystore/`.
+- In CI, set `MPVNOVA_STORE_FILE`, `MPVNOVA_STORE_PASSWORD`, `MPVNOVA_KEY_ALIAS`, and `MPVNOVA_KEY_PASSWORD`.
 
 ### App updates
 
-mpvNova checks GitHub releases from the home screen and from **Settings > App updates**. Update prompts are intentionally kept out of active playback so a release dialog never appears over the player UI.
-
-The updater chooses the best APK asset for the device ABI when possible, opens Android's installer with a `FileProvider` URI, and cleans cached update APKs after the newly installed version relaunches.
+Updates are checked from the home screen or **Settings > App updates**, not during playback. The updater downloads the appropriate APK and opens Android's installer.
 
 ---
 
@@ -266,16 +223,13 @@ The `mpvNova` name, app icon, TV banner, package name `app.mpvnova.player`, rele
 
 Do not upload mpvNova-branded builds to app stores or third-party stores without permission.
 
-The app ships an opaque TV banner so it doesn't overlap neighbouring banners on the stock
-launcher. If you use a launcher with custom icons (e.g. Projectivy) and prefer the transparent
-wordmark, download [assets/mpvnova-transparent-icon.png](assets/mpvnova-transparent-icon.png)
-and set it as a custom icon (in Projectivy: long-press the mpvNova tile → **Edit → Icon → Local file**).
+For a transparent launcher icon, use [mpvnova-transparent-icon.png](assets/mpvnova-transparent-icon.png). In Projectivy, long-press the mpvNova tile and select **Edit > Icon > Local file**.
 
 ---
 
 ## Privacy
 
-The project privacy policy is available at [docs/privacy.html](docs/privacy.html).
+[Privacy policy](docs/privacy.html).
 
 ---
 
@@ -283,4 +237,4 @@ The project privacy policy is available at [docs/privacy.html](docs/privacy.html
 
 - [mpv-android](https://github.com/mpv-android/mpv-android)
 - [mpv](https://github.com/mpv-player/mpv)
-- everyone whose work made the upstream Android port and playback stack possible
+- The contributors to mpv-android, mpv, and their dependencies.
