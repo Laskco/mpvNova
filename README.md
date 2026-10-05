@@ -17,6 +17,7 @@ mpvNova is a video player for Android TV, Google TV, and Android-based Fire TV d
 
 - [Settings guide](docs/settings-guide.md): controls, options, defaults, and device compatibility.
 - [Native build guide](buildscripts/README.md): rebuilding mpv and the bundled playback libraries.
+- [Contributing](CONTRIBUTING.md): PR requirements, checks, and test APKs.
 
 ---
 

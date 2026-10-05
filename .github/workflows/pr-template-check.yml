@@ -1,0 +1,85 @@
+name: PR Template Check
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, edited, synchronize, reopened, ready_for_review]
+
+permissions:
+  pull-requests: read
+
+concurrency:
+  group: pr-template-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  validate_pr_body:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Metadata only. Never check out or execute PR code in this workflow.
+      - name: Validate PR description
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: pr } = await github.rest.pulls.get({
+              ...context.repo, pull_number: context.payload.pull_request.number
+            });
+            const body = (pr.body || '').replace(/<!--[\s\S]*?-->/g, '').replace(/\r/g, '');
+            const sections = new Map();
+            const errors = [];
+            const headings = [...body.matchAll(/^##[ \t]+(.+?)[ \t]*$/gm)];
+            for (let i = 0; i < headings.length; i++) {
+              const heading = headings[i];
+              const title = heading[1];
+              if (sections.has(title)) errors.push(`Duplicate section: ${title}.`);
+              sections.set(title, body.slice(heading.index + heading[0].length,
+                headings[i + 1]?.index ?? body.length).trim());
+            }
+            const required = ['Summary', 'PR type', 'Issue or approval', 'Reproduction',
+              'UI changes', 'Testing', 'Screenshots / Video', 'Breaking changes', 'Checklist'];
+            for (const title of required) {
+              const text = sections.get(title) || '';
+              const allowsNone = ['Screenshots / Video', 'Breaking changes'].includes(title);
+              if (!text || (!allowsNone && /^(none|n\/?a|not applicable|todo|tbd)[.!]?$/i.test(text))) {
+                errors.push(`Complete the ${title} section.`);
+              }
+            }
+            const checked = title => [...(sections.get(title) || '').matchAll(
+              /^\s*[-*+]\s+\[[xX]\]\s+(.+)$/gm)].map(match => match[1].trim());
+            const types = ['Bug fix', 'Approved feature or larger change', 'Small maintenance',
+              'Documentation', 'Translation'];
+            const selected = checked('PR type');
+            if (selected.length !== 1 || !types.includes(selected[0])) {
+              errors.push('Check exactly one PR type from the template.');
+            }
+            const impact = checked('UI changes');
+            if (impact.length !== 1 || !['No UI changes', 'UI changes included'].includes(impact[0])) {
+              errors.push('Check exactly one UI changes option.');
+            }
+            const issue = sections.get('Issue or approval') || '';
+            if (['Bug fix', 'Approved feature or larger change'].includes(selected[0]) &&
+                !/(?:^|\s|\()(?:#\d+\b|https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+\b)/i.test(issue)) {
+              errors.push('Link the bug issue or approved feature request.');
+            }
+            if (selected[0] === 'Approved feature or larger change' &&
+                !/https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/\d+#issuecomment-\d+\b/i.test(issue)) {
+              errors.push('Link the maintainer approval comment on the feature request.');
+            }
+            if (impact[0] === 'UI changes included' &&
+                !/https:\/\/[^\s<>\)]+/i.test(sections.get('Screenshots / Video') || '')) {
+              errors.push('Attach before/after screenshots or a video in Screenshots / Video.');
+            }
+            const policy = [
+              'I read CONTRIBUTING.md and this PR follows it.',
+              'This PR addresses one problem without unrelated changes.',
+              'Any feature or larger change has linked maintainer approval, or this PR does not need it.',
+              'The testing notes describe what I actually tested.'
+            ];
+            const confirmed = checked('Checklist');
+            if (policy.some(item => !confirmed.includes(item)) ||
+                /^\s*[-*+]\s+\[\s\]/m.test(sections.get('Checklist') || '')) {
+              errors.push('Keep and check every item in the Checklist.');
+            }
+            if (errors.length) core.setFailed(errors.join('\n'));
+            else core.info('PR description is complete. Maintainer review is still required.');

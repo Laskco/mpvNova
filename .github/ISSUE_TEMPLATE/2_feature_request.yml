@@ -6,6 +6,7 @@ body:
     attributes:
       value: |
         Feature requests are for **mpvNova-specific** functionality. General mpv or mpv-android features belong upstream.
+        Wait for explicit maintainer approval before starting a feature PR. See [CONTRIBUTING.md](https://github.com/Laskco/mpvNova/blob/main/CONTRIBUTING.md).
   - type: checkboxes
     id: preflight
     attributes:
