@@ -499,6 +499,9 @@ private fun DialogMediaPickerBinding.configureDelay(
     delayRow.isVisible = options.showDelay
     if (options.showDelay) {
         delayTitle.setText(if (options.showFilters) R.string.audio_delay else R.string.sub_delay)
+        delaySummary.setText(
+            if (options.showFilters) R.string.dialog_audio_timing_summary else R.string.dialog_section_timing_summary
+        )
         delayValue.text = options.delayText ?: "0.00 s"
         delayRow.setOnClickListener { onDelayClick?.invoke() }
     }

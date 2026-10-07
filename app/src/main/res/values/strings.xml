@@ -80,6 +80,7 @@
     <string name="dialog_section_tracks">Available tracks</string>
     <string name="dialog_section_modes">Available modes</string>
     <string name="dialog_section_timing_summary">Adjust subtitle sync without leaving playback.</string>
+    <string name="dialog_audio_timing_summary">Adjust audio sync without leaving playback.</string>
     <string name="dialog_subtitle_section_label">Available subtitles</string>
     <string name="external_subtitles_unavailable">Some external subtitles could not be loaded.</string>
     <string name="dialog_subtitle_mode_label">Listening mode</string>

@@ -908,6 +908,7 @@
                                 android:layout_marginTop="2dp"
                                 android:maxLines="2"
                                 android:ellipsize="end"
+                                android:id="@+id/delaySummary"
                                 android:text="@string/dialog_section_timing_summary"
                                 android:textColor="@color/tv_text_dim"
                                 android:textSize="10sp" />
