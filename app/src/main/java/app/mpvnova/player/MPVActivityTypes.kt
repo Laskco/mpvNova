@@ -32,6 +32,7 @@ internal data class PlayerChromeSnapshot(
     val timeInfoVisibility: Int,
     val statsVisibility: Int,
     val skipVisibility: Int,
+    val selectedControlId: Int?,
 )
 internal data class TrackMeta(val mpvId: Int, val title: String, val lang: String, val forced: Boolean = false)
 

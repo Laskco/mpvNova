@@ -562,14 +562,19 @@ private fun FilePickerActivity.initFilePicker() {
         activeFragment.filterPredicate = FilePickerActivity.MEDIA_FILE_FILTER
 
     var defaultPathStr = intent.getStringExtra("default_path")
-    val hasExplicitDefaultPath = !defaultPathStr.isNullOrEmpty()
+    var hasExplicitDefaultPath = !defaultPathStr.isNullOrEmpty()
     if (defaultPathStr.isNullOrEmpty()) {
         defaultPathStr = sharedPrefs.getString(
             "default_file_manager_path",
             Environment.getExternalStorageDirectory().path
         )
+        hasExplicitDefaultPath = !defaultPathStr.isNullOrBlank() &&
+            defaultPathStr != "/sdcard" &&
+            defaultPathStr != Environment.getExternalStorageDirectory().path
     }
-    val defaultPath = File(defaultPathStr ?: Environment.getExternalStorageDirectory().path)
+    val configuredPath = File(defaultPathStr?.takeIf { it.isNotBlank() }
+        ?: Environment.getExternalStorageDirectory().path)
+    val defaultPath = runCatching { configuredPath.canonicalFile }.getOrDefault(configuredPath)
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
         openFilePickerAtStorageVolume(

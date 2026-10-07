@@ -11,6 +11,7 @@ internal fun MPVActivity.capturePlayerChrome() = PlayerChromeSnapshot(
     timeInfoVisibility = binding.timeInfoPanel.visibility,
     statsVisibility = binding.statsTextView.visibility,
     skipVisibility = binding.skipSegmentBtn.visibility,
+    selectedControlId = selectedDpadView(dpadButtons())?.id,
 )
 
 internal fun MPVActivity.applyPlayerDialogChrome(
@@ -78,6 +79,15 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     refreshTimeInfoPanelVisibility()
     updatePlayerTitleOverlay()
     refreshSkipButtonVisibility()
+    // Track updates can clear the selection while the controls are hidden by a panel.
+    btnSelected = if (snapshot.selectedControlId == binding.skipSegmentBtn.id &&
+        binding.skipSegmentBtn.visibility == View.VISIBLE
+    ) {
+        SKIP_BUTTON_SELECTION_INDEX
+    } else {
+        dpadButtons().indexOfFirst { it.id == snapshot.selectedControlId }
+    }
+    updateSelectedDpadButton()
     refreshVisibleControlsTimeout()
 }
 

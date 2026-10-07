@@ -16,6 +16,7 @@ internal fun FilePickerActivity.openFilePickerAtStorageVolume(
     val volumes = loadStorageVolumes()
     val preferredVolume = volumes.find { defaultPath.startsWith(it.path) }
     val targetVolume = preferredVolume ?: volumes.firstOrNull()
+    val hasUsableDefaultPath = preferredVolume != null && defaultPath.isDirectory && defaultPath.canRead()
     if (preferredVolume == null) {
         Log.w(FilePickerActivity.TAG, "default path set to \"$defaultPath\" but no such storage volume")
     }
@@ -27,9 +28,9 @@ internal fun FilePickerActivity.openFilePickerAtStorageVolume(
     with(activeFragment) {
         root = targetVolume.path
         setRootLabel(targetVolume.description)
-        goToDir(if (preferredVolume == null) targetVolume.path else defaultPath)
+        goToDir(if (hasUsableDefaultPath) defaultPath else targetVolume.path)
     }
-    if (volumes.size > 1 && !hasExplicitDefaultPath)
+    if (volumes.size > 1 && !(hasExplicitDefaultPath && hasUsableDefaultPath))
         FilePickerMenuActions.showInitialStoragePicker(this, activeFragment, volumes)
 }
 
