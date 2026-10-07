@@ -91,13 +91,7 @@ private fun MPVActivity.applyAspectRatioChoice(ratio: String) {
         applyFileAspectRatio(ratio)
         return
     }
-    if (ratio == "panscan") {
-        mpvSetPropertyString("video-aspect-override", "-1")
-        mpvSetPropertyDouble("panscan", 1.0)
-    } else {
-        mpvSetPropertyString("video-aspect-override", ratio)
-        mpvSetPropertyDouble("panscan", 0.0)
-    }
+    aspectRatioMpvOptions(ratio).forEach { (name, value) -> mpvSetPropertyString(name, value) }
 }
 
 private fun aspectRatioDialogLayout(): PlayerDialogLayout {

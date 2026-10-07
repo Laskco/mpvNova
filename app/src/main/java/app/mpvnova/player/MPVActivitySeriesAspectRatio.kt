@@ -28,6 +28,15 @@ internal fun MPVActivity.applySeriesAspectRatio() {
 
 internal fun applyFileAspectRatio(ratio: String) {
     // File-local options prevent a series choice leaking into the next series or movie.
-    mpvSetPropertyString("file-local-options/video-aspect-override", if (ratio == "panscan") "-1" else ratio)
-    mpvSetPropertyString("file-local-options/panscan", if (ratio == "panscan") "1" else "0")
+    aspectRatioMpvOptions(ratio).forEach { (name, value) ->
+        mpvSetPropertyString("file-local-options/$name", value)
+    }
+}
+
+internal fun aspectRatioMpvOptions(ratio: String): Map<String, String> = buildMap {
+    val useContainerAspect = ratio == "-1" || ratio == "panscan"
+    // Keep the stored Auto value compatible while avoiding mpv's deprecated -1 override.
+    if (useContainerAspect) put("video-aspect-method", "container")
+    put("video-aspect-override", if (useContainerAspect) "no" else ratio)
+    put("panscan", if (ratio == "panscan") "1" else "0")
 }
