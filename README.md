@@ -189,7 +189,7 @@ Available APKs:
 - `x86`
 - `x86_64`
 
-The `api29` flavor provides an alternative target-API-29 build. The in-app updater selects it on Android 10 and older.
+All APKs support Android 6 and newer. On Android 11 and newer, local file browsing uses the All files access permission.
 
 ---
 
@@ -201,6 +201,9 @@ Debug builds do not need a release key. To sign release APKs:
 
 - Use [keystore.properties.example](keystore.properties.example) to create a local `keystore.properties`, and keep your key in `keystore/`.
 - In CI, set `MPVNOVA_STORE_FILE`, `MPVNOVA_STORE_PASSWORD`, `MPVNOVA_KEY_ALIAS`, and `MPVNOVA_KEY_PASSWORD`.
+
+Prepare release APKs with `./gradlew :app:prepareReleaseAssets` and publish the APKs from `app/build/outputs/release/`.
+This also copies the universal APK to `app-api29-universal-release.apk` for older installed updaters. Keep that copy in future releases so users can skip versions without losing the update path. It is the same APK, not a separate API-29 build.
 
 ### App updates
 

@@ -37,10 +37,6 @@ android {
         "default" {
             isDefault = true
         }
-        api29 {
-            targetSdk = 29
-            versionNameSuffix = "-oldapi"
-        }
     }
 
     buildFeatures {
@@ -112,6 +108,19 @@ android {
 
 if (!hasReleaseSigning) {
     logger.lifecycle("Release signing is not configured. Add keystore.properties or MPVNOVA_* env vars to produce signed release APKs.")
+}
+
+tasks.register('prepareReleaseAssets', Sync) {
+    dependsOn 'assembleDefaultRelease'
+    from(layout.buildDirectory.dir('outputs/apk/default/release')) {
+        include 'app-default-*-release.apk', 'app-default-*-release-unsigned.apk'
+    }
+    // Older installed updaters require this filename, not an actual API-29 build.
+    from(layout.buildDirectory.dir('outputs/apk/default/release')) {
+        include 'app-default-universal-release.apk', 'app-default-universal-release-unsigned.apk'
+        rename { name -> name.replace('app-default-', 'app-api29-') }
+    }
+    into layout.buildDirectory.dir('outputs/release')
 }
 
 dependencies {

@@ -73,10 +73,8 @@ internal fun chooseBestApkAssetName(
 ): String? {
     val compatibleAbis = supportedAbis.map { it.lowercase(Locale.ROOT) }.filter { it in KNOWN_ABIS }
     if (sdkInt < Build.VERSION_CODES.M || compatibleAbis.isEmpty()) return null
-    // Keep the existing older-device compatibility policy, but never cross flavors as a fallback.
-    val flavor = if (sdkInt <= Build.VERSION_CODES.Q) "api29" else "default"
     fun assetFor(abi: String): String? = assetNames.firstOrNull {
-        it.equals("app-$flavor-$abi-release.apk", ignoreCase = true)
+        it.equals("app-default-$abi-release.apk", ignoreCase = true)
     }
     return compatibleAbis.firstNotNullOfOrNull(::assetFor) ?: assetFor("universal")
 }
