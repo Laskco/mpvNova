@@ -193,6 +193,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             Property("speed", MPV_FORMAT_STRING),
             Property("track-list"),
             Property("sid"),
+            Property("aid"),
             Property("video-params/aspect", MPV_FORMAT_DOUBLE),
             Property("video-params/rotate", MPV_FORMAT_DOUBLE),
             Property("video-params/gamma", MPV_FORMAT_STRING),

@@ -88,6 +88,14 @@ internal object MpvLogRingBuffer {
     /** Snapshot rendered as a single string with line breaks, ready to write to a file. */
     fun snapshotText(): String = snapshot().joinToString(separator = "\n")
 
+    fun recordPlaybackEvent(message: String) {
+        observer.logMessage("mpvnova/playback", MpvLogLevel.MPV_LOG_LEVEL_INFO, message)
+        // Exit details should not wait for the periodic write after playback shuts down.
+        persistenceExecutor.execute {
+            runCatching { currentLogFile?.writeText(snapshotText() + "\n") }
+        }
+    }
+
     fun previousSessionText(): String = runCatching {
         previousLogFile?.takeIf(File::isFile)?.readText().orEmpty()
     }.getOrDefault("")

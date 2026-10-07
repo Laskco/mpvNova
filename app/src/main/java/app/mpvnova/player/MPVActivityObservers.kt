@@ -79,6 +79,11 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         val fileEntryId = pendingFileEntryId
         pendingEndFileReason = null
         pendingFileEntryId = null
+        if (eventId == MpvEvent.MPV_EVENT_END_FILE) {
+            activity.recordPlaybackDiagnostic(
+                "end-file reason=${playbackEndReason(endFileReason)} entry=$fileEntryId"
+            )
+        }
         if (eventId == MpvEvent.MPV_EVENT_END_FILE &&
             endFileReason == MPV_END_FILE_REASON_REDIRECT
         ) return
@@ -97,7 +102,9 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     /** FORMAT_NONE / metadata-string event-thread side-effects. */
     private fun MPVActivity.dispatchEventThreadMetadata(property: String) {
         when (property) {
+            "aid" -> updateDiagnosticAudioTrack()
             "current-tracks/audio/selected" -> {
+                updateDiagnosticAudioTrack()
                 updateAudioPresence()
                 if (persistAudioFilters && !audioFiltersAwaitingPostLoadReconcile) {
                     rebuildAudioFilters()

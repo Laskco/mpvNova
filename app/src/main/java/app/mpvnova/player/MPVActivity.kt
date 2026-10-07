@@ -284,6 +284,9 @@ open class MPVActivity : AppCompatActivity() {
     internal var backgroundPlayMode = ""
     internal var noUIPauseMode = ""
 
+    @Volatile
+    internal var diagnosticAudioTrack = "unavailable"
+
     internal var shouldSavePosition = false
     internal var segmentSkipModes = readSegmentSkipModes(emptyMap<String, Any>())
     internal var skipButtonDisplayMode = SkipButtonDisplayMode.SEGMENT

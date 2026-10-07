@@ -7,6 +7,7 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
     when (eventId) {
         MpvEvent.MPV_EVENT_END_FILE -> handleMpvEndFile()
         MpvEvent.MPV_EVENT_SHUTDOWN -> {
+            recordPlaybackDiagnostic("shutdown")
             markPlaybackEnded()
             finishWithResult(
                 if (playbackHasStarted) RESULT_OK else RESULT_CANCELED,
@@ -64,6 +65,8 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    diagnosticAudioTrack = "unavailable"
+    recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
     val restoreRendererAfterFailure = gpuNextFallbackState.rendererFallbackApplied
     playbackEnded = false

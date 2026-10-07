@@ -119,6 +119,7 @@ internal fun MPVActivity.onAudioFocusChange(type: Int, source: String) {
 // won't budge when keep-open flips back, so end it ourselves and hand back to the caller.
 internal fun MPVActivity.endPlaybackIfParkedAtEof() {
     if (mpvGetPropertyBoolean("eof-reached") == true) {
+        recordPlaybackDiagnostic("dialog-close quit-request reason=eof-reached")
         capturePlaybackResultSnapshot(updateCompletion = true)
         mpvCommand(arrayOf("quit"))
     }

@@ -3,6 +3,7 @@ package app.mpvnova.player
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 
 internal fun MPVActivity.selectTrackForFile(type: String, id: Int) {
+    if (type == "audio") recordPlaybackDiagnostic("audio-selection requested_id=$id")
     if (getDefaultSharedPreferences(applicationContext).getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) {
         val property = if (type == "audio") "aid" else "sid"
         mpvSetPropertyString("file-local-options/$property", if (id == -1) "no" else id.toString())

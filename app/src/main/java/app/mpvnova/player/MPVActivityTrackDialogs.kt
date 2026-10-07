@@ -9,6 +9,7 @@ import android.view.WindowManager
 import kotlin.math.roundToInt
 
 internal fun MPVActivity.cycleAudio() = trackSwitchNotification {
+    recordPlaybackDiagnostic("audio-cycle-request")
     player.cycleAudio(); TrackData(player.aid, "audio")
 }
 

@@ -24,6 +24,7 @@ internal fun MPVActivity.finishWithResult(code: Int, includeTimePos: Boolean = f
     }
     if (isFinishing) // only count first call
         return
+    recordPlaybackDiagnostic("activity-finish result=$code include_position=$includeTimePos")
     val result = if (includeTimePos) {
         if (resultPositionMs < 0L) {
             capturePlaybackResultSnapshot(updateCompletion = true)

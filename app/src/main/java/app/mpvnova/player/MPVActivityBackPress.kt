@@ -38,6 +38,7 @@ private fun MPVActivity.handlePlayerBackDecision(decision: PlayerBackDecision): 
 
 private fun MPVActivity.continuePlayerExit(notYetPlayed: Int, playlistConfirmsExit: Boolean) {
     if (!playlistConfirmsExit) {
+        recordPlaybackDiagnostic("quit-request source=back")
         finishWithResult(RESULT_OK, true)
     } else {
         showPlaylistExitConfirmation(notYetPlayed)
@@ -50,6 +51,7 @@ private fun MPVActivity.showPlaylistExitConfirmation(notYetPlayed: Int) {
         setMessage(getString(R.string.exit_warning_playlist, notYetPlayed))
         setPositiveButton(R.string.dialog_yes) { dialog, _ ->
             dialog.dismiss()
+            recordPlaybackDiagnostic("quit-request source=playlist-confirmation")
             finishWithResult(RESULT_OK, true)
         }
         setNegativeButton(R.string.dialog_no) { dialog, _ ->
