@@ -10,8 +10,11 @@
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-support-FF5E5B?logo=kofi&logoColor=white&cacheSeconds=3600)](https://ko-fi.com/laskco)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-support-FFDD00?logo=buymeacoffee&logoColor=black&cacheSeconds=3600)](https://buymeacoffee.com/laskco)
 [![PayPal](https://img.shields.io/badge/PayPal-donate-00457C?logo=paypal&cacheSeconds=3600)](https://www.paypal.com/donate/?hosted_button_id=R87TNQANCT8KN)
+[![TorBox referral](https://img.shields.io/badge/TorBox-referral-00A86B?cacheSeconds=3600)](https://torbox.app/subscription?referral=d85753a3-0ae7-4b0d-8501-16781b12cf24)
 
 mpvNova is a video player for Android TV, Google TV, and Android-based Fire TV devices. It is a fork of [mpv-android](https://github.com/mpv-android/mpv-android), built on [libmpv](https://github.com/mpv-player/mpv), with a TV interface, remote controls, and player customization.
+
+Prefer not to donate? You can also support me by using [my TorBox referral link](https://torbox.app/subscription?referral=d85753a3-0ae7-4b0d-8501-16781b12cf24).
 
 ## Documentation
 
