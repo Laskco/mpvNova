@@ -291,6 +291,7 @@
     <string name="tv_tile_settings_sub">Playback, video, and controls</string>
     <string name="document_picker_unavailable">This device does not include a document picker. Use Storage instead.</string>
     <string name="storage_browser_unavailable">No readable storage was found. If this is a USB drive, Android may not have mounted it.</string>
+    <string name="storage_permission_settings_unavailable">Storage permission settings are unavailable on this device. Try opening files from another file manager.</string>
 
     <!-- Strings related to Settings -->
     <string name="pref_header_appearance">Appearance</string>

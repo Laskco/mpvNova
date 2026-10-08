@@ -103,10 +103,10 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
      * @return true if app has been granted permission to read shared storage.
      */
     public static boolean hasPermission(@NonNull Context context, @NonNull File path) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            return Environment.isExternalStorageManager();
-        }
-        return PackageManager.PERMISSION_GRANTED ==
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && Environment.isExternalStorageManager())
+            return true;
+        // Android 11/12 also allow media-file paths with the runtime storage permission.
+        return Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2 && PackageManager.PERMISSION_GRANTED ==
                 ContextCompat.checkSelfPermission(context, PERMISSION_PRE33);
     }
 
@@ -130,13 +130,40 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
     @RequiresApi(Build.VERSION_CODES.R)
     private void launchAllFilesAccessSettings() {
-        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-        intent.setData(Uri.parse("package:" + requireContext().getPackageName()));
-        try {
-            allFilesAccessLauncher.launch(intent);
-        } catch (ActivityNotFoundException e) {
-            allFilesAccessLauncher.launch(new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION));
+        Uri packageUri = Uri.parse("package:" + requireContext().getPackageName());
+        Intent[] settingsIntents = {
+                new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, packageUri),
+                new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+        };
+        // Some TV firmware omits both all-files settings activities.
+        for (Intent intent : settingsIntents) {
+            try {
+                allFilesAccessLauncher.launch(intent);
+                return;
+            } catch (ActivityNotFoundException | SecurityException e) {
+                Log.w("FilePickerFragment", "Storage permission settings unavailable: " + intent.getAction(), e);
+            }
         }
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.S_V2) {
+            // TVs without all-files settings can still grant read access to shared media.
+            try {
+                permissionLauncher.launch(new String[]{PERMISSION_PRE33});
+                return;
+            } catch (ActivityNotFoundException | SecurityException e) {
+                Log.w("FilePickerFragment", "Storage permission dialog unavailable", e);
+            }
+        }
+        try {
+            allFilesAccessLauncher.launch(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, packageUri));
+            return;
+        } catch (ActivityNotFoundException | SecurityException e) {
+            Log.w("FilePickerFragment", "App permission settings unavailable", e);
+        }
+        mRequestedPath = null;
+        Toast.makeText(requireContext(), R.string.storage_permission_settings_unavailable,
+                Toast.LENGTH_LONG).show();
+        if (mListener != null)
+            mListener.onCancelled();
     }
 
     private void onAllFilesAccessResult(@SuppressWarnings("unused") ActivityResult result) {

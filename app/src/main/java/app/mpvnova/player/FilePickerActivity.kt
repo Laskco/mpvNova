@@ -5,7 +5,6 @@ import `is`.xyz.filepicker.AbstractFilePickerFragment
 import android.app.Activity
 import android.content.ActivityNotFoundException
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -116,20 +115,7 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
             fragment != null &&
             FilePickerFragment.hasPermission(this, File("/"))
         ) {
-            pendingFilePermissionSetup = false
-            binding.fragmentContainerView.post { initFilePicker() }
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (fragment == null)
-            return
-        if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
-            initFilePicker()
+            onFilePermissionGranted()
         }
     }
 
@@ -205,6 +191,8 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
     }
 
     fun onFilePermissionGranted() {
+        // onResume and the permission result can both report the same grant.
+        if (!pendingFilePermissionSetup) return
         pendingFilePermissionSetup = false
         binding.fragmentContainerView.post { initFilePicker() }
     }
