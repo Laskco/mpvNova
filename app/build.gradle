@@ -58,6 +58,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            applicationIdSuffix = '.debug'
+            versionNameSuffix = '-libass-test'
+        }
         release {
             minifyEnabled = true
             shrinkResources = true
