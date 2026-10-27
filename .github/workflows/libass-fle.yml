@@ -3,6 +3,12 @@ on:
   push:
     branches: [libass-fle-performance]
   workflow_dispatch:
+    inputs:
+      architecture:
+        description: Native Android architecture
+        type: choice
+        default: arm64
+        options: [arm64, armv7l]
 permissions:
   contents: read
 env:
@@ -11,6 +17,10 @@ jobs:
   shield:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      ARCH: ${{ inputs.architecture || 'arm64' }}
+      ABI: ${{ inputs.architecture == 'armv7l' && 'armeabi-v7a' || 'arm64-v8a' }}
+      PREFIX_VARIABLE: ${{ inputs.architecture == 'armv7l' && 'PREFIX32' || 'PREFIX64' }}
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-java@v5
@@ -29,7 +39,7 @@ jobs:
             buildscripts/prefix
             buildscripts/deps
             buildscripts/sdk
-          key: fle-native-arm64-current-stack-v1
+          key: fle-native-${{ env.ARCH }}-current-stack-v1
       - name: Prepare Android toolchain
         run: |
           set -euo pipefail
@@ -45,17 +55,17 @@ jobs:
         run: |
           set -euo pipefail
           cd buildscripts
-          if [ ! -f prefix/arm64/lib/libmpv.so ]; then
+          if [ ! -f "prefix/$ARCH/lib/libmpv.so" ]; then
             ./include/download-deps.sh
-            ./buildall.sh --arch arm64 --only-deps mpvnova
+            ./buildall.sh --arch "$ARCH" --only-deps mpvnova
           fi
           ndk="$PWD/sdk/android-ndk-r30"
-          "$ndk/ndk-build" -C ../app/src/main -j2 PREFIX64="$PWD/prefix/arm64" APP_ABI=arm64-v8a
-          cp prefix/arm64/lib/*.so ../app/src/main/jniLibs/arm64-v8a/
-          cp ../app/src/main/libs/arm64-v8a/*.so ../app/src/main/jniLibs/arm64-v8a/
+          "$ndk/ndk-build" -C ../app/src/main -j2 "$PREFIX_VARIABLE=$PWD/prefix/$ARCH" "APP_ABI=$ABI"
+          cp "prefix/$ARCH/lib/"*.so "../app/src/main/jniLibs/$ABI/"
+          cp "../app/src/main/libs/$ABI/"*.so "../app/src/main/jniLibs/$ABI/"
           # No renderer, audio filter, or decoder feature is removed for this test.
-          grep -qx '#define HAVE_LIBCURL 1' deps/mpv/_build_arm64/config.h
-          grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' deps/ffmpeg/_build_arm64/config_components.h
+          grep -qx '#define HAVE_LIBCURL 1' "deps/mpv/_build_$ARCH/config.h"
+          grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' "deps/ffmpeg/_build_$ARCH/config_components.h"
           git -C deps/mpv apply --reverse --check ../../patches/mpv-dovi-fel-toggle.patch
           git -C deps/mpv apply --reverse --check ../../patches/mpv-external-subtitle-url.patch
       - uses: actions/cache/save@v5
@@ -65,14 +75,14 @@ jobs:
             buildscripts/prefix
             buildscripts/deps
             buildscripts/sdk
-          key: fle-native-arm64-current-stack-v1
+          key: fle-native-${{ env.ARCH }}-current-stack-v1
       - uses: gradle/actions/setup-gradle@v5
       - name: Build baseline debug app
         run: |
           ./gradlew :app:assembleDefaultDebug :app:testDefaultDebugUnitTest --console=plain
           mkdir -p comparison
-          cp app/build/outputs/apk/default/debug/app-default-arm64-v8a-debug.apk comparison/baseline-debug.apk
-          cp app/src/main/jniLibs/arm64-v8a/libmpv.so comparison/baseline-libmpv.so
+          cp "app/build/outputs/apk/default/debug/app-default-$ABI-debug.apk" comparison/baseline-debug.apk
+          cp "app/src/main/jniLibs/$ABI/libmpv.so" comparison/baseline-libmpv.so
       - name: Rebuild only libass and relink the same mpv
         run: |
           set -euo pipefail
@@ -82,23 +92,23 @@ jobs:
           git clone https://github.com/Laskco/libass.git deps/libass
           git -C deps/libass checkout "$LIBASS_REF"
           git -C deps/libass rev-parse HEAD > ../comparison/libass-revision.txt
-          ./buildall.sh --arch arm64 -n libass
+          ./buildall.sh --arch "$ARCH" -n libass
           export PATH="$PWD/sdk/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
-          cd deps/libass/_build_arm64
+          cd "deps/libass/_build_$ARCH"
           make clean
           make -j2 CPPFLAGS=-DASS_EVENT_THREADS
-          make DESTDIR="$GITHUB_WORKSPACE/buildscripts/prefix/arm64" install
+          make DESTDIR="$GITHUB_WORKSPACE/buildscripts/prefix/$ARCH" install
           cd ../../..
-          ./buildall.sh --arch arm64 -n --clean mpv
-          cp prefix/arm64/lib/libmpv.so ../app/src/main/jniLibs/arm64-v8a/libmpv.so
+          ./buildall.sh --arch "$ARCH" -n --clean mpv
+          cp "prefix/$ARCH/lib/libmpv.so" "../app/src/main/jniLibs/$ABI/libmpv.so"
       - name: Build candidate debug app
         run: |
           ./gradlew :app:assembleDefaultDebug --console=plain
-          cp app/build/outputs/apk/default/debug/app-default-arm64-v8a-debug.apk comparison/candidate-debug.apk
-          cp app/src/main/jniLibs/arm64-v8a/libmpv.so comparison/candidate-libmpv.so
+          cp "app/build/outputs/apk/default/debug/app-default-$ABI-debug.apk" comparison/candidate-debug.apk
+          cp "app/src/main/jniLibs/$ABI/libmpv.so" comparison/candidate-libmpv.so
           sha256sum comparison/*.apk comparison/*.so > comparison/SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
-          name: libass-shield-debug-comparison
+          name: libass-debug-comparison-${{ env.ABI }}
           if-no-files-found: error
           path: comparison/
