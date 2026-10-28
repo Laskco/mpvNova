@@ -33,10 +33,19 @@ jobs:
       - name: Verify bundled native libraries
         run: |
           set -euo pipefail
+          . buildscripts/include/depinfo.sh
           for abi in arm64-v8a armeabi-v7a x86 x86_64; do
             for lib in libplayer.so libmpv.so libavformat.so libavcodec.so libc++_shared.so; do
               test -f "app/src/main/jniLibs/$abi/$lib"
             done
+            strings "app/src/main/jniLibs/$abi/libmpv.so" | grep -F "$v_libass" >/dev/null || {
+              echo "Bundled libmpv.so does not match pinned libass revision ($abi)." >&2
+              exit 1
+            }
+            strings "app/src/main/jniLibs/$abi/libmpv.so" | grep -F 'LIBASS_RENDER_THREADS' >/dev/null || {
+              echo "Bundled libmpv.so is missing threaded subtitle rendering ($abi)." >&2
+              exit 1
+            }
           done
 
       - name: Verify Android build
