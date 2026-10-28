@@ -179,7 +179,7 @@ jobs:
         run: |
           cp -a jniLibs/. app/src/main/jniLibs/
           chmod +x gradlew
-          ./gradlew :app:assembleDefaultRelease :app:testDefaultReleaseUnitTest :app:detekt --console=plain
+          ./gradlew :app:assembleDefaultRelease :app:testDefaultDebugUnitTest :app:detekt --console=plain
 
       - name: Upload unsigned release APKs for local signing
         uses: actions/upload-artifact@v7
