@@ -13,6 +13,10 @@ on:
         description: Export standalone baseline and candidate timing tools
         type: boolean
         default: false
+      tls_arm32_acceleration:
+        description: Test runtime-dispatched Armv8 crypto in the ARMv7 candidate
+        type: boolean
+        default: false
 permissions:
   contents: read
 env:
@@ -103,6 +107,10 @@ jobs:
           make -j2 CPPFLAGS=-DASS_EVENT_THREADS
           make DESTDIR="$GITHUB_WORKSPACE/buildscripts/prefix/$ARCH" install
           cd ../../..
+          if [[ "$ARCH" = armv7l && '${{ inputs.tls_arm32_acceleration }}' = true ]]; then
+            MPVNOVA_ARM32_TLS_ACCELERATION=1 ./buildall.sh --arch "$ARCH" -n mbedtls
+            cp "prefix/$ARCH/lib/libmbedcrypto.a" ../comparison/tls-libmbedcrypto.a
+          fi
           ./buildall.sh --arch "$ARCH" -n --clean mpv
           cp "prefix/$ARCH/lib/libmpv.so" "../app/src/main/jniLibs/$ABI/libmpv.so"
       - name: Build candidate debug app

@@ -22,4 +22,18 @@ fi
 ./scripts/config.py set MBEDTLS_PLATFORM_DEV_RANDOM '"/dev/urandom"'
 
 make -j$cores no_test
+
+# Keep the ARMv7 fallback while making the existing runtime-dispatched Armv8
+# crypto implementation available to the experimental 32-bit TV build.
+if [[ "${MPVNOVA_ARM32_TLS_ACCELERATION:-0}" == 1 && "$ndk_triple" == arm-* ]]; then
+	for source in aes gcm; do
+		$CC -O2 -g -fPIC -Iinclude -Ilibrary -DMBEDTLS_ARCH_IS_ARMV8_A \
+			-c "library/$source.c" -o "library/$source.o"
+	done
+	# Only this translation unit can contain Armv8 crypto instructions. Calls
+	# remain guarded by mbedTLS's Linux HWCAP check; software code is retained.
+	$CC -O2 -g -fPIC -march=armv8-a+crypto -Iinclude -Ilibrary \
+		-c library/aesce.c -o library/aesce.o
+	$AR r library/libmbedcrypto.a library/aes.o library/gcm.o library/aesce.o
+fi
 make DESTDIR="$prefix_dir" install
