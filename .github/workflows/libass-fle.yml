@@ -1,7 +1,7 @@
 name: libass FLE debug comparison
 on:
   push:
-    branches: [libass-fle-performance]
+    branches: [libass-fle-performance, noucome-ass-drift]
   workflow_dispatch:
     inputs:
       architecture:
@@ -20,7 +20,7 @@ on:
 permissions:
   contents: read
 env:
-  LIBASS_REF: 7b4c7be1dbb024bd58dd31fc390643ac57d8049d
+  LIBASS_REF: ae6c7a1066a6b906c9c62ff621e0634aa1c306d4
 jobs:
   shield:
     runs-on: ubuntu-24.04
@@ -100,7 +100,7 @@ jobs:
           git clone https://github.com/Laskco/mpvNova-libass.git deps/libass
           git -C deps/libass checkout "$LIBASS_REF"
           git -C deps/libass rev-parse HEAD > ../comparison/libass-revision.txt
-          ./buildall.sh --arch "$ARCH" -n libass
+          MPVNOVA_LIBASS_REF="$LIBASS_REF" ./buildall.sh --arch "$ARCH" -n libass
           export PATH="$PWD/sdk/android-ndk-r30/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
           cd "deps/libass/_build_$ARCH"
           make clean
