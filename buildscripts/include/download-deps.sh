@@ -65,8 +65,12 @@ fi
 
 # libass
 if [ ! -d libass ]; then
-	git clone https://github.com/libass/libass
+	git clone "$libass_repository" libass
 	git -C libass checkout "$v_libass"
+fi
+if [ "$(git -C libass rev-parse HEAD)" != "$v_libass" ]; then
+	echo >&2 "libass does not match pinned revision $v_libass. Use a clean dependency checkout."
+	exit 1
 fi
 
 # lua

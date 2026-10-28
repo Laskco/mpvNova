@@ -51,7 +51,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
-import app.mpvnova.player.BuildConfig
 import app.mpvnova.player.FilePickerActivity
 import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
@@ -1031,7 +1030,6 @@ class PreferenceActivity : AppCompatActivity(),
         }
 
         override fun onPreferencesLoaded() {
-            findPreference<PreferenceCategory>("ass_experimental_category")?.isVisible = BuildConfig.DEBUG
             val autoFallbackPref = findPreference<SwitchPreferenceCompat>("decoder_auto_fallback")
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
 

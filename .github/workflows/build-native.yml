@@ -3,10 +3,14 @@ name: build-native
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         arch: [armv7l, arm64, x86, x86_64]
     steps:
@@ -23,13 +27,20 @@ jobs:
       - name: Install deps
         run: |
           sudo apt-get update
-          sudo apt-get install autoconf pkgconf libtool ninja-build python3-pip gperf nasm
-          sudo pip3 install meson
+          sudo apt-get install -y autoconf automake pkgconf libtool ninja-build python3-pip gperf nasm
+          python3 -m pip install --break-system-packages meson
 
-      - name: Download SDK + NDK
+      - name: Prepare Android toolchain
         run: |
-          cd buildscripts
-          IN_CI=1 ./include/download-sdk.sh
+          set -euo pipefail
+          . buildscripts/include/depinfo.sh
+          mkdir -p buildscripts/sdk/bin
+          curl -fL --retry 3 "https://dl.google.com/android/repository/android-ndk-${v_ndk}-linux.zip" -o "$RUNNER_TEMP/ndk.zip"
+          unzip -q "$RUNNER_TEMP/ndk.zip" -d buildscripts/sdk
+          grep -qF "$v_ndk_n" "buildscripts/sdk/android-ndk-${v_ndk}/source.properties"
+          ln -s "$ANDROID_HOME" buildscripts/sdk/android-sdk-linux
+          curl -fL --retry 3 https://raw.githubusercontent.com/FFmpeg/gas-preprocessor/master/gas-preprocessor.pl -o buildscripts/sdk/bin/gas-preprocessor.pl
+          chmod +x buildscripts/sdk/bin/gas-preprocessor.pl
 
       - name: Download deps
         run: |
@@ -73,10 +84,14 @@ jobs:
           if [ "$arch" = "armv7l" ]; then expected=0; fi
           grep -qx "#define CONFIG_ASM $expected" "buildscripts/deps/libass/_build_$arch/config.h"
           echo "libass assembly: $expected ($arch)"
+          . buildscripts/include/depinfo.sh
+          test "$(git -C buildscripts/deps/libass rev-parse HEAD)" = "$v_libass"
+          grep -q -- '-DASS_EVENT_THREADS' "buildscripts/deps/libass/_build_$arch/Makefile"
 
       - name: Verify native configuration and patches (${{ matrix.arch }})
         run: |
           grep -qx '#define HAVE_LIBCURL 1' "buildscripts/deps/mpv/_build_${{ matrix.arch }}/config.h"
+          grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' "buildscripts/deps/ffmpeg/_build_${{ matrix.arch }}/config_components.h"
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
           git -C buildscripts/deps/mpv diff --exit-code
@@ -132,6 +147,8 @@ jobs:
     runs-on: ubuntu-24.04
     needs: build
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download all artifacts
         uses: actions/download-artifact@v7
         with:
@@ -150,3 +167,23 @@ jobs:
         with:
           name: jniLibs-all-abis
           path: jniLibs/
+
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: temurin
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Build release APKs with rebuilt libraries
+        run: |
+          cp -a jniLibs/. app/src/main/jniLibs/
+          chmod +x gradlew
+          ./gradlew :app:assembleDefaultRelease :app:testDefaultReleaseUnitTest :app:detekt --console=plain
+
+      - name: Upload unsigned release APKs for local signing
+        uses: actions/upload-artifact@v7
+        with:
+          name: rebuilt-release-apks-unsigned
+          if-no-files-found: error
+          path: app/build/outputs/apk/default/release/*-unsigned.apk

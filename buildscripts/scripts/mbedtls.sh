@@ -24,8 +24,8 @@ fi
 make -j$cores no_test
 
 # Keep the ARMv7 fallback while making the existing runtime-dispatched Armv8
-# crypto implementation available to the experimental 32-bit TV build.
-if [[ "${MPVNOVA_ARM32_TLS_ACCELERATION:-0}" == 1 && "$ndk_triple" == arm-* ]]; then
+# crypto implementation available to the 32-bit build.
+if [[ "${MPVNOVA_ARM32_TLS_ACCELERATION:-1}" == 1 && "$ndk_triple" == arm-* ]]; then
 	for source in aes gcm; do
 		$CC -O2 -g -fPIC -Iinclude -Ilibrary -DMBEDTLS_ARCH_IS_ARMV8_A \
 			-c "library/$source.c" -o "library/$source.o"

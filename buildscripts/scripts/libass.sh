@@ -1,6 +1,7 @@
 #!/bin/bash -e
 
 . ../../include/path.sh
+. "$DIR/include/depinfo.sh"
 
 if [ "$1" == "build" ]; then
 	true
@@ -10,6 +11,14 @@ elif [ "$1" == "clean" ]; then
 else
 	exit 255
 fi
+
+expected_ref=${MPVNOVA_LIBASS_REF:-$v_libass}
+if [ "$(git rev-parse HEAD)" != "$expected_ref" ]; then
+	echo >&2 "Refusing to build libass outside pinned revision $expected_ref."
+	exit 1
+fi
+
+export CPPFLAGS="${CPPFLAGS:+$CPPFLAGS }-DASS_EVENT_THREADS"
 
 [ -f configure ] || ./autogen.sh
 

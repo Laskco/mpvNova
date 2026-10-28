@@ -18,7 +18,8 @@ v_mbedtls=3.6.7
 v_dav1d=1.5.4
 v_libxml2=2.15.4
 v_fontconfig=2.18.3
-v_libass=0.17.5
+v_libass=e58c636441a966a68c047d997049bf79f6c3c6d4
+libass_repository=https://github.com/Laskco/libass.git
 v_libplacebo=7.375.0
 v_curl=8.23.0
 # Pin upstream mpv; apply the default-off FEL and external subtitle URL patches.
@@ -53,4 +54,4 @@ v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-upstream-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-${v_libass}-asm1-libplacebo-${v_libplacebo}-${v_ci_libplacebo:0:8}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}-mpv-${v_mpv:0:8}-feloff2-urlsubs2-16krelro1.tgz"
+ci_tarball="prefix-upstream-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-fork-${v_libass:0:12}-threads1-asm1-libplacebo-${v_libplacebo}-${v_ci_libplacebo:0:8}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}-mpv-${v_mpv:0:8}-feloff2-urlsubs2-16krelro1.tgz"

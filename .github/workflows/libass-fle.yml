@@ -141,7 +141,7 @@ jobs:
               flags=-DASS_FLE_PROFILE
             fi
             git -C deps/libass checkout "$ref"
-            ./buildall.sh --arch "$ARCH" -n --clean libass
+            MPVNOVA_LIBASS_REF="$ref" ./buildall.sh --arch "$ARCH" -n --clean libass
             pushd "deps/libass/_build_$ARCH"
             make clean
             make -j2 "CPPFLAGS=$flags"
