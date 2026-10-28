@@ -20,7 +20,7 @@ on:
 permissions:
   contents: read
 env:
-  LIBASS_REF: e58c636441a966a68c047d997049bf79f6c3c6d4
+  LIBASS_REF: 7b4c7be1dbb024bd58dd31fc390643ac57d8049d
 jobs:
   shield:
     runs-on: ubuntu-24.04
@@ -97,7 +97,7 @@ jobs:
           cd buildscripts
           # The baseline is already packaged. This checkout is CI scratch only.
           rm -rf deps/libass
-          git clone https://github.com/Laskco/libass.git deps/libass
+          git clone https://github.com/Laskco/mpvNova-libass.git deps/libass
           git -C deps/libass checkout "$LIBASS_REF"
           git -C deps/libass rev-parse HEAD > ../comparison/libass-revision.txt
           ./buildall.sh --arch "$ARCH" -n libass
