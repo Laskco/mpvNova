@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.content.Context
 import android.os.Environment
+import android.system.Os
 import android.util.AttributeSet
 import android.util.Log
 import androidx.core.content.ContextCompat
@@ -56,6 +57,14 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+        if (BuildConfig.DEBUG) {
+            val enabled = sharedPreferences.getBoolean("experimental_ass_edges", false)
+            runCatching {
+                Os.setenv("LIBASS_EXPERIMENTAL_EDGES", if (enabled) "1" else "0", true)
+            }.onFailure { error ->
+                Log.w(MPV_VIEW_LOG_TAG, "Could not configure experimental ASS rendering", error)
+            }
+        }
         val startupDecoderMode = startupPreferredDecoderMode(sharedPreferences)
 
         mpvSetOptionString("profile", "fast")

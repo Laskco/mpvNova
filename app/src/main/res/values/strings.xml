@@ -1120,6 +1120,9 @@
     <string name="settings_category_device_compatibility">Device compatibility</string>
     <string name="settings_category_configuration">Configuration files</string>
     <string name="settings_category_diagnostics">Playback diagnostics</string>
+    <string name="settings_category_experimental">Experimental</string>
+    <string name="pref_experimental_ass_edges_title">ASS performance rendering</string>
+    <string name="pref_experimental_ass_edges_summary">Preserves styles and animations with slightly coarser edges. Reopen playback to apply.</string>
     <string name="settings_category_system_behavior">Android behavior</string>
     <string name="document_picker_choose_app">Choose file manager</string>
 </resources>
