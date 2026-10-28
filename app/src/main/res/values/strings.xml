@@ -400,7 +400,7 @@
     <string name="pref_shield_decoder_fallback_title">Hi10P fallback tuning</string>
     <string name="pref_shield_decoder_fallback_summary">All options software-decode Hi10P H.264 through G-NEXT. They differ only in the tuning applied.</string>
     <string name="shield_fallback_default_title">G-NEXT SW — no tuning</string>
-    <string name="shield_fallback_default_desc">Strictly stock playback: software decode through the standard G-NEXT path with no extra tweaks.</string>
+    <string name="shield_fallback_default_desc">Software decode through standard G-NEXT. Late output frames are dropped to keep audio and video synchronized, without changing deblocking, upscaling, or audio buffering.</string>
     <string name="shield_fallback_light_title">G-NEXT SW — light tuning</string>
     <string name="shield_fallback_light_desc">Skips the deblocking filter on non reference frames (big CPU saving, minor quality cost), uses a 1 second audio buffer, and upscales with Lanczos sharp. Not always recommended. Some Hi10P streams get major AV sync or framedrop issues with this. If that happens, switch back to no tuning and/or restart your device.</string>
     <string name="shield_fallback_framedrop_title">G-NEXT SW frame drop tuning</string>

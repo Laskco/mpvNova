@@ -32,6 +32,8 @@ private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreference
 private fun MPVView.applyShieldHi10pDefaultFallback(sharedPreferences: SharedPreferences) {
     setRuntimeOption("hwdec", MPV_VIEW_HWDEC_NONE)
     applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
+    // Keep the audio clock authoritative when expensive subtitles delay output.
+    setRuntimeOption("framedrop", "vo")
 }
 
 private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPreferences) {
@@ -43,10 +45,8 @@ private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPrefer
     setRuntimeOption("scale", "ewa_lanczossharp")
 }
 
-// Light tuning plus frame dropping. applyStandardDecoderTuning forces framedrop=no, which
-// lets A/V desync grow without bound when the Shield's audio HAL clock slips (a state only a
-// reboot clears). framedrop=vo drops late frames at the output stage so video keeps following
-// the audio clock — an occasional dropped frame instead of runaway drift.
+// Light tuning plus output catch-up. The stock Hi10P path also allows catch-up,
+// without changing deblocking, upscaling, or audio buffering.
 private fun MPVView.applyShieldHi10pFramedropFallback(sharedPreferences: SharedPreferences) {
     applyShieldHi10pCopyFallback(sharedPreferences)
     setRuntimeOption("framedrop", "vo")
