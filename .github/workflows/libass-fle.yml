@@ -16,7 +16,7 @@ on:
 permissions:
   contents: read
 env:
-  LIBASS_REF: 8594f52238148d3422bcd1eeb30167ae977dbc8f
+  LIBASS_REF: e58c636441a966a68c047d997049bf79f6c3c6d4
 jobs:
   shield:
     runs-on: ubuntu-24.04
