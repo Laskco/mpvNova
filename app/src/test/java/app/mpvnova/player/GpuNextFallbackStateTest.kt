@@ -59,6 +59,34 @@ class GpuNextFallbackStateTest {
         assertFalse(state.rendererFallbackApplied)
     }
 
+    @Test
+    fun recoveryPreservesPreloadedHi10pForIncomingFile() {
+        val state = GpuNextFallbackState()
+        failFrames(state, 0, "mediacodec")
+        assertFalse(state.shouldRestoreForFile("hi10p.mkv", null, "hi10p.mkv"))
+    }
+
+    @Test
+    fun previousFilesHi10pPreloadDoesNotPreventRecovery() {
+        val state = GpuNextFallbackState()
+        failFrames(state, 0, "mediacodec")
+        assertTrue(state.shouldRestoreForFile("normal.mkv", null, "hi10p.mkv"))
+        assertTrue(state.shouldRestoreForFile("normal.mkv", null, null))
+        assertTrue(state.shouldRestoreForFile(null, null, null))
+    }
+
+    @Test
+    fun recoveryDoesNotOverrideExplicitDecoderSelection() {
+        val state = GpuNextFallbackState()
+        failFrames(state, 0, "mediacodec")
+        assertFalse(state.shouldRestoreForFile("normal.mkv", "g_next_direct", null))
+    }
+
+    @Test
+    fun normalFileLoadDoesNotRestoreWithoutRecovery() {
+        assertFalse(GpuNextFallbackState().shouldRestoreForFile("normal.mkv", null, null))
+    }
+
     private fun failFrames(state: GpuNextFallbackState, start: Long, hwdec: String): GpuNextFallbackAction? {
         assertNull(state.onRenderFailure(start, hwdec, hwdec))
         assertNull(state.onRenderFailure(start + 100, hwdec, hwdec))

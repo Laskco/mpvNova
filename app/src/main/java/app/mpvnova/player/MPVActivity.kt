@@ -471,7 +471,9 @@ open class MPVActivity : AppCompatActivity() {
     internal var controlsOverlayAutoPaused = false
     internal var audioNormUnderrunHintShown = false
     internal val gpuNextFallbackState = GpuNextFallbackState()
-    internal var shieldHi10pPreloadApplied = false
+    internal var shieldHi10pPreloadPath: String? = null
+    internal val shieldHi10pPreloadApplied: Boolean
+        get() = shieldHi10pPreloadPath != null
 
 
     internal var playbackHasStarted = false

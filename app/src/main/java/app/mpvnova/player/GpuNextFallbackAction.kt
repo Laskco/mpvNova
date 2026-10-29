@@ -23,6 +23,9 @@ internal class GpuNextFallbackState {
     val recoveryApplied: Boolean
         @Synchronized get() = rendererFallbackApplied || copyRetryStartedMs != null
 
+    fun shouldRestoreForFile(path: String?, sessionMode: String?, preloadedHi10pPath: String?): Boolean =
+        recoveryApplied && sessionMode == null && (path == null || preloadedHi10pPath != path)
+
     @Synchronized
     fun reset() {
         rendererFallbackApplied = false

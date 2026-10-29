@@ -74,7 +74,9 @@ private fun MPVActivity.handleMpvStartFile() {
     diagnosticAudioTrack = "unavailable"
     recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
-    val restoreDecoderAfterFailure = gpuNextFallbackState.recoveryApplied
+    val restoreDecoderAfterFailure = gpuNextFallbackState.shouldRestoreForFile(
+        currentMpvPath(), sessionDecoderMode, shieldHi10pPreloadPath,
+    )
     playbackEnded = false
     currentTrackSeriesKey = null
     currentAspectSeriesKey = null
@@ -104,7 +106,7 @@ private fun MPVActivity.handleMpvStartFile() {
         refreshTimeInfoPanelVisibility()
         updatePlayerTitleOverlay()
     }
-    if (restoreDecoderAfterFailure && sessionDecoderMode == null) {
+    if (restoreDecoderAfterFailure) {
         player.applyDefaultDecoderForFileLoad()
     }
     applySessionDecoderModeIfNeeded()
