@@ -90,6 +90,7 @@ jobs:
 
       - name: Verify native configuration and patches (${{ matrix.arch }})
         run: |
+          git -C buildscripts/deps/libplacebo apply --reverse --check ../../patches/libplacebo-external-sampler-stage.patch
           grep -qx '#define HAVE_LIBCURL 1' "buildscripts/deps/mpv/_build_${{ matrix.arch }}/config.h"
           grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' "buildscripts/deps/ffmpeg/_build_${{ matrix.arch }}/config_components.h"
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch

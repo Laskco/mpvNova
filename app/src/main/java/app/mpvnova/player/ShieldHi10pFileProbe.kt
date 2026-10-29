@@ -86,7 +86,7 @@ internal fun MPVView.applyDefaultDecoderForFileLoad() {
 
     val vo = startupVo(sharedPreferences, startupDecoderMode)
     vo?.let { applyStandardDecoderTuning(sharedPreferences, it) }
-    val hwdec = shieldGpuNextStartupHwdec(vo, startupHwdec(sharedPreferences, startupDecoderMode))
+    val hwdec = startupHwdec(sharedPreferences, startupDecoderMode)
     if (hwdec != null)
         setRuntimeOption("hwdec", hwdec)
 }

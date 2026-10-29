@@ -78,8 +78,10 @@ internal fun MPVActivity.cycleSpeed() {
 }
 
 internal fun MPVActivity.currentDecoderUiMode(): String {
-    if (gpuNextFallbackState.rendererFallbackApplied) {
-        return if (player.hwdecActive.trim() == MPV_VIEW_HWDEC_NONE) {
+    if (gpuNextFallbackState.recoveryApplied) {
+        return if (gpuNextFallbackState.rendererFallbackApplied &&
+            player.hwdecActive.trim() == MPV_VIEW_HWDEC_NONE
+        ) {
             MPVView.DECODER_MODE_SW
         } else {
             player.currentDecoderMode

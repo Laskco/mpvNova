@@ -20,6 +20,9 @@ internal class GpuNextFallbackState {
     private var lastErrorMs: Long? = null
     private var errorCount = 0
 
+    val recoveryApplied: Boolean
+        @Synchronized get() = rendererFallbackApplied || copyRetryStartedMs != null
+
     @Synchronized
     fun reset() {
         rendererFallbackApplied = false

@@ -24,12 +24,7 @@ private fun MPVActivity.decoderItem(mode: String, currentMode: String): Pair<Cha
     // active-path word lit while Shield mode is current, without selecting it.
     val highlightLabel = mode == currentMode ||
         (mode == MPVView.DECODER_MODE_GNEXT && currentMode == MPVView.DECODER_MODE_SHIELD_H10P)
-    val label = if (mode == MPVView.DECODER_MODE_GNEXT_DIRECT && !canSelectGpuNextDirect()) {
-        getString(R.string.decoder_mode_gnext_direct) + "\n" +
-            getString(R.string.decoder_mode_gnext_direct_shield_warning)
-    } else {
-        decoderMenuLabel(mode, highlightLabel)
-    }
+    val label = decoderMenuLabel(mode, highlightLabel)
     return label to mode
 }
 

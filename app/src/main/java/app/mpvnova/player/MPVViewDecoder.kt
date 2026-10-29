@@ -19,6 +19,12 @@ internal val MPVView.currentDecoderMode: String
                 requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC -> MPVView.DECODER_MODE_GNEXT_DIRECT
             requestedVo.startsWith(MPV_VIEW_VO_GPU_NEXT) &&
                 requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC_COPY -> MPVView.DECODER_MODE_GNEXT
+            requestedVo.startsWith(MPV_VIEW_VO_GPU_NEXT) && requestedHwdec == MPV_VIEW_HWDECS ->
+                if (effectiveHwdec == MPV_VIEW_HWDEC_MEDIACODEC) {
+                    MPVView.DECODER_MODE_GNEXT_DIRECT
+                } else {
+                    MPVView.DECODER_MODE_GNEXT
+                }
             requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC -> MPVView.DECODER_MODE_HW_PLUS
             requestedHwdec == MPV_VIEW_HWDEC_MEDIACODEC_COPY -> MPVView.DECODER_MODE_HW
             requestedHwdec == MPV_VIEW_HWDECS -> if (hwdecActive == MPV_VIEW_HWDEC_MEDIACODEC) {
@@ -54,12 +60,7 @@ internal fun MPVView.isHi10pH264Video(): Boolean {
 
 internal fun MPVView.applyDecoderMode(mode: String) {
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-    val compatibleMode = if (mode == MPVView.DECODER_MODE_GNEXT_DIRECT && isNvidiaShieldDevice()) {
-        MPVView.DECODER_MODE_GNEXT
-    } else {
-        mode
-    }
-    when (compatibleMode) {
+    when (mode) {
         MPVView.DECODER_MODE_AUTO_SAFE -> {
             applyStandardDecoderTuning(sharedPreferences, defaultVo(sharedPreferences))
             setRuntimeOption("hwdec", MPV_VIEW_HWDEC_AUTO_SAFE)

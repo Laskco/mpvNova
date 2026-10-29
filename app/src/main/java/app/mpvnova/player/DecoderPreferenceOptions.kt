@@ -97,4 +97,4 @@ internal fun supportsGpuNextDirect(): Boolean =
     Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
 
 internal fun canSelectGpuNextDirect(): Boolean =
-    supportsGpuNextDirect() && !isNvidiaShieldDevice()
+    supportsGpuNextDirect()

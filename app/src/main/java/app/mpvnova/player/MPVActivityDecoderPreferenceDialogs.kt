@@ -12,7 +12,7 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
     val currentMode = normalizedPreferredDecoderMode(preferredDecoderMode)
     val items = options.map { option ->
         MediaPickerDialog.Item(
-            label = preferredDecoderPickerLabel(option),
+            label = getString(option.titleRes),
             tag = option.value,
             selected = option.value == currentMode,
             enabled = option.enabled,
@@ -62,15 +62,6 @@ internal fun MPVActivity.pickPreferredDecoderMode() {
             maxWidthDp = 760f,
         )
     )
-}
-
-private fun MPVActivity.preferredDecoderPickerLabel(
-    option: PreferredDecoderModeOption,
-): CharSequence = if (!option.enabled && option.value == MPVView.DECODER_MODE_GNEXT_DIRECT) {
-    getString(option.titleRes) + "\n" +
-        getString(R.string.decoder_mode_gnext_direct_shield_warning)
-} else {
-    getString(option.titleRes)
 }
 
 internal fun MPVActivity.pickShieldDecoderFallback() {

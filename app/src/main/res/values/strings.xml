@@ -113,7 +113,6 @@
     <string name="decoder_mode_sw_description">Turns hardware decode off and uses ffmpeg software decoding. Most compatible, but much heavier on the CPU.</string>
     <string name="decoder_mode_gnext_description">Uses the gpu-next renderer with mediacodec-copy. This keeps libplacebo rendering while avoiding the fragile direct hardware path.</string>
     <string name="decoder_mode_gnext_direct_description">Uses the gpu-next renderer with the direct MediaCodec path. This can reduce frame-copy overhead on compatible devices, but it is less reliable on some hardware.</string>
-    <string name="decoder_mode_gnext_direct_shield_warning">Incompatible with NVIDIA Shield (will cause a purple screen)</string>
     <string name="decoder_mode_shield_h10p_description">Software decoding through G-NEXT for Hi10P H.264 files. Uses the selected Hi10P fallback tuning.</string>
     <string name="decoder_mode_mpv_conf_description">Leaves vo and hwdec to mpv.conf at startup. Turn off automatic decoder fallback and choose this to stop mpvNova from applying a decoder preset.</string>
     <string name="pref_preferred_decoder_mode_summary_format">Current: %1$s\n%2$s</string>

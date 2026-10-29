@@ -68,7 +68,7 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         mpvSetOptionString("profile", "fast")
         val vo = startupVo(sharedPreferences, startupDecoderMode)
         vo?.let(::setVo)
-        val hwdec = shieldGpuNextStartupHwdec(vo, startupHwdec(sharedPreferences, startupDecoderMode))
+        val hwdec = startupHwdec(sharedPreferences, startupDecoderMode)
         applyDisplayRefreshRate()
         applyPreferredOptions(sharedPreferences)
         applyVideoPreferenceOptions(sharedPreferences)

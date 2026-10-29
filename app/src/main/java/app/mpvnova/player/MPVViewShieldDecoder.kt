@@ -83,14 +83,3 @@ internal fun String?.toShieldDecoderFallback(): String {
         else -> MPVView.SHIELD_DECODER_FALLBACK_DEFAULT
     }
 }
-
-// Shield's gpu-next direct (aimagereader) path never works — only copy does.
-// Skip the doomed direct-first auto chain at startup so the render fallback
-// doesn't have to rescue (and toast) once per session. Anything other than
-// Shield + gpu-next + the default auto chain passes through untouched.
-internal fun shieldGpuNextStartupHwdec(vo: String?, hwdec: String?): String? {
-    val applies = isNvidiaShieldDevice() &&
-        vo?.startsWith(MPV_VIEW_VO_GPU_NEXT) == true &&
-        hwdec == MPV_VIEW_HWDECS
-    return if (applies) MPV_VIEW_HWDEC_MEDIACODEC_COPY else hwdec
-}

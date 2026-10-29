@@ -393,19 +393,9 @@ class PreferenceActivity : AppCompatActivity(),
             val values = preference.entryValues ?: return
             val items = entries.indices.map { index ->
                 val value = values[index].toString()
-                val incompatibleShieldDirect =
-                    preference.key == "preferred_decoder_mode" &&
-                        value == app.mpvnova.player.MPVView.DECODER_MODE_GNEXT_DIRECT &&
-                        app.mpvnova.player.isNvidiaShieldDevice()
                 SettingsChoiceItem(
                     title = entries[index],
-                    detail = if (incompatibleShieldDirect) {
-                        getString(R.string.decoder_mode_gnext_direct_shield_warning)
-                    } else {
-                        null
-                    },
                     checked = preference.value == value,
-                    enabled = !incompatibleShieldDirect,
                 ) {
                     if (preference.callChangeListener(value)) {
                         preference.value = value
