@@ -1,5 +1,8 @@
 name: Shield Direct native candidate
 on:
+  push:
+    branches: [shield-gnext-direct]
+    paths: ['.github/workflows/shield-direct.yml', 'buildscripts/**']
   workflow_dispatch:
 permissions:
   contents: read
