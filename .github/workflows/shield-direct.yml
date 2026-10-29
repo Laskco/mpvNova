@@ -1,0 +1,43 @@
+name: Shield Direct native candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  arm64:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y autoconf automake pkgconf libtool ninja-build gperf nasm
+          python3 -m pip install --break-system-packages meson
+      - name: Prepare toolchain
+        run: |
+          set -euo pipefail
+          . buildscripts/include/depinfo.sh
+          chmod +x buildscripts/include/*.sh buildscripts/scripts/*.sh buildscripts/buildall.sh
+          mkdir -p buildscripts/sdk/bin
+          curl -fL --retry 3 "https://dl.google.com/android/repository/android-ndk-${v_ndk}-linux.zip" -o "$RUNNER_TEMP/ndk.zip"
+          unzip -q "$RUNNER_TEMP/ndk.zip" -d buildscripts/sdk
+          grep -qF "$v_ndk_n" "buildscripts/sdk/android-ndk-${v_ndk}/source.properties"
+          ln -s "$ANDROID_HOME" buildscripts/sdk/android-sdk-linux
+          curl -fL --retry 3 https://raw.githubusercontent.com/FFmpeg/gas-preprocessor/master/gas-preprocessor.pl -o buildscripts/sdk/bin/gas-preprocessor.pl
+          chmod +x buildscripts/sdk/bin/gas-preprocessor.pl
+      - name: Rebuild current stack with shader fix
+        run: |
+          set -euo pipefail
+          cd buildscripts
+          ./include/download-deps.sh
+          ./buildall.sh --arch arm64 --only-deps mpvnova
+          git -C deps/libplacebo apply --reverse --check ../../patches/libplacebo-external-sampler-stage.patch
+          mkdir ../candidate
+          cp prefix/arm64/lib/libmpv.so ../candidate/
+          sha256sum ../candidate/libmpv.so > ../candidate/SHA256SUMS
+      - uses: actions/upload-artifact@v7
+        with:
+          name: shield-direct-arm64
+          path: candidate/
+          retention-days: 7
