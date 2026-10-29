@@ -1124,4 +1124,5 @@
     <string name="pref_experimental_ass_edges_summary">Preserves styles and animations with slightly coarser edges. Reopen playback to apply.</string>
     <string name="settings_category_system_behavior">Android behavior</string>
     <string name="document_picker_choose_app">Choose file manager</string>
+    <string name="error_hardware_decoder_rejected">The selected hardware decoder could not decode this video. Software fallback is off.</string>
 </resources>

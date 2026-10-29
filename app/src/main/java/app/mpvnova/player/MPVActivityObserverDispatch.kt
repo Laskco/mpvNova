@@ -50,6 +50,8 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
         maybeApplyShieldHi10pFallback()
     },
     "hwdec-current" to {
+        if (!mpvGetPropertyString("hwdec-current").isNullOrBlank())
+            gpuNextFallbackState.clearHardwareDecoderRejected()
         updateDecoderButton()
     },
 )

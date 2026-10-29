@@ -121,4 +121,30 @@ class GpuNextFallbackStateTest {
         assertEquals("no", nativeSoftwareFallback("mpv_conf", false, false, "no"))
         assertEquals("3", nativeSoftwareFallback(null, false, false, "3"))
     }
+
+    @Test
+    fun missingDecoderIsNotReportedAsSoftware() {
+        assertEquals("G-NXT", gpuNextDecoderBadge(null, false))
+        assertEquals("G-NXT", gpuNextDecoderBadge("", false))
+        assertEquals("G+ERR", gpuNextDecoderBadge(null, true))
+    }
+
+    @Test
+    fun activeDecoderDeterminesTheBadge() {
+        assertEquals("G+SW", gpuNextDecoderBadge("no", false))
+        assertEquals("G+HW", gpuNextDecoderBadge("mediacodec", false))
+        assertEquals("G+CPY", gpuNextDecoderBadge("mediacodec-copy", false))
+    }
+
+    @Test
+    fun hardwareRejectionIsOneShotAndResets() {
+        val state = GpuNextFallbackState()
+        assertTrue(state.markHardwareDecoderRejected())
+        assertFalse(state.markHardwareDecoderRejected())
+        state.clearHardwareDecoderRejected()
+        assertFalse(state.hardwareDecoderRejected)
+        state.markHardwareDecoderRejected()
+        state.reset()
+        assertFalse(state.hardwareDecoderRejected)
+    }
 }

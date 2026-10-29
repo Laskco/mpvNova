@@ -99,7 +99,7 @@ internal fun MPVActivity.currentDecoderUiMode(): String {
 
 internal fun MPVActivity.currentGpuNextPathLabel(useActivePath: Boolean): String {
     val requestedHwdec = normalizedHwdecOption()
-    val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
+    val activeHwdec = mpvGetPropertyString("hwdec-current").orEmpty().trim().lowercase(Locale.US)
     return currentGpuNextPathLabel(
         useActivePath,
         requestedHwdec,
@@ -108,28 +108,18 @@ internal fun MPVActivity.currentGpuNextPathLabel(useActivePath: Boolean): String
 }
 
 internal fun MPVActivity.currentGpuNextBadge(): String {
-    val requestedHwdec = (
-        mpvGetPropertyString("hwdec")
-            ?: mpvGetPropertyString("options/hwdec")
-            ?: ""
-        ).trim().lowercase(Locale.US)
-    val activeHwdec = player.hwdecActive.trim().lowercase(Locale.US)
-    val effectiveHwdec = when {
-        activeHwdec == "mediacodec-copy" -> "mediacodec-copy"
-        activeHwdec == "mediacodec" -> "mediacodec"
-        // hwdec was requested but the decoder actually fell back to software
-        // (Hi10P — MediaCodec rejects 10-bit H.264): report what's running.
-        activeHwdec == "no" -> "no"
-        requestedHwdec == "no" -> "no"
-        requestedHwdec.isNotBlank() -> requestedHwdec
-        else -> activeHwdec
-    }
+    return gpuNextDecoderBadge(
+        mpvGetPropertyString("hwdec-current"),
+        gpuNextFallbackState.hardwareDecoderRejected,
+    )
+}
 
-    return when (effectiveHwdec) {
-        "mediacodec-copy" -> "G+CPY"
-        "mediacodec" -> "G+HW"
-        "no" -> "G+SW"
-        else -> "G-NXT"
+internal fun gpuNextDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean): String {
+    return when (activeHwdec?.trim()?.lowercase(Locale.US)) {
+        MPV_VIEW_HWDEC_MEDIACODEC_COPY -> "G+CPY"
+        MPV_VIEW_HWDEC_MEDIACODEC -> "G+HW"
+        MPV_VIEW_HWDEC_NONE -> "G+SW"
+        else -> if (hardwareRejected) "G+ERR" else "G-NXT"
     }
 }
 

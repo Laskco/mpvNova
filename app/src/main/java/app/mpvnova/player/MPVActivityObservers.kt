@@ -136,8 +136,24 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
 
 internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLogObserver {
     override fun logMessage(prefix: String, level: Int, text: String) = activity.run {
+        maybeReportHardwareDecoderFailure(prefix, text)
         maybeApplyGpuNextRenderFallback(prefix, level, text)
         maybeShowAudioNormUnderrunHint(text)
+    }
+
+    private fun MPVActivity.maybeReportHardwareDecoderFailure(prefix: String, text: String) {
+        val decoderMessage = prefix == "vd" || prefix.startsWith("vd/")
+        if (!decoderMessage || !text.contains("Software decoding fallback is disabled.")) return
+        if (!gpuNextFallbackState.markHardwareDecoderRejected()) return
+        val path = currentMpvPath()
+        eventUiHandler.post {
+            if (activityIsForeground && gpuNextFallbackState.hardwareDecoderRejected &&
+                currentMpvPath() == path
+            ) {
+                updateDecoderButton()
+                showToast(getString(R.string.error_hardware_decoder_rejected))
+            }
+        }
     }
 
     /**

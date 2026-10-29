@@ -15,6 +15,9 @@ internal class GpuNextFallbackState {
     @Volatile
     var rendererFallbackApplied = false
         private set
+    @Volatile
+    var hardwareDecoderRejected = false
+        private set
     private var copyRetryStartedMs: Long? = null
     private var windowStartMs: Long? = null
     private var lastErrorMs: Long? = null
@@ -29,8 +32,21 @@ internal class GpuNextFallbackState {
     @Synchronized
     fun reset() {
         rendererFallbackApplied = false
+        hardwareDecoderRejected = false
         copyRetryStartedMs = null
         clearErrors()
+    }
+
+    @Synchronized
+    fun markHardwareDecoderRejected(): Boolean {
+        if (hardwareDecoderRejected) return false
+        hardwareDecoderRejected = true
+        return true
+    }
+
+    @Synchronized
+    fun clearHardwareDecoderRejected() {
+        hardwareDecoderRejected = false
     }
 
     @Synchronized
