@@ -1,5 +1,5 @@
 diff --git a/src/dispatch.c b/src/dispatch.c
-index 82d53409..2d8d20ab 100644
+index 4bae988..e8ff6a9 100644
 --- a/src/dispatch.c
 +++ b/src/dispatch.c
 @@ -29,6 +29,7 @@
@@ -10,7 +10,7 @@ index 82d53409..2d8d20ab 100644
      TMP_MAIN,      // main GLSL shader body
      TMP_VERT_HEAD, // vertex shader inputs/outputs
      TMP_VERT_BODY, // vertex shader body
-@@ -484,15 +485,20 @@ static void generate_shaders(pl_dispatch dp,
+@@ -488,15 +489,20 @@ static void generate_shaders(pl_dispatch dp,
              ident_t id = sh_ident_unpack(desc->name);
              pl_assert(type && prefix);
  
@@ -25,7 +25,7 @@ index 82d53409..2d8d20ab 100644
 -                ADD(pre, "layout(binding=%d) uniform %c%s "$";\n",
 +                ADD(sampler_pre, "layout(binding=%d) uniform %c%s "$";\n",
                      desc->binding, prefix, type, id);
-             } else if (gpu->glsl.gles && prefix != ' ') {
+             } else if (gpu->glsl.gles) {
 -                ADD(pre, "uniform highp %c%s "$";\n", prefix, type, id);
 +                ADD(sampler_pre, "uniform highp %c%s "$";\n", prefix, type, id);
              } else {
@@ -34,7 +34,7 @@ index 82d53409..2d8d20ab 100644
              }
              break;
          }
-@@ -603,6 +609,7 @@ static void generate_shaders(pl_dispatch dp,
+@@ -607,6 +613,7 @@ static void generate_shaders(pl_dispatch dp,
  
      pl_str_builder glsl = dp->tmp[TMP_MAIN];
      ADD_CAT(glsl, pre);

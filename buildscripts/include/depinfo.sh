@@ -11,19 +11,19 @@ v_sdk_build_tools=36.0.0
 
 v_lua=5.2.4
 v_unibreak=8.0
-v_harfbuzz=14.6.0
+v_harfbuzz=15.0.0
 v_fribidi=1.0.17
 v_freetype=2.15.0
 v_mbedtls=3.6.7
 v_dav1d=1.5.4
 v_libxml2=2.15.4
 v_fontconfig=2.18.3
-v_libass=467c7584a061505e476b03103b6f7a458c43471a
+v_libass=59ffda5470fb052333336d0a782b56d55de41ab8
 libass_repository=https://github.com/Laskco/mpvNova-libass.git
-v_libplacebo=7.375.0
+v_libplacebo=7.387.0
 v_curl=8.23.0
 # Pin upstream mpv; apply the default-off FEL and external subtitle URL patches.
-v_mpv=492bae0768f5e826991bf9fb222fa303371e8498
+v_mpv=6ee40e64d325d387faa2e57d7ab04d1a1f995cf0
 
 
 ## Dependency tree
@@ -49,7 +49,7 @@ dep_mpvnova=(mpv)
 
 # pinned ffmpeg revision
 v_ci_ffmpeg=n9.0.2
-v_ci_libplacebo=54c8476dc9ef15d5b68c7dd4e431804abc5bc183
+v_ci_libplacebo=a83aaeb4e60fdd7ed01619885f4f42bb0ef34eaa
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
