@@ -258,8 +258,7 @@ private fun Fragment.showDebugMenu() {
     }
 }
 
-// list of debug or testing activities that can be launched
+// Developer diagnostic activities.
 private val DEBUG_ACTIVITIES = arrayOf(
-    "IntentTestActivity",
     "CodecInfoActivity"
 )

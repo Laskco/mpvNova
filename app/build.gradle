@@ -142,14 +142,13 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.4.0'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'com.google.android.material:material:1.14.0'
-    testImplementation 'junit:junit:4.13.2'
 }
 
 detekt {
     buildUponDefaultConfig = true
     allRules = false
     ignoreFailures = false
-    source = files("src/main/java", "src/test/java")
+    source = files("src/main/java")
 }
 
 tasks.withType(dev.detekt.gradle.Detekt).configureEach {

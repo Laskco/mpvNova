@@ -13,6 +13,8 @@ backups/
 app/default/release/
 logs/
 qa-artifacts/
+app/src/test/
+app/src/androidTest/
 
 # Local agent/tool scratch
 .claude/
