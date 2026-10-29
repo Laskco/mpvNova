@@ -92,4 +92,33 @@ class GpuNextFallbackStateTest {
         assertNull(state.onRenderFailure(start + 100, hwdec, hwdec))
         return state.onRenderFailure(start + 200, hwdec, hwdec)
     }
+
+    @Test
+    fun disabledFallbacksEnforceEveryExplicitHardwareMode() {
+        listOf("auto_safe", "hw_plus", "hw", "g_next", "g_next_direct").forEach { mode ->
+            assertEquals("no", nativeSoftwareFallback(mode, false, false, "3"))
+        }
+    }
+
+    @Test
+    fun eitherEnabledFallbackRestoresConfiguredNativeBehavior() {
+        listOf(true to false, false to true, true to true).forEach { (auto, hi10p) ->
+            assertEquals("7", nativeSoftwareFallback("g_next_direct", auto, hi10p, "7"))
+        }
+    }
+
+    @Test
+    fun explicitSoftwareSelectionIsNeverBlockedByStrictHardwareMode() {
+        listOf("sw", "shield_h10p").forEach { mode ->
+            assertEquals("3", nativeSoftwareFallback(mode, false, false, "3"))
+            assertEquals("3", nativeSoftwareFallback(mode, false, false, "no"))
+        }
+    }
+
+    @Test
+    fun configurationModePreservesNativeFallbackSetting() {
+        assertEquals("7", nativeSoftwareFallback("mpv_conf", false, false, "7"))
+        assertEquals("no", nativeSoftwareFallback("mpv_conf", false, false, "no"))
+        assertEquals("3", nativeSoftwareFallback(null, false, false, "3"))
+    }
 }

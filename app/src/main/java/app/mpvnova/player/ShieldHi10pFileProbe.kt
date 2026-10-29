@@ -79,11 +79,12 @@ private fun MPVActivity.restoreDecoderAfterShieldHi10pPreload() {
 internal fun MPVView.applyDefaultDecoderForFileLoad() {
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     val startupDecoderMode = startupPreferredDecoderMode(sharedPreferences)
-    if (startupDecoderMode == MPVView.DECODER_MODE_MPV_CONF) {
-        applyMpvConfDecoderOptions()
+    if (startupDecoderMode != null) {
+        applyDecoderMode(startupDecoderMode)
         return
     }
 
+    applyNativeDecoderFallbackPolicy(null)
     val vo = startupVo(sharedPreferences, startupDecoderMode)
     vo?.let { applyStandardDecoderTuning(sharedPreferences, it) }
     val hwdec = startupHwdec(sharedPreferences, startupDecoderMode)

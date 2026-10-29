@@ -22,6 +22,7 @@ internal fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferenc
 }
 
 private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferences, fallback: String) {
+    applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_SHIELD_H10P)
     when (fallback.toShieldDecoderFallback()) {
         MPVView.SHIELD_DECODER_FALLBACK_FRAMEDROP -> applyShieldHi10pFramedropFallback(sharedPreferences)
         MPVView.SHIELD_DECODER_FALLBACK_COPY -> applyShieldHi10pCopyFallback(sharedPreferences)

@@ -152,8 +152,10 @@ private fun MPVActivity.handleDrawerVideoPreference(
 
 private fun MPVActivity.handleDrawerAutoFallbackChange(enabled: Boolean) {
     autoDecoderFallback = enabled
-    if (enabled)
+    if (enabled) {
+        player.applyNativeDecoderFallbackPolicy(sessionDecoderMode ?: player.currentDecoderMode)
         return
+    }
     preferredDecoderMode = normalizedPreferredDecoderMode(preferredDecoderMode)
     getDefaultSharedPreferences(applicationContext)
         .edit()
@@ -167,6 +169,7 @@ private fun MPVActivity.handleDrawerAutoFallbackChange(enabled: Boolean) {
 
 private fun MPVActivity.handleDrawerHi10pFallbackChange(enabled: Boolean) {
     hi10pFallbackEnabled = enabled
+    player.applyNativeDecoderFallbackPolicy(sessionDecoderMode ?: player.currentDecoderMode)
     if (enabled && sessionDecoderMode == null) {
         maybeApplyShieldHi10pFallback()
     }

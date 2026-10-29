@@ -60,6 +60,8 @@ internal fun MPVView.isHi10pH264Video(): Boolean {
 
 internal fun MPVView.applyDecoderMode(mode: String) {
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+    if (mode == MPVView.DECODER_MODE_SW || mode == MPVView.DECODER_MODE_SHIELD_H10P)
+        applyNativeDecoderFallbackPolicy(mode)
     when (mode) {
         MPVView.DECODER_MODE_AUTO_SAFE -> {
             applyStandardDecoderTuning(sharedPreferences, defaultVo(sharedPreferences))
@@ -94,6 +96,7 @@ internal fun MPVView.applyDecoderMode(mode: String) {
             applyMpvConfDecoderOptions()
         }
     }
+    applyNativeDecoderFallbackPolicy(mode)
 }
 
 internal fun MPVView.fallbackGpuNextToGpu() {
@@ -135,6 +138,7 @@ internal fun setRuntimeOption(name: String, value: String) {
 }
 
 internal fun MPVView.applyMpvConfDecoderOptions() {
+    applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_MPV_CONF)
     setVo(null)
     context.mpvConfOption("vo")?.let(::setRuntimeVo)
     context.mpvConfOption("hwdec")?.let { setRuntimeOption("hwdec", it) }

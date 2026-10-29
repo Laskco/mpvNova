@@ -51,6 +51,7 @@ internal val MPV_VIEW_PLAYBACK_SPEED_STEPS = doubleArrayOf(
 
 internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(context, attrs) {
     internal var configuredHwdecCodecs = MPV_VIEW_HWDEC_CODECS
+    internal var configuredSoftwareFallback = "3"
     private val appliedManagedShaderPaths = linkedSetOf<String>()
     internal val heldMpvKeys = MpvHeldKeyTracker()
     internal val networkOptionSession = NetworkOptionSession()
@@ -171,6 +172,13 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
         applyNetworkSettings()
         configuredHwdecCodecs = getOptionString("hwdec-codecs").ifBlank { MPV_VIEW_HWDEC_CODECS }
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        configuredSoftwareFallback = getOptionString("hwdec-software-fallback").ifBlank { "3" }
+        val startupMode = startupPreferredDecoderMode(preferences)
+        if (startupMode != null && startupMode != DECODER_MODE_MPV_CONF) {
+            startupVo(preferences, startupMode)?.let(::setVo)
+            startupHwdec(preferences, startupMode)?.let { mpvSetOptionString("hwdec", it) }
+        }
+        applyNativeDecoderFallbackPolicy(startupMode)
         applyMpeg2SoftwareFallbackSetting(preferences.mpeg2SoftwareFallbackEnabled())
         mpvSetOptionString("save-position-on-quit", "no")
         reconcileManagedShaders()
