@@ -147,4 +147,20 @@ class GpuNextFallbackStateTest {
         state.reset()
         assertFalse(state.hardwareDecoderRejected)
     }
+
+    @Test
+    fun normalHardwareBadgesReportRejectedDecoders() {
+        listOf("HW", "HW+", "AUTO").forEach { badge ->
+            assertEquals("HW-ERR", hardwareDecoderBadge(badge, null, true))
+            assertEquals("HW-ERR", hardwareDecoderBadge(badge, "", true))
+            assertEquals(badge, hardwareDecoderBadge(badge, null, false))
+        }
+    }
+
+    @Test
+    fun activeDecoderClearsNormalHardwareBadgeError() {
+        assertEquals("HW+", hardwareDecoderBadge("HW+", "mediacodec", true))
+        assertEquals("HW", hardwareDecoderBadge("HW", "mediacodec-copy", true))
+        assertEquals("SW", hardwareDecoderBadge("SW", "no", true))
+    }
 }

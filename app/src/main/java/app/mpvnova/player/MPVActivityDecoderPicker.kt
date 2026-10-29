@@ -123,6 +123,9 @@ internal fun gpuNextDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean
     }
 }
 
+internal fun hardwareDecoderBadge(badge: String, activeHwdec: String?, hardwareRejected: Boolean): String =
+    if (hardwareRejected && activeHwdec.isNullOrBlank()) "HW-ERR" else badge
+
 internal fun MPVActivity.highlightDecoderLabel(
     label: String,
     activeWord: String?,
@@ -165,7 +168,7 @@ internal fun MPVActivity.decoderMenuLabel(mode: String, isCurrentMode: Boolean):
                 isCurrentMode,
             )
         MPVView.DECODER_MODE_SHIELD_H10P ->
-            highlightDecoderLabel(getString(R.string.decoder_mode_shield_h10p), "Hi10P", isCurrentMode)
+            highlightDecoderLabel(getString(R.string.decoder_mode_shield_h10p), "software", isCurrentMode)
         MPVView.DECODER_MODE_MPV_CONF ->
             highlightDecoderLabel(getString(R.string.decoder_mode_mpv_conf), "mpv.conf", isCurrentMode)
         else -> mode

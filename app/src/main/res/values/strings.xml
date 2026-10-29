@@ -97,7 +97,7 @@
     <string name="decoder_mode_sw">SW (software)</string>
     <string name="decoder_mode_gnext_paths">G-NEXT Copy (copy/software)</string>
     <string name="decoder_mode_gnext_direct">G-NEXT Direct (direct)</string>
-    <string name="decoder_mode_shield_h10p">G-NEXT SW Hi10P fallback</string>
+    <string name="decoder_mode_shield_h10p">G-NEXT SW (software)</string>
     <string name="decoder_mode_mpv_conf">Custom mpv.conf</string>
     <string name="decoder_mode_auto_safe_settings">Auto (safe) - compatible hardware or software</string>
     <string name="decoder_mode_hw_plus_settings">HW+ - direct MediaCodec path</string>
@@ -105,7 +105,7 @@
     <string name="decoder_mode_sw_settings">SW - software decode</string>
     <string name="decoder_mode_gnext_settings">G-NEXT Copy - gpu-next + MediaCodec copy</string>
     <string name="decoder_mode_gnext_direct_settings">G-NEXT Direct - gpu-next + MediaCodec direct</string>
-    <string name="decoder_mode_shield_h10p_settings">G-NEXT SW Hi10P fallback</string>
+    <string name="decoder_mode_shield_h10p_settings">G-NEXT SW (software)</string>
     <string name="decoder_mode_mpv_conf_settings">Custom - use mpv.conf decoder options</string>
     <string name="decoder_mode_auto_safe_description">Lets mpv choose a supported safe hardware decoder and fall back to software when needed. Keeps your selected GPU or G-NEXT renderer.</string>
     <string name="decoder_mode_hw_plus_description">Uses the direct mediacodec path. Fastest when it works, but it can be pickier on some files and devices.</string>

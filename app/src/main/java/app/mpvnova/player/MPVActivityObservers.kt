@@ -3,6 +3,8 @@ package app.mpvnova.player
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 
+private const val HARDWARE_DECODER_ERROR_TOAST_MS = 10_000L
+
 internal class MpvActivityLifecycleObserver(private val activity: MPVActivity) : DefaultLifecycleObserver {
     override fun onStart(owner: LifecycleOwner) {
         activity.activityIsStopped = false
@@ -151,7 +153,10 @@ internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLo
                 currentMpvPath() == path
             ) {
                 updateDecoderButton()
-                showToast(getString(R.string.error_hardware_decoder_rejected))
+                showToast(
+                    getString(R.string.error_hardware_decoder_rejected),
+                    durationMs = HARDWARE_DECODER_ERROR_TOAST_MS,
+                )
             }
         }
     }
