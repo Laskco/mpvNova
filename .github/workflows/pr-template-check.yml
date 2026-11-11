@@ -19,7 +19,7 @@ jobs:
     steps:
       # Metadata only. Never check out or execute PR code in this workflow.
       - name: Validate PR description
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
