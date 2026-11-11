@@ -159,7 +159,7 @@ If a separate enhancement track contains the only RPU metadata, playback falls b
 
 ### Prerequisites
 
-- JDK 21
+- JDK 21 (Eclipse Temurin `21.0.13`)
 - Android SDK with current build tools
 - Git for version information in builds
 - Gradle wrapper `9.9.1`
