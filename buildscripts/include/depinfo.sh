@@ -20,7 +20,7 @@ v_libxml2=2.15.4
 v_fontconfig=2.18.3
 v_libass=d022280897dc2aad388d667c307dc48581115899
 libass_repository=https://github.com/Laskco/mpvNova-libass.git
-v_libplacebo=7.387.0
+v_libplacebo=7.391.0
 v_curl=8.23.0
 # Pin upstream mpv; apply the default-off FEL and external subtitle URL patches.
 v_mpv=b0841e8c4d156b8403dc1876c4cbd9011eb583f3
