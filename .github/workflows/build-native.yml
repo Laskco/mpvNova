@@ -87,6 +87,7 @@ jobs:
           . buildscripts/include/depinfo.sh
           test "$(git -C buildscripts/deps/libass rev-parse HEAD)" = "$v_libass"
           grep -q -- '-DASS_EVENT_THREADS' "buildscripts/deps/libass/_build_$arch/Makefile"
+          grep -q -- '-DASS_FONTCONFIG_ATOMIC_REFS=1' "buildscripts/deps/libass/_build_$arch/Makefile"
 
       - name: Verify native configuration and patches (${{ matrix.arch }})
         run: |
