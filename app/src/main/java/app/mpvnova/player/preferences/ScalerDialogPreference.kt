@@ -3,10 +3,8 @@ package app.mpvnova.player.preferences
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.ScalerPrefBinding
 
@@ -16,10 +14,6 @@ class ScalerDialogPreference(
 ) : Preference(context, attrs) {
     private var entries: Array<String>
     private lateinit var binding: ScalerPrefBinding
-
-    private lateinit var s: MaterialAutoCompleteTextView
-    private lateinit var e1: EditText
-    private lateinit var e2: EditText
 
     init {
         isPersistent = false
@@ -48,28 +42,21 @@ class ScalerDialogPreference(
         }
         dialog.show()
         dialog.styleAsTvPanel()
-        s.requestFocus()
+        binding.scaler.requestFocus()
     }
 
     private fun setupViews() {
-        s = binding.scaler
-        e1 = binding.param1
-        e2 = binding.param2
-
-        s.setSimpleItems(entries)
-
-        val va = sharedPreferences?.getString(key, "") ?: ""
-        s.setText(va, false)
-
-        e1.setText(sharedPreferences?.getString("${key}_param1", "") ?: "")
-        e2.setText(sharedPreferences?.getString("${key}_param2", "") ?: "")
+        binding.scaler.text = sharedPreferences?.getString(key, "").orEmpty()
+        binding.scaler.bindSettingsChoices(R.string.scaler_filter, entries)
+        binding.param1.setText(sharedPreferences?.getString("${key}_param1", "").orEmpty())
+        binding.param2.setText(sharedPreferences?.getString("${key}_param2", "").orEmpty())
     }
 
     private fun save() {
         val e = sharedPreferences?.edit()
-        e?.putString(key, s.text.toString())
-        e?.putString("${key}_param1", e1.text.toString())
-        e?.putString("${key}_param2", e2.text.toString())
+        e?.putString(key, binding.scaler.text.toString())
+        e?.putString("${key}_param1", binding.param1.text.toString())
+        e?.putString("${key}_param2", binding.param2.text.toString())
         e?.apply()
     }
 

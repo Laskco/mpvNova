@@ -3,11 +3,8 @@ package app.mpvnova.player.preferences
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import androidx.core.widget.addTextChangedListener
 import androidx.appcompat.app.AlertDialog
 import androidx.preference.Preference
-import com.google.android.material.materialswitch.MaterialSwitch
-import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.InterpolationPrefBinding
 
@@ -18,9 +15,6 @@ class InterpolationDialogPreference(
     private var entries: Array<String>
     private var entryDefault: String
     private lateinit var binding: InterpolationPrefBinding
-
-    private lateinit var sw: MaterialSwitch
-    private lateinit var sp: MaterialAutoCompleteTextView
 
     init {
         isPersistent = false
@@ -52,42 +46,26 @@ class InterpolationDialogPreference(
         }
         dialog.show()
         dialog.styleAsTvPanel()
-        sw.requestFocus()
+        binding.switch1.requestFocus()
     }
 
     private fun setupViews() {
-        sw = binding.switch1
-        sp = binding.videoSync
-
-        sw.isChecked = sharedPreferences?.getBoolean("${key}_interpolation", false) ?: false
-
-        val s = sharedPreferences?.getString("${key}_sync", entryDefault) ?: entryDefault
-        sp.setText(s, false)
-        sp.setSimpleItems(entries)
-
-        sw.setOnCheckedChangeListener { _, state -> ensureSyncMode(state) }
-        sp.addTextChangedListener { ensureInterpolationToggled() }
+        binding.switch1.isChecked = sharedPreferences?.getBoolean("${key}_interpolation", false) ?: false
+        binding.videoSync.text = sharedPreferences?.getString("${key}_sync", entryDefault) ?: entryDefault
+        binding.videoSync.bindSettingsChoices(R.string.interpolation_video_sync, entries) { value ->
+            if (!value.startsWith("display-")) binding.switch1.isChecked = false
+        }
+        binding.switch1.setOnCheckedChangeListener { _, enabled ->
+            if (enabled && !binding.videoSync.text.startsWith("display-")) {
+                binding.videoSync.text = entries.first { it.startsWith("display-") }
+            }
+        }
     }
 
     private fun save() {
         val e = sharedPreferences?.edit()
-        e?.putBoolean("${key}_interpolation", sw.isChecked)
-        e?.putString("${key}_sync", sp.text.toString())
+        e?.putBoolean("${key}_interpolation", binding.switch1.isChecked)
+        e?.putString("${key}_sync", binding.videoSync.text.toString())
         e?.apply()
-    }
-
-    private fun ensureSyncMode(interpolationState: Boolean) {
-        if (!interpolationState) return
-
-        if (!sp.text.startsWith("display-")) {
-            val s = entries.first { s -> s.startsWith("display-") }
-            sp.setText(s, false)
-        }
-    }
-
-    private fun ensureInterpolationToggled() {
-        if (sp.text.startsWith("display-"))
-            return
-        sw.isChecked = false
     }
 }

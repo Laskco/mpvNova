@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_tv_dialog_shell"
@@ -14,20 +15,26 @@
         android:textSize="24sp"
         android:textStyle="bold" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="?textInputOutlinedExposedDropdownMenuStyle"
+    <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp">
+        android:layout_marginTop="16dp"
+        android:labelFor="@+id/scaler"
+        android:text="@string/scaler_filter"
+        android:textColor="@color/tv_text_dim" />
 
-        <com.google.android.material.textfield.MaterialAutoCompleteTextView
-            android:id="@+id/scaler"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/scaler_filter"
-            android:inputType="none" />
-
-    </com.google.android.material.textfield.TextInputLayout>
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@id/scaler"
+        style="@style/Mpv.SurfaceButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="@drawable/bg_tv_track_row"
+        android:gravity="start|center_vertical"
+        android:hint="@string/video_processing_default"
+        android:textColorHint="@color/tv_text_dim"
+        app:drawableEndCompat="@drawable/ic_chevron_down_24"
+        app:drawableTint="@color/tv_text" />
 
 
     <com.google.android.material.textfield.TextInputLayout

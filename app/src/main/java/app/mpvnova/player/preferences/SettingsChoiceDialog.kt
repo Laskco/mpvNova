@@ -2,6 +2,9 @@ package app.mpvnova.player.preferences
 
 import android.app.Dialog
 import android.app.Activity
+import android.content.Context
+import android.graphics.Rect
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.text.InputType
 import android.util.TypedValue
@@ -11,6 +14,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import app.mpvnova.player.R
@@ -22,6 +26,7 @@ import app.mpvnova.player.databinding.DialogSettingsChoiceBinding
 import app.mpvnova.player.databinding.DialogSettingsConfirmationBinding
 import app.mpvnova.player.databinding.DialogSettingsInputBinding
 import app.mpvnova.player.databinding.DialogSettingsProgressBinding
+import com.google.android.material.color.MaterialColors
 
 private const val DIALOG_WIDTH_FRACTION = 0.5f
 private const val DIALOG_MAX_WIDTH_DP = 560f
@@ -34,29 +39,37 @@ internal fun Fragment.showSettingsChoiceDialog(title: CharSequence, items: List<
     showSettingsChoiceDialog(requireActivity(), layoutInflater, title, items)
 }
 
-internal fun Activity.showSettingsChoiceDialog(
+internal fun Context.showSettingsChoiceDialog(
     title: CharSequence,
     items: List<SettingsChoiceItem>,
     message: CharSequence? = null,
+    opaque: Boolean = false,
 ) {
-    showSettingsChoiceDialog(this, layoutInflater, title, items, message)
+    showSettingsChoiceDialog(this, LayoutInflater.from(this), title, items, message, opaque)
 }
 
 private fun showSettingsChoiceDialog(
-    activity: Activity,
+    context: Context,
     inflater: LayoutInflater,
     title: CharSequence,
     items: List<SettingsChoiceItem>,
     message: CharSequence? = null,
+    opaque: Boolean = false,
 ) {
     val binding = DialogSettingsChoiceBinding.inflate(inflater)
+    if (opaque) {
+        val colors = intArrayOf(R.attr.mpvOverlayStart, R.attr.mpvOverlayEnd).map { attr ->
+            ColorUtils.setAlphaComponent(MaterialColors.getColor(binding.root, attr), 255)
+        }.toIntArray()
+        (binding.root.background.mutate() as GradientDrawable).colors = colors
+    }
     binding.choiceTitle.text = title
     binding.choiceMessage.text = message
     binding.choiceMessage.isVisible = !message.isNullOrBlank()
     binding.choiceScroll.maxHeightPx = TypedValue.applyDimension(
-        TypedValue.COMPLEX_UNIT_DIP, CHOICE_LIST_MAX_HEIGHT_DP, activity.resources.displayMetrics
+        TypedValue.COMPLEX_UNIT_DIP, CHOICE_LIST_MAX_HEIGHT_DP, context.resources.displayMetrics
     ).toInt()
-    val dialog = AlertDialog.Builder(activity).setView(binding.root).create()
+    val dialog = AlertDialog.Builder(context).setView(binding.root).create()
     var selectedRow: View? = null
     for (item in items) {
         val row = inflater.inflate(R.layout.dialog_setting_option_item, binding.choiceRows, false)
@@ -83,7 +96,11 @@ private fun showSettingsChoiceDialog(
     val focusRow = selectedRow?.takeIf { it.isEnabled } ?: (0 until binding.choiceRows.childCount)
         .map(binding.choiceRows::getChildAt)
         .firstOrNull(View::isEnabled)
-    focusRow?.post { focusRow.requestFocus() }
+    focusRow?.post {
+        if (!focusRow.requestFocus() && focusRow === selectedRow) {
+            focusRow.requestRectangleOnScreen(Rect(0, 0, focusRow.width, focusRow.height), true)
+        }
+    }
 }
 
 internal fun Fragment.showSettingsInputDialog(
