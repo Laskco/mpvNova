@@ -1,0 +1,24 @@
+# App entry points for startup, settings, and opening playback.
+Lapp/mpvnova/player/MpvNovaApplication;
+HSPLapp/mpvnova/player/MpvNovaApplication;->onCreate()V
+Lapp/mpvnova/player/LauncherActivity;
+HSPLapp/mpvnova/player/LauncherActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLapp/mpvnova/player/LauncherActivity;->launchHome()V
+Lapp/mpvnova/player/MainActivity;
+HSPLapp/mpvnova/player/MainActivity;->onCreate(Landroid/os/Bundle;)V
+HSPLapp/mpvnova/player/MainActivity;->onResume()V
+Lapp/mpvnova/player/MainScreenFragment;
+HSPLapp/mpvnova/player/MainScreenFragment;->onCreate(Landroid/os/Bundle;)V
+HSPLapp/mpvnova/player/MainScreenFragment;->onViewCreated(Landroid/view/View;Landroid/os/Bundle;)V
+HSPLapp/mpvnova/player/MainScreenFragment;->onResume()V
+Lapp/mpvnova/player/preferences/PreferenceActivity;
+HPLapp/mpvnova/player/preferences/PreferenceActivity;->onCreate(Landroid/os/Bundle;)V
+HPLapp/mpvnova/player/preferences/PreferenceActivity;->onResume()V
+Lapp/mpvnova/player/FilePickerActivity;
+HPLapp/mpvnova/player/FilePickerActivity;->onCreate(Landroid/os/Bundle;)V
+Lapp/mpvnova/player/ExternalPlayerActivity;
+HPLapp/mpvnova/player/ExternalPlayerActivity;->onCreate(Landroid/os/Bundle;)V
+Lapp/mpvnova/player/MPVActivity;
+HPLapp/mpvnova/player/MPVActivity;->onCreate(Landroid/os/Bundle;)V
+Lapp/mpvnova/player/MPVView;
+HPLapp/mpvnova/player/MPVActivityPlayerInitKt;->initListeners(Lapp/mpvnova/player/MPVActivity;)V

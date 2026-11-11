@@ -23,6 +23,8 @@ class AppUpdateManager(internal val activity: Activity) {
 
     init {
         (activity as? LifecycleOwner)?.lifecycle?.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) resumeProfiledUpdateUi()
+            if (event == Lifecycle.Event.ON_PAUSE) pauseProfiledUpdateUi()
             if (event == Lifecycle.Event.ON_DESTROY) {
                 cancelPendingInstall()
                 releaseActivityUpdateApks(activity)
@@ -64,9 +66,9 @@ class AppUpdateManager(internal val activity: Activity) {
         operation: () -> T,
         onDiscard: (T) -> Unit = {},
         onResult: (Result<T>) -> Unit
-    ) {
+    ): Boolean {
         if (activity.isFinishing || activity.isDestroyed || !updateInProgress.compareAndSet(false, true))
-            return
+            return false
         var workerStarted = false
         try {
             if (message != null)
@@ -84,6 +86,7 @@ class AppUpdateManager(internal val activity: Activity) {
                 }
             }
         }
+        return true
     }
 
     private fun <T> executeUpdateOperation(
@@ -156,7 +159,7 @@ class AppUpdateManager(internal val activity: Activity) {
             "AppUpdateManager.install.${apkFile.name}",
             ActivityResultContracts.StartActivityForResult(),
         ) {
-            finishUpdateInstaller(apkFile)
+            activity.finishUpdateInstaller(apkFile)
             installLaunchers.remove(apkFile)?.unregister()
         }
         if (launcher != null)
@@ -169,7 +172,7 @@ class AppUpdateManager(internal val activity: Activity) {
             launched = true
         } finally {
             if (!launched) {
-                finishUpdateInstaller(apkFile)
+                activity.finishUpdateInstaller(apkFile)
                 installLaunchers.remove(apkFile)?.unregister()
             }
         }

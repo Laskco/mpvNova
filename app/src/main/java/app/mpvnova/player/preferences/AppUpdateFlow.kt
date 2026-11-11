@@ -1,6 +1,7 @@
 package app.mpvnova.player.preferences
 
 import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -60,7 +61,6 @@ internal fun AppUpdateManager.downloadUpdate(release: ReleaseInfo) {
     }
 }
 
-@Suppress("DEPRECATION")
 internal fun AppUpdateManager.installDownloadedApk(tagName: String?, apkFile: File) {
     if (!apkFile.exists()) {
         showError(activity.getString(R.string.update_download_missing))
@@ -71,21 +71,44 @@ internal fun AppUpdateManager.installDownloadedApk(tagName: String?, apkFile: Fi
         showInstallPermissionDialog(tagName, apkFile)
         return
     }
+    prepareUpdateInstall(tagName, apkFile)
+}
 
+internal fun AppUpdateManager.installApkWithSystemUi(tagName: String?, apkFile: File) {
+    if (!apkFile.isFile) {
+        activity.finishUpdateInstaller(apkFile)
+        showError(activity.getString(R.string.update_download_missing))
+        return
+    }
     try {
-        val authority = "${BuildConfig.APPLICATION_ID}.fileprovider"
-        val uri = FileProvider.getUriForFile(activity, authority, apkFile)
-        val installIntent = Intent(Intent.ACTION_INSTALL_PACKAGE)
-            .setDataAndType(uri, APK_MIME_TYPE)
-            .putExtra(Intent.EXTRA_RETURN_RESULT, true)
-            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        launchApkInstaller(tagName, apkFile, installIntent)
+        launchApkInstaller(tagName, apkFile, systemUpdateIntent(activity, apkFile)
+            .putExtra(Intent.EXTRA_RETURN_RESULT, true))
     } catch (error: ActivityNotFoundException) {
-        showError(activity.getString(R.string.update_installer_missing, error.cleanMessage()))
+        showUpdateInstallerError(apkFile, error)
+    } catch (error: SecurityException) {
+        showUpdateInstallerError(apkFile, error)
     } finally {
         releaseDownloadedApk(apkFile)
     }
 }
+
+private fun AppUpdateManager.showUpdateInstallerError(apkFile: File, error: Exception) {
+    activity.finishUpdateInstaller(apkFile)
+    showError(activity.getString(R.string.update_installer_missing, error.cleanMessage()))
+}
+
+@Suppress("DEPRECATION")
+internal fun systemUpdateIntent(context: Context, apkFile: File): Intent =
+    Intent(Intent.ACTION_INSTALL_PACKAGE)
+        .setDataAndType(
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", apkFile),
+            APK_MIME_TYPE,
+        )
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
+internal fun Context.isUpdateCacheApk(file: File): Boolean = runCatching {
+    file.extension == "apk" && file.canonicalFile.parentFile == File(cacheDir, UPDATE_CACHE_DIR).canonicalFile
+}.getOrDefault(false)
 
 @RequiresApi(Build.VERSION_CODES.O)
 private fun AppUpdateManager.showInstallPermissionDialog(tagName: String?, apkFile: File) {

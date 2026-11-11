@@ -1,6 +1,7 @@
 package app.mpvnova.player.preferences
 
 import android.app.Activity
+import android.content.Context
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
 import org.json.JSONArray
@@ -57,10 +58,10 @@ internal fun AppUpdateManager.retainUpdateInstaller(apkFile: File) = synchronize
     updateApkOwners.remove(apkFile)
 }
 
-internal fun AppUpdateManager.finishUpdateInstaller(apkFile: File) = synchronized(updateApkOwners) {
+internal fun Context.finishUpdateInstaller(apkFile: File) = synchronized(updateApkOwners) {
     installerUpdateApks.remove(apkFile)
     apkFile.delete()
-    val preferences = PreferenceManager.getDefaultSharedPreferences(activity)
+    val preferences = PreferenceManager.getDefaultSharedPreferences(this)
     if (preferences.getString(PENDING_UPDATE_APK_PATH_KEY, null) == apkFile.absolutePath) {
         preferences.edit().remove(PENDING_UPDATE_TAG_KEY).remove(PENDING_UPDATE_APK_PATH_KEY).apply()
     }
@@ -120,7 +121,7 @@ internal fun AppUpdateManager.cleanupInstalledUpdateIfNeeded() {
         ?.let { path ->
             synchronized(updateApkOwners) {
                 val file = File(path)
-                if (file !in updateApkOwners && !isProtectedInstallerApk(file, System.currentTimeMillis()))
+                if (activity.isUpdateCacheApk(file) && file !in updateApkOwners && file !in installerUpdateApks)
                     file.delete()
             }
         }

@@ -1,6 +1,35 @@
 apply plugin: 'com.android.application'
 apply plugin: 'dev.detekt'
 import java.util.Properties
+import com.android.build.gradle.internal.tasks.CompileArtProfileTask
+import javax.inject.Inject
+
+abstract class EmbedUpdateDexMetadata extends DefaultTask {
+    @InputFiles
+    @PathSensitive(PathSensitivity.RELATIVE)
+    abstract ConfigurableFileCollection getDexMetadata()
+
+    @OutputDirectory
+    abstract DirectoryProperty getOutputDirectory()
+
+    @Inject
+    abstract FileSystemOperations getFileOperations()
+
+    @TaskAction
+    void embed() {
+        fileOperations.sync {
+            from(dexMetadata) {
+                include 'dex-metadata-map.properties', '*/.dm'
+                includeEmptyDirs = false
+                eachFile {
+                    // AAPT ignores hidden filenames such as AGP's "0/.dm".
+                    if (name == '.dm') path = relativePath.segments[0] + '.dm'
+                }
+            }
+            into(outputDirectory.dir('updater_dm'))
+        }
+    }
+}
 
 ext.appVersionCode = 9042
 
@@ -112,6 +141,20 @@ android {
 
 if (!hasReleaseSigning) {
     logger.lifecycle("Release signing is not configured. Add keystore.properties or MPVNOVA_* env vars to produce signed release APKs.")
+}
+
+androidComponents {
+    onVariants(selector().withBuildType('release')) { variant ->
+        def variantName = variant.name.capitalize()
+        def embed = tasks.register("embed${variantName}UpdateDexMetadata", EmbedUpdateDexMetadata) {
+            dexMetadata.from(providers.provider {
+                tasks.withType(CompileArtProfileTask)
+                    .matching { it.name == "compile${variantName}ArtProfile" }
+                    .collect { it.dexMetadataDirectory }
+            })
+        }
+        variant.sources.assets.addGeneratedSourceDirectory(embed) { it.outputDirectory }
+    }
 }
 
 tasks.register('prepareReleaseAssets', Sync) {

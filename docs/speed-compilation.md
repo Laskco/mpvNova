@@ -2,6 +2,8 @@
 
 Android still optimizes sideloaded apps through its runtime and background compilation. However, installing an APK from GitHub does not get Google Play's cloud-profile delivery. You can ask Android to compile mpvNova's Java/Kotlin code ahead of time using the `speed` mode, without waiting for usage profiles or background optimization.
 
+When updating through mpvNova on Android 9 or newer, the updater can install the new APK with its bundled baseline profile. Android can then use `speed-profile` for startup, settings, and playback setup. This does not change manual APK installs, and the full `speed` command below is still available.
+
 This may help startup and menu responsiveness, but improvements vary by device and are not guaranteed. It takes some processing time and extra storage. It does **not** rebuild mpv/FFmpeg, improve network speeds, or fix decoding, HDR, or Dolby Vision compatibility.
 
 **Connect using ADB**

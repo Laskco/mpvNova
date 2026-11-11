@@ -338,6 +338,8 @@
     <string name="update_download_complete_title">Update downloaded</string>
     <string name="update_download_complete">Download complete. Ready to install %1$s.\n\nFile: %2$s</string>
     <string name="update_install">Install</string>
+    <string name="update_install_retry">Could not install the update. Try again from App updates.</string>
+    <string name="update_invalid_apk">The downloaded file is not a valid mpvNova update.</string>
     <string name="update_download_failed">Couldn\'t download the update.\n\n%1$s</string>
     <string name="update_download_missing">The downloaded APK could not be found.</string>
     <string name="update_installer_missing">Android could not open the package installer.\n\n%1$s</string>
