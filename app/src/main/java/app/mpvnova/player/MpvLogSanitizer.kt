@@ -1,6 +1,10 @@
 package app.mpvnova.player
 
-private val MPV_LOG_URL = Regex("(?i)https?://[^\\s\\\"'<>]+")
+import java.net.URI
+import java.net.URISyntaxException
+
+// mpv accepts many network protocols, including RTSP, FTP, SMB and protocol wrappers.
+private val MPV_LOG_URL = Regex("(?i)[a-z][a-z0-9+.-]*://[^\\s\\\"<>]+")
 private val MPV_LOG_HEADER = Regex(
     "(?i)(authorization|proxy-authorization|cookie|set-cookie):\\s*[^\\r\\n]+",
 )
@@ -22,13 +26,20 @@ private fun sanitizeUrl(url: String): String {
         url.indexOf('?', schemeEnd),
         url.indexOf('#', schemeEnd),
     ).filter { it >= 0 }.minOrNull() ?: url.length
-    var authority = url.substring(schemeEnd, authorityEnd)
-    if ('@' in authority)
-        authority = "<redacted>@${authority.substringAfterLast('@')}"
+    val authority = url.substring(schemeEnd, authorityEnd)
+    val hostPort = authority.substringAfterLast('@').trimEnd('\'')
+    // Only expose a parsed host/port, never an unrecognized authority containing secrets.
+    val safeHost = try {
+        val parsed = URI("${url.substring(0, schemeEnd)}$hostPort")
+        parsed.host?.let { host -> host + if (parsed.port >= 0) ":${parsed.port}" else "" }
+    } catch (_: URISyntaxException) {
+        null
+    }
     val hasPathOrParameters = authorityEnd < url.length
     return buildString {
         append(url, 0, schemeEnd)
-        append(authority)
+        if ('@' in authority) append("<redacted>@")
+        append(safeHost ?: if (authority.isEmpty()) "" else "<redacted-host>")
         if (hasPathOrParameters)
             append("/<redacted>")
     }
