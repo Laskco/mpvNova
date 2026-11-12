@@ -119,16 +119,15 @@ internal fun MPVActivity.setVideoDebanding(value: String) {
 internal fun MPVActivity.setVideoInterpolation(value: String) {
     val prefs = PreferenceManager.getDefaultSharedPreferences(applicationContext)
     val enabled = value != VIDEO_PROCESSING_OFF_VALUE
-    prefs.edit().apply {
-        putBoolean("video_interpolation", enabled)
-        if (enabled) putString("video_sync", value)
-    }.apply()
-
     val syncMode = resolveVideoSync(
-        interpolationEnabled = enabled,
         configuredSync = value,
         defaultSync = getString(R.string.pref_video_interpolation_sync_default),
     )
+    prefs.edit().apply {
+        putBoolean("video_interpolation", enabled)
+        putString("video_sync", syncMode)
+    }.apply()
+
     setRuntimeOption("video-sync", syncMode)
     setRuntimeOption("interpolation", if (enabled) "yes" else "no")
     refreshDrawerRowsIfVisible(DrawerTab.PROCESSING)

@@ -14,23 +14,27 @@ internal fun defaultHwdec(sharedPreferences: SharedPreferences): String {
 internal fun MPVView.defaultVideoSync(sharedPreferences: SharedPreferences): String {
     val defaultSync = resources.getString(R.string.pref_video_interpolation_sync_default)
     return resolveVideoSync(
-        interpolationEnabled = sharedPreferences.getBoolean("video_interpolation", false),
         configuredSync = sharedPreferences.getString("video_sync", defaultSync),
         defaultSync = defaultSync,
     )
 }
 
 internal fun resolveVideoSync(
-    interpolationEnabled: Boolean,
     configuredSync: String?,
     defaultSync: String,
 ): String {
-    return if (interpolationEnabled) {
-        configuredSync?.takeIf(String::isNotBlank) ?: defaultSync
-    } else {
-        defaultSync
-    }
+    // Interpolation requires display sync, but display sync does not require interpolation.
+    return configuredSync?.takeIf { it in VIDEO_SYNC_MODES } ?: defaultSync
 }
+
+// Keep aligned with the selectable modes in R.array.video_sync.
+private val VIDEO_SYNC_MODES = setOf(
+    "audio",
+    "display-resample",
+    "display-resample-vdrop",
+    "display-vdrop",
+    "display-adrop",
+)
 
 internal fun defaultDemuxerCacheBytes(): Int {
     val cacheMegs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {

@@ -51,7 +51,8 @@ class InterpolationDialogPreference(
 
     private fun setupViews() {
         binding.switch1.isChecked = sharedPreferences?.getBoolean("${key}_interpolation", false) ?: false
-        binding.videoSync.text = sharedPreferences?.getString("${key}_sync", entryDefault) ?: entryDefault
+        binding.videoSync.text = sharedPreferences?.getString("${key}_sync", entryDefault)
+            ?.takeIf { it in entries } ?: entryDefault
         binding.videoSync.bindSettingsChoices(R.string.interpolation_video_sync, entries) { value ->
             if (!value.startsWith("display-")) binding.switch1.isChecked = false
         }
