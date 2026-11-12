@@ -85,15 +85,20 @@ internal fun MPVActivity.interceptDpad(ev: KeyEvent): Boolean {
 }
 
 internal fun MPVActivity.updateSelectedDpadButton() {
-    // Selection lives on btnSelected, not framework focus. isSelected drives
-    // state_selected in the drawable; requestFocus() would fire a11y events
-    // + scheduleTraversals() per press → SW Hi10p decoder drift.
+    // The accessible player bar uses activation only for its cosmetic D-pad highlight.
+    // Separate top actions retain their shared selected-state backgrounds.
     val controls = dpadButtons()
     syncSkipButtonHighlight()
     controls.forEachIndexed { i, child ->
         val selected = i == btnSelected
-        if (child.isSelected != selected) {
-            child.isSelected = selected
+        val inPlayerBar = child === binding.playbackSeekbar || child.parent === binding.controlsButtonGroup
+        if (inPlayerBar) {
+            // Top actions can move between the separate strip and the player bar.
+            if (child.isSelected) child.isSelected = false
+            if (child.isActivated != selected) child.isActivated = selected
+        } else {
+            if (child.isActivated) child.isActivated = false
+            if (child.isSelected != selected) child.isSelected = selected
         }
         if (child is ChapterSeekBar) {
             child.setDpadSelected(selected)

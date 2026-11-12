@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.os.SystemClock
 import android.view.View
 import android.widget.RelativeLayout
 import androidx.core.view.updateLayoutParams
@@ -28,6 +29,7 @@ internal fun MPVActivity.showSkipButton(seg: SkipSegment) {
     val previousKey = currentSkipButtonSegment?.key()
     currentSkipButtonSegment = seg
     if (previousKey != seg.key()) {
+        cancelSkipButtonAutoHide()
         dismissedSkipSegmentKeys.remove(seg.key())
         autoHiddenSkipSegmentKeys.remove(seg.key())
     }
@@ -38,9 +40,9 @@ internal fun MPVActivity.showSkipButton(seg: SkipSegment) {
 }
 
 internal fun MPVActivity.hideSkipButton() {
+    cancelSkipButtonAutoHide()
     if (currentSkipButtonSegment == null) return
     currentSkipButtonSegment = null
-    eventUiHandler.removeCallbacks(skipButtonAutoHideRunnable)
     if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
     binding.skipSegmentBtn.isSelected = false
     binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
@@ -59,13 +61,15 @@ internal fun MPVActivity.skipFromButton() {
 internal fun MPVActivity.dismissSkipButton() {
     val seg = currentSkipButtonSegment ?: return
     dismissedSkipSegmentKeys.add(seg.key())
-    eventUiHandler.removeCallbacks(skipButtonAutoHideRunnable)
+    cancelSkipButtonAutoHide()
     if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
     binding.skipSegmentBtn.isSelected = false
     binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
 }
 
 internal fun MPVActivity.autoHideSkipButton() {
+    skipButtonAutoHideDelayMs = null
+    binding.skipSegmentCountdown.clearCountdown()
     val seg = currentSkipButtonSegment ?: return
     autoHiddenSkipSegmentKeys.add(seg.key())
     if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
@@ -77,10 +81,16 @@ internal fun MPVActivity.bindSkipButton() {
     binding.skipSegmentBtn.setOnClickListener { skipFromButton() }
 }
 
+internal fun MPVActivity.cancelSkipButtonAutoHide() {
+    eventUiHandler.removeCallbacks(skipButtonAutoHideRunnable)
+    skipButtonAutoHideDelayMs = null
+    binding.skipSegmentCountdown.clearCountdown()
+}
+
 internal fun MPVActivity.refreshSkipButtonVisibility() {
     val seg = currentSkipButtonSegment ?: return
-    eventUiHandler.removeCallbacks(skipButtonAutoHideRunnable)
     if (playerDialogStack.any { it.isShowing }) {
+        cancelSkipButtonAutoHide()
         binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
     } else {
         val controlsVisible = binding.controls.visibility == View.VISIBLE
@@ -90,16 +100,23 @@ internal fun MPVActivity.refreshSkipButtonVisibility() {
                 (key !in dismissedSkipSegmentKeys && key !in autoHiddenSkipSegmentKeys))
 
         if (!shouldShow) {
+            cancelSkipButtonAutoHide()
             if (btnSelected == SKIP_BUTTON_SELECTION_INDEX) btnSelected = -1
             binding.skipSegmentBtn.isSelected = false
             binding.skipSegmentBtn.setVisibilityIfChanged(View.GONE)
         } else {
-            updateSkipButtonPlacement()
             binding.skipSegmentBtn.setVisibilityIfChanged(View.VISIBLE)
+            updateSkipButtonPlacement()
             syncSkipButtonHighlight()
             val autoHideMs = skipButtonDisplayMode.autoHideMs
-            if (!controlsVisible && autoHideMs != null) {
-                eventUiHandler.postDelayed(skipButtonAutoHideRunnable, autoHideMs)
+            if (controlsVisible || autoHideMs == null) {
+                cancelSkipButtonAutoHide()
+            } else if (skipButtonAutoHideDelayMs != autoHideMs) {
+                cancelSkipButtonAutoHide()
+                skipButtonAutoHideDelayMs = autoHideMs
+                val hideAtMs = SystemClock.uptimeMillis() + autoHideMs
+                binding.skipSegmentCountdown.startCountdown(hideAtMs, autoHideMs)
+                eventUiHandler.postAtTime(skipButtonAutoHideRunnable, hideAtMs)
             }
         }
     }

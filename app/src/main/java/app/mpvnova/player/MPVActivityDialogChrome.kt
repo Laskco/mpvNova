@@ -19,6 +19,7 @@ internal fun MPVActivity.applyPlayerDialogChrome(
     animate: Boolean = false,
 ) {
     fadeHandler.removeCallbacks(fadeRunnable)
+    cancelSkipButtonAutoHide()
     val hiddenViews = buildList {
         add(binding.topControls)
         add(binding.statsTextView)

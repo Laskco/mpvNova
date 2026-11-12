@@ -64,6 +64,8 @@ open class MPVActivity : AppCompatActivity() {
 
     @Volatile
     internal var activityIsForeground = true
+    @Volatile
+    internal var activityIsDestroying = false
     internal var didResumeBackgroundPlayback = false
     internal var userIsOperatingSeekbar = false
     internal var pendingSeekbarSeekMs: Long? = null
@@ -88,7 +90,10 @@ open class MPVActivity : AppCompatActivity() {
     internal val dismissedSkipSegmentKeys = HashSet<String>()
     internal val autoHiddenSkipSegmentKeys = HashSet<String>()
     internal var lastSkipSegmentPlaybackPositionSec = Double.NaN
+    @Volatile
+    internal var skipSegmentPlaybackReady = false
     internal val skipButtonAutoHideRunnable = Runnable { autoHideSkipButton() }
+    internal var skipButtonAutoHideDelayMs: Long? = null
 
     // Paused-inactivity DVD-style screensaver.
     internal var screensaverTimeoutMs = SCREENSAVER_DEFAULT_TIMEOUT_MS
@@ -471,9 +476,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var controlsOverlayAutoPaused = false
     internal var audioNormUnderrunHintShown = false
     internal val gpuNextFallbackState = GpuNextFallbackState()
-    internal var shieldHi10pPreloadPath: String? = null
-    internal val shieldHi10pPreloadApplied: Boolean
-        get() = shieldHi10pPreloadPath != null
+    @Volatile
+    internal var automaticHi10pFallbackPath: String? = null
 
 
     internal var playbackHasStarted = false
@@ -553,17 +557,21 @@ open class MPVActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         Log.v(MPV_ACTIVITY_TAG, "Exiting.")
-        tmdbTitleController.close()
-        closeOpenSubtitlesSearch(restorePlayback = false)
+        activityIsDestroying = true
         activityIsForeground = false
-        player.releaseAllMpvKeys()
-        cancelAllScheduledWork()
-        setNoisyReceiverRegistered(false)
-        releaseMediaAndAudioFocus()
-        stopServiceRunnable.run()
         player.removeObserver(mpvEventObserver)
         removeMpvLogObserver(mpvLogObserver)
+        tmdbTitleController.close()
+        closeOpenSubtitlesSearch(restorePlayback = false)
+        player.releaseAllMpvKeys()
+        cancelAllScheduledWork()
+        releaseMediaSession()
+        stopServiceRunnable.run()
         player.destroy()
+        setNoisyReceiverRegistered(false)
+        releaseAudioFocus()
+        // destroy joins the native event thread; it can no longer enqueue UI work.
+        cancelAllScheduledWork()
         releaseOpenSubtitlesPlaybackFiles()
         super.onDestroy()
     }
@@ -652,6 +660,7 @@ open class MPVActivity : AppCompatActivity() {
         updateMediaSessionNow()
 
         activityIsForeground = false
+        cancelSkipButtonAutoHide()
         eventUiHandler.removeCallbacksAndMessages(null)
         timePosUiPending = false
         bufferUiPending = false

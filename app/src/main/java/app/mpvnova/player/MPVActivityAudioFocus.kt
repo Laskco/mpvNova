@@ -15,6 +15,7 @@ import android.util.Log
  * @warning Call from event thread, not UI thread.
  */
 internal fun MPVActivity.handleAudioFocus() {
+    if (activityIsDestroying) return
     if ((psc.pause && !psc.cachePause) || !isPlayingAudio) {
         setNoisyReceiverRegistered(false)
     } else {
@@ -35,6 +36,7 @@ internal fun MPVActivity.handleAudioFocus() {
  */
 internal fun MPVActivity.setNoisyReceiverRegistered(register: Boolean) {
     synchronized(becomingNoisyReceiver) {
+        if (register && activityIsDestroying) return
         if (register == becomingNoisyReceiverRegistered)
             return
         if (register)
@@ -49,7 +51,7 @@ internal fun MPVActivity.setNoisyReceiverRegistered(register: Boolean) {
 }
 
 internal fun MPVActivity.requestAudioFocus(): Boolean {
-    val manager = audioManager ?: return false
+    val manager = audioManager?.takeUnless { activityIsDestroying } ?: return false
     val result = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         requestAudioFocusModern(manager)
     } else {
@@ -87,7 +89,7 @@ private fun MPVActivity.requestAudioFocusLegacy(manager: AudioManager): Int {
 
 internal fun MPVActivity.onAudioFocusChange(type: Int, source: String) {
     Log.v(MPV_ACTIVITY_TAG, "Audio focus changed: $type ($source)")
-    if (ignoreAudioFocus || isFinishing)
+    if (activityIsDestroying || ignoreAudioFocus || isFinishing)
         return
     when (type) {
         AudioManager.AUDIOFOCUS_LOSS,

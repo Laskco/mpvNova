@@ -16,11 +16,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 internal fun MPVActivity.setupRootView() {
     binding = app.mpvnova.player.databinding.PlayerBinding.inflate(layoutInflater)
     setContentView(binding.root)
-    // Block a11y subtree walks for the bottom controls only — setSelected
-    // fires TYPE_VIEW_SELECTED there on every dpad press and Shield's TV
-    // launcher a11y service does a main-thread walk per event.
-    binding.controls.importantForAccessibility =
-        View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
     isTvUiMode = (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) ==
         Configuration.UI_MODE_TYPE_TELEVISION
     hideControls()
@@ -84,6 +79,7 @@ private fun MPVActivity.setupAudioSessionId() {
 
 /** onDestroy: drop scheduled callbacks + clear coalescing flags. */
 internal fun MPVActivity.cancelAllScheduledWork() {
+    cancelSkipButtonAutoHide()
     cancelPendingDpadLongClick()
     binding.controls.removeCallbacks(subtitleControlsPositionRunnable)
     periodicSaveHandler.removeCallbacks(periodicSaveRunnable)
@@ -99,8 +95,8 @@ internal fun MPVActivity.cancelAllScheduledWork() {
     mediaSessionUpdatePending = false
 }
 
-/** onDestroy: release the media session and abandon audio focus. */
-internal fun MPVActivity.releaseMediaAndAudioFocus() {
+/** Clear service state while this player still owns the native runtime. */
+internal fun MPVActivity.releaseMediaSession() {
     if (MpvRuntimeOwnership.isOwnedBy(player)) {
         with(BackgroundPlaybackService) {
             mediaToken = null
@@ -113,6 +109,10 @@ internal fun MPVActivity.releaseMediaAndAudioFocus() {
         it.release()
     }
     mediaSession = null
+}
+
+/** Release focus after the native event thread can no longer reacquire it. */
+internal fun MPVActivity.releaseAudioFocus() {
     audioManager?.let { manager -> abandonAudioFocus(manager) }
     unregisterBluetoothAudioDelayWatcher()
     audioFocusRequest = null

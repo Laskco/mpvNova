@@ -10,6 +10,7 @@ internal fun MPVActivity.retryGpuNextWithCopyHwdec(prefix: String, text: String)
     )
     player.fallbackGpuNextToCopyHwdec()
     eventUiHandler.post {
+        if (activityIsDestroying || !MpvRuntimeOwnership.isOwnedBy(player)) return@post
         updateDecoderButton()
         if (activityIsForeground) {
             showToast(
@@ -25,6 +26,7 @@ internal fun MPVActivity.fallbackGpuNextToGpu(prefix: String, text: String) {
     Log.w(MPV_ACTIVITY_TAG, "Sustained gpu-next render failure, falling back to gpu ($prefix: $text)")
     player.fallbackGpuNextToGpu()
     eventUiHandler.post {
+        if (activityIsDestroying || !MpvRuntimeOwnership.isOwnedBy(player)) return@post
         updateDecoderButton()
         if (activityIsForeground) {
             showToast(

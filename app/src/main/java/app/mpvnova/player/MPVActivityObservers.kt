@@ -25,6 +25,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     private var pendingFileEntryId: Long? = null
 
     override fun eventProperty(property: String): Unit = with(activity) {
+        if (activityIsDestroying) return
         val metaUpdated = psc.update(property)
         if (metaUpdated) updateMediaSession()
         dispatchEventThreadMetadata(property)
@@ -33,6 +34,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun eventProperty(property: String, value: Boolean): Unit = with(activity) {
+        if (activityIsDestroying) return
         val metaUpdated = psc.update(property, value)
         if (metaUpdated) updateMediaSession()
         dispatchEventThreadBoolean(property, metaUpdated)
@@ -41,10 +43,13 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun eventProperty(property: String, value: Long): Unit = with(activity) {
+        if (activityIsDestroying) return
         if (property.startsWith("command-result/")) {
             val requestId = property.substringAfter('/').toLongOrNull() ?: return
             // Cache cleanup must survive the foreground UI queue being cleared on pause.
-            runOnUiThread { completeOpenSubtitlesAdd(requestId, value) }
+            runOnUiThread {
+                if (!activityIsDestroying) completeOpenSubtitlesAdd(requestId, value)
+            }
             return
         }
         if (property == END_FILE_REASON_PROPERTY) {
@@ -61,6 +66,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun eventProperty(property: String, value: Double): Unit = with(activity) {
+        if (activityIsDestroying) return
         if (psc.update(property, value)) updateMediaSession()
         if (!activityIsForeground) return
         // time-pos/full fires at frame rate — coalesce to ~5 UI/sec or it
@@ -81,6 +87,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun eventProperty(property: String, value: String): Unit = with(activity) {
+        if (activityIsDestroying) return
         val metaUpdated = psc.update(property, value)
         if (metaUpdated) updateMediaSession()
         if (!activityIsForeground) return
@@ -88,6 +95,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     }
 
     override fun event(eventId: Int) {
+        if (activity.activityIsDestroying) return
         val endFileReason = pendingEndFileReason
         val fileEntryId = pendingFileEntryId
         pendingEndFileReason = null
@@ -138,6 +146,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
 
 internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLogObserver {
     override fun logMessage(prefix: String, level: Int, text: String) = activity.run {
+        if (activityIsDestroying) return@run
         maybeReportHardwareDecoderFailure(prefix, text)
         maybeApplyGpuNextRenderFallback(prefix, level, text)
         maybeShowAudioNormUnderrunHint(text)

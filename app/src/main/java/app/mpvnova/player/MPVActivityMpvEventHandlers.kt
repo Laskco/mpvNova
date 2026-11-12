@@ -25,6 +25,11 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
 }
 
 private fun MPVActivity.handleMpvPlaybackRestart() {
+    // Ignore pre-load time-pos notifications until mpv has applied the requested start position.
+    if (!skipSegmentPlaybackReady) {
+        mpvGetPropertyDouble("time-pos/full")?.let { psc.update("time-pos/full", it) }
+        skipSegmentPlaybackReady = true
+    }
     if (firstPlaybackRestartMs == 0L) {
         firstPlaybackRestartMs = SystemClock.uptimeMillis()
     }
@@ -65,6 +70,7 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    skipSegmentPlaybackReady = false
     psc.update("demuxer-cache-time")
     eventUiHandler.post {
         updatePlaybackBuffer()
@@ -75,7 +81,7 @@ private fun MPVActivity.handleMpvStartFile() {
     recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
     val restoreDecoderAfterFailure = gpuNextFallbackState.shouldRestoreForFile(
-        currentMpvPath(), sessionDecoderMode, shieldHi10pPreloadPath,
+        currentMpvPath(), sessionDecoderMode, automaticHi10pFallbackPath,
     )
     playbackEnded = false
     currentTrackSeriesKey = null
@@ -106,7 +112,9 @@ private fun MPVActivity.handleMpvStartFile() {
         refreshTimeInfoPanelVisibility()
         updatePlayerTitleOverlay()
     }
-    if (restoreDecoderAfterFailure) {
+    if (automaticHi10pFallbackPath != null && automaticHi10pFallbackPath != currentMpvPath()) {
+        restoreDecoderAfterAutomaticHi10pFallback()
+    } else if (restoreDecoderAfterFailure) {
         player.applyDefaultDecoderForFileLoad()
     }
     applySessionDecoderModeIfNeeded()

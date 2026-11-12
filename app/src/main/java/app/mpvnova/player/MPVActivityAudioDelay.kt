@@ -99,6 +99,7 @@ internal fun MPVActivity.unregisterBluetoothAudioDelayWatcher() {
 }
 
 internal fun MPVActivity.applyBluetoothAudioDelayForRoute() {
+    if (activityIsDestroying || !MpvRuntimeOwnership.isOwnedBy(player)) return
     val savedDelayMs = bluetoothAudioDelayMs
     if (savedDelayMs == 0L) {
         appliedBluetoothAudioDelayMs = null

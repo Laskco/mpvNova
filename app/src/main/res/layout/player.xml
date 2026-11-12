@@ -421,7 +421,7 @@
         <!-- =============== SKIP INTRO/OUTRO/RECAP BUTTON =============== -->
         <!-- Shown by SkipSegmentsMode.BUTTON during a skippable segment. OK is also routed
              through handleSkipButtonKey so remote behavior remains available before focus moves. -->
-        <LinearLayout
+        <RelativeLayout
             android:id="@+id/skipSegmentBtn"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -434,75 +434,97 @@
             android:elevation="10dp"
             android:focusable="true"
             android:importantForAccessibility="yes"
-            android:gravity="center_vertical"
             android:minWidth="160dp"
             android:minHeight="72dp"
-            android:orientation="horizontal"
-            android:paddingStart="13dp"
-            android:paddingTop="12dp"
-            android:paddingEnd="18dp"
-            android:paddingBottom="12dp"
             android:visibility="gone"
             tools:visibility="visible">
 
-            <FrameLayout
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_marginEnd="12dp"
-                android:background="@drawable/bg_skip_icon_chip"
-                android:duplicateParentState="true">
-
-                <ImageView
-                    android:id="@+id/skipSegmentBtnIcon"
-                    android:contentDescription="@null"
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:layout_gravity="center"
-                    android:importantForAccessibility="no"
-                    app:srcCompat="@drawable/ic_skip_segment"
-                    app:tint="?attr/mpvAccentHot" />
-            </FrameLayout>
-
             <LinearLayout
+                android:id="@+id/skipSegmentContent"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:minWidth="160dp"
+                android:minHeight="72dp"
+                android:duplicateParentState="true"
                 android:gravity="center_vertical"
-                android:orientation="vertical">
+                android:orientation="horizontal"
+                android:paddingStart="13dp"
+                android:paddingTop="12dp"
+                android:paddingEnd="18dp"
+                android:paddingBottom="12dp">
 
-                <TextView
-                    android:id="@+id/skipSegmentBtnEyebrow"
+                <FrameLayout
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="12dp"
+                    android:background="@drawable/bg_skip_icon_chip"
+                    android:duplicateParentState="true">
+
+                    <ImageView
+                        android:id="@+id/skipSegmentBtnIcon"
+                        android:contentDescription="@null"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:importantForAccessibility="no"
+                        app:srcCompat="@drawable/ic_skip_segment"
+                        app:tint="?attr/mpvAccentHot" />
+                </FrameLayout>
+
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:includeFontPadding="false"
-                    android:letterSpacing="0"
-                    android:shadowColor="#CC000000"
-                    android:shadowDx="0"
-                    android:shadowDy="1"
-                    android:shadowRadius="2"
-                    android:text="@string/skip_button_eyebrow"
-                    android:textAllCaps="true"
-                    android:textColor="?attr/mpvAccentHot"
-                    android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/skipSegmentBtnText"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="3dp"
-                    android:ellipsize="end"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:shadowColor="#CC000000"
-                    android:shadowDx="0"
-                    android:shadowDy="1"
-                    android:shadowRadius="2"
-                    android:textColor="@color/tv_text"
-                    android:textSize="20sp"
-                    android:textStyle="bold"
-                    tools:text="Intro" />
+                    <TextView
+                        android:id="@+id/skipSegmentBtnEyebrow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:includeFontPadding="false"
+                        android:letterSpacing="0"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
+                        android:text="@string/skip_button_eyebrow"
+                        android:textAllCaps="true"
+                        android:textColor="?attr/mpvAccentHot"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/skipSegmentBtnText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:ellipsize="end"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:shadowColor="#CC000000"
+                        android:shadowDx="0"
+                        android:shadowDy="1"
+                        android:shadowRadius="2"
+                        android:textColor="@color/tv_text"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        tools:text="Intro" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
+
+            <app.mpvnova.player.SkipButtonCountdownView
+                android:id="@+id/skipSegmentCountdown"
+                android:layout_width="0dp"
+                android:layout_height="3dp"
+                android:layout_alignStart="@id/skipSegmentContent"
+                android:layout_alignEnd="@id/skipSegmentContent"
+                android:layout_alignBottom="@id/skipSegmentContent"
+                android:layout_marginStart="18dp"
+                android:layout_marginEnd="18dp"
+                android:layout_marginBottom="5dp"
+                android:importantForAccessibility="no"
+                android:visibility="invisible" />
+        </RelativeLayout>
 
         <!-- Minimal seek overlay: shown only while seeking with ◀/▶ when the
              "minimal seekbar while seeking" option is on. Kept outside @id/controls

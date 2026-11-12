@@ -9,6 +9,7 @@ import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.StateListDrawable
 import android.view.View
 import android.widget.ImageView
+import androidx.core.content.res.ResourcesCompat
 
 internal fun MPVActivity.playerBarButtonBackground(
     view: View,
@@ -31,15 +32,29 @@ internal fun MPVActivity.playerBarButtonBackground(
             addState(intArrayOf(-android.R.attr.state_enabled), original)
             addState(intArrayOf(android.R.attr.state_focused), focused)
             addState(intArrayOf(android.R.attr.state_pressed), focused)
+            addState(intArrayOf(android.R.attr.state_activated), focused)
             addState(intArrayOf(android.R.attr.state_selected), focused)
             addState(intArrayOf(), original)
         }
     } else {
-        original
+        val focusedRes = if (image != null && style.buttonTreatment != PlayerButtonTreatment.BLOCK) {
+            R.drawable.bg_tv_player_icon_button_focused
+        } else {
+            R.drawable.bg_tv_player_button_focused
+        }
+        // Decorate only player-bar instances; shared dialog selectors keep their semantics.
+        StateListDrawable().apply {
+            addState(intArrayOf(-android.R.attr.state_enabled), original)
+            addState(
+                intArrayOf(android.R.attr.state_activated),
+                ResourcesCompat.getDrawable(resources, focusedRes, theme),
+            )
+            addState(intArrayOf(), original)
+        }
     }
     val needsIconTransform = iconPercent != DEFAULT_PLAYER_BAR_SCALE_PERCENT ||
         style.buttonFocusEnlargementPercent != DEFAULT_PLAYER_BAR_SCALE_PERCENT
-    if (image == null || background == null || !needsIconTransform) {
+    if (image == null || !needsIconTransform) {
         return background
     }
     // Only the image matrix changes. View dimensions, padding and focus navigation stay fixed.
@@ -97,7 +112,8 @@ private class PlayerBarIconBackground(
         val contentWidth = (image.width - image.paddingLeft - image.paddingRight).toFloat()
         val contentHeight = (image.height - image.paddingTop - image.paddingBottom).toFloat()
         if (contentWidth <= 0f || contentHeight <= 0f) return
-        val focused = image.isEnabled && (image.isFocused || image.isSelected || image.isPressed)
+        val focused = image.isEnabled &&
+            (image.isFocused || image.isActivated || image.isSelected || image.isPressed)
         val emphasis = if (focused) enlargementPercent / MAX_PERCENT.toFloat() else 1f
         val density = image.resources.displayMetrics.density
         val maxScale = minOf(

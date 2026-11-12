@@ -11,19 +11,19 @@ import java.util.Locale
 
 internal fun MPVActivity.prepareDecoderForFileLoad(filepath: String) {
     if (!canPreloadShieldHi10pFallback()) {
-        restoreDecoderAfterShieldHi10pPreload()
+        restoreDecoderAfterAutomaticHi10pFallback()
         return
     }
 
     val source = shieldHi10pPreloadSource(filepath)
     if (source == null) {
-        restoreDecoderAfterShieldHi10pPreload()
+        restoreDecoderAfterAutomaticHi10pFallback()
         return
     }
 
     Log.v(MPV_ACTIVITY_TAG, "shield fallback: preloading software decode for $source H.264 Hi10P")
     player.applyShieldHi10pFallback(shieldDecoderFallback)
-    shieldHi10pPreloadPath = filepath
+    automaticHi10pFallbackPath = filepath
     updateDecoderButton()
 }
 
@@ -62,10 +62,10 @@ private fun MPVActivity.canPreloadShieldHi10pFallback(): Boolean =
 internal fun MPVActivity.isHi10pFallbackDeviceEnabled(): Boolean =
     hi10pFallbackEnabled
 
-private fun MPVActivity.restoreDecoderAfterShieldHi10pPreload() {
-    if (!shieldHi10pPreloadApplied)
+internal fun MPVActivity.restoreDecoderAfterAutomaticHi10pFallback() {
+    if (automaticHi10pFallbackPath == null)
         return
-    shieldHi10pPreloadPath = null
+    automaticHi10pFallbackPath = null
 
     val mode = sessionDecoderMode ?: preferredDecoderMode.takeIf { !autoDecoderFallback && it.isNotBlank() }
     when {

@@ -15,6 +15,7 @@ private const val SKIP_SEGMENT_REWIND_MIN_DELTA_SEC = 1.0
  * launching app and stores it for auto-skipping. Tolerant of missing/garbage data.
  */
 internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
+    skipSegmentPlaybackReady = false
     skipSegments = emptyList()
     autoSkippedSegmentKeys.clear()
     rewoundSkipSegmentKeys.clear()
@@ -48,11 +49,8 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
  *  - BUTTON: show the Skip button for a new or rewind-rearmed segment.
  */
 internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
+    if (!skipSegmentPlaybackReady || !posSec.isFinite() || posSec < 0.0) return
     rearmSkippedSegmentsAfterRewind(posSec)
-    if (skipSegments.isEmpty()) {
-        hideSkipButton()
-        return
-    }
     val seg = skipSegments.firstOrNull { segment ->
         segment.mode(segmentSkipModes) != SkipSegmentsMode.OFF &&
             posSec >= segment.start &&
@@ -98,6 +96,7 @@ private fun MPVActivity.rearmSkippedSegmentsAfterRewind(posSec: Double) {
             rewoundSkipSegmentKeys.add(key)
             dismissedSkipSegmentKeys.remove(key)
             autoHiddenSkipSegmentKeys.remove(key)
+            cancelSkipButtonAutoHide()
             Log.d(MPV_ACTIVITY_TAG, "Rearmed skip button for $key after rewind")
         }
     }

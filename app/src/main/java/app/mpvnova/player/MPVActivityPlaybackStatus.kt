@@ -74,6 +74,7 @@ internal fun MPVActivity.updatePlaybackStatus(paused: Boolean) {
 }
 
 internal fun MPVActivity.updateDecoderButton() {
+    if (activityIsDestroying || !MpvRuntimeOwnership.isOwnedBy(player)) return
     if (Looper.myLooper() != Looper.getMainLooper()) {
         eventUiHandler.post { updateDecoderButton() }
         return
@@ -143,6 +144,7 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
         mpvSetPropertyBoolean("pause", true)
     }
     player.applyShieldHi10pFallback(shieldDecoderFallback)
+    automaticHi10pFallbackPath = currentMpvPath() ?: ""
     updateDecoderButton()
     // Wait for playback-restart — fixed delay can't cover Shield's 3+s
     // MediaCodec retry cascade.
