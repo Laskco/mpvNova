@@ -61,8 +61,9 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
             existingNames = { PlayerUiCustomPresetStore.read(prefs).map { it.name } },
             save = { document ->
                 val preset = PlayerUiCustomPreset(document.name, document.style.toPlayerUiStyle())
-                PlayerUiCustomPresetStore.write(prefs, PlayerUiCustomPresetStore.read(prefs) + preset)
-                onImported(preset)
+                val saved = PlayerUiCustomPresetStore.write(prefs, PlayerUiCustomPresetStore.read(prefs) + preset)
+                if (saved) onImported(preset)
+                saved
             },
             editor = activity.topPlayerDialog,
         ))
@@ -76,8 +77,9 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
             existingNames = { PlayerTitleCustomPresetStore.read(prefs).map { it.name } },
             save = { document ->
                 val preset = PlayerTitleCustomPreset(document.name, document.style.toPlayerTitleStyle())
-                PlayerTitleCustomPresetStore.write(prefs, PlayerTitleCustomPresetStore.read(prefs) + preset)
-                onImported(preset)
+                val saved = PlayerTitleCustomPresetStore.write(prefs, PlayerTitleCustomPresetStore.read(prefs) + preset)
+                if (saved) onImported(preset)
+                saved
             },
             editor = activity.topPlayerDialog,
         ))
@@ -123,7 +125,7 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
 
     private fun startImport(request: ImportRequest) {
         if (!canStart()) return
-        if (request.existingNames().size >= MAX_PRESETS) {
+        if (request.existingNames().size >= MAX_PLAYER_APPEARANCE_PRESETS) {
             ui.notice(R.string.preset_transfer_limit)
             return
         }
@@ -205,7 +207,7 @@ private class PresetTransferUi(private val activity: MPVActivity) {
     fun confirmImport(request: ImportRequest, document: AppearancePresetDocument) {
         if (!request.isCurrent(activity)) return
         val names = request.existingNames()
-        if (names.size >= MAX_PRESETS) {
+        if (names.size >= MAX_PLAYER_APPEARANCE_PRESETS) {
             notice(R.string.preset_transfer_limit)
             return
         }
@@ -255,7 +257,7 @@ private class PresetTransferUi(private val activity: MPVActivity) {
         // Recheck on main immediately before the store's asynchronous SharedPreferences.apply().
         val names = request.existingNames()
         when {
-            names.size >= MAX_PRESETS -> notice(R.string.preset_transfer_limit)
+            names.size >= MAX_PLAYER_APPEARANCE_PRESETS -> notice(R.string.preset_transfer_limit)
             names.any { it.equals(document.name, ignoreCase = true) } -> {
                 transition = activity.lifecycleScope.launch {
                     delay(DIALOG_TRANSITION_MS)
@@ -263,8 +265,12 @@ private class PresetTransferUi(private val activity: MPVActivity) {
                 }
             }
             else -> {
-                request.save(document)
-                notice(R.string.preset_transfer_imported)
+                val message = if (request.save(document)) {
+                    R.string.preset_transfer_imported
+                } else {
+                    R.string.preset_transfer_limit
+                }
+                notice(message)
             }
         }
     }
@@ -283,7 +289,7 @@ private data class ImportRequest(
     val type: AppearancePresetType,
     val chrome: PlayerDialogChrome,
     val existingNames: () -> List<String>,
-    val save: (AppearancePresetDocument) -> Unit,
+    val save: (AppearancePresetDocument) -> Boolean,
     val editor: Dialog?,
 ) {
     fun isCurrent(activity: MPVActivity): Boolean {
@@ -293,6 +299,5 @@ private data class ImportRequest(
     }
 }
 
-private const val MAX_PRESETS = 24
 private const val DIALOG_TRANSITION_MS = 100L
 private const val KEYBOARD_RESTORE_MS = 400L

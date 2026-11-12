@@ -18,8 +18,8 @@ import kotlin.math.roundToInt
  * By default (the normal playback seekbar) chapters are drawn as small tick marks on the platform
  * track. Call [setChapterGapMode] to instead draw the bar as a row of distinct rounded segments
  * split by real gaps at each chapter boundary — used by the minimal seek overlay. In that mode the
- * unfilled part is painted in the theme window colour (black under AMOLED) so the bar stays visible
- * over video, with the accent colour showing progress.
+ * unfilled part uses the theme surface and progress uses the accent colour, unless custom track
+ * colours are selected.
  *
  * Call [setChapters] whenever the chapter list or media duration changes. Chapter times at t=0 are
  * skipped (no marker at the very start of the track).
@@ -182,25 +182,7 @@ class ChapterSeekBar @JvmOverloads constructor(
             R.attr.mpvAccentHot,
             ContextCompat.getColor(themedContext, R.color.tv_purple_hot),
         )
-        val segmentBase = AppearanceTheme.resolveColor(
-            themedContext,
-            R.attr.mpvSurfaceSoft,
-            ContextCompat.getColor(themedContext, R.color.tv_surface_soft),
-        )
-        val segmentAlpha = (Color.alpha(segmentBase) * SEGMENT_TRACK_ALPHA_BOOST)
-            .roundToInt()
-            .coerceAtMost(MAX_ALPHA)
-        segmentTrackPaint.color = Color.argb(
-            segmentAlpha,
-            Color.red(segmentBase),
-            Color.green(segmentBase),
-            Color.blue(segmentBase),
-        )
-        segmentFillPaint.color = AppearanceTheme.resolveColor(
-            themedContext,
-            R.attr.mpvAccent,
-            ContextCompat.getColor(themedContext, R.color.tv_purple_hot),
-        )
+        applySegmentColors(themedContext)
         if (trackDrawableRes != 0) {
             progressDrawable = ResourcesCompat.getDrawable(
                 themedContext.resources,
@@ -210,7 +192,6 @@ class ChapterSeekBar @JvmOverloads constructor(
             applyTrackColors(themedContext)
         }
         markerPaint.color = chapterMarkerColor?.resolvePlayerBarColor(themedContext) ?: MARKER_COLOR
-        segmentBufferPaint.color = resolveBufferedColor(themedContext)
         val shape = thumbShape
         val color = thumbColor
         if (shape != null && color != null) {
@@ -239,7 +220,7 @@ class ChapterSeekBar @JvmOverloads constructor(
         unplayedColor = style.seekbarUnplayedColor
         chapterMarkerColor = style.chapterMarkerColor
         markerPaint.color = chapterMarkerColor?.resolvePlayerBarColor(themedContext) ?: MARKER_COLOR
-        segmentBufferPaint.color = resolveBufferedColor(themedContext)
+        applySegmentColors(themedContext)
         markerShape = style.chapterMarkerShape
         markerPaint.isAntiAlias = markerShape == PlayerChapterMarkerShape.DOTS
         markerSizePercent = style.chapterMarkerSizePercent.coerceIn(
@@ -271,6 +252,26 @@ class ChapterSeekBar @JvmOverloads constructor(
     private fun resolveBufferedColor(themedContext: Context): Int {
         val color = (bufferedColor ?: PlayerSeekbarThumbColor.APP_COLOR).resolvePlayerBarColor(themedContext)
         return Color.argb(BUFFERED_ALPHA, Color.red(color), Color.green(color), Color.blue(color))
+    }
+
+    private fun applySegmentColors(themedContext: Context) {
+        segmentTrackPaint.color = unplayedColor?.resolvePlayerBarColor(themedContext) ?: run {
+            val base = AppearanceTheme.resolveColor(
+                themedContext,
+                R.attr.mpvSurfaceSoft,
+                ContextCompat.getColor(themedContext, R.color.tv_surface_soft),
+            )
+            val alpha = (Color.alpha(base) * SEGMENT_TRACK_ALPHA_BOOST)
+                .roundToInt().coerceAtMost(MAX_ALPHA)
+            Color.argb(alpha, Color.red(base), Color.green(base), Color.blue(base))
+        }
+        segmentFillPaint.color = playedColor?.resolvePlayerBarColor(themedContext)
+            ?: AppearanceTheme.resolveColor(
+                themedContext,
+                R.attr.mpvAccent,
+                ContextCompat.getColor(themedContext, R.color.tv_purple_hot),
+            )
+        segmentBufferPaint.color = resolveBufferedColor(themedContext)
     }
 
     /** Draw the bar as segmented chapter pills split by real gaps (minimal seek overlay). */
@@ -357,7 +358,7 @@ class ChapterSeekBar @JvmOverloads constructor(
 
     /**
      * Draw the bar as a row of rounded chapter segments: each chapter is its own pill, separated by
-     * a real gap, with the unfilled part in the theme window colour and the played part in accent.
+     * a real gap, using the configured track colours or their theme defaults.
      * With no chapters this is just one full-width segment.
      */
     private fun drawSegmentedBar(canvas: Canvas) {

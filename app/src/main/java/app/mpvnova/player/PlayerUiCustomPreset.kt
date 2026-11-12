@@ -4,6 +4,8 @@ import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 
+internal const val MAX_PLAYER_APPEARANCE_PRESETS = 24
+
 internal data class PlayerUiCustomPreset(
     val name: String,
     val style: PlayerUiCustomization,
@@ -11,21 +13,20 @@ internal data class PlayerUiCustomPreset(
 
 internal object PlayerUiCustomPresetStore {
     private const val KEY = "player_ui_custom_presets"
-    private const val MAX_PRESETS = 24
 
     fun read(prefs: SharedPreferences): List<PlayerUiCustomPreset> {
         val array = prefs.getString(KEY, null)
             ?.let { runCatching { JSONArray(it) }.getOrNull() }
             ?: return emptyList()
         return buildList {
-            for (index in 0 until minOf(array.length(), MAX_PRESETS)) {
+            for (index in 0 until minOf(array.length(), MAX_PLAYER_APPEARANCE_PRESETS)) {
                 val preset = array.optJSONObject(index)?.toPreset() ?: continue
                 if (none { it.name.equals(preset.name, ignoreCase = true) }) add(preset)
             }
         }
     }
 
-    fun write(prefs: SharedPreferences, presets: List<PlayerUiCustomPreset>) {
+    fun write(prefs: SharedPreferences, presets: List<PlayerUiCustomPreset>): Boolean {
         val unique = presets.fold(mutableListOf<PlayerUiCustomPreset>()) { result, preset ->
             val name = normalizedCustomPresetName(preset.name)
             if (name.isNotBlank()) {
@@ -33,11 +34,13 @@ internal object PlayerUiCustomPresetStore {
                 result += PlayerUiCustomPreset(name, preset.style.normalized())
             }
             result
-        }.takeLast(MAX_PRESETS)
+        }
+        if (unique.size > MAX_PLAYER_APPEARANCE_PRESETS) return false
         prefs.edit().putString(
             KEY,
             JSONArray().apply { unique.forEach { put(it.toJson()) } }.toString(),
         ).apply()
+        return true
     }
 
     private fun PlayerUiCustomPreset.toJson() = JSONObject().apply {

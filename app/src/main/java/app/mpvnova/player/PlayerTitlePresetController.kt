@@ -76,11 +76,15 @@ internal class PlayerTitlePresetController(
             currentName = activeCustomPresetName,
             chrome = PlayerDialogChrome.TITLE_AND_CLOCK_PREVIEW,
         ) { name ->
-            customPresets = customPresets.filterNot { preset ->
+            val updated = PlayerTitleCustomPresetStore.read(preferences).filterNot { preset ->
                 preset.name.equals(name, ignoreCase = true) ||
                     preset.name.equals(activeCustomPresetName, ignoreCase = true)
             } + PlayerTitleCustomPreset(name, activity.playerTitleStyle)
-            PlayerTitleCustomPresetStore.write(preferences, customPresets)
+            if (!PlayerTitleCustomPresetStore.write(preferences, updated)) {
+                activity.showToast(activity.getString(R.string.preset_transfer_limit))
+                return@showCustomPresetNameDialog
+            }
+            customPresets = PlayerTitleCustomPresetStore.read(preferences)
             activeCustomPresetName = name
             activity.showToast(activity.getString(R.string.custom_preset_saved), name)
             render()
@@ -89,7 +93,8 @@ internal class PlayerTitlePresetController(
 
     private fun delete() {
         val name = activeCustomPresetName ?: return
-        customPresets = customPresets.filterNot { it.name.equals(name, ignoreCase = true) }
+        customPresets = PlayerTitleCustomPresetStore.read(preferences)
+            .filterNot { it.name.equals(name, ignoreCase = true) }
         PlayerTitleCustomPresetStore.write(preferences, customPresets)
         activeCustomPresetName = null
         activity.showToast(activity.getString(R.string.custom_preset_deleted), name)

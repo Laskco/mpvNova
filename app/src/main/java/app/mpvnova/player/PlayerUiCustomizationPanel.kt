@@ -283,11 +283,15 @@ private class PlayerUiCustomizationPanelController(
             currentName = activeCustomPresetName,
             chrome = PlayerDialogChrome.CONTROLS_PREVIEW,
         ) { name ->
-            customPresets = customPresets.filterNot { preset ->
+            val updated = PlayerUiCustomPresetStore.read(preferences).filterNot { preset ->
                 preset.name.equals(name, ignoreCase = true) ||
                     preset.name.equals(activeCustomPresetName, ignoreCase = true)
             } + PlayerUiCustomPreset(name, activity.playerUiCustomization)
-            PlayerUiCustomPresetStore.write(preferences, customPresets)
+            if (!PlayerUiCustomPresetStore.write(preferences, updated)) {
+                activity.showToast(activity.getString(R.string.preset_transfer_limit))
+                return@showCustomPresetNameDialog
+            }
+            customPresets = PlayerUiCustomPresetStore.read(preferences)
             activeCustomPresetName = name
             activity.showToast(activity.getString(R.string.custom_preset_saved), name)
             render()
@@ -296,7 +300,8 @@ private class PlayerUiCustomizationPanelController(
 
     private fun deletePreset() {
         val name = activeCustomPresetName ?: return
-        customPresets = customPresets.filterNot { it.name.equals(name, ignoreCase = true) }
+        customPresets = PlayerUiCustomPresetStore.read(preferences)
+            .filterNot { it.name.equals(name, ignoreCase = true) }
         PlayerUiCustomPresetStore.write(preferences, customPresets)
         activeCustomPresetName = null
         activity.showToast(activity.getString(R.string.custom_preset_deleted), name)

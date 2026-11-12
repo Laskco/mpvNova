@@ -20,6 +20,7 @@ import app.mpvnova.player.MPVView
 import app.mpvnova.player.MpvLogRingBuffer
 import app.mpvnova.player.NativeLibraryVersion
 import app.mpvnova.player.PREF_AUTOPAUSE_HI10P
+import app.mpvnova.player.PlayerTitleStyleStore
 import app.mpvnova.player.PlayerUiCustomizationStore
 import app.mpvnova.player.R
 import app.mpvnova.player.Utils
@@ -150,6 +151,7 @@ object SupportActions {
             PLAYER_UI_KEYS.forEach(::remove)
         }.apply()
         PlayerUiCustomizationStore.reset(prefs)
+        PlayerTitleStyleStore.resetAll(prefs)
         Toast.makeText(activity, R.string.support_reset_player_ui_done, Toast.LENGTH_SHORT).show()
     }
 
