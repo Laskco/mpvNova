@@ -76,7 +76,7 @@ fi
 # lua
 if [ ! -d lua ]; then
 	mkdir lua
-	$WGET https://www.lua.org/ftp/lua-$v_lua.tar.gz -O - | \
+	curl --fail --location --retry 3 https://www.lua.org/ftp/lua-$v_lua.tar.gz | \
 		tar -xz -C lua --strip-components=1
 fi
 
@@ -100,7 +100,7 @@ if [ ! -d mpv ]; then
 	git -C mpv checkout "$v_mpv"
 fi
 
-for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url; do
+for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url mpv-ass-fade-upload; do
 	patch="$PWD/../patches/$patch_name.patch"
 	if git -C mpv apply --check "$patch" 2>/dev/null; then
 		git -C mpv apply "$patch"

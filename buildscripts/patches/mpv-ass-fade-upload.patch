@@ -1,0 +1,185 @@
+diff --git a/sub/osd.h b/sub/osd.h
+index b62836e517..83ff30db5e 100644
+--- a/sub/osd.h
++++ b/sub/osd.h
+@@ -93,6 +93,10 @@ struct sub_bitmaps {
+ 
+     int change_id;  // Incremented on each change (0 is never used)
+ 
++    // Process-unique identity of packed pixel contents and layout, independent
++    // of part colors/positions. Zero means the producer does not track it.
++    uint64_t packed_id;
++
+     bool video_color_space; // True if the bitmap is in video color space
+ };
+ 
+diff --git a/sub/packer.c b/sub/packer.c
+index bebb4561f5..623c8daa98 100644
+--- a/sub/packer.c
++++ b/sub/packer.c
+@@ -21,6 +21,7 @@
+ #include <stdarg.h>
+ #include <stdbool.h>
+ #include <assert.h>
++#include <stdatomic.h>
+ 
+ #include "config.h"
+ 
+@@ -47,6 +48,8 @@ struct mp_sub_packer {
+     struct bitmap_packer *packer;
+ };
+ 
++static atomic_ullong next_packed_id;
++
+ // Free with talloc_free().
+ struct mp_sub_packer *mp_sub_packer_alloc(void *ta_parent)
+ {
+@@ -203,6 +206,56 @@ static bool pack_libass(struct mp_sub_packer *p, struct sub_bitmaps *res)
+         b->stride = stride;
+     }
+ 
++    res->packed_id = atomic_fetch_add_explicit(&next_packed_id, 1,
++                                               memory_order_relaxed) + 1;
++    return true;
++}
++
++static bool reuse_libass(struct mp_sub_packer *p, ASS_Image **lists, int count,
++                         bool video_color_space, struct sub_bitmaps *out)
++{
++    struct sub_bitmaps *cached = &p->cached_subs;
++    if (!p->cached_subs_valid || cached->format != SUBBITMAP_LIBASS ||
++        !cached->packed || !cached->packed_id)
++        return false;
++
++    int part = 0;
++    for (int n = 0; n < count; n++) {
++        for (ASS_Image *img = lists[n]; img; img = img->next) {
++            if (!img->w || !img->h)
++                continue;
++            if (part >= cached->num_parts)
++                return false;
++            const struct sub_bitmap *b = &cached->parts[part++];
++            if (img->w != b->w || img->h != b->h)
++                return false;
++            // libass can reuse allocations for different masks. Compare owned
++            // pixels, not source pointers, and never read the last row padding.
++            for (int y = 0; y < img->h; y++) {
++                if (memcmp(img->bitmap + (ptrdiff_t)y * img->stride,
++                           (uint8_t *)b->bitmap + (ptrdiff_t)y * b->stride,
++                           img->w))
++                    return false;
++            }
++        }
++    }
++    if (part != cached->num_parts)
++        return false;
++
++    part = 0;
++    for (int n = 0; n < count; n++) {
++        for (ASS_Image *img = lists[n]; img; img = img->next) {
++            if (!img->w || !img->h)
++                continue;
++            struct sub_bitmap *b = &cached->parts[part++];
++            b->x = img->dst_x;
++            b->y = img->dst_y;
++            b->libass.color = img->color;
++        }
++    }
++    cached->video_color_space = video_color_space;
++    *out = *cached;
++    out->change_id = 1;
+     return true;
+ }
+ 
+@@ -283,6 +336,10 @@ void mp_sub_packer_pack_ass(struct mp_sub_packer *p, ASS_Image **image_lists,
+         return;
+     }
+ 
++    if (format == SUBBITMAP_LIBASS &&
++        reuse_libass(p, image_lists, num_image_lists, video_color_space, out))
++        return;
++
+     *out = (struct sub_bitmaps){.change_id = 1};
+     p->cached_subs_valid = false;
+ 
+diff --git a/video/out/gpu/osd.c b/video/out/gpu/osd.c
+index 883dccd7eb..f36b63cdf7 100644
+--- a/video/out/gpu/osd.c
++++ b/video/out/gpu/osd.c
+@@ -50,6 +50,7 @@ static const struct ra_renderpass_input vertex_vao[] = {
+ struct mpgl_osd_part {
+     enum sub_bitmap_format format;
+     int change_id;
++    uint64_t packed_id;
+     struct ra_tex *texture;
+     int w, h;
+     int num_subparts;
+@@ -186,11 +187,21 @@ static void gen_osd_cb(void *pctx, struct sub_bitmaps *imgs)
+     struct mpgl_osd_part *osd = ctx->parts[imgs->render_index];
+ 
+     bool ok = true;
+-    if (imgs->change_id != osd->change_id) {
+-        if (!upload_osd(ctx, osd, imgs))
++    bool same_pixels = imgs->packed_id
++        ? imgs->packed_id == osd->packed_id
++        : !osd->packed_id && imgs->change_id == osd->change_id;
++    if (!osd->texture || osd->format != imgs->format || !same_pixels)
++    {
++        if (!upload_osd(ctx, osd, imgs)) {
+             ok = false;
+-
+-        osd->change_id = imgs->change_id;
++            osd->change_id = 0;
++            osd->packed_id = 0;
++        } else {
++            osd->change_id = imgs->change_id;
++            osd->packed_id = imgs->packed_id;
++            MP_TRACE(ctx, "OSD atlas uploaded: %dx%d\n", imgs->packed_w,
++                     imgs->packed_h);
++        }
+     }
+     osd->num_subparts = ok ? imgs->num_parts : 0;
+ 
+diff --git a/video/out/vo_gpu_next.c b/video/out/vo_gpu_next.c
+index b6d69308da..e3d320e268 100644
+--- a/video/out/vo_gpu_next.c
++++ b/video/out/vo_gpu_next.c
+@@ -68,6 +68,7 @@ struct osd_entry {
+     struct pl_overlay_part *parts;
+     int num_parts;
+     int change_id;
++    uint64_t packed_id;
+ };
+ 
+ struct osd_state {
+@@ -353,6 +354,7 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
+         tex->params.h < item->packed_h || tex->params.format != tex_fmt)
+     {
+         entry->change_id = 0;
++        entry->packed_id = 0;
+         bool ok = pl_tex_recreate(p->gpu, &entry->tex, &(struct pl_tex_params) {
+             .format = tex_fmt,
+             .w = MPMAX(item->packed_w, tex ? tex->params.w : 0),
+@@ -365,7 +367,8 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
+             return false;
+         }
+     }
+-    if (entry->change_id == item->change_id)
++    if (item->packed_id ? entry->packed_id == item->packed_id
++                        : !entry->packed_id && entry->change_id == item->change_id)
+         return true;
+     struct pl_tex_transfer_params upload_params = {
+         .tex        = entry->tex,
+@@ -382,9 +385,12 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
+         MP_ERR(vo, "Failed uploading OSD texture!\n");
+         talloc_free(upload_params.priv);
+         entry->change_id = 0;
++        entry->packed_id = 0;
+         return false;
+     }
+     entry->change_id = item->change_id;
++    entry->packed_id = item->packed_id;
++    MP_TRACE(vo, "OSD atlas uploaded: %dx%d\n", item->packed_w, item->packed_h);
+     return true;
+ }
+ 

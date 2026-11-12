@@ -2,6 +2,12 @@ name: build-native
 
 on:
   workflow_dispatch:
+    inputs:
+      architecture:
+        description: Native architectures to build
+        type: choice
+        default: all
+        options: [all, arm64]
 
 permissions:
   contents: read
@@ -12,13 +18,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        arch: [armv7l, arm64, x86, x86_64]
+        arch: ${{ fromJSON(inputs.architecture == 'arm64' && '["arm64"]' || '["armv7l", "arm64", "x86", "x86_64"]') }}
     steps:
       - uses: actions/checkout@v6
 
       - uses: actions/setup-java@v5
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: temurin
 
       - name: Fix script permissions
@@ -98,6 +104,7 @@ jobs:
           grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' "buildscripts/deps/ffmpeg/_build_${{ matrix.arch }}/config_components.h"
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
+          git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-ass-fade-upload.patch
           git -C buildscripts/deps/mpv diff --exit-code
           test -z "$(git -C buildscripts/deps/mpv status --porcelain --untracked-files=no)"
 
@@ -148,6 +155,7 @@ jobs:
           path: collected/*.so
 
   bundle:
+    if: inputs.architecture != 'arm64'
     runs-on: ubuntu-24.04
     needs: build
     steps:
