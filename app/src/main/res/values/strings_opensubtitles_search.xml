@@ -35,12 +35,9 @@
     <string name="os_search_download_remaining">Subtitle downloaded. Downloads remaining: %1$d.</string>
     <string name="os_search_download_remaining_reset">Subtitle downloaded. Downloads remaining: %1$d. Resets %2$s.</string>
     <string name="os_search_language_error">Could not load languages. Try again.</string>
-    <string name="os_search_result_meta">%1$s · %2$s</string>
     <string name="os_search_hearing_impaired">Hearing impaired</string>
     <string name="os_search_hash_match">Hash match</string>
     <string name="os_search_result_count">Results: %1$d</string>
     <string name="os_search_limit">Result limit reached. Refine your search.</string>
-    <string name="os_search_retry">Retry</string>
     <string name="os_search_unnamed">Unnamed subtitle</string>
-    <string name="os_search_languages_loading">Loading languages…</string>
 </resources>
