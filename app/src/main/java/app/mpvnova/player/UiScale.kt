@@ -26,9 +26,18 @@ internal object UiScale {
     private const val MAX_SCALE = 200
 
     fun currentScalePercent(context: Context): Int {
-        val raw = PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(PREF_KEY, DEFAULT_SCALE_PERCENT.toString())
-        return (raw?.toIntOrNull() ?: DEFAULT_SCALE_PERCENT).coerceIn(MIN_SCALE, MAX_SCALE)
+        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val raw = preferences.all[PREF_KEY]
+        val value = when (raw) {
+            is String -> raw.toIntOrNull()
+            is Int -> raw
+            is Long -> raw.takeIf { it in Int.MIN_VALUE..Int.MAX_VALUE }?.toInt()
+            else -> null
+        }
+        val scale = (value ?: DEFAULT_SCALE_PERCENT).coerceIn(MIN_SCALE, MAX_SCALE)
+        // Repair old malformed imports before ListPreference also reads this value as a String.
+        if (raw != null && raw !is String) preferences.edit().putString(PREF_KEY, scale.toString()).apply()
+        return scale
     }
 
     fun wrap(base: Context): Context {

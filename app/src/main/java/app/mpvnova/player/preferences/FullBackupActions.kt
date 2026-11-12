@@ -71,8 +71,16 @@ object FullBackupActions {
     private fun createShareableBackup(context: Context): File {
         val backupDir = File(context.cacheDir, "full-backup").apply { mkdirs() }
         backupDir.listFiles()?.forEach(File::delete)
-        return File(backupDir, suggestedFilename()).also { backup ->
+        val backup = File(backupDir, suggestedFilename())
+        var completed = false
+        try {
             ZipOutputStream(backup.outputStream().buffered()).use { writeBackup(context, it) }
+            // The importer also bounds the compressed input, including ZIP overhead.
+            requireValidBackup(backup.length() <= MAX_BACKUP_BYTES, "Backup is too large")
+            completed = true
+            return backup
+        } finally {
+            if (!completed) backup.delete()
         }
     }
 
@@ -127,7 +135,7 @@ object FullBackupActions {
     }
 
     private fun writeBackup(context: Context, zip: ZipOutputStream) {
-        zip.use {
+        with(BackupArchiveWriter(zip)) {
             val prefs = PreferenceManager.getDefaultSharedPreferences(context)
             UserShaderManager.normalize(context)
             val screensaver = screensaverAsset(context, prefs)
@@ -135,6 +143,12 @@ object FullBackupActions {
             val userShaders = userShaderFiles(context)
             val mpvConfig = File(context.filesDir, MPV_CONFIG)
             val inputConfig = File(context.filesDir, INPUT_CONFIG)
+            val files = listOf(mpvConfig, inputConfig).filter(File::isFile) + userFonts + userShaders
+            requireValidBackup(
+                2 + files.size + (if (screensaver == null) 0 else 1) <= MAX_ARCHIVE_ENTRIES,
+                "Too many backup entries",
+            )
+            requireValidBackup(files.sumOf(File::length) <= MAX_BACKUP_BYTES, "Backup is too large")
 
             val manifest = JSONObject()
                 .put("format", BACKUP_FORMAT)
@@ -155,18 +169,16 @@ object FullBackupActions {
                 )
             }
 
-            zip.textEntry(MANIFEST_ENTRY, manifest.toString(2))
-            zip.textEntry(SETTINGS_ENTRY, encodePreferences(prefs).toString(2))
-            if (mpvConfig.isFile) zip.fileEntry("config/$MPV_CONFIG", mpvConfig, MAX_CONFIG_BYTES)
-            if (inputConfig.isFile) zip.fileEntry("config/$INPUT_CONFIG", inputConfig, MAX_CONFIG_BYTES)
-            userFonts.forEach { zip.fileEntry("fonts/${it.name}", it, MAX_FONT_BYTES) }
-            userShaders.forEach { zip.fileEntry("shaders/${it.name}", it, MAX_SHADER_BYTES) }
+            textEntry(MANIFEST_ENTRY, manifest.toString(2))
+            textEntry(SETTINGS_ENTRY, encodePreferences(prefs).toString(2))
+            if (mpvConfig.isFile) fileEntry("config/$MPV_CONFIG", mpvConfig)
+            if (inputConfig.isFile) fileEntry("config/$INPUT_CONFIG", inputConfig)
+            userFonts.forEach { fileEntry("fonts/${it.name}", it) }
+            userShaders.forEach { fileEntry("shaders/${it.name}", it) }
             screensaver?.let { asset ->
-                zip.putNextEntry(ZipEntry(asset.path))
                 openUriInput(context, asset.uri).use { input ->
-                    input.copyLimitedTo(zip, MAX_IMAGE_BYTES)
+                    entry(asset.path, input)
                 }
-                zip.closeEntry()
             }
         }
     }
@@ -201,8 +213,7 @@ object FullBackupActions {
             while (entry != null) {
                 entryCount++
                 requireValidBackup(entryCount <= MAX_ARCHIVE_ENTRIES, "Too many backup entries")
-                totalBytes += extractArchiveEntry(zip, entry, destination, seen)
-                requireValidBackup(totalBytes <= MAX_BACKUP_BYTES, "Backup is too large")
+                totalBytes += extractArchiveEntry(zip, entry, destination, seen, MAX_BACKUP_BYTES - totalBytes)
                 zip.closeEntry()
                 entry = zip.nextEntry
             }
@@ -218,6 +229,7 @@ object FullBackupActions {
         entry: ZipEntry,
         destination: File,
         seen: MutableSet<String>,
+        remainingBytes: Long,
     ): Long {
         val name = entry.name.replace('\\', '/')
         requireValidBackup(seen.add(name) && isAllowedEntry(name), "Invalid backup entry")
@@ -226,7 +238,7 @@ object FullBackupActions {
         ensureInside(destination, target)
         target.parentFile?.mkdirs()
         return FileOutputStream(target).use { output ->
-            zip.copyLimitedTo(output, perEntryLimit(name))
+            zip.copyLimitedTo(output, minOf(perEntryLimit(name), remainingBytes))
         }
     }
 
@@ -529,8 +541,11 @@ object FullBackupActions {
         }
     }
 
-    private fun encodePreferences(prefs: SharedPreferences): JSONObject =
-        encodePreferences(prefs.all.filterKeys { it != UserShaderManager.PREF_FOLDER_URIS })
+    private fun encodePreferences(prefs: SharedPreferences): JSONObject = encodePreferences(
+        prefs.all.filterKeys { it != UserShaderManager.PREF_FOLDER_URIS }.mapValues { (key, value) ->
+            BackupPreferenceCompatibility.migrate(key, value ?: throw IOException("Preference value is missing"))
+        },
+    )
 
     private fun encodePreferences(preferences: Map<String, *>): JSONObject {
         val values = JSONObject()
@@ -561,17 +576,24 @@ object FullBackupActions {
         while (keys.hasNext()) {
             val key = keys.next()
             val entry = values.getJSONObject(key)
-            result[key] = when (entry.getString("type")) {
-                "boolean" -> entry.getBoolean("value")
-                "int" -> entry.getInt("value")
-                "long" -> entry.getLong("value")
-                "float" -> entry.getDouble("value").toFloat()
-                "string" -> entry.getString("value")
-                "stringSet" -> entry.getJSONArray("value").toStringSet()
-                else -> throw IOException("Unsupported preference type")
-            }
+            val value = decodePreferenceValue(entry)
+            result[key] = BackupPreferenceCompatibility.migrate(key, value)
         }
         return result
+    }
+
+    private fun decodePreferenceValue(entry: JSONObject): Any {
+        val raw = entry.get("value")
+        // JSONObject getters coerce strings and truncate numbers; a backup must not do either.
+        return when (entry.getString("type")) {
+            "boolean" -> raw as? Boolean
+            "int" -> (raw as? Number)?.toString()?.toIntOrNull()
+            "long" -> (raw as? Number)?.toString()?.toLongOrNull()
+            "float" -> (raw as? Number)?.toFloat()?.takeIf { it.isFinite() }
+            "string" -> raw as? String
+            "stringSet" -> (raw as? JSONArray)?.toStringSet()
+            else -> throw IOException("Unsupported preference type")
+        } ?: throw IOException("Invalid preference value")
     }
 
     private fun snapshotPreferences(prefs: SharedPreferences): MutableMap<String, Any> =
@@ -659,20 +681,37 @@ object FullBackupActions {
 
     private fun JSONArray.toStringSet(): Set<String> {
         val result = LinkedHashSet<String>()
-        for (index in 0 until length()) result += getString(index)
+        for (index in 0 until length()) {
+            result += get(index) as? String ?: throw IOException("Invalid string set value")
+        }
         return result
     }
 
-    private fun ZipOutputStream.textEntry(name: String, text: String) {
-        putNextEntry(ZipEntry(name))
-        write(text.toByteArray(Charsets.UTF_8))
-        closeEntry()
-    }
+    private class BackupArchiveWriter(private val zip: ZipOutputStream) {
+        private var totalBytes = 0L
+        private val names = HashSet<String>()
 
-    private fun ZipOutputStream.fileEntry(name: String, source: File, limit: Long) {
-        putNextEntry(ZipEntry(name))
-        source.inputStream().use { it.copyLimitedTo(this, limit) }
-        closeEntry()
+        fun textEntry(name: String, text: String) {
+            val bytes = text.toByteArray(Charsets.UTF_8)
+            requireValidBackup(bytes.size <= remainingLimit(name), "Backup metadata is too large")
+            bytes.inputStream().use { entry(name, it) }
+        }
+
+        fun fileEntry(name: String, source: File) {
+            requireValidBackup(source.length() <= remainingLimit(name), "Backup entry is too large")
+            source.inputStream().use { entry(name, it) }
+        }
+
+        fun entry(name: String, input: InputStream) {
+            requireValidBackup(names.add(name) && isAllowedEntry(name), "Invalid backup entry")
+            requireValidBackup(names.size <= MAX_ARCHIVE_ENTRIES, "Too many backup entries")
+            zip.putNextEntry(ZipEntry(name))
+            // Count actual bytes, including metadata and URI assets, even if a source grows after preflight.
+            totalBytes += input.copyLimitedTo(zip, remainingLimit(name))
+            zip.closeEntry()
+        }
+
+        private fun remainingLimit(name: String) = minOf(perEntryLimit(name), MAX_BACKUP_BYTES - totalBytes)
     }
 
     private fun InputStream.copyLimitedTo(output: java.io.OutputStream, limit: Long): Long {
