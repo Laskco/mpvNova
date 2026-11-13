@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class AppUpdateManager(internal val activity: Activity) {
     internal var busyDialog: AlertDialog? = null
+    internal var installProgressDialog: AlertDialog? = null
     internal var pendingInstallApk: File? = null
     internal var pendingInstallTag: String? = null
     internal var permissionSettingsOpened = false
@@ -26,6 +27,8 @@ class AppUpdateManager(internal val activity: Activity) {
             if (event == Lifecycle.Event.ON_RESUME) resumeProfiledUpdateUi()
             if (event == Lifecycle.Event.ON_PAUSE) pauseProfiledUpdateUi()
             if (event == Lifecycle.Event.ON_DESTROY) {
+                hideProfiledInstallProgress()
+                hideBusy()
                 cancelPendingInstall()
                 releaseActivityUpdateApks(activity)
                 installLaunchers.values.forEach { it.unregister() }
@@ -67,7 +70,9 @@ class AppUpdateManager(internal val activity: Activity) {
         onDiscard: (T) -> Unit = {},
         onResult: (Result<T>) -> Unit
     ): Boolean {
-        if (activity.isFinishing || activity.isDestroyed || !updateInProgress.compareAndSet(false, true))
+        val unavailable = activity.isFinishing || activity.isDestroyed
+        if (unavailable || hasProfiledInstallProgress() ||
+            !updateInProgress.compareAndSet(false, true))
             return false
         var workerStarted = false
         try {

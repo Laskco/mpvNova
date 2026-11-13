@@ -80,6 +80,16 @@
             tools:text="- Fixed a thing\n- Polished another thing" />
     </ScrollView>
 
+    <ProgressBar
+        android:id="@+id/updateProgress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="4dp"
+        android:layout_marginTop="20dp"
+        android:indeterminate="true"
+        android:indeterminateTint="?attr/mpvAccentHot"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/updateActions"
         android:layout_width="match_parent"

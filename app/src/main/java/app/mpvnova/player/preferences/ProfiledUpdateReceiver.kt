@@ -24,6 +24,7 @@ class ProfiledUpdateReceiver : BroadcastReceiver() {
         if (status == PackageInstaller.STATUS_PENDING_USER_ACTION) {
             confirm(context, intent, sessionId, apk, tagName)
         } else {
+            finishProfiledInstallProgress(sessionId)
             cancelCallback(context, sessionId)
             finish(context, intent, status, apk, tagName)
         }
@@ -37,6 +38,7 @@ class ProfiledUpdateReceiver : BroadcastReceiver() {
                 val launched = confirmation != null &&
                     runCatching { manager.activity.startActivity(confirmation) }.isSuccess
                 if (!launched) {
+                    finishProfiledInstallProgress(sessionId)
                     cancelCallback(context, sessionId)
                     runCatching { installer.abandonSession(sessionId) }
                     manager.installApkWithSystemUi(tagName, apk)

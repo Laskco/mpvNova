@@ -47,6 +47,7 @@ internal fun AppUpdateManager.showDownloadedUpdateDialog(release: ReleaseInfo, a
                 release.assetName
             ),
             primaryText = activity.getString(R.string.update_install),
+            compactContent = true,
             onPrimary = { installDownloadedApk(release.tagName, apkFile) }
         )
     ).setOnDismissListener {
@@ -63,7 +64,8 @@ internal fun AppUpdateManager.showBusy(message: String) {
         GlassDialogOptions(
             title = activity.getString(R.string.update_available_title),
             releaseTitle = message,
-            showClose = false
+            showClose = false,
+            showProgress = true,
         )
     ).apply {
         setCancelable(false)
@@ -88,6 +90,7 @@ internal fun AppUpdateManager.showGlassDialog(options: GlassDialogOptions): Aler
     lateinit var dialog: AlertDialog
     val binding = DialogAppUpdateBinding.inflate(activity.layoutInflater)
     binding.updateTitle.text = options.title
+    binding.updateProgress.visibility = if (options.showProgress) View.VISIBLE else View.GONE
     binding.updateVersion.setTextOrGone(options.version)
     binding.updateReleaseTitle.setTextOrGone(options.releaseTitle)
     binding.updateNotesHeading.setTextOrGone(options.notesHeading)

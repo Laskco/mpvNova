@@ -12,6 +12,7 @@ internal data class GlassDialogOptions(
     val onIgnore: (() -> Unit)? = null,
     val showClose: Boolean = true,
     val compactContent: Boolean = false,
+    val showProgress: Boolean = false,
 )
 
 internal data class ReleaseInfo(

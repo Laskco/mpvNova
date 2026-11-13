@@ -17,7 +17,7 @@ internal fun AppUpdateManager.prepareUpdateInstall(tagName: String?, apk: File) 
     val installer = context.packageManager.packageInstaller
     retainUpdateInstaller(apk)
     val started = runUpdateOperation(
-        message = activity.getString(R.string.update_install),
+        message = activity.getString(R.string.update_preparing_install),
         operation = {
             runCatching { validateAndStageUpdate(context, apk) }
                 .onFailure { context.finishUpdateInstaller(apk) }
@@ -32,6 +32,8 @@ internal fun AppUpdateManager.prepareUpdateInstall(tagName: String?, apk: File) 
             if (session != null) rememberPendingUpdate(tagName, apk)
             if (session == null || !commitProfiledUpdate(context, session, tagName, apk)) {
                 queueProfiledUpdateUi { it.installApkWithSystemUi(tagName, apk) }
+            } else {
+                beginProfiledInstallProgress(session)
             }
         }.onFailure {
             showError(activity.getString(R.string.update_invalid_apk))
