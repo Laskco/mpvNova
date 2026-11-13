@@ -58,7 +58,7 @@ internal object BackupPreferenceCompatibility {
             "video_debanding", "video_sync", "ui_color_theme", "ui_font_family", "opensubtitles_language",
             "shader_manager_entries", "series_track_selections_v1", "sub_style_extras", "sub_style_presets",
             "player_title_custom_presets", "player_ui_custom_presets", "last_user_sub_title",
-            "last_user_sub_lang", "last_user_audio_title", "last_user_audio_lang",
+            "last_user_sub_lang", "last_user_sub_series", "last_user_audio_title", "last_user_audio_lang",
             "MainScreenFragment_remember", "MainScreenFragment_remember_data", "ignored_update_tag",
             "pending_update_tag", "pending_update_apk_path", "release_history",
         )
@@ -82,7 +82,7 @@ internal object BackupPreferenceCompatibility {
         )
         keys(Type.INT,
             "player_screen_brightness_percent", "volume_boost_db", "sub_scale_level", "sub_scale_steps_version",
-            "sub_pos_pct", "secondary_sub_pos_pct",
+            "sub_pos_pct", "secondary_sub_pos_pct", "last_user_sub_duplicate_index", "last_user_sub_duplicate_count",
         )
         keys(Type.LONG, "audio_delay_ms", "sub_delay_ms", "secondary_sub_delay_ms", "bluetooth_audio_delay_ms")
         keys(Type.STRING_SET, "shader_manager_folder_uris", "player_ui_custom_hidden_controls")

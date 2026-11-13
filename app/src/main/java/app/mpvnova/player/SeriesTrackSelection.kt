@@ -11,6 +11,8 @@ internal data class SavedSeriesTrack(
     val language: String,
     val forced: Boolean = false,
     val off: Boolean = false,
+    val duplicateIndex: Int = -1,
+    val duplicateCount: Int = 0,
 ) {
     fun match(tracks: List<TrackMeta>, type: String): Int? {
         if (off) return -1
@@ -19,7 +21,8 @@ internal data class SavedSeriesTrack(
             (language.isBlank() || memoryLanguageMatches(it, type)) &&
                 (type != "sub" || companion == isCompanionSubtitleTrack(it.title, it.forced, it.lang))
         }
-        val exact = compatible.firstOrNull { it.title.equals(title, ignoreCase = true) }
+        val exact = rememberedDuplicateTrack(compatible, title, language, forced, duplicateIndex, duplicateCount)
+            ?: compatible.firstOrNull { it.title.equals(title, ignoreCase = true) }
         val scored = compatible.maxByOrNull { titleSimilarityScore(title, it.title) }
             ?.takeIf { companion || titleSimilarityScore(title, it.title) >= TRACK_MEMORY_MIN_SCORE }
         // Keep language and subtitle kind when releases rename their tracks. Never use old IDs.
@@ -48,7 +51,12 @@ internal data class SeriesTrackSelection(val audio: SavedSeriesTrack?, val sub: 
 
 internal fun savedSeriesTrack(tracks: List<TrackMeta>, id: Int): SavedSeriesTrack? =
     if (id == -1) SavedSeriesTrack("", "", off = true) else tracks.firstOrNull { it.mpvId == id }?.let {
-        SavedSeriesTrack(it.title.take(SERIES_TRACK_TEXT_LIMIT), it.lang.take(SERIES_TRACK_TEXT_LIMIT), it.forced)
+        val duplicates = matchingTrackDuplicates(tracks, it.title, it.lang, it.forced)
+        SavedSeriesTrack(
+            it.title.take(SERIES_TRACK_TEXT_LIMIT), it.lang.take(SERIES_TRACK_TEXT_LIMIT), it.forced,
+            duplicateIndex = if (duplicates.size > 1) duplicates.indexOf(it) else -1,
+            duplicateCount = if (duplicates.size > 1) duplicates.size else 0,
+        )
     }
 
 internal fun trackSeriesKey(presentation: PlayerTitlePresentation?): String? = presentation
@@ -99,11 +107,13 @@ internal class SeriesTrackSelectionCache(serialized: String?) {
             it.optString("title").take(SERIES_TRACK_TEXT_LIMIT),
             it.optString("language").take(SERIES_TRACK_TEXT_LIMIT),
             it.optBoolean("forced"), it.optBoolean("off"),
+            it.optInt("duplicateIndex", -1), it.optInt("duplicateCount", 0),
         )
     }
 
     private fun writeTrack(track: SavedSeriesTrack?): JSONObject? = track?.let {
         JSONObject().put("title", it.title).put("language", it.language).put("forced", it.forced).put("off", it.off)
+            .put("duplicateIndex", it.duplicateIndex).put("duplicateCount", it.duplicateCount)
     }
 }
 

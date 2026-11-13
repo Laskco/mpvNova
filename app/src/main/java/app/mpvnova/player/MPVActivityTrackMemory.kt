@@ -37,6 +37,9 @@ internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
                 remove(titleKey)
                 remove(langKey)
                 remove(TRACK_MEMORY_SUB_FORCED_KEY)
+                remove(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY)
+                remove(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY)
+                remove(TRACK_MEMORY_SUB_SERIES_KEY)
                 apply()
             }
             Log.v(MPV_ACTIVITY_TAG, "track-memory: saved sub track off")
@@ -52,7 +55,8 @@ private fun MPVActivity.saveTrackMetaPick(
     titleKey: String,
     langKey: String
 ) {
-    val meta = listTrackMeta(type).firstOrNull { it.mpvId == mpvId }
+    val tracks = listTrackMeta(type)
+    val meta = tracks.firstOrNull { it.mpvId == mpvId }
     if (meta == null) {
         if (type == "sub") {
             prefs.edit().remove(TRACK_MEMORY_SUB_OFF_KEY).apply()
@@ -63,6 +67,17 @@ private fun MPVActivity.saveTrackMetaPick(
         if (type == "sub") {
             remove(TRACK_MEMORY_SUB_OFF_KEY)
             putBoolean(TRACK_MEMORY_SUB_FORCED_KEY, meta.forced)
+            val duplicates = matchingTrackDuplicates(tracks, meta.title, meta.lang, meta.forced)
+            val seriesKey = resolveTrackSeriesKey()
+            if (duplicates.size > 1 && seriesKey != null) {
+                putInt(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY, duplicates.indexOf(meta))
+                putInt(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY, duplicates.size)
+                putString(TRACK_MEMORY_SUB_SERIES_KEY, seriesKey)
+            } else {
+                remove(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY)
+                remove(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY)
+                remove(TRACK_MEMORY_SUB_SERIES_KEY)
+            }
         }
         putString(titleKey, meta.title)
         putString(langKey, meta.lang)
@@ -85,9 +100,16 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
     val savedTitle = prefs.getString(titleKey, null)
     val savedLang = prefs.getString(langKey, "") ?: ""
     val savedForced = type == "sub" && prefs.getBoolean(TRACK_MEMORY_SUB_FORCED_KEY, false)
+    val sameSeries = type == "sub" && resolveTrackSeriesKey()?.let {
+        it == prefs.getString(TRACK_MEMORY_SUB_SERIES_KEY, null)
+    } == true
 
     if (savedTitle != null) {
-        val (match, score) = rememberedTrackMatch(listTrackMeta(type), savedTitle, savedLang, type, savedForced)
+        val (match, score) = rememberedTrackMatch(
+            listTrackMeta(type), savedTitle, savedLang, type, savedForced,
+            duplicateIndex = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY, -1) else -1,
+            duplicateCount = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY, 0) else 0,
+        )
         if (match != null) {
             setTrackForMemory(type, match.mpvId, match.title, score, exact = match.title.equals(savedTitle, true))
         }
@@ -113,3 +135,6 @@ internal fun MPVActivity.trackMemoryKeys(type: String): Pair<String, String> = w
 
 private const val TRACK_MEMORY_SUB_OFF_KEY = "last_user_sub_off"
 private const val TRACK_MEMORY_SUB_FORCED_KEY = "last_user_sub_forced"
+private const val TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY = "last_user_sub_duplicate_index"
+private const val TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY = "last_user_sub_duplicate_count"
+private const val TRACK_MEMORY_SUB_SERIES_KEY = "last_user_sub_series"

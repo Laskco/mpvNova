@@ -69,12 +69,14 @@ internal fun bestTrackTitleMatch(
 
 internal fun rememberedTrackMatch(
     tracks: List<TrackMeta>, savedTitle: String, savedLang: String, type: String, savedForced: Boolean = false,
+    duplicateIndex: Int = -1, duplicateCount: Int = 0,
 ): Pair<TrackMeta?, Double> {
     val compatible = tracks.filter {
         (savedLang.isEmpty() || languagePrefixMatches(it.lang, savedLang)) &&
             (type != "sub" || subtitleTrackKindsMatch(savedTitle, it.title, savedForced, it.forced, savedLang, it.lang))
     }
-    val exact = compatible.firstOrNull { it.title.equals(savedTitle, ignoreCase = true) }
+    val exact = rememberedDuplicateTrack(compatible, savedTitle, savedLang, savedForced, duplicateIndex, duplicateCount)
+        ?: compatible.firstOrNull { it.title.equals(savedTitle, ignoreCase = true) }
     if (exact != null) return exact to 1.0
     val (match, score) = bestTrackTitleMatch(compatible, savedTitle, type, savedForced, savedLang)
     return match.takeIf { score >= TRACK_MEMORY_MIN_SCORE } to score
