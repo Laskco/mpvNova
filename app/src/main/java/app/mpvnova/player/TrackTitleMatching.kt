@@ -115,6 +115,9 @@ internal fun isCompanionSubtitleTrack(title: String, forced: Boolean, language: 
             !NOT_FORCED_SUBTITLE_PATTERN.containsMatchIn(label))
 }
 
+internal fun isFullSubtitleTitle(title: String): Boolean =
+    FULL_SUBTITLE_PATTERN.containsMatchIn(title.replace('_', ' '))
+
 private fun isSameLanguageAudioSubtitleTitle(title: String, language: String): Boolean {
     if (FULL_SUBTITLE_PATTERN.containsMatchIn(title)) return false
     // A label such as "With English Audio" identifies the dub companion track,

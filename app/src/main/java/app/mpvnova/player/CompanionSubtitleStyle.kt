@@ -3,7 +3,9 @@ package app.mpvnova.player
 internal const val PREF_PRESERVE_COMPANION_SUBTITLE_STYLE = "preserve_companion_subtitle_style"
 
 internal fun shouldPreserveCompanionSubtitleStyle(enabled: Boolean, track: TrackMeta?): Boolean =
-    enabled && track != null && isCompanionSubtitleTrack(track.title, track.forced, track.lang)
+    // Some releases mark full-dialogue tracks forced at the container level.
+    enabled && track != null && !isFullSubtitleTitle(track.title) &&
+        isCompanionSubtitleTrack(track.title, track.forced, track.lang)
 
 internal fun MPVActivity.shouldPreserveSelectedSubtitleStyle(): Boolean {
     if (!preserveCompanionSubtitleStyle) return false
