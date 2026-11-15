@@ -6,8 +6,8 @@
 v_sdk=16111833_latest
 v_ndk=r30
 v_ndk_n=30.0.16248370
-v_sdk_platform=37.0
-v_sdk_build_tools=36.0.0
+v_sdk_platform=37.2
+v_sdk_build_tools=37.0.0
 
 v_lua=5.2.4
 v_unibreak=8.0
@@ -20,10 +20,10 @@ v_libxml2=2.15.4
 v_fontconfig=2.18.3
 v_libass=ac374780b66c17c90dd934ce3afd8ca7c6c8278f
 libass_repository=https://github.com/Laskco/mpvNova-libass.git
-v_libplacebo=7.391.0
+v_libplacebo=7.396.0
 v_curl=8.23.0
 # Pin upstream mpv; download-deps.sh applies the player patches.
-v_mpv=b0841e8c4d156b8403dc1876c4cbd9011eb583f3
+v_mpv=543a8c2c59b9ea2f80e4992225b80a2b14b91346
 
 
 ## Dependency tree
@@ -49,7 +49,7 @@ dep_mpvnova=(mpv)
 
 # pinned ffmpeg revision
 v_ci_ffmpeg=n9.0.2
-v_ci_libplacebo=c2cf6e72daee00cbb8ef089059a5d12c06018cbd
+v_ci_libplacebo=e608e5b799b6515af2689fddbbed66ffae7b724c
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 

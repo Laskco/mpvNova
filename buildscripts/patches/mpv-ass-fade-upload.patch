@@ -1,5 +1,5 @@
 diff --git a/sub/osd.h b/sub/osd.h
-index b62836e517..83ff30db5e 100644
+index b62836e..83ff30d 100644
 --- a/sub/osd.h
 +++ b/sub/osd.h
 @@ -93,6 +93,10 @@ struct sub_bitmaps {
@@ -14,7 +14,7 @@ index b62836e517..83ff30db5e 100644
  };
  
 diff --git a/sub/packer.c b/sub/packer.c
-index bebb4561f5..623c8daa98 100644
+index bebb456..623c8da 100644
 --- a/sub/packer.c
 +++ b/sub/packer.c
 @@ -21,6 +21,7 @@
@@ -103,7 +103,7 @@ index bebb4561f5..623c8daa98 100644
      p->cached_subs_valid = false;
  
 diff --git a/video/out/gpu/osd.c b/video/out/gpu/osd.c
-index 883dccd7eb..f36b63cdf7 100644
+index 883dccd..f36b63c 100644
 --- a/video/out/gpu/osd.c
 +++ b/video/out/gpu/osd.c
 @@ -50,6 +50,7 @@ static const struct ra_renderpass_input vertex_vao[] = {
@@ -140,19 +140,19 @@ index 883dccd7eb..f36b63cdf7 100644
      }
      osd->num_subparts = ok ? imgs->num_parts : 0;
  
-diff --git a/video/out/vo_gpu_next.c b/video/out/vo_gpu_next.c
-index b6d69308da..e3d320e268 100644
---- a/video/out/vo_gpu_next.c
-+++ b/video/out/vo_gpu_next.c
-@@ -68,6 +68,7 @@ struct osd_entry {
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index 418575e..1b9c5d4 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -69,6 +69,7 @@ struct osd_entry {
      struct pl_overlay_part *parts;
      int num_parts;
      int change_id;
 +    uint64_t packed_id;
  };
  
- struct osd_state {
-@@ -353,6 +354,7 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
+ struct overlay_state {
+@@ -358,6 +359,7 @@ static bool upload_overlay_tex(struct mppl_video *p, struct osd_entry *entry,
          tex->params.h < item->packed_h || tex->params.format != tex_fmt)
      {
          entry->change_id = 0;
@@ -160,7 +160,7 @@ index b6d69308da..e3d320e268 100644
          bool ok = pl_tex_recreate(p->gpu, &entry->tex, &(struct pl_tex_params) {
              .format = tex_fmt,
              .w = MPMAX(item->packed_w, tex ? tex->params.w : 0),
-@@ -365,7 +367,8 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
+@@ -370,7 +372,8 @@ static bool upload_overlay_tex(struct mppl_video *p, struct osd_entry *entry,
              return false;
          }
      }
@@ -170,8 +170,8 @@ index b6d69308da..e3d320e268 100644
          return true;
      struct pl_tex_transfer_params upload_params = {
          .tex        = entry->tex,
-@@ -382,9 +385,12 @@ static bool upload_overlay_tex(struct vo *vo, struct osd_entry *entry,
-         MP_ERR(vo, "Failed uploading OSD texture!\n");
+@@ -387,9 +390,12 @@ static bool upload_overlay_tex(struct mppl_video *p, struct osd_entry *entry,
+         MP_ERR(p, "Failed uploading OSD texture!\n");
          talloc_free(upload_params.priv);
          entry->change_id = 0;
 +        entry->packed_id = 0;
@@ -179,7 +179,7 @@ index b6d69308da..e3d320e268 100644
      }
      entry->change_id = item->change_id;
 +    entry->packed_id = item->packed_id;
-+    MP_TRACE(vo, "OSD atlas uploaded: %dx%d\n", item->packed_w, item->packed_h);
++    MP_TRACE(p, "OSD atlas uploaded: %dx%d\n", item->packed_w, item->packed_h);
      return true;
  }
  
