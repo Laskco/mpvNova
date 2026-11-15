@@ -2,6 +2,9 @@ package app.mpvnova.player
 
 internal const val PREF_PRESERVE_COMPANION_SUBTITLE_STYLE = "preserve_companion_subtitle_style"
 
+private fun isFullSubtitleTitle(title: String): Boolean =
+    FULL_SUBTITLE_PATTERN.containsMatchIn(title.replace('_', ' '))
+
 internal fun shouldPreserveCompanionSubtitleStyle(enabled: Boolean, track: TrackMeta?): Boolean =
     // Some releases mark full-dialogue tracks forced at the container level.
     enabled && track != null && !isFullSubtitleTitle(track.title) &&

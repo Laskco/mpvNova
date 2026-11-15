@@ -115,9 +115,6 @@ internal fun isCompanionSubtitleTrack(title: String, forced: Boolean, language: 
             !NOT_FORCED_SUBTITLE_PATTERN.containsMatchIn(label))
 }
 
-internal fun isFullSubtitleTitle(title: String): Boolean =
-    FULL_SUBTITLE_PATTERN.containsMatchIn(title.replace('_', ' '))
-
 private fun isSameLanguageAudioSubtitleTitle(title: String, language: String): Boolean {
     if (FULL_SUBTITLE_PATTERN.containsMatchIn(title)) return false
     // A label such as "With English Audio" identifies the dub companion track,
@@ -132,7 +129,7 @@ private fun isSignsSubtitleTitle(title: String): Boolean =
 private val SIGNS_SUBTITLE_PATTERN = Regex(
     """(?i)\bsigns\b|\bsign\s*(?:[&+/]|and)?\s*songs?\b|\bsign\s+only\b|\bs\s*[&+/]\s*s\b""",
 )
-private val FULL_SUBTITLE_PATTERN = Regex("""(?i)\b(?:full|dialog(?:ue)?s?|sdh|closed\s+captions?)\b""")
+internal val FULL_SUBTITLE_PATTERN = Regex("""(?i)\b(?:full|dialog(?:ue)?s?|sdh|closed\s+captions?)\b""")
 private val FORCED_SUBTITLE_PATTERN = Regex("""(?i)\bforced\b""")
 private val NOT_FORCED_SUBTITLE_PATTERN = Regex(
     """(?i)\b(?:not|non|no)[\s-]+forced\b|\bforced\s*[:=]\s*(?:no|false|0)\b""",
