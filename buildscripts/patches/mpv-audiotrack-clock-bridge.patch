@@ -1,0 +1,97 @@
+diff --git a/audio/out/ao_audiotrack.c b/audio/out/ao_audiotrack.c
+index 0b8fa53..ba6efe4 100644
+--- a/audio/out/ao_audiotrack.c
++++ b/audio/out/ao_audiotrack.c
+@@ -47,6 +47,10 @@ struct priv {
+     int64_t timestamp_fetched;
+     bool timestamp_set;
+     int timestamp_stable;
++    int64_t presentation_time;
++    uint32_t presentation_pos;
++    bool resume_pos_valid;
++    int64_t bridge_start;
+ 
+     uint32_t written_frames; /* requires uint32_t rollover semantics */
+     uint32_t playhead_pos;
+@@ -375,6 +379,8 @@ static int AudioTrack_New(struct ao *ao)
+ static int AudioTrack_Recreate(struct ao *ao)
+ {
+     struct priv *p = ao->priv;
++    p->presentation_time = p->bridge_start = 0;
++    p->resume_pos_valid = false;
+     JNIEnv *env = MP_JNI_GET_ENV(ao);
+ 
+     MP_JNI_CALL_VOID(p->audiotrack, AudioTrack.release);
+@@ -442,7 +448,19 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
+         }
+         //MP_VERBOSE(ao, "position = %u via getTimestamp (state = %d / fpos= %u / time= %"PRId64")\n", pos, state, fpos, time);
+     }
+-    if (!p->timestamp_set) {
++    if (p->timestamp_set && state == AudioTrack.PLAYSTATE_PLAYING) {
++        p->bridge_start = 0;
++        p->presentation_time = now;
++        p->presentation_pos = pos;
++    } else if (p->bridge_start && now >= p->bridge_start &&
++               now - p->bridge_start < MP_TIME_S_TO_NS(1) &&
++               p->written_frames - p->presentation_pos <= 2U * ao->samplerate) {
++        // Before the first fresh presentation timestamp, Android's playback
++        // head measures delivery to the mixer, not presentation at the sink.
++        uint32_t advance = MP_TIME_NS_TO_S(now - p->bridge_start) * ao->samplerate;
++        return p->presentation_pos + MPMIN(advance, p->written_frames - p->presentation_pos);
++    } else if (!p->timestamp_set) {
++        p->bridge_start = 0;
+         pos = 0xFFFFFFFFL & MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getPlaybackHeadPosition);
+         //MP_VERBOSE(ao, "playbackHeadPosition = %u (reset_pending=%d)\n", pos, p->reset_pending);
+     }
+@@ -491,7 +509,7 @@ static double AudioTrack_getLatency(struct ao *ao)
+     uint32_t playhead = AudioTrack_getPlaybackHeadPosition(ao);
+     uint32_t diff = p->written_frames - playhead;
+     double delay = diff / (double)(ao->samplerate);
+-    if (!p->timestamp_set &&
++    if (!p->timestamp_set && !p->bridge_start &&
+         p->format != AudioFormat.ENCODING_IEC61937) {
+         double reported = MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getLatency) / 1000.0;
+         // Android reports the AudioTrack buffer as part of its total latency.
+@@ -863,6 +881,8 @@ static void stop(struct ao *ao)
+     p->playhead_offset = 0;
+     p->reset_pending = true;
+     p->written_frames = 0;
++    p->presentation_time = p->bridge_start = 0;
++    p->resume_pos_valid = false;
+     p->timestamp_floor = mp_raw_time_ns();
+     p->timestamp_fetched = 0;
+     p->timestamp_set = false;
+@@ -886,15 +906,30 @@ static void start(struct ao *ao)
+ 
+ static bool set_pause(struct ao *ao, bool paused)
+ {
+-    if (paused)
+-        return pause_track(ao);
+-
+     struct priv *p = ao->priv;
++    if (paused) {
++        int64_t now = mp_raw_time_ns();
++        if (!pause_track(ao))
++            return false;
++        mp_mutex_lock(&p->lock);
++        int64_t base = p->bridge_start ? p->bridge_start : p->presentation_time;
++        p->resume_pos_valid = base && now >= base && now - base < MP_TIME_S_TO_NS(1) &&
++                              p->written_frames - p->presentation_pos <= 2U * ao->samplerate;
++        if (p->resume_pos_valid) {
++            uint32_t advance = MP_TIME_NS_TO_S(now - base) * ao->samplerate;
++            p->presentation_pos += MPMIN(advance, p->written_frames - p->presentation_pos);
++        }
++        p->bridge_start = p->presentation_time = 0;
++        mp_mutex_unlock(&p->lock);
++        return true;
++    }
+     mp_mutex_lock(&p->lock);
+     // Do not extrapolate an Android timestamp across the paused interval.
+     p->timestamp_floor = mp_raw_time_ns();
+     p->timestamp_fetched = 0;
+     p->timestamp_set = false;
++    p->bridge_start = p->resume_pos_valid ? p->timestamp_floor : 0;
++    p->resume_pos_valid = false;
+     start(ao);
+     mp_mutex_unlock(&p->lock);
+     return true;
