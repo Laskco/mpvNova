@@ -18,11 +18,11 @@ v_mbedtls=3.6.7
 v_dav1d=1.5.4
 v_libxml2=2.15.4
 v_fontconfig=2.18.3
-v_libass=fe51a3b0b90fbe47e5d72e49c7a57544edc63b5c
+v_libass=ac374780b66c17c90dd934ce3afd8ca7c6c8278f
 libass_repository=https://github.com/Laskco/mpvNova-libass.git
 v_libplacebo=7.391.0
 v_curl=8.23.0
-# Pin upstream mpv; apply the default-off FEL and external subtitle URL patches.
+# Pin upstream mpv; download-deps.sh applies the player patches.
 v_mpv=b0841e8c4d156b8403dc1876c4cbd9011eb583f3
 
 
@@ -54,4 +54,4 @@ v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 
 # filename used to uniquely identify a build prefix
-ci_tarball="prefix-upstream-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-fork-${v_libass:0:12}-threads1-asm1-libplacebo-${v_libplacebo}-${v_ci_libplacebo:0:8}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}-mpv-${v_mpv:0:8}-feloff2-urlsubs2-fadeatlas1-16krelro1-aopause3.tgz"
+ci_tarball="prefix-upstream-ndk-${v_ndk}-arches-${v_ci_arches}-mode-${v_ci_prefix_mode}-lua-${v_lua}-unibreak-${v_unibreak}-harfbuzz-${v_harfbuzz}-fribidi-${v_fribidi}-freetype-${v_freetype}-libxml2-${v_libxml2}-fontconfig-${v_fontconfig}-mbedtls-${v_mbedtls}-dav1d-${v_dav1d}-libass-fork-${v_libass:0:12}-threads1-asm1-libplacebo-${v_libplacebo}-${v_ci_libplacebo:0:8}-curl-${v_curl}-ffmpeg-${v_ci_ffmpeg}-mpv-${v_mpv:0:8}-feloff2-urlsubs2-fadeatlas1-16krelro1-pcmresume1.tgz"

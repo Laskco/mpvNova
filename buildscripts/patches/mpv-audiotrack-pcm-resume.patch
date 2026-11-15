@@ -1,17 +1,18 @@
 diff --git a/audio/out/ao_audiotrack.c b/audio/out/ao_audiotrack.c
-index f483ccc..40a2eb7 100644
+index f483ccc..2e6d87f 100644
 --- a/audio/out/ao_audiotrack.c
 +++ b/audio/out/ao_audiotrack.c
-@@ -21,6 +21,8 @@
+@@ -21,6 +21,9 @@
   * License along with mpv.  If not, see <http://www.gnu.org/licenses/>.
   */
  
 +#include <string.h>
++#include <time.h>
 +
  #include "ao.h"
  #include "internal.h"
  #include "common/msg.h"
-@@ -41,6 +43,7 @@ struct priv {
+@@ -41,9 +44,15 @@ struct priv {
      jint size;
  
      jobject timestamp;
@@ -19,7 +20,15 @@ index f483ccc..40a2eb7 100644
      int64_t timestamp_fetched;
      bool timestamp_set;
      int timestamp_stable;
-@@ -52,6 +55,7 @@ struct priv {
++    int64_t presentation_time;
++    uint32_t presentation_pos;
++    bool resume_pos_valid;
++    bool pause_failed;
++    int64_t bridge_start;
+ 
+     uint32_t written_frames; /* requires uint32_t rollover semantics */
+     uint32_t playhead_pos;
+@@ -52,6 +61,7 @@ struct priv {
  
      void *chunk;
      int chunksize;
@@ -27,7 +36,40 @@ index f483ccc..40a2eb7 100644
      jbyteArray bytearray;
      jshortArray shortarray;
      jfloatArray floatarray;
-@@ -398,17 +402,21 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
+@@ -371,6 +381,8 @@ static int AudioTrack_New(struct ao *ao)
+ static int AudioTrack_Recreate(struct ao *ao)
+ {
+     struct priv *p = ao->priv;
++    p->presentation_time = p->bridge_start = 0;
++    p->resume_pos_valid = false;
+     JNIEnv *env = MP_JNI_GET_ENV(ao);
+ 
+     MP_JNI_CALL_VOID(p->audiotrack, AudioTrack.release);
+@@ -379,6 +391,14 @@ static int AudioTrack_Recreate(struct ao *ao)
+     return AudioTrack_New(ao);
+ }
+ 
++static int64_t presentation_now_ns(void)
++{
++    // AudioTimestamp.nanoTime uses CLOCK_MONOTONIC; mp_raw_time_ns may use RAW.
++    struct timespec ts = {0};
++    clock_gettime(CLOCK_MONOTONIC, &ts);
++    return MP_TIME_S_TO_NS(ts.tv_sec) + ts.tv_nsec;
++}
++
+ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
+ {
+     struct priv *p = ao->priv;
+@@ -386,7 +406,7 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
+         return 0;
+     JNIEnv *env = MP_JNI_GET_ENV(ao);
+     uint32_t pos = 0;
+-    int64_t now = mp_raw_time_ns();
++    int64_t now = presentation_now_ns();
+     int state = MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getPlayState);
+ 
+     int stable_count = 20;
+@@ -398,17 +418,21 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
              p->timestamp_stable = 0;
  
          int64_t time1 = MP_JNI_GET_LONG(p->timestamp, AudioTimestamp.nanoTime);
@@ -57,7 +99,7 @@ index f483ccc..40a2eb7 100644
          }
      }
  
-@@ -423,10 +431,18 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
+@@ -423,10 +447,30 @@ static uint32_t AudioTrack_getPlaybackHeadPosition(struct ao *ao)
              fpos = pos = 0;
          if (fpos != 0 && time != 0 && state == AudioTrack.PLAYSTATE_PLAYING) {
              double diff = (double)(now - time) / 1e9;
@@ -74,16 +116,30 @@ index f483ccc..40a2eb7 100644
          //MP_VERBOSE(ao, "position = %u via getTimestamp (state = %d / fpos= %u / time= %"PRId64")\n", pos, state, fpos, time);
 -    } else {
 +    }
-+    if (!p->timestamp_set) {
++    if (p->timestamp_set && state == AudioTrack.PLAYSTATE_PLAYING) {
++        p->bridge_start = 0;
++        p->presentation_time = now;
++        p->presentation_pos = pos;
++    } else if (p->bridge_start && now >= p->bridge_start &&
++               now - p->bridge_start < MP_TIME_S_TO_NS(1) &&
++               p->written_frames - p->presentation_pos <= 2U * ao->samplerate) {
++        // Before the first fresh presentation timestamp, Android's playback
++        // head measures delivery to the mixer, not presentation at the sink.
++        uint32_t advance = MP_TIME_NS_TO_S(now - p->bridge_start) * ao->samplerate;
++        return p->presentation_pos + MPMIN(advance, p->written_frames - p->presentation_pos);
++    } else if (!p->timestamp_set) {
++        p->bridge_start = 0;
          pos = 0xFFFFFFFFL & MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getPlaybackHeadPosition);
          //MP_VERBOSE(ao, "playbackHeadPosition = %u (reset_pending=%d)\n", pos, p->reset_pending);
      }
-@@ -476,8 +492,12 @@ static double AudioTrack_getLatency(struct ao *ao)
+@@ -475,9 +519,13 @@ static double AudioTrack_getLatency(struct ao *ao)
+     uint32_t playhead = AudioTrack_getPlaybackHeadPosition(ao);
      uint32_t diff = p->written_frames - playhead;
      double delay = diff / (double)(ao->samplerate);
-     if (!p->timestamp_set &&
+-    if (!p->timestamp_set &&
 -        p->format != AudioFormat.ENCODING_IEC61937)
 -        delay += (double)MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getLatency)/1000.0;
++    if (!p->timestamp_set && !p->bridge_start &&
 +        p->format != AudioFormat.ENCODING_IEC61937) {
 +        double reported = MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getLatency) / 1000.0;
 +        // Android reports the AudioTrack buffer as part of its total latency.
@@ -93,7 +149,7 @@ index f483ccc..40a2eb7 100644
      if (delay > 2.0) {
          //MP_WARN(ao, "getLatency: written=%u playhead=%u diff=%u delay=%f\n", p->written_frames, playhead, diff, delay);
          p->timestamp_fetched = 0;
-@@ -579,20 +599,29 @@ static MP_THREAD_VOID ao_thread(void *arg)
+@@ -579,20 +627,29 @@ static MP_THREAD_VOID ao_thread(void *arg)
              state = MP_JNI_CALL_INT(p->audiotrack, AudioTrack.getPlayState);
          }
          if (state == AudioTrack.PLAYSTATE_PLAYING) {
@@ -129,7 +185,34 @@ index f483ccc..40a2eb7 100644
                  MP_ERR(ao, "AudioTrack.write failed with %d\n", ret);
              }
          } else {
-@@ -798,25 +827,39 @@ error:
+@@ -663,6 +720,11 @@ static int init(struct ao *ao)
+             MP_ERR(ao, "spdif passthrough not supported by API\n");
+             return -1;
+         }
++        // Pull AOs select reset/start by callback presence, not its return value.
++        struct ao_driver *driver = talloc(ao, struct ao_driver);
++        *driver = *ao->driver;
++        driver->set_pause = NULL;
++        ao->driver = driver;
+     } else if (ao->format == AF_FORMAT_U8) {
+         p->format = AudioFormat.ENCODING_PCM_8BIT;
+     } else if (p->cfg_pcm_float && af_fmt_is_float(ao->format)) {
+@@ -749,6 +811,14 @@ static int init(struct ao *ao)
+     ao->device_buffer = p->size / bps;
+ 
+     p->chunksize = p->size;
++    if (p->format != AudioFormat.ENCODING_IEC61937) {
++        // Keep the device queue intact, but refresh the presentation clock
++        // more often than once per device buffer during blocking PCM writes.
++        int stride = bps * ao->channels.num;
++        ao->device_buffer = p->size / stride;
++        int quantum = MPMAX(1, p->samplerate / 50);
++        p->chunksize = MPMIN(p->size / stride, quantum) * stride;
++    }
+     p->chunk = talloc_size(ao, p->size);
+ 
+     jobject timestamp = MP_JNI_NEW(AudioTimestamp.clazz, AudioTimestamp.ctor);
+@@ -798,25 +868,43 @@ error:
      return -1;
  }
  
@@ -153,8 +236,10 @@ index f483ccc..40a2eb7 100644
 +static void stop(struct ao *ao)
 +{
 +    struct priv *p = ao->priv;
-+    if (!pause_track(ao))
++    if (!pause_track(ao)) {
++        ao_request_reload(ao);
 +        return;
++    }
 +
 +    JNIEnv *env = MP_JNI_GET_ENV(ao);
 +    // Pause first to interrupt any blocking write held by the audio thread.
@@ -166,28 +251,51 @@ index f483ccc..40a2eb7 100644
      p->playhead_offset = 0;
      p->reset_pending = true;
      p->written_frames = 0;
-+    p->timestamp_floor = mp_raw_time_ns();
++    p->presentation_time = p->bridge_start = 0;
++    p->resume_pos_valid = false;
++    p->timestamp_floor = presentation_now_ns();
      p->timestamp_fetched = 0;
      p->timestamp_set = false;
 +    mp_mutex_unlock(&p->lock);
  }
  
  static void start(struct ao *ao)
-@@ -834,6 +877,22 @@ static void start(struct ao *ao)
+@@ -834,6 +922,43 @@ static void start(struct ao *ao)
      mp_cond_signal(&p->wakeup);
  }
  
 +static bool set_pause(struct ao *ao, bool paused)
 +{
-+    if (paused)
-+        return pause_track(ao);
-+
 +    struct priv *p = ao->priv;
++    if (paused) {
++        int64_t now = presentation_now_ns();
++        p->pause_failed = !pause_track(ao);
++        if (p->pause_failed) {
++            ao_request_reload(ao);
++            return false;
++        }
++        mp_mutex_lock(&p->lock);
++        int64_t base = p->bridge_start ? p->bridge_start : p->presentation_time;
++        p->resume_pos_valid = base && now >= base && now - base < MP_TIME_S_TO_NS(1) &&
++                              p->written_frames - p->presentation_pos <= 2U * ao->samplerate;
++        if (p->resume_pos_valid) {
++            uint32_t advance = MP_TIME_NS_TO_S(now - base) * ao->samplerate;
++            p->presentation_pos += MPMIN(advance, p->written_frames - p->presentation_pos);
++        }
++        p->bridge_start = p->presentation_time = 0;
++        mp_mutex_unlock(&p->lock);
++        return true;
++    }
++    // A failed pause can leave the playing writer holding the lock until reset.
++    if (p->pause_failed)
++        return false;
 +    mp_mutex_lock(&p->lock);
 +    // Do not extrapolate an Android timestamp across the paused interval.
-+    p->timestamp_floor = mp_raw_time_ns();
++    p->timestamp_floor = presentation_now_ns();
 +    p->timestamp_fetched = 0;
 +    p->timestamp_set = false;
++    p->bridge_start = p->resume_pos_valid ? p->timestamp_floor : 0;
++    p->resume_pos_valid = false;
 +    start(ao);
 +    mp_mutex_unlock(&p->lock);
 +    return true;
@@ -196,7 +304,7 @@ index f483ccc..40a2eb7 100644
  #define OPT_BASE_STRUCT struct priv
  
  const struct ao_driver audio_out_audiotrack = {
-@@ -843,6 +902,7 @@ const struct ao_driver audio_out_audiotrack = {
+@@ -843,6 +968,7 @@ const struct ao_driver audio_out_audiotrack = {
      .uninit    = uninit,
      .reset     = stop,
      .start     = start,
