@@ -31,7 +31,7 @@ abstract class EmbedUpdateDexMetadata extends DefaultTask {
     }
 }
 
-ext.appVersionCode = 9046
+ext.appVersionCode = 9047
 
 def releaseKeystoreProperties = new Properties()
 def releaseKeystorePropertiesFile = rootProject.file("keystore.properties")
@@ -61,7 +61,7 @@ android {
         applicationId = 'app.mpvnova.player'
 
         versionCode = project.ext.appVersionCode
-        versionName = "2026-11-13-hotfix2"
+        versionName = "2026-11-15"
 
         vectorDrawables.useSupportLibrary = true
     }
