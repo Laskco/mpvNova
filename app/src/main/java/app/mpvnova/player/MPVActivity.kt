@@ -385,6 +385,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var pendingItemTitle: String? = null
     internal var pendingFileName: String? = null
     internal var currentPlayerTitleSource: String? = null
+    internal val overlayTitleCache = OverlayTitleCache()
     internal var currentItemTitle: String? = null
     internal var currentFileName: String? = null
     internal var currentVideoTitle: String? = null

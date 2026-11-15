@@ -51,12 +51,37 @@ private fun MPVActivity.hidePlayerTitleOverlay() {
 }
 
 private fun MPVActivity.resolvePlayerTitlePresentation(title: String): PlayerTitlePresentation =
-    PlayerTitleResolver.resolve(
+    overlayTitleCache.resolve(
         displayTitle = title,
         sourceTitle = currentPlayerTitleSource,
         mediaTitle = psc.meta.mediaTitle,
         fileName = currentFileName,
-    ).let { tmdbTitleController.resolve(it ?: PlayerTitlePresentation(title), currentFileName) }
+    ).let { tmdbTitleController.resolve(it, currentFileName) }
+
+internal class OverlayTitleCache {
+    private data class Inputs(
+        val display: String,
+        val source: String?,
+        val media: String?,
+        val filename: String?,
+    )
+
+    private var last: Pair<Inputs, PlayerTitlePresentation>? = null
+
+    fun resolve(
+        displayTitle: String,
+        sourceTitle: String?,
+        mediaTitle: String?,
+        fileName: String?,
+    ): PlayerTitlePresentation {
+        val inputs = Inputs(displayTitle, sourceTitle, mediaTitle, fileName)
+        last?.let { (previous, title) -> if (inputs == previous) return title }
+        val parsed = PlayerTitleResolver.resolve(displayTitle, sourceTitle, mediaTitle, fileName)
+            ?: PlayerTitlePresentation(displayTitle)
+        last = inputs to parsed
+        return parsed
+    }
+}
 
 private fun MPVActivity.bindPlayerTitlePresentation(
     presentation: PlayerTitlePresentation,
