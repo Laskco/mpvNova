@@ -173,6 +173,7 @@ internal enum class PlayerBarControl(
     SPEED("speed", R.id.cycleSpeedBtn, R.string.btn_play_speed, true),
     DECODER("decoder", R.id.cycleDecoderBtn, R.string.btn_decoder, true),
     FILTERS("filters", R.id.videoFiltersBtn, R.string.video_filter_presets_title, true),
+    VERTICAL_SCALE("vertical_scale", R.id.verticalScaleBtn, R.string.vertical_scale, true),
     STATS("stats", R.id.statsToggleBtn, R.string.toggle_stats, true),
     VOICE_BOOST("voice_boost", R.id.voiceBoostBtn, R.string.btn_voice_boost, true),
     VOLUME_BOOST("volume_boost", R.id.volumeBoostBtn, R.string.btn_volume_boost, true),
@@ -186,6 +187,7 @@ internal enum class PlayerBarControl(
 }
 
 private val DEFAULT_HIDDEN_PLAYER_CONTROLS = setOf(
+    PlayerBarControl.VERTICAL_SCALE,
     PlayerBarControl.FILTERS,
     PlayerBarControl.PICTURE_IN_PICTURE,
 )
@@ -346,6 +348,7 @@ private val CINEMA_PLAYER_UI_PRESET = PlayerUiCustomization(
         PlayerBarControl.PREVIOUS,
         PlayerBarControl.NEXT,
         PlayerBarControl.FILTERS,
+        PlayerBarControl.VERTICAL_SCALE,
         PlayerBarControl.STATS,
         PlayerBarControl.VOICE_BOOST,
         PlayerBarControl.VOLUME_BOOST,
@@ -650,6 +653,9 @@ internal object PlayerUiCustomizationStore {
             DEFAULT_HIDDEN_PLAYER_CONTROLS.mapTo(mutableSetOf()) { it.prefValue },
         ).orEmpty().mapNotNullTo(mutableSetOf()) { PlayerBarControl.fromPref(it) }
         val savedOrder = prefs.getString(CONTROL_ORDER, null)
+        if (PlayerBarControl.VERTICAL_SCALE.prefValue !in savedOrder.orEmpty().split(',')) {
+            controls += PlayerBarControl.VERTICAL_SCALE
+        }
 
         // New optional controls stay hidden for users with a layout saved by an older version.
         if (savedOrder != null && PlayerBarControl.FILTERS.prefValue !in savedOrder.split(',')) {

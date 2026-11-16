@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.view.ViewGroup.MarginLayoutParams
 import androidx.activity.addCallback
+import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -14,6 +15,8 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     playBtn.setOnClickListener { togglePauseFromUser() }
     cycleDecoderBtn.setOnClickListener { pickDecoder() }
     videoFiltersBtn.setOnClickListener { pickVideoFilterPreset() }
+    verticalScaleBtn.setOnClickListener { showVerticalScaleDialog() }
+    TooltipCompat.setTooltipText(verticalScaleBtn, getString(R.string.vertical_scale))
     statsToggleBtn.setOnClickListener { toggleStatsFromButton() }
     cycleSpeedBtn.setOnClickListener { cycleSpeed() }
     voiceBoostBtn.setOnClickListener { adjustVoiceBoost(1, wrap = true) }

@@ -174,6 +174,9 @@ private fun JSONObject.readPlayerUiPresetHiddenControls(): Set<PlayerBarControl>
         ?.filterTo(mutableSetOf()) { it.canHide }
         ?: return PlayerUiCustomization.DEFAULT.hiddenControls
     val savedOrder = optJSONArray("controlOrder")?.playerControls().orEmpty()
+    if (PlayerBarControl.VERTICAL_SCALE !in savedOrder) {
+        hidden += PlayerBarControl.VERTICAL_SCALE
+    }
     if (savedOrder.isNotEmpty() && PlayerBarControl.PICTURE_IN_PICTURE !in savedOrder) {
         hidden += PlayerBarControl.PICTURE_IN_PICTURE
     }

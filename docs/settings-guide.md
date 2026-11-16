@@ -117,7 +117,9 @@ Open **Player UI customization** during playback. The tabs are **Presets**, **Su
 
 ### Controls And Editor Actions
 
-Reorder the controls and hide optional ones: Previous, Next, Speed, Decoder, Color filters, Stats, Voice Boost, Volume Boost, DRC, Audio Normalization, and PiP. Play, Chapters, Audio, Subtitles, and Settings are protected. Settings/PiP placement also depends on **Place Settings and PiP in player bar**.
+Reorder the controls and hide optional ones: Previous, Next, Speed, Decoder, Color filters, Vertical Scale, Stats, Voice Boost, Volume Boost, DRC, Audio Normalization, and PiP. Play, Chapters, Audio, Subtitles, and Settings are protected. Settings/PiP placement also depends on **Place Settings and PiP in player bar**.
+
+Vertical Scale is hidden by default. Enable it in the Controls tab to adjust picture height in 0.01 steps, or Reset to 1.00x. Changes apply to the current file; enable **Remember choice** to use the chosen scale for future playback too.
 
 PiP is hidden by default in the player bar. Moving the actions into the bar does not automatically enable PiP; turn it on in the Controls tab.
 

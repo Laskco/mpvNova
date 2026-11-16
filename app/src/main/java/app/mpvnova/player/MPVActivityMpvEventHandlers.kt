@@ -155,6 +155,7 @@ private fun MPVActivity.handleMpvFileLoaded() {
     applyFireTvVideoEdgeCropIfNeeded()
     applyFileTrackSelections(preserveForwardedSubtitles)
     applySeriesAspectRatio()
+    applyRememberedVerticalScale()
     guardNearEndStartPosition()
     showResumeToastIfNeeded()
     refreshAudioFiltersAfterFileLoad()

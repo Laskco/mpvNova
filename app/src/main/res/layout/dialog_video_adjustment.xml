@@ -43,6 +43,7 @@
         android:paddingBottom="18dp">
 
         <LinearLayout
+            android:id="@+id/adjustmentSliderHeader"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
@@ -85,6 +86,48 @@
             android:splitTrack="false"
             android:thumb="@drawable/seekbar_thumb_tv"
             android:thumbOffset="16dp" />
+
+        <LinearLayout
+            android:id="@+id/adjustmentStepControls"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/decreaseBtn"
+                style="@style/MpvPlayer.ButtonBarIconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/vertical_scale_decrease"
+                app:srcCompat="@drawable/ic_remove_24dp"
+                app:tint="@color/tv_text" />
+
+            <TextView
+                android:id="@+id/adjustmentStepValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:accessibilityLiveRegion="polite"
+                android:fontFamily="sans-serif"
+                android:gravity="center"
+                android:minWidth="112dp"
+                android:textColor="@color/tv_text"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                tools:text="1.00x" />
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/increaseBtn"
+                style="@style/MpvPlayer.ButtonBarIconButton"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:contentDescription="@string/vertical_scale_increase"
+                app:srcCompat="@drawable/ic_add_24dp"
+                app:tint="@color/tv_text" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/rememberRow"
