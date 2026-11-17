@@ -26,7 +26,7 @@ internal object PlayerUiCustomPresetStore {
         }
     }
 
-    fun write(prefs: SharedPreferences, presets: List<PlayerUiCustomPreset>): Boolean {
+    fun write(prefs: SharedPreferences, presets: List<PlayerUiCustomPreset>): List<PlayerUiCustomPreset>? {
         val unique = presets.fold(mutableListOf<PlayerUiCustomPreset>()) { result, preset ->
             val name = normalizedCustomPresetName(preset.name)
             if (name.isNotBlank()) {
@@ -35,12 +35,14 @@ internal object PlayerUiCustomPresetStore {
             }
             result
         }
-        if (unique.size > MAX_PLAYER_APPEARANCE_PRESETS) return false
+        if (unique.size > MAX_PLAYER_APPEARANCE_PRESETS) return null
         prefs.edit().putString(
             KEY,
             JSONArray().apply { unique.forEach { put(it.toJson()) } }.toString(),
         ).apply()
-        return true
+        return unique.persistedCustomPresetSnapshot(PlayerUiCustomPreset::name) { preset, name ->
+            preset.copy(name = name)
+        }
     }
 
     private fun PlayerUiCustomPreset.toJson() = JSONObject().apply {
@@ -52,6 +54,23 @@ internal object PlayerUiCustomPresetStore {
         val name = normalizedCustomPresetName(optString("name"))
         val style = optJSONObject("style")?.toPlayerUiStyle() ?: return null
         return name.takeIf(String::isNotBlank)?.let { PlayerUiCustomPreset(it, style) }
+    }
+}
+
+internal inline fun <Preset> List<Preset>.persistedCustomPresetSnapshot(
+    nameOf: (Preset) -> String,
+    rename: (Preset, String) -> Preset,
+): List<Preset> {
+    // Truncation can leave trailing whitespace; read trims it and keeps the first matching name.
+    if (none { nameOf(it).last().isWhitespace() }) return this
+    return buildList {
+        for (preset in this@persistedCustomPresetSnapshot) {
+            val name = nameOf(preset)
+            val trimmed = name.trimEnd()
+            if (none { nameOf(it).equals(trimmed, ignoreCase = true) }) {
+                add(if (name == trimmed) preset else rename(preset, trimmed))
+            }
+        }
     }
 }
 
@@ -166,8 +185,10 @@ internal fun JSONObject.toPlayerUiStyle(): PlayerUiCustomization = PlayerUiCusto
     timeMode = enumValueOrDefault(nullableString("timeMode"), PlayerTimeMode.PLAYER_DEFAULT),
 ).normalized()
 
-private fun JSONObject.playerBarColor(key: String): PlayerSeekbarThumbColor? =
-    PlayerSeekbarThumbColor.entries.firstOrNull { it.name == nullableString(key) }
+private fun JSONObject.playerBarColor(key: String): PlayerSeekbarThumbColor? {
+    val name = nullableString(key) ?: return null
+    return PlayerSeekbarThumbColor.entries.firstOrNull { it.name == name }
+}
 
 private fun JSONObject.readPlayerUiPresetHiddenControls(): Set<PlayerBarControl> {
     val hidden = optJSONArray("hiddenControls")?.playerControls()

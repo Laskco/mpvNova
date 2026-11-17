@@ -17,8 +17,8 @@ internal class PlayerTitlePresetController(
     val exportName: String
         get() = activeCustomPresetName ?: activity.getString(R.string.player_title_style_title)
 
-    fun acceptImported(preset: PlayerTitleCustomPreset) {
-        customPresets = PlayerTitleCustomPresetStore.read(preferences)
+    fun acceptImported(preset: PlayerTitleCustomPreset, savedPresets: List<PlayerTitleCustomPreset>) {
+        customPresets = savedPresets
         activeCustomPresetName = preset.name
         onPresetApplied(preset.style)
     }
@@ -80,11 +80,12 @@ internal class PlayerTitlePresetController(
                 preset.name.equals(name, ignoreCase = true) ||
                     preset.name.equals(activeCustomPresetName, ignoreCase = true)
             } + PlayerTitleCustomPreset(name, activity.playerTitleStyle)
-            if (!PlayerTitleCustomPresetStore.write(preferences, updated)) {
+            val savedPresets = PlayerTitleCustomPresetStore.write(preferences, updated)
+            if (savedPresets == null) {
                 activity.showToast(activity.getString(R.string.preset_transfer_limit))
                 return@showCustomPresetNameDialog
             }
-            customPresets = PlayerTitleCustomPresetStore.read(preferences)
+            customPresets = savedPresets
             activeCustomPresetName = name
             activity.showToast(activity.getString(R.string.custom_preset_saved), name)
             render()

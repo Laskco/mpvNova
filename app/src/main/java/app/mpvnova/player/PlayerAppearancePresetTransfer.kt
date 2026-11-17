@@ -21,7 +21,7 @@ import kotlinx.coroutines.withContext
 /** Construct eagerly in MPVActivity; editor callbacks run on main after the preset is saved. */
 internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity) : DefaultLifecycleObserver {
     private var pendingExport: ByteArray? = null
-    private var pendingImport: ImportRequest? = null
+    private var pendingImport: ImportRequest<*>? = null
     private var work: Job? = null
     private val ui = PresetTransferUi(activity)
 
@@ -53,34 +53,30 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
         AppearancePresetType.TITLE, name,
     ) { style.normalized().toJson() }
 
-    fun importPlayerBar(onImported: (PlayerUiCustomPreset) -> Unit) {
+    fun importPlayerBar(onImported: (PlayerUiCustomPreset, List<PlayerUiCustomPreset>) -> Unit) {
         val prefs = getDefaultSharedPreferences(activity.applicationContext)
         startImport(ImportRequest(
             type = AppearancePresetType.PLAYER_BAR,
             chrome = PlayerDialogChrome.CONTROLS_PREVIEW,
-            existingNames = { PlayerUiCustomPresetStore.read(prefs).map { it.name } },
-            save = { document ->
-                val preset = PlayerUiCustomPreset(document.name, document.style.toPlayerUiStyle())
-                val saved = PlayerUiCustomPresetStore.write(prefs, PlayerUiCustomPresetStore.read(prefs) + preset)
-                if (saved) onImported(preset)
-                saved
-            },
+            read = { PlayerUiCustomPresetStore.read(prefs) },
+            nameOf = PlayerUiCustomPreset::name,
+            decode = { PlayerUiCustomPreset(it.name, it.style.toPlayerUiStyle()) },
+            write = { PlayerUiCustomPresetStore.write(prefs, it) },
+            onImported = onImported,
             editor = activity.topPlayerDialog,
         ))
     }
 
-    fun importTitle(onImported: (PlayerTitleCustomPreset) -> Unit) {
+    fun importTitle(onImported: (PlayerTitleCustomPreset, List<PlayerTitleCustomPreset>) -> Unit) {
         val prefs = getDefaultSharedPreferences(activity.applicationContext)
         startImport(ImportRequest(
             type = AppearancePresetType.TITLE,
             chrome = PlayerDialogChrome.TITLE_AND_CLOCK_PREVIEW,
-            existingNames = { PlayerTitleCustomPresetStore.read(prefs).map { it.name } },
-            save = { document ->
-                val preset = PlayerTitleCustomPreset(document.name, document.style.toPlayerTitleStyle())
-                val saved = PlayerTitleCustomPresetStore.write(prefs, PlayerTitleCustomPresetStore.read(prefs) + preset)
-                if (saved) onImported(preset)
-                saved
-            },
+            read = { PlayerTitleCustomPresetStore.read(prefs) },
+            nameOf = PlayerTitleCustomPreset::name,
+            decode = { PlayerTitleCustomPreset(it.name, it.style.toPlayerTitleStyle()) },
+            write = { PlayerTitleCustomPresetStore.write(prefs, it) },
+            onImported = onImported,
             editor = activity.topPlayerDialog,
         ))
     }
@@ -123,7 +119,7 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
         }
     }
 
-    private fun startImport(request: ImportRequest) {
+    private fun startImport(request: ImportRequest<*>) {
         if (!canStart()) return
         if (request.existingNames().size >= MAX_PLAYER_APPEARANCE_PRESETS) {
             ui.notice(R.string.preset_transfer_limit)
@@ -170,7 +166,7 @@ internal class PlayerAppearancePresetTransfer(private val activity: MPVActivity)
         }
     }
 
-    private fun readDocument(uri: Uri, request: ImportRequest) {
+    private fun readDocument(uri: Uri, request: ImportRequest<*>) {
         work = activity.lifecycleScope.launch {
             val document = try {
                 withContext(Dispatchers.IO) {
@@ -204,14 +200,15 @@ private class PresetTransferUi(private val activity: MPVActivity) {
         dialog = null
     }
 
-    fun confirmImport(request: ImportRequest, document: AppearancePresetDocument) {
+    fun confirmImport(request: ImportRequest<*>, document: AppearancePresetDocument) {
         if (!request.isCurrent(activity)) return
         val names = request.existingNames()
         if (names.size >= MAX_PLAYER_APPEARANCE_PRESETS) {
             notice(R.string.preset_transfer_limit)
             return
         }
-        val duplicate = names.any { it.equals(document.name, ignoreCase = true) }
+        val name = normalizedCustomPresetName(document.name)
+        val duplicate = names.any { it.equals(name, ignoreCase = true) }
         val builder = AlertDialog.Builder(activity)
             .setTitle(R.string.preset_transfer_import_title)
             .setMessage(activity.getString(
@@ -237,7 +234,7 @@ private class PresetTransferUi(private val activity: MPVActivity) {
         dialog = builder.create().also { activity.showPlayerDialog(it, request.chrome) }
     }
 
-    private fun renameImport(request: ImportRequest, document: AppearancePresetDocument) {
+    private fun renameImport(request: ImportRequest<*>, document: AppearancePresetDocument) {
         activity.showCustomPresetNameDialog(document.name, request.chrome) { name ->
             val cleanName = PlayerAppearancePresetCodec.sanitizeName(name)
             transition = activity.lifecycleScope.launch {
@@ -253,25 +250,16 @@ private class PresetTransferUi(private val activity: MPVActivity) {
         dialog = activity.topPlayerDialog
     }
 
-    private fun saveConfirmed(request: ImportRequest, document: AppearancePresetDocument) {
-        // Recheck on main immediately before the store's asynchronous SharedPreferences.apply().
-        val names = request.existingNames()
-        when {
-            names.size >= MAX_PLAYER_APPEARANCE_PRESETS -> notice(R.string.preset_transfer_limit)
-            names.any { it.equals(document.name, ignoreCase = true) } -> {
+    private fun saveConfirmed(request: ImportRequest<*>, document: AppearancePresetDocument) {
+        when (request.save(document)) {
+            ImportSaveResult.LIMIT -> notice(R.string.preset_transfer_limit)
+            ImportSaveResult.DUPLICATE -> {
                 transition = activity.lifecycleScope.launch {
                     delay(DIALOG_TRANSITION_MS)
                     activity.lifecycle.withResumed { confirmImport(request, document) }
                 }
             }
-            else -> {
-                val message = if (request.save(document)) {
-                    R.string.preset_transfer_imported
-                } else {
-                    R.string.preset_transfer_limit
-                }
-                notice(message)
-            }
+            ImportSaveResult.SAVED -> notice(R.string.preset_transfer_imported)
         }
     }
 
@@ -285,13 +273,40 @@ private class PresetTransferUi(private val activity: MPVActivity) {
 
 }
 
-private data class ImportRequest(
+private enum class ImportSaveResult { SAVED, DUPLICATE, LIMIT }
+
+private class ImportRequest<Preset>(
     val type: AppearancePresetType,
     val chrome: PlayerDialogChrome,
-    val existingNames: () -> List<String>,
-    val save: (AppearancePresetDocument) -> Boolean,
+    private val read: () -> List<Preset>,
+    private val nameOf: (Preset) -> String,
+    private val decode: (AppearancePresetDocument) -> Preset,
+    private val write: (List<Preset>) -> List<Preset>?,
+    private val onImported: (Preset, List<Preset>) -> Unit,
     val editor: Dialog?,
 ) {
+    fun existingNames(): List<String> = read().map(nameOf)
+
+    fun save(document: AppearancePresetDocument): ImportSaveResult {
+        // Read on main at confirmation so the final checks and append use the same fresh list.
+        val presets = read()
+        val name = normalizedCustomPresetName(document.name)
+        return when {
+            presets.size >= MAX_PLAYER_APPEARANCE_PRESETS -> ImportSaveResult.LIMIT
+            presets.any { nameOf(it).equals(name, ignoreCase = true) } -> ImportSaveResult.DUPLICATE
+            else -> {
+                val preset = decode(document)
+                val savedPresets = write(presets + preset)
+                if (savedPresets == null) {
+                    ImportSaveResult.LIMIT
+                } else {
+                    onImported(preset, savedPresets)
+                    ImportSaveResult.SAVED
+                }
+            }
+        }
+    }
+
     fun isCurrent(activity: MPVActivity): Boolean {
         val resumed = activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         val editorVisible = editor == null || editor.isShowing

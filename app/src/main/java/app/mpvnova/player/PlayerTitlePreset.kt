@@ -24,21 +24,23 @@ internal object PlayerTitleCustomPresetStore {
         }
     }
 
-    fun write(prefs: SharedPreferences, presets: List<PlayerTitleCustomPreset>): Boolean {
+    fun write(prefs: SharedPreferences, presets: List<PlayerTitleCustomPreset>): List<PlayerTitleCustomPreset>? {
         val unique = presets.fold(mutableListOf<PlayerTitleCustomPreset>()) { result, preset ->
             val name = normalizedCustomPresetName(preset.name)
             if (name.isNotBlank()) {
                 result.removeAll { it.name.equals(name, ignoreCase = true) }
-                result += PlayerTitleCustomPreset(name, preset.style.normalized())
+                result += PlayerTitleCustomPreset(name, preset.style.normalized(forPresetStorage = true))
             }
             result
         }
-        if (unique.size > MAX_PLAYER_APPEARANCE_PRESETS) return false
+        if (unique.size > MAX_PLAYER_APPEARANCE_PRESETS) return null
         prefs.edit().putString(
             KEY,
             JSONArray().apply { unique.forEach { put(it.toJson()) } }.toString(),
         ).apply()
-        return true
+        return unique.persistedCustomPresetSnapshot(PlayerTitleCustomPreset::name) { preset, name ->
+            preset.copy(name = name)
+        }
     }
 
     private fun PlayerTitleCustomPreset.toJson() = JSONObject().apply {
@@ -53,28 +55,29 @@ internal object PlayerTitleCustomPresetStore {
     }
 }
 
-internal fun PlayerTitleStyle.normalized(): PlayerTitleStyle = copy(
-    season = season.normalized(PlayerTitleStyle.DEFAULT.season),
-    episodeNumber = episodeNumber.normalized(PlayerTitleStyle.DEFAULT.episodeNumber),
-    title = title.normalized(PlayerTitleStyle.DEFAULT.title),
-    episodeTitle = episodeTitle.normalized(PlayerTitleStyle.DEFAULT.episodeTitle),
-    date = date.normalized(PlayerTitleStyle.DEFAULT.date),
-    clock = clock.normalized(PlayerTitleStyle.DEFAULT.clock),
-    endsAt = endsAt.normalized(PlayerTitleStyle.DEFAULT.endsAt),
+internal fun PlayerTitleStyle.normalized(forPresetStorage: Boolean = false): PlayerTitleStyle = copy(
+    season = season.normalized(PlayerTitleStyle.DEFAULT.season, forPresetStorage),
+    episodeNumber = episodeNumber.normalized(PlayerTitleStyle.DEFAULT.episodeNumber, forPresetStorage),
+    title = title.normalized(PlayerTitleStyle.DEFAULT.title, forPresetStorage),
+    episodeTitle = episodeTitle.normalized(PlayerTitleStyle.DEFAULT.episodeTitle, forPresetStorage),
+    date = date.normalized(PlayerTitleStyle.DEFAULT.date, forPresetStorage),
+    clock = clock.normalized(PlayerTitleStyle.DEFAULT.clock, forPresetStorage),
+    endsAt = endsAt.normalized(PlayerTitleStyle.DEFAULT.endsAt, forPresetStorage),
     titleOrder = titleOrder.validOrderOr(PlayerTitleUnit.entries),
     clockOrder = clockOrder.validOrderOr(PlayerClockUnit.entries),
     titlePanel = titlePanel.normalized(),
     clockPanel = clockPanel.normalized(),
 )
 
-private fun PlayerTitleTextStyle.normalized(defaults: PlayerTitleTextStyle) = copy(
+private fun PlayerTitleTextStyle.normalized(defaults: PlayerTitleTextStyle, forPresetStorage: Boolean = false) = copy(
     font = font.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) } ?: defaults.font,
     sizeSp = (sizeSp.takeIf { it.isFinite() } ?: defaults.sizeSp)
         .coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
+    // Android JSON reads the serialized -0 as a positive zero.
     letterSpacing = (letterSpacing.takeIf { it.isFinite() } ?: defaults.letterSpacing).coerceIn(
         PLAYER_TITLE_MIN_LETTER_SPACING,
         PLAYER_TITLE_MAX_LETTER_SPACING,
-    ),
+    ).let { if (forPresetStorage && it == 0f) 0f else it },
     opacityPercent = opacityPercent.coerceIn(
         PLAYER_TITLE_MIN_OPACITY_PERCENT,
         PLAYER_TITLE_MAX_OPACITY_PERCENT,
@@ -82,7 +85,7 @@ private fun PlayerTitleTextStyle.normalized(defaults: PlayerTitleTextStyle) = co
     outlineWidthDp = (outlineWidthDp.takeIf { it.isFinite() } ?: defaults.outlineWidthDp).coerceIn(
         PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP,
         PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP,
-    ),
+    ).let { if (forPresetStorage && it == 0f) 0f else it },
     shadowStrengthPercent = shadowStrengthPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
     backgroundStrengthPercent = backgroundStrengthPercent.coerceIn(MIN_PERCENT, MAX_PERCENT),
     maxLines = maxLines.coerceIn(0, PLAYER_TITLE_MAX_LINES),

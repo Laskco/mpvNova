@@ -113,8 +113,8 @@ private class PlayerUiCustomizationPanelController(
                 )
             },
             importPreset = {
-                activity.presetTransfer.importPlayerBar { preset ->
-                    customPresets = PlayerUiCustomPresetStore.read(preferences)
+                activity.presetTransfer.importPlayerBar { preset, savedPresets ->
+                    customPresets = savedPresets
                     activeCustomPresetName = preset.name
                     applyStyle(preset.style)
                 }
@@ -287,11 +287,12 @@ private class PlayerUiCustomizationPanelController(
                 preset.name.equals(name, ignoreCase = true) ||
                     preset.name.equals(activeCustomPresetName, ignoreCase = true)
             } + PlayerUiCustomPreset(name, activity.playerUiCustomization)
-            if (!PlayerUiCustomPresetStore.write(preferences, updated)) {
+            val savedPresets = PlayerUiCustomPresetStore.write(preferences, updated)
+            if (savedPresets == null) {
                 activity.showToast(activity.getString(R.string.preset_transfer_limit))
                 return@showCustomPresetNameDialog
             }
-            customPresets = PlayerUiCustomPresetStore.read(preferences)
+            customPresets = savedPresets
             activeCustomPresetName = name
             activity.showToast(activity.getString(R.string.custom_preset_saved), name)
             render()
