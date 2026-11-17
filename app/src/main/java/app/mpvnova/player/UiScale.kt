@@ -27,7 +27,11 @@ internal object UiScale {
 
     fun currentScalePercent(context: Context): Int {
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val raw = preferences.all[PREF_KEY]
+        val raw = try {
+            preferences.getString(PREF_KEY, null)
+        } catch (_: ClassCastException) {
+            preferences.all[PREF_KEY]
+        }
         val value = when (raw) {
             is String -> raw.toIntOrNull()
             is Int -> raw

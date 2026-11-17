@@ -20,7 +20,7 @@ internal fun MPVActivity.applySeriesAspectRatio() {
     if (!enabled) return
     currentAspectSeriesKey = resolveTrackSeriesKey()
     val stored = currentAspectSeriesKey?.let {
-        getSharedPreferences(SERIES_ASPECT_RATIO_STORE, Context.MODE_PRIVATE).all[it] as? String
+        getSharedPreferences(SERIES_ASPECT_RATIO_STORE, Context.MODE_PRIVATE).getStringIfTyped(it)
     }
     val ratio = rememberedSeriesAspectRatio(enabled, stored, resources.getStringArray(R.array.aspect_ratios).toList())
     if (ratio != null) applyFileAspectRatio(ratio)

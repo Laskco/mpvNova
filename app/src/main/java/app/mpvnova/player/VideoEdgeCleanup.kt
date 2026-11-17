@@ -10,7 +10,7 @@ internal const val PREF_VIDEO_EDGE_CLEANUP = "video_edge_cleanup"
 internal val VIDEO_EDGE_CLEANUP_VALUES = listOf("auto", "off", "8", "16", "24", "32")
 
 internal fun Context.videoEdgeCleanupValue(): String =
-    (PreferenceManager.getDefaultSharedPreferences(this).all[PREF_VIDEO_EDGE_CLEANUP] as? String)
+    PreferenceManager.getDefaultSharedPreferences(this).getStringIfTyped(PREF_VIDEO_EDGE_CLEANUP)
         ?.takeIf { it in VIDEO_EDGE_CLEANUP_VALUES } ?: "off"
 
 internal fun Context.videoEdgeCleanupLabel(): String = resources.getStringArray(R.array.video_edge_cleanup_entries)[

@@ -37,7 +37,9 @@ internal fun Activity.showNetworkSetting(setting: NetworkSetting, onChanged: () 
         showNetworkPresets(onChanged)
         return
     }
-    val current = networkOverrides()[setting] ?: NETWORK_DEFAULT
+    val values = networkOverrides()
+    val budget = networkMemoryBudgetMiB(this)
+    val current = values[setting] ?: NETWORK_DEFAULT
     val items = mutableListOf(SettingsChoiceItem(
         title = getString(R.string.network_default),
         detail = getString(R.string.network_option_default_summary),
@@ -45,10 +47,10 @@ internal fun Activity.showNetworkSetting(setting: NetworkSetting, onChanged: () 
     ) { saveNetworkValue(setting, NETWORK_DEFAULT, onChanged) })
     val choices = if (setting.unit == NetworkUnit.TOGGLE) listOf("yes", "no") else setting.choices.map(Int::toString)
     choices.forEach { value ->
-        val fits = networkValueFits(networkOverrides() + (setting to value), networkMemoryBudgetMiB(this))
+        val fits = networkValueFits(values + (setting to value), budget)
         items += SettingsChoiceItem(
             title = networkNumberLabel(setting, value),
-            detail = if (fits) null else getString(R.string.network_memory_limit, networkMemoryBudgetMiB(this)),
+            detail = if (fits) null else getString(R.string.network_memory_limit, budget),
             checked = current == value,
             enabled = fits,
         ) { saveNetworkValue(setting, value, onChanged) }
