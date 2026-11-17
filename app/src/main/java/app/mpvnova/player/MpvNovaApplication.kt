@@ -21,6 +21,9 @@ internal class MpvNovaApplication : Application() {
         super.onCreate()
         CrashReporter.install(this)
         MpvLogRingBuffer.install(this)
-        getDefaultSharedPreferences(this).migratePreferredSubtitleOptIn()
+        getDefaultSharedPreferences(this).apply {
+            migrateRetiredPreferences()
+            migratePreferredSubtitleOptIn()
+        }
     }
 }

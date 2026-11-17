@@ -16,6 +16,7 @@ import app.mpvnova.player.R
 import app.mpvnova.player.SubtitleFontTable
 import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.installSubtitleFont
+import app.mpvnova.player.migrateRetiredPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -541,11 +542,12 @@ object FullBackupActions {
         }
     }
 
-    private fun encodePreferences(prefs: SharedPreferences): JSONObject = encodePreferences(
-        prefs.all.filterKeys { it != UserShaderManager.PREF_FOLDER_URIS }.mapValues { (key, value) ->
-            BackupPreferenceCompatibility.migrate(key, value ?: throw IOException("Preference value is missing"))
-        },
-    )
+    private fun encodePreferences(prefs: SharedPreferences): JSONObject {
+        val values = snapshotPreferences(prefs)
+        values.remove(UserShaderManager.PREF_FOLDER_URIS)
+        values.migrateRetiredPreferences()
+        return encodePreferences(values.mapValues { (key, value) -> BackupPreferenceCompatibility.migrate(key, value) })
+    }
 
     private fun encodePreferences(preferences: Map<String, *>): JSONObject {
         val values = JSONObject()
@@ -579,7 +581,7 @@ object FullBackupActions {
             val value = decodePreferenceValue(entry)
             result[key] = BackupPreferenceCompatibility.migrate(key, value)
         }
-        return result
+        return result.apply { migrateRetiredPreferences() }
     }
 
     private fun decodePreferenceValue(entry: JSONObject): Any {
