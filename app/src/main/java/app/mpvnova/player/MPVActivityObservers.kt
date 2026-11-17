@@ -30,7 +30,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         if (metaUpdated) updateMediaSession()
         dispatchEventThreadMetadata(property)
         if (!activityIsForeground) return
-        eventUiHandler.post { eventMetadataPropertyUi(property, metaUpdated) }
+        postMetadataPropertyUi(property, metaUpdated)
     }
 
     override fun eventProperty(property: String, value: Boolean): Unit = with(activity) {
@@ -39,7 +39,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         if (metaUpdated) updateMediaSession()
         dispatchEventThreadBoolean(property, metaUpdated)
         if (!activityIsForeground) return
-        eventUiHandler.post { eventBooleanPropertyUi(property, value) }
+        postBooleanPropertyUi(property, value)
     }
 
     override fun eventProperty(property: String, value: Long): Unit = with(activity) {
@@ -62,7 +62,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         }
         if (psc.update(property, value)) updateMediaSession()
         if (!activityIsForeground) return
-        eventUiHandler.post { eventLongPropertyUi(property) }
+        postLongPropertyUi(property)
     }
 
     override fun eventProperty(property: String, value: Double): Unit = with(activity) {
@@ -82,7 +82,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
                 eventUiHandler.postDelayed(timePosUiRunnable, TIME_POS_UI_COALESCE_DELAY_MS)
             }
         } else {
-            eventUiHandler.post { eventDoublePropertyUi(property) }
+            postDoublePropertyUi(property)
         }
     }
 
@@ -91,7 +91,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         val metaUpdated = psc.update(property, value)
         if (metaUpdated) updateMediaSession()
         if (!activityIsForeground) return
-        eventUiHandler.post { eventStringPropertyUi(property, metaUpdated) }
+        postStringPropertyUi(property, metaUpdated)
     }
 
     override fun event(eventId: Int) {

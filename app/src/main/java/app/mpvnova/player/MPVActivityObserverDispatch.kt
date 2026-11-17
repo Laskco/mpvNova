@@ -26,7 +26,7 @@ internal fun MPVActivity.updateMediaSessionNow() {
 }
 
 // Property → UI handler tables. Observed properties without an entry are
-// silently dropped on the UI side (event-thread side-effects only).
+// not posted to the UI unless they also changed displayed metadata.
 
 private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "demuxer-cache-time" to { updatePlaybackBuffer() },
@@ -79,39 +79,38 @@ private val STRING_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     },
 )
 
-internal fun MPVActivity.eventMetadataPropertyUi(property: String, metaUpdated: Boolean) {
-    if (!activityIsForeground) return
-    METADATA_UI_HANDLERS[property]?.invoke(this)
-    if (metaUpdated) scheduleMetadataUiRefresh()
-}
-
-internal fun MPVActivity.eventBooleanPropertyUi(property: String, value: Boolean) {
-    if (!activityIsForeground) return
+private val BOOLEAN_UI_HANDLERS: Map<String, MPVActivity.(Boolean) -> Unit> = mapOf(
     // pause has value-dependent behavior (overlay auto-close on unpause).
-    when (property) {
-        "pause" -> handlePauseUi(value)
-        "paused-for-cache" -> {
-            streamCacheLoading = value
-            refreshLoadingOverlay()
-        }
-        "mute" -> updateAudioUI()
+    "pause" to { paused -> handlePauseUi(paused) },
+    "paused-for-cache" to { value ->
+        streamCacheLoading = value
+        refreshLoadingOverlay()
+    },
+    "mute" to { _ -> updateAudioUI() },
+)
+
+internal fun MPVActivity.postMetadataPropertyUi(property: String, metaUpdated: Boolean) =
+    postPropertyUi(METADATA_UI_HANDLERS[property], metaUpdated)
+
+internal fun MPVActivity.postBooleanPropertyUi(property: String, value: Boolean) {
+    val handler = BOOLEAN_UI_HANDLERS[property] ?: return
+    postPropertyUi({ handler(value) })
+}
+
+internal fun MPVActivity.postLongPropertyUi(property: String) = postPropertyUi(LONG_UI_HANDLERS[property])
+
+internal fun MPVActivity.postDoublePropertyUi(property: String) = postPropertyUi(DOUBLE_UI_HANDLERS[property])
+
+internal fun MPVActivity.postStringPropertyUi(property: String, metaUpdated: Boolean) =
+    postPropertyUi(STRING_UI_HANDLERS[property], metaUpdated)
+
+private fun MPVActivity.postPropertyUi(handler: (MPVActivity.() -> Unit)?, metaUpdated: Boolean = false) {
+    if (handler == null && !metaUpdated) return
+    eventUiHandler.post {
+        if (!activityIsForeground) return@post
+        handler?.invoke(this)
+        if (metaUpdated) scheduleMetadataUiRefresh()
     }
-}
-
-internal fun MPVActivity.eventLongPropertyUi(property: String) {
-    if (!activityIsForeground) return
-    LONG_UI_HANDLERS[property]?.invoke(this)
-}
-
-internal fun MPVActivity.eventDoublePropertyUi(property: String) {
-    if (!activityIsForeground) return
-    DOUBLE_UI_HANDLERS[property]?.invoke(this)
-}
-
-internal fun MPVActivity.eventStringPropertyUi(property: String, metaUpdated: Boolean) {
-    if (!activityIsForeground) return
-    STRING_UI_HANDLERS[property]?.invoke(this)
-    if (metaUpdated) scheduleMetadataUiRefresh()
 }
 
 internal fun MPVActivity.scheduleMetadataUiRefresh() {
