@@ -11,10 +11,13 @@ private val MPV_LOG_HEADER = Regex(
 private const val URL_SCHEME_DELIMITER_LENGTH = 3
 
 internal fun sanitizeMpvLogText(text: String): String {
+    if (':' !in text) return text
     val redactedHeaders = MPV_LOG_HEADER.replace(text) { match ->
         "${match.groupValues[1]}: <redacted>"
     }
-    return MPV_LOG_URL.replace(redactedHeaders) { match -> sanitizeUrl(match.value) }
+    return if ("://" in redactedHeaders) {
+        MPV_LOG_URL.replace(redactedHeaders) { match -> sanitizeUrl(match.value) }
+    } else redactedHeaders
 }
 
 private fun sanitizeUrl(url: String): String {

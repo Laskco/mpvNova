@@ -92,7 +92,7 @@ internal object MpvLogRingBuffer {
         observer.logMessage("mpvnova/playback", MpvLogLevel.MPV_LOG_LEVEL_INFO, message)
         // Exit details should not wait for the periodic write after playback shuts down.
         persistenceExecutor.execute {
-            runCatching { currentLogFile?.writeText(snapshotText() + "\n") }
+            runCatching { currentLogFile?.writeLogSnapshot(snapshot()) }
         }
     }
 
@@ -115,10 +115,7 @@ internal object MpvLogRingBuffer {
         val (snapshotGeneration, snapshot) = synchronized(lock) {
             generation to lines.toList()
         }
-        // Formatting a full buffer can be comparatively expensive during verbose playback.
-        // Keep it off the append lock so native log delivery is never held up by string work.
-        val content = snapshot.joinToString(separator = "\n", postfix = "\n")
-        runCatching { currentLogFile?.writeText(content) }
+        runCatching { currentLogFile?.writeLogSnapshot(snapshot) }
         synchronized(lock) {
             if (generation == snapshotGeneration) {
                 persistenceScheduled = false
@@ -137,5 +134,15 @@ internal object MpvLogRingBuffer {
         MpvLogLevel.MPV_LOG_LEVEL_DEBUG -> "debug"
         MpvLogLevel.MPV_LOG_LEVEL_TRACE -> "trace"
         else -> "log"
+    }
+}
+
+private fun File.writeLogSnapshot(lines: List<String>) {
+    bufferedWriter(Charsets.UTF_8).use { writer ->
+        if (lines.isEmpty()) writer.write("\n")
+        for (line in lines) {
+            writer.write(line)
+            writer.write("\n")
+        }
     }
 }

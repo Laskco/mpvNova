@@ -14,34 +14,32 @@ internal object NativeLibraryVersion {
 
     private fun scan(stream: InputStream, markerBytes: ByteArray): String? {
         val versionBytes = ByteArrayOutputStream()
-        val buffer = ByteArray(VERSION_SCAN_BUFFER_SIZE)
+        val buffer = ByteArray(VERSION_SCAN_BUFFER_SIZE + markerBytes.size)
         var foundMarker = false
-        var carry = ByteArray(0)
+        var carry = 0
 
         while (versionBytes.size() < VERSION_SCAN_MAX_BYTES) {
-            val chunk = readChunk(stream, buffer, carry) ?: break
-            val startIndex = if (foundMarker) 0 else indexOfBytes(chunk, markerBytes)
+            val read = stream.read(buffer, carry, VERSION_SCAN_BUFFER_SIZE)
+            if (read == -1) break
+            val limit = carry + read
+            val startIndex = if (foundMarker) 0 else indexOfBytes(buffer, limit, markerBytes)
             if (startIndex >= 0) {
                 foundMarker = true
-                if (appendUntilLineEnd(chunk, startIndex, versionBytes))
+                if (appendUntilLineEnd(buffer, startIndex, limit, versionBytes))
                     return versionBytes.versionString()
             }
-            carry = if (foundMarker) ByteArray(0) else carryBytes(chunk, markerBytes)
+            carry = if (foundMarker) 0 else minOf(limit, markerBytes.size)
+            if (carry > 0) buffer.copyInto(buffer, 0, limit - carry, limit)
         }
 
         return versionBytes.versionStringOrNull()
     }
 
-    private fun readChunk(stream: InputStream, buffer: ByteArray, carry: ByteArray): ByteArray? {
-        val read = stream.read(buffer)
-        if (read == -1)
-            return null
-        return if (carry.isEmpty()) buffer.copyOf(read) else carry + buffer.copyOf(read)
-    }
-
-    private fun appendUntilLineEnd(chunk: ByteArray, startIndex: Int, output: ByteArrayOutputStream): Boolean {
+    private fun appendUntilLineEnd(
+        chunk: ByteArray, startIndex: Int, limit: Int, output: ByteArrayOutputStream,
+    ): Boolean {
         var index = startIndex
-        while (index < chunk.size && output.size() < VERSION_SCAN_MAX_BYTES) {
+        while (index < limit && output.size() < VERSION_SCAN_MAX_BYTES) {
             val byte = chunk[index]
             if (byte.isVersionLineEnd())
                 return true
@@ -59,20 +57,12 @@ internal object NativeLibraryVersion {
         return toString(Charsets.ISO_8859_1.name()).trim()
     }
 
-    private fun carryBytes(chunk: ByteArray, marker: ByteArray): ByteArray {
-        return if (chunk.size > marker.size) {
-            chunk.copyOfRange(chunk.size - marker.size, chunk.size)
-        } else {
-            chunk
-        }
-    }
-
     private fun Byte.isVersionLineEnd(): Boolean {
         return this == NUL_BYTE || this == CARRIAGE_RETURN_BYTE || this == LINE_FEED_BYTE
     }
 
-    private fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
-        val limit = haystack.size - needle.size
+    private fun indexOfBytes(haystack: ByteArray, length: Int, needle: ByteArray): Int {
+        val limit = length - needle.size
         var i = 0
         outer@ while (i <= limit) {
             for (j in needle.indices) {
