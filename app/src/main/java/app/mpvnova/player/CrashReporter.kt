@@ -71,7 +71,8 @@ internal object CrashReporter {
             appendLine(sanitizeMpvLogText(sw.toString().trimEnd()))
             appendLine()
             appendLine("--- Recent mpv log (last ${mpvLog.size} lines) ---")
-            appendLine(mpvLog.joinToString(separator = "\n"))
+            if (mpvLog.isEmpty()) appendLine()
+            else mpvLog.forEach { appendLine(it) }
         })
     }
 

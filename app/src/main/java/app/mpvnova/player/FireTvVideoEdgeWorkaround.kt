@@ -42,12 +42,11 @@ internal fun MPVActivity.applyFireTvVideoEdgeCropIfNeeded() {
     val track = if (mode == "off") null else selectedVideoTrackEdgeInfo()
     val crop = track?.let { videoEdgeCleanupCrop(mode, Build.MODEL, it) }
     videoEdgeCropSession.update(crop, { mpvGetPropertyString("video-crop") }) { value ->
+        val details = track ?: selectedVideoTrackEdgeInfo()
         setRuntimeOption("video-crop", value)
-        val details = track?.let {
-            " size=${it.width}x${it.height} codec=${it.codec} doviProfile=${it.dolbyVisionProfile} gamma=${it.gamma}"
-        }.orEmpty()
         Log.i(MPV_ACTIVITY_TAG, "Video edge cleanup mode=$mode requested=$value " +
-            "applied=${mpvGetPropertyString("video-crop")}$details")
+            "applied=${mpvGetPropertyString("video-crop")} size=${details.width}x${details.height} " +
+            "codec=${details.codec} doviProfile=${details.dolbyVisionProfile} gamma=${details.gamma}")
     }
 }
 

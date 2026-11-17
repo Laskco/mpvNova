@@ -377,6 +377,7 @@ private fun captureExitHistory(context: Context): ExitHistoryCapture {
             EXIT_HISTORY_LIMIT,
         )
         val traces = linkedMapOf<String, String>()
+        val traceBuffer = CharArray(DEFAULT_BUFFER_SIZE)
         val summary = buildString {
             appendLine("Recent mpvNova process exits")
             if (entries.isEmpty()) appendLine("No historical exits were reported by Android.")
@@ -391,7 +392,7 @@ private fun captureExitHistory(context: Context): ExitHistoryCapture {
                 appendLine("Description: ${sanitizeMpvLogText(exit.description.orEmpty())}")
                 val trace = runCatching {
                     exit.traceInputStream?.bufferedReader()?.use { reader ->
-                        readLimitedText(reader, EXIT_TRACE_CHARACTER_LIMIT)
+                        readLimitedText(reader, EXIT_TRACE_CHARACTER_LIMIT, traceBuffer)
                     }
                 }.getOrNull()
                 if (!trace.isNullOrBlank()) {
@@ -463,8 +464,9 @@ private fun buildCodecReport(): String = runCatching {
     "Codec enumeration failed: ${error.javaClass.name}: ${error.message}\n"
 }
 
-private fun readLimitedText(reader: java.io.BufferedReader, maximumCharacters: Int): String {
-    val buffer = CharArray(DEFAULT_BUFFER_SIZE)
+private fun readLimitedText(
+    reader: java.io.BufferedReader, maximumCharacters: Int, buffer: CharArray = CharArray(DEFAULT_BUFFER_SIZE),
+): String {
     return buildString {
         while (length < maximumCharacters) {
             val amount = reader.read(

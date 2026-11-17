@@ -101,7 +101,8 @@ internal object MpvLogRingBuffer {
     }.getOrDefault("")
 
     fun latestEnabledFeatures(): String? = synchronized(lock) {
-        lines.lastOrNull { it.contains("List of enabled features:", ignoreCase = true) }
+        lines.descendingIterator().asSequence()
+            .firstOrNull { it.contains("List of enabled features:", ignoreCase = true) }
             ?.let { line -> line.substringAfter(": ", missingDelimiterValue = line) }
     }
 
