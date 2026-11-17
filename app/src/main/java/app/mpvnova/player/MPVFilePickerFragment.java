@@ -9,11 +9,32 @@ import android.view.View;
 import is.xyz.filepicker.FilePickerFragment;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.List;
 
 public class MPVFilePickerFragment extends FilePickerFragment {
 
     private File rootPath = new File("/");
     private String rootLabel = "";
+
+    @Override
+    protected void sortFiles(@NonNull List<File> files) {
+        if (getClass() != MPVFilePickerFragment.class) {
+            // Let subclasses keep their compareFiles override.
+            super.sortFiles(files);
+            return;
+        }
+        IdentityHashMap<File, Boolean> directories = new IdentityHashMap<>(files.size());
+        for (File file : files)
+            directories.put(file, file.isDirectory());
+        Collections.sort(files, (lhs, rhs) -> {
+            final boolean ldir = directories.get(lhs), rdir = directories.get(rhs);
+            if (ldir != rdir)
+                return rdir ? 1 : -1;
+            return naturalCompare(lhs.getName(), rhs.getName());
+        });
+    }
 
     @Override
     public void onClickCheckable(@NonNull View v, @NonNull FileViewHolder vh) {

@@ -319,7 +319,6 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
 
                 ArrayList<File> files = new ArrayList<>(listFiles.length);
-                ArrayList<File> directories = new ArrayList<>();
                 for (File f : listFiles) {
                     if (isLoadInBackgroundCanceled())
                         return new ArrayList<>(0);
@@ -327,13 +326,11 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                         continue;
                     if (predicate != null && !predicate.accept(f))
                         continue;
-                    (f.isDirectory() ? directories : files).add(f);
+                    files.add(f);
                 }
 
-                Collections.sort(directories, (lhs, rhs) -> naturalCompare(lhs.getName(), rhs.getName()));
-                Collections.sort(files, (lhs, rhs) -> naturalCompare(lhs.getName(), rhs.getName()));
-                directories.addAll(files);
-                return directories;
+                sortFiles(files);
+                return files;
             }
 
             /**
@@ -409,6 +406,19 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
             }
         };
+    }
+
+    /** Sort a filtered listing on the loader's worker thread. */
+    protected void sortFiles(@NonNull List<File> files) {
+        Collections.sort(files, this::compareFiles);
+    }
+
+    /** Override to customize the default worker-thread order of directories first, then natural names. */
+    protected int compareFiles(@NonNull File lhs, @NonNull File rhs) {
+        final boolean ldir = lhs.isDirectory(), rdir = rhs.isDirectory();
+        if (ldir != rdir)
+            return rdir ? 1 : -1;
+        return naturalCompare(lhs.getName(), rhs.getName());
     }
 
     private static final String TAG = "mpv";
