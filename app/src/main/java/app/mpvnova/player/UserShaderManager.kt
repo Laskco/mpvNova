@@ -250,7 +250,8 @@ internal object UserShaderManager {
     fun import(context: Context, uris: List<Uri>): ShaderImportResult = synchronized(lock) {
         val entries = load(context).toMutableList()
         val root = directory(context)
-        val existingHashes = entries.mapNotNull { shaderHash(root, it) }.toMutableSet()
+        val hashBuffer = ByteArray(DEFAULT_BUFFER_SIZE)
+        val existingHashes = entries.mapNotNull { shaderHash(root, it, hashBuffer) }.toMutableSet()
         val errors = mutableListOf<String>()
         var imported = 0
         var skipped = 0
@@ -359,27 +360,26 @@ internal object UserShaderManager {
             )
         }
         val raw = JSONObject().put("schema", SCHEMA).put("entries", array).toString()
-        PreferenceManager.getDefaultSharedPreferences(context)
-            .edit()
-            .putString(PREF_ENTRIES, raw)
-            .apply()
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        if (raw != prefs.getString(PREF_ENTRIES, null)) {
+            prefs.edit().putString(PREF_ENTRIES, raw).apply()
+        }
         cachedRaw = raw
         cachedEntries = entries.toList()
         cacheInitialized = true
     }
 
-    private fun shaderHash(root: File, shader: UserShader): String? =
+    private fun shaderHash(root: File, shader: UserShader, buffer: ByteArray): String? =
         runCatching {
             val digest = MessageDigest.getInstance("SHA-256")
             File(root, shader.fileName).inputStream().use { input ->
-                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
                 var read = input.read(buffer)
                 while (read >= 0) {
                     digest.update(buffer, 0, read)
                     read = input.read(buffer)
                 }
             }
-            digest.digest().sha256Hex()
+            digest.digest().toHexString()
         }.getOrNull()
 
     private fun readShader(context: Context, uri: Uri): ByteArray {
@@ -506,9 +506,7 @@ internal object UserShaderManager {
             File(fileName).extension.lowercase(Locale.ROOT) in extensions
 
     private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")
-        .digest(this).sha256Hex()
-
-    private fun ByteArray.sha256Hex(): String = joinToString("") { byte -> "%02x".format(byte) }
+        .digest(this).toHexString()
 
     private const val MAX_DISPLAY_NAME_LENGTH = 160
 }

@@ -687,6 +687,8 @@
 
     <string name="pref_edit_mpv_conf">Edit mpv.conf</string>
     <string name="pref_edit_mpv_conf_message">You can directly edit the advanced playback configuration here.</string>
+    <string name="config_editor_read_failed">Could not read the configuration file.</string>
+    <string name="config_editor_save_failed">Could not save the configuration file. Please try again.</string>
 
     <string name="pref_edit_input_conf">Edit input.conf</string>
     <string name="pref_edit_input_conf_message">You can edit input.conf here, which is mainly useful for TV remotes and keyboards.</string>

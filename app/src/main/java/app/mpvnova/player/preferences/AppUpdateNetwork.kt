@@ -2,13 +2,18 @@ package app.mpvnova.player.preferences
 
 import app.mpvnova.player.BuildConfig
 import org.json.JSONObject
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 
+private const val MAX_RELEASE_METADATA_BYTES = 4 * 1024 * 1024
+private const val MAX_UPDATE_APK_BYTES = 512L * 1024 * 1024
+private const val APK_SIZE_LIMIT_ERROR = "The APK exceeds the maximum download size"
+
 internal fun AppUpdateManager.fetchLatestRelease(): ReleaseInfo {
-    val json = readText(LATEST_RELEASE_URL)
+    val json = readReleaseMetadata(LATEST_RELEASE_URL)
     val releaseJson = JSONObject(json)
     val tagName = releaseJson.requireReleaseTag()
 
@@ -22,7 +27,8 @@ internal fun AppUpdateManager.fetchLatestRelease(): ReleaseInfo {
         apkAssets.add(asset)
     }
 
-    val selectedAsset = requireApkAsset(apkAssets)
+    val selectedAsset = chooseBestApkAsset(apkAssets)
+        ?: throw IOException("No compatible release APK was found for this device on the latest release")
     val downloadUrl = selectedAsset.requireDownloadUrl()
 
     return ReleaseInfo(
@@ -72,11 +78,6 @@ private fun JSONObject.requireReleaseTag(): String {
         ?: throw IOException("GitHub did not return a release tag")
 }
 
-private fun requireApkAsset(apkAssets: List<JSONObject>): JSONObject {
-    return chooseBestApkAsset(apkAssets)
-        ?: throw IOException("No compatible release APK was found for this device on the latest release")
-}
-
 private fun JSONObject.requireDownloadUrl(): String {
     return optString("browser_download_url").trim()
         .takeIf { it.isNotBlank() }
@@ -96,6 +97,9 @@ private fun requireSuccessfulResponse(responseCode: Int, message: String) {
 }
 
 private fun HttpURLConnection.writeDownloadedApk(apkFile: File, expectedLength: Long?) {
+    val downloadLimit = expectedLength ?: MAX_UPDATE_APK_BYTES
+    val sizeLimitError = if (expectedLength == null) APK_SIZE_LIMIT_ERROR
+        else "The downloaded APK exceeded its expected size"
     inputStream.use { input ->
         apkFile.outputStream().use { output ->
             val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
@@ -104,14 +108,17 @@ private fun HttpURLConnection.writeDownloadedApk(apkFile: File, expectedLength: 
                 val count = input.read(buffer)
                 if (count < 0)
                     break
-                if (expectedLength != null && count.toLong() > expectedLength - downloaded)
-                    throw IOException("The downloaded APK exceeded its expected size")
+                if (count > downloadLimit - downloaded)
+                    throw IOException(sizeLimitError)
                 output.write(buffer, 0, count)
                 downloaded += count
             }
         }
     }
-    val actualLength = apkFile.length()
+    verifyDownloadedLength(apkFile.length(), expectedLength)
+}
+
+private fun verifyDownloadedLength(actualLength: Long, expectedLength: Long?) {
     val sizeError = when {
         actualLength <= 0L -> "The downloaded APK was empty"
         expectedLength != null && actualLength != expectedLength ->
@@ -125,17 +132,33 @@ private fun HttpURLConnection.writeDownloadedApk(apkFile: File, expectedLength: 
 
 private fun HttpURLConnection.expectedDownloadLength(): Long? {
     val header = getHeaderField("Content-Length")?.trim() ?: return null
-    return header.toLongOrNull()?.takeIf { length ->
+    val length = header.toLongOrNull()?.takeIf { length ->
         length >= 0L && header.all { it in '0'..'9' }
     } ?: throw IOException("The download returned an invalid Content-Length")
+    if (length > MAX_UPDATE_APK_BYTES) throw IOException(APK_SIZE_LIMIT_ERROR)
+    return length
 }
 
-private fun readText(url: String): String {
+private fun readReleaseMetadata(url: String): String {
     val connection = openConnection(url)
     try {
         val responseCode = connection.responseCode
         requireSuccessfulResponse(responseCode, "GitHub returned")
-        return connection.inputStream.bufferedReader().use { it.readText() }
+        val declaredLength = connection.getHeaderField("Content-Length")?.trim()?.toLongOrNull()
+        if (declaredLength != null && declaredLength > MAX_RELEASE_METADATA_BYTES)
+            throw IOException("GitHub release metadata exceeds the maximum size")
+        return connection.inputStream.use { input ->
+            val output = ByteArrayOutputStream()
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+                val count = input.read(buffer)
+                if (count < 0) break
+                if (count > MAX_RELEASE_METADATA_BYTES - output.size())
+                    throw IOException("GitHub release metadata exceeds the maximum size")
+                output.write(buffer, 0, count)
+            }
+            output.toString(Charsets.UTF_8.name())
+        }
     } finally {
         connection.disconnect()
     }

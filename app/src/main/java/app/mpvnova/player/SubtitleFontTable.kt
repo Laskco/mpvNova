@@ -1,8 +1,8 @@
 package app.mpvnova.player
 
 import java.io.File
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.Locale
 
 internal fun Set<String>.sortedFontFamilies(): List<String> = asSequence()
@@ -16,11 +16,18 @@ internal object SubtitleFontTable {
     internal const val MAX_FONT_FILE_BYTES = 32L * 1024L * 1024L
     private const val MAX_CACHE_ENTRIES = 64
     private const val TAG_TTCF = 0x74746366 // 'ttcf'
+    private const val TAG_OTTO = 0x4F54544F // 'OTTO'
+    private const val TAG_TRUE = 0x74727565 // 'true'
+    private const val TAG_TYP1 = 0x74797031 // 'typ1'
+    private const val SFNT_VERSION_1 = 0x00010000
     private const val TAG_NAME = 0x6E616D65 // 'name'
     private const val TAG_HEAD = 0x68656164 // 'head'
-    private const val MASK16 = 0xFFFF
-    private const val TTC_FIRST_OFFSET_POS = 12
-    private const val TABLE_RECORD_SKIP = 6
+    private const val TTC_HEADER_BYTES = 12
+    private const val TTC_FACE_COUNT_OFFSET = 8
+    private const val SFNT_HEADER_BYTES = 12
+    private const val TABLE_RECORD_BYTES = 16
+    private const val NAME_HEADER_BYTES = 6
+    private const val NAME_RECORD_BYTES = 12
     private const val NAME_ID_FAMILY = 1
     private const val NAME_ID_TYPO_FAMILY = 16
     private const val PLATFORM_UNICODE = 0
@@ -37,11 +44,18 @@ internal object SubtitleFontTable {
 
     private data class CacheKey(val path: String, val size: Long, val modified: Long)
     private data class Metadata(val family: String?, val style: Style?)
+    private data class TableSpan(val offset: Long, val length: Long)
     private val cache = LinkedHashMap<CacheKey, Metadata?>()
 
     fun familyName(file: File): String? = metadata(file)?.family
 
     fun style(file: File): Style? = metadata(file)?.style
+
+    @Synchronized
+    fun invalidate(file: File) {
+        val path = file.absolutePath
+        cache.keys.removeAll { it.path == path }
+    }
 
     @Synchronized
     private fun metadata(file: File): Metadata? {
@@ -53,8 +67,7 @@ internal object SubtitleFontTable {
                 cache[key]
             } else {
                 val parsed = runCatching {
-                    val data = file.readBytes()
-                    Metadata(parse(data), parseStyle(data))
+                    RandomAccessFile(file, "r").use(::parse)
                 }.getOrNull()
                 cache[key] = parsed
                 while (cache.size > MAX_CACHE_ENTRIES)
@@ -65,87 +78,100 @@ internal object SubtitleFontTable {
         return result
     }
 
-    private fun parseStyle(data: ByteArray): Style? {
-        val bb = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
-        bb.position(tableDirectoryOffset(bb))
-        bb.int // sfntVersion
-        val numTables = bb.short.toInt() and MASK16
-        bb.position(bb.position() + TABLE_RECORD_SKIP)
-        val headOffset = findTableOffset(bb, numTables, TAG_HEAD) ?: return null
-        val pos = headOffset + HEAD_MAC_STYLE_OFFSET
-        return if (pos < 0 || pos + 2 > data.size) {
-            null
-        } else {
-            val macStyle = ((data[pos].toInt() and 0xFF) shl 8) or (data[pos + 1].toInt() and 0xFF)
-            Style(bold = macStyle and MAC_STYLE_BOLD != 0, italic = macStyle and MAC_STYLE_ITALIC != 0)
+    private fun parse(file: RandomAccessFile): Metadata? {
+        val size = file.length()
+        val directory = readDirectory(file, size) ?: return null
+        var name: TableSpan? = null
+        var head: TableSpan? = null
+        while (directory.hasRemaining() && (name == null || head == null)) {
+            val tag = directory.int
+            directory.int // checksum
+            val offset = directory.uint() // TTC table offsets are relative to the whole file.
+            val length = directory.uint()
+            if (tag == TAG_NAME && name == null) name = TableSpan(offset, length)
+            if (tag == TAG_HEAD && head == null) head = TableSpan(offset, length)
+        }
+        val family = name?.takeIf { containsSpan(size, it.offset, it.length) }
+            ?.let { readBestFamily(file, it) }
+        val style = head?.takeIf { containsSpan(size, it.offset, it.length) }
+            ?.let { readStyle(file, it) }
+        return Metadata(family, style)
+    }
+
+    private fun readDirectory(file: RandomAccessFile, size: Long): ByteBuffer? {
+        if (size !in SFNT_HEADER_BYTES.toLong()..MAX_FONT_FILE_BYTES) return null
+        val header = file.readSpan(0L, SFNT_HEADER_BYTES)
+        val faceOffset = if (header.getInt(0) == TAG_TTCF) firstTtcFaceOffset(file, header, size) else 0L
+        return faceOffset?.takeIf { containsSpan(size, it, SFNT_HEADER_BYTES.toLong()) }?.let { offset ->
+            val face = if (offset == 0L) header else file.readSpan(offset, SFNT_HEADER_BYTES)
+            when (face.int) {
+                SFNT_VERSION_1, TAG_OTTO, TAG_TRUE, TAG_TYP1 -> {
+                    val directoryOffset = offset + SFNT_HEADER_BYTES
+                    val directoryLength = face.ushort() * TABLE_RECORD_BYTES
+                    if (containsSpan(size, directoryOffset, directoryLength.toLong())) {
+                        file.readSpan(directoryOffset, directoryLength)
+                    } else null
+                }
+                else -> null
+            }
         }
     }
 
-    private fun parse(data: ByteArray): String? {
-        val bb = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN)
-        bb.position(tableDirectoryOffset(bb))
-        bb.int // sfntVersion
-        val numTables = bb.short.toInt() and MASK16
-        bb.position(bb.position() + TABLE_RECORD_SKIP) // searchRange, entrySelector, rangeShift
-        val nameOffset = findNameTableOffset(bb, numTables) ?: return null
-        return readBestFamily(data, bb, nameOffset)
+    private fun firstTtcFaceOffset(file: RandomAccessFile, header: ByteBuffer, size: Long): Long? {
+        val count = header.getInt(TTC_FACE_COUNT_OFFSET).toLong() and UINT32_MASK
+        val offsetsEnd = TTC_HEADER_BYTES + count * Int.SIZE_BYTES
+        return if (count != 0L && offsetsEnd <= size) {
+            file.readSpan(TTC_HEADER_BYTES.toLong(), Int.SIZE_BYTES).uint().takeIf { it >= offsetsEnd }
+        } else null
     }
 
-    private fun tableDirectoryOffset(bb: ByteBuffer): Int {
-        return if (bb.int == TAG_TTCF) {
-            bb.position(TTC_FIRST_OFFSET_POS) // tag(4) + version(4) + numFonts(4)
-            bb.int
-        } else {
-            0
-        }
+    private fun readStyle(file: RandomAccessFile, table: TableSpan): Style? {
+        if (!containsSpan(table.length, HEAD_MAC_STYLE_OFFSET.toLong(), Short.SIZE_BYTES.toLong())) return null
+        val macStyle = file.readSpan(table.offset + HEAD_MAC_STYLE_OFFSET, Short.SIZE_BYTES).ushort()
+        return Style(bold = macStyle and MAC_STYLE_BOLD != 0, italic = macStyle and MAC_STYLE_ITALIC != 0)
     }
 
-    private fun findNameTableOffset(bb: ByteBuffer, numTables: Int): Int? =
-        findTableOffset(bb, numTables, TAG_NAME)
-
-    private fun findTableOffset(bb: ByteBuffer, numTables: Int, tag: Int): Int? {
-        repeat(numTables) {
-            val recordTag = bb.int
-            bb.int // checksum
-            val offset = bb.int
-            bb.int // length
-            if (recordTag == tag) return offset
-        }
-        return null
+    private fun readBestFamily(file: RandomAccessFile, table: TableSpan): String? {
+        if (table.length < NAME_HEADER_BYTES) return null
+        val header = file.readSpan(table.offset, NAME_HEADER_BYTES)
+        header.short // format
+        val count = header.ushort()
+        val stringOffset = header.ushort()
+        val recordsLength = count * NAME_RECORD_BYTES
+        return if (stringOffset in (NAME_HEADER_BYTES + recordsLength)..table.length) {
+            val records = file.readSpan(table.offset + NAME_HEADER_BYTES, recordsLength)
+            selectBestFamily(file, table, records, stringOffset)
+        } else null
     }
 
-    private fun readBestFamily(data: ByteArray, bb: ByteBuffer, nameOffset: Int): String? {
-        bb.position(nameOffset)
-        bb.short // format
-        val count = bb.short.toInt() and MASK16
-        val stringOffset = bb.short.toInt() and MASK16
+    private fun selectBestFamily(
+        file: RandomAccessFile,
+        table: TableSpan,
+        records: ByteBuffer,
+        stringOffset: Int,
+    ): String? {
         var best: String? = null
         var bestScore = -1
-        repeat(count) {
-            val platformId = bb.short.toInt() and MASK16
-            bb.short // encodingId
-            bb.short // languageId
-            val nameId = bb.short.toInt() and MASK16
-            val length = bb.short.toInt() and MASK16
-            val offset = bb.short.toInt() and MASK16
+        while (records.hasRemaining()) {
+            val platformId = records.ushort()
+            records.short // encodingId
+            records.short // languageId
+            val nameId = records.ushort()
+            val length = records.ushort()
+            val start = (stringOffset + records.ushort()).toLong()
             if (nameId == NAME_ID_FAMILY || nameId == NAME_ID_TYPO_FAMILY) {
-                val text = decodeName(data, nameOffset + stringOffset + offset, length, platformId)
                 val score = scoreName(nameId, platformId)
-                if (text != null && score > bestScore) {
-                    best = text
+                if (score > bestScore && length > 0 && containsSpan(table.length, start, length.toLong())) {
+                    val charset = when (platformId) {
+                        PLATFORM_WINDOWS, PLATFORM_UNICODE -> Charsets.UTF_16BE
+                        else -> Charsets.ISO_8859_1
+                    }
+                    best = String(file.readSpan(table.offset + start, length).array(), charset)
                     bestScore = score
                 }
             }
         }
         return best?.trim()?.ifEmpty { null }
-    }
-
-    private fun decodeName(data: ByteArray, start: Int, length: Int, platformId: Int): String? {
-        if (length <= 0 || start < 0 || start + length > data.size) return null
-        return when (platformId) {
-            PLATFORM_WINDOWS, PLATFORM_UNICODE -> String(data, start, length, Charsets.UTF_16BE)
-            else -> String(data, start, length, Charsets.ISO_8859_1)
-        }
     }
 
     private fun scoreName(nameId: Int, platformId: Int): Int {
@@ -155,3 +181,18 @@ internal object SubtitleFontTable {
         return score
     }
 }
+
+private const val UINT16_MASK = 0xFFFF
+private const val UINT32_MASK = 0xFFFF_FFFFL
+
+private fun containsSpan(size: Long, offset: Long, length: Long): Boolean =
+    offset >= 0 && length >= 0 && offset <= size && length <= size - offset
+
+private fun RandomAccessFile.readSpan(offset: Long, length: Int): ByteBuffer {
+    seek(offset)
+    return ByteBuffer.wrap(ByteArray(length).also { readFully(it) })
+}
+
+private fun ByteBuffer.ushort(): Int = short.toInt() and UINT16_MASK
+
+private fun ByteBuffer.uint(): Long = int.toLong() and UINT32_MASK
