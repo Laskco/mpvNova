@@ -6,13 +6,20 @@ import java.net.URISyntaxException
 // mpv accepts many network protocols, including RTSP, FTP, SMB and protocol wrappers.
 private val MPV_LOG_URL = Regex("(?i)[a-z][a-z0-9+.-]*://[^\\s\\\"<>]+")
 private val MPV_LOG_HEADER = Regex(
-    "(?i)(authorization|proxy-authorization|cookie|set-cookie):\\s*[^\\r\\n]+",
+    "(?i)\\b((?:proxy-)?authorization|(?:set-)?cookie|(?:x-)?(?:api-key|auth-token|access-token)" +
+        "|x-amz-security-token)[ \\t]*:[^\\r\\n]*",
 )
+private const val HTTP_HEADER_FIELDS = "http-header-fields"
+// The entire value is sensitive: list options can contain arbitrary header names, not only known credentials.
+private val MPV_HEADER_OPTION_LINE = Regex("(?im)^[^\\r\\n]*\\b$HTTP_HEADER_FIELDS\\b[^\\r\\n]*")
 private const val URL_SCHEME_DELIMITER_LENGTH = 3
 
 internal fun sanitizeMpvLogText(text: String): String {
-    if (':' !in text) return text
-    val redactedHeaders = MPV_LOG_HEADER.replace(text) { match ->
+    val redactedOptions = if (text.contains(HTTP_HEADER_FIELDS, ignoreCase = true)) {
+        MPV_HEADER_OPTION_LINE.replace(text, "$HTTP_HEADER_FIELDS=<redacted>")
+    } else text
+    if (':' !in redactedOptions) return redactedOptions
+    val redactedHeaders = MPV_LOG_HEADER.replace(redactedOptions) { match ->
         "${match.groupValues[1]}: <redacted>"
     }
     return if ("://" in redactedHeaders) {

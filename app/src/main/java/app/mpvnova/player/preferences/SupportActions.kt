@@ -136,7 +136,7 @@ object SupportActions {
             zip.textEntry("media-codecs.txt", buildCodecReport())
             zip.configEntry(context, "mpv.conf")
             zip.configEntry(context, "input.conf")
-            zip.textEntry("mpv-log.txt", buildMpvLogDump())
+            zip.textEntry("mpv-log.txt", sanitizeMpvLogText(buildMpvLogDump()))
             zip.textEntry("android-logcat.txt", logcat.text)
             zip.textEntry("exit-history.txt", exitHistory.summary)
             exitHistory.traces.forEach { (name, content) -> zip.textEntry(name, content) }
@@ -320,7 +320,7 @@ private fun buildBundleManifest(logcatAvailable: Boolean, exitHistoryAvailable: 
         appendLine("Android process logcat captured: ${if (logcatAvailable) "yes" else "no"}")
         appendLine("Historical process exits captured: ${if (exitHistoryAvailable) "yes" else "no"}")
         appendLine(
-            "URLs, authorization headers, cookies, and matching sensitive settings " +
+            "URLs, HTTP header options, known credential headers, and matching sensitive settings " +
                 "are redacted from diagnostics."
         )
         appendLine("Configuration files are included with sensitive URLs and headers redacted.")
@@ -538,5 +538,5 @@ private val SUPPORT_IO_EXECUTOR = Executors.newSingleThreadExecutor { runnable -
     Thread(runnable, "mpvNova-support-io")
 }
 private val SENSITIVE_SETTING_KEY = Regex(
-    "(?i)(authorization|cookie|credential|password|secret|token|uri|path)",
+    "(?i)(authorization|cookie|credential|password|secret|token|uri|path|api[-_]?key|http[-_]header[-_]fields)",
 )
