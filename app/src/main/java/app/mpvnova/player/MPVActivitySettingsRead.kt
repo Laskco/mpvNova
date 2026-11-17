@@ -5,6 +5,7 @@ import kotlin.math.abs
 
 internal fun MPVActivity.readPlaybackSettings(
     prefs: SharedPreferences,
+    values: Map<String, *>,
     getString: (String, Int) -> String
 ) {
     val statsMode = prefs.getString("stats_mode", "") ?: ""
@@ -17,7 +18,7 @@ internal fun MPVActivity.readPlaybackSettings(
     backgroundPlayMode = getString("background_play", R.string.pref_background_play_default)
     noUIPauseMode = getString("no_ui_pause", R.string.pref_no_ui_pause_default)
     shouldSavePosition = prefs.getBoolean("save_position", true)
-    segmentSkipModes = readSegmentSkipModes(prefs.all)
+    segmentSkipModes = readSegmentSkipModes(values)
     skipButtonDisplayMode = SkipButtonDisplayMode.fromPref(prefs.getString("skip_button_display", "segment"))
     seekStepMs = readSeekStepSeconds(prefs) * MILLIS_PER_SECOND_LONG
     seekKeysUseInputConf = prefs.getBoolean("seek_keys_use_inputconf", false)
@@ -25,7 +26,7 @@ internal fun MPVActivity.readPlaybackSettings(
     readDelayDefaults(prefs)
     fastSeekEnabled = prefs.getBoolean("fast_seek_enabled", false)
     readScreensaverSettings(prefs)
-    readPlayerUiSettings(prefs)
+    readPlayerUiSettings(prefs, values)
     remoteNextChapterKeyCode = remoteButtonKeyCode(prefs.getString(
         PREF_REMOTE_NEXT_CHAPTER_BUTTON,
         REMOTE_BUTTON_DISABLED

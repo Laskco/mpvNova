@@ -139,9 +139,9 @@ private fun MPVActivity.applySubFont() {
     mpvSetPropertyString("sub-font", subStyleFontFamily.ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY })
 }
 
-internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences) {
+internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences, values: Map<String, *>) {
     preserveCompanionSubtitleStyle = prefs.getBoolean(PREF_PRESERVE_COMPANION_SUBTITLE_STYLE, false)
-    subStyleExtras = SubtitleStyleExtras.read(prefs)
+    subStyleExtras = SubtitleStyleExtras.read(values)
     customSubStyleEnabled = persistSubFilters && prefs.getBoolean("custom_sub_style_enabled", false)
     subStyleTextColorIndex = subtitleColorOptionIndex(
         prefs.getString("sub_style_text_color", SUBTITLE_TEXT_COLOR_DEFAULT_ID) ?: SUBTITLE_TEXT_COLOR_DEFAULT_ID

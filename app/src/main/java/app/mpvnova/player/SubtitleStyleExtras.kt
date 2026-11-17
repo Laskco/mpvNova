@@ -1,6 +1,5 @@
 package app.mpvnova.player
 
-import android.content.SharedPreferences
 import org.json.JSONObject
 
 internal enum class SubtitleFontHinting(val mpvValue: String?, val label: Int) {
@@ -63,8 +62,8 @@ internal data class SubtitleStyleExtras(
             ).normalized()
         }
 
-        fun read(prefs: SharedPreferences): SubtitleStyleExtras = fromJson(
-            (prefs.all[PREF_KEY] as? String)?.let { runCatching { JSONObject(it) }.getOrNull() },
+        fun read(values: Map<String, *>): SubtitleStyleExtras = fromJson(
+            (values[PREF_KEY] as? String)?.let { runCatching { JSONObject(it) }.getOrNull() },
         )
     }
 }

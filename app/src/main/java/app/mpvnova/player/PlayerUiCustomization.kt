@@ -498,7 +498,7 @@ internal object PlayerUiCustomizationStore {
     fun read(prefs: SharedPreferences): PlayerUiCustomization = read(prefs, prefs.all)
 
     @Suppress("LongMethod")
-    private fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerUiCustomization = PlayerUiCustomization(
+    fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerUiCustomization = PlayerUiCustomization(
         surface = PlayerPanelSurface.fromPref(prefs.getString(SURFACE, null)),
         panelOpacityPercent = prefs.getInt(PANEL_OPACITY, PlayerUiCustomization.DEFAULT.panelOpacityPercent),
         scrimStrengthPercent = prefs.getInt(SCRIM_STRENGTH, PlayerUiCustomization.DEFAULT.scrimStrengthPercent),

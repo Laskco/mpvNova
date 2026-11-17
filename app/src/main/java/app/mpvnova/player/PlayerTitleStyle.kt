@@ -362,7 +362,7 @@ internal object PlayerTitleStyleStore {
 
     fun read(prefs: SharedPreferences): PlayerTitleStyle = read(prefs, prefs.all)
 
-    private fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerTitleStyle = PlayerTitleStyle(
+    fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerTitleStyle = PlayerTitleStyle(
         season = readPart(prefs, values, PlayerTitlePart.SEASON),
         episodeNumber = readPart(prefs, values, PlayerTitlePart.EPISODE_NUMBER),
         title = readPart(prefs, values, PlayerTitlePart.TITLE),

@@ -2,11 +2,11 @@ package app.mpvnova.player
 
 import android.content.SharedPreferences
 
-internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences) {
+internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences, values: Map<String, *>) {
     controlsAtBottom = true
     topActionsInPlayerBar = prefs.getBoolean(PREF_TOP_ACTIONS_IN_PLAYERBAR, false)
     showMediaTitle = true
-    playerTitleStyle = PlayerTitleStyleStore.read(prefs)
+    playerTitleStyle = PlayerTitleStyleStore.read(prefs, values)
     showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     showClockDate = prefs.getBoolean("display_clock_date", false)
     showClockOnPause = prefs.getBoolean("display_clock_on_pause", false)
