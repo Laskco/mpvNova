@@ -255,6 +255,11 @@
             android:theme="@style/AppTheme"
             android:exported="true" />
 
+        <activity-alias
+            android:name=".LocalAutoNextPicker"
+            android:exported="false"
+            android:targetActivity=".MPVActivity" />
+
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"

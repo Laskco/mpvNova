@@ -176,6 +176,7 @@ tasks.register('prepareReleaseAssets', Sync) {
 }
 
 dependencies {
+    testImplementation 'junit:junit:4.13.2'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:${rootProject.ext.kotlin_version}"
     implementation 'androidx.activity:activity:1.13.0'
     implementation 'androidx.annotation:annotation:1.11.0'

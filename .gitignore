@@ -13,7 +13,11 @@ backups/
 app/default/release/
 logs/
 qa-artifacts/
-app/src/test/
+# Local test files stay ignored; these regression tests run in quality CI.
+/app/src/test/**
+!/app/src/test/**/
+!/app/src/test/java/app/mpvnova/player/LocalAutoNextTest.kt
+!/app/src/test/java/app/mpvnova/player/MpvLogSanitizerTest.kt
 app/src/androidTest/
 
 # Local agent/tool scratch

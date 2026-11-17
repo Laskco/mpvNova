@@ -19,6 +19,7 @@ import androidx.core.view.updatePadding
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.preference.PreferenceManager
+import java.io.File
 
 @Suppress("TooManyFunctions")
 class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
@@ -61,8 +62,10 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
             it.data?.getStringExtra("last_path")?.let { path ->
                 lastPath = path
             }
-            it.data?.getStringExtra("path")?.let { path ->
-                playFile(path)
+            it.data?.let { result ->
+                result.getStringExtra("path")?.let { path ->
+                    playFile(path, autoNextCandidate = result.getBooleanExtra(PICKER_RESULT_LOCAL_FILE, false))
+                }
             }
         }
         playerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -93,7 +96,9 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
             val helper = Utils.OpenUrlDialog(requireContext())
             with (helper) {
                 builder.setPositiveButton(R.string.dialog_ok) { _, _ ->
-                    playFile(helper.text)
+                    val path = helper.text
+                    val localFile = path.startsWith('/') && File(path).canQueueFromSelectedDirectory()
+                    playFile(path, autoNextCandidate = localFile)
                 }
                 builder.setNegativeButton(R.string.dialog_cancel) { dialog, _ -> dialog.cancel() }
                 create().show()
@@ -226,7 +231,7 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
         Toast.makeText(requireContext(), R.string.document_picker_unavailable, Toast.LENGTH_LONG).show()
     }
 
-    private fun playFile(filepath: String) {
+    private fun playFile(filepath: String, autoNextCandidate: Boolean) {
         val i: Intent
         if (filepath.startsWith("content://")) {
             i = Intent(Intent.ACTION_VIEW, Uri.parse(filepath))
@@ -234,7 +239,12 @@ class MainScreenFragment : Fragment(R.layout.fragment_main_screen) {
             i = Intent()
             i.putExtra("filepath", filepath)
         }
-        i.setClass(requireContext(), MPVActivity::class.java)
+        val context = requireContext()
+        if (autoNextCandidate) {
+            i.component = localAutoNextComponent(context)
+        } else {
+            i.setClass(context, MPVActivity::class.java)
+        }
         playerLauncher.launch(i)
     }
 

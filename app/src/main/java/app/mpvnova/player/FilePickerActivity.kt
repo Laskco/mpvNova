@@ -164,13 +164,14 @@ class FilePickerActivity : AppCompatActivity(), AbstractFilePickerFragment.OnFil
         }
     }
 
-    override fun onFilePicked(file: File) = finishWithResult(RESULT_OK, file.absolutePath)
+    override fun onFilePicked(file: File) =
+        finishWithResult(RESULT_OK, file.absolutePath, localFile = file.canQueueFromSelectedDirectory())
 
     override fun onDirPicked(dir: File) = finishWithResult(RESULT_OK, dir.absolutePath)
 
     override fun onDocumentPicked(uri: Uri, isDir: Boolean) {
         if (!isDir)
-            fragment2?.pathToString(uri)?.let { finishWithResult(RESULT_OK, it) }
+            fragment2?.pathToString(uri)?.let { finishWithResult(RESULT_OK, it, localFile = true) }
     }
 
     override fun onCancelled() = finishWithResult(RESULT_CANCELED)
@@ -628,7 +629,7 @@ private fun FilePickerActivity.onBackPressedImpl() {
     finishWithResult(Activity.RESULT_CANCELED)
 }
 
-private fun FilePickerActivity.finishWithResult(code: Int, path: String? = null) {
+private fun FilePickerActivity.finishWithResult(code: Int, path: String? = null, localFile: Boolean = false) {
     val result = Intent()
     fragment?.apply {
         result.putExtra("last_path", pathToString(currentDir))
@@ -638,6 +639,7 @@ private fun FilePickerActivity.finishWithResult(code: Int, path: String? = null)
     }
     if (path != null) {
         result.putExtra("path", path)
+        if (localFile) result.putExtra(PICKER_RESULT_LOCAL_FILE, true)
         Log.v(FilePickerActivity.TAG, "FilePickerActivity: picked \"$path\"")
     } else {
         Log.v(FilePickerActivity.TAG, "FilePickerActivity: nothing picked")
