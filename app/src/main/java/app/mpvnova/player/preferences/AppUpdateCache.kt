@@ -33,8 +33,14 @@ internal fun releaseDownloadedApk(apkFile: File) = synchronized(updateApkOwners)
 }
 
 internal fun releaseActivityUpdateApks(activity: Activity) = synchronized(updateApkOwners) {
-    val files = updateApkOwners.filterValues { it.get() === activity }.keys.toList()
-    files.forEach(::releaseDownloadedApk)
+    val downloads = updateApkOwners.entries.iterator()
+    while (downloads.hasNext()) {
+        val (file, owner) = downloads.next()
+        if (owner.get() === activity) {
+            downloads.remove()
+            if (file !in installerUpdateApks) file.delete()
+        }
+    }
     installerUpdateApks.forEach { (file, owner) ->
         if (owner.activity.get() === activity) {
             owner.activity.clear()

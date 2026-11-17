@@ -57,26 +57,37 @@ internal fun ReleaseInfo.displayTitle(): String? {
     return name.takeIf { it.isNotBlank() && it != tagName }?.cleanMarkdown()
 }
 
-internal fun chooseBestApkAsset(assets: List<JSONObject>): JSONObject? {
-    val selectedName = chooseBestApkAssetName(
-        assets.map { asset -> asset.optString("name") },
+internal fun chooseBestApkAsset(assets: List<JSONObject>): JSONObject? =
+    choosePreferredApk(
+        assets,
         Build.SUPPORTED_ABIS?.toList().orEmpty(),
-        Build.VERSION.SDK_INT
-    )
-    return assets.firstOrNull { asset -> asset.optString("name") == selectedName }
-}
+        Build.VERSION.SDK_INT,
+    ) { it.optString("name") }
 
 internal fun chooseBestApkAssetName(
     assetNames: List<String>,
     supportedAbis: List<String>,
     sdkInt: Int = Build.VERSION.SDK_INT
-): String? {
+): String? = choosePreferredApk(assetNames, supportedAbis, sdkInt) { it }
+
+private inline fun <T> choosePreferredApk(
+    assets: List<T>, supportedAbis: List<String>, sdkInt: Int, nameOf: (T) -> String,
+): T? {
     val compatibleAbis = supportedAbis.map { it.lowercase(Locale.ROOT) }.filter { it in KNOWN_ABIS }
     if (sdkInt < Build.VERSION_CODES.M || compatibleAbis.isEmpty()) return null
-    fun assetFor(abi: String): String? = assetNames.firstOrNull {
-        it.equals("app-default-$abi-release.apk", ignoreCase = true)
+    val preferredNames = (compatibleAbis + "universal").map { "app-default-$it-release.apk" }
+    var bestRank = preferredNames.size
+    var best: T? = null
+    for (asset in assets) {
+        val name = nameOf(asset)
+        val rank = (0 until bestRank).firstOrNull { name.equals(preferredNames[it], ignoreCase = true) }
+        if (rank != null) {
+            best = asset
+            bestRank = rank
+            if (rank == 0) break
+        }
     }
-    return compatibleAbis.firstNotNullOfOrNull(::assetFor) ?: assetFor("universal")
+    return best
 }
 
 private val MARKDOWN_HEADING_PREFIX_PATTERN = Regex("^#{1,6}\\s*")

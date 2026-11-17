@@ -177,9 +177,9 @@ private class ArchiveExportFlow(
             @Suppress("DEPRECATION")
             packageManager.queryIntentActivities(shareIntent, PackageManager.MATCH_DEFAULT_ONLY)
         }
+        val seen = hashSetOf<ComponentName>()
         return targets
-            .mapNotNull { it.toArchiveShareTarget(activity) }
-            .distinctBy { "${it.packageName}/${it.className}" }
+            .mapNotNull { it.toArchiveShareTarget(activity, seen) }
             .sortedBy { it.label.lowercase(Locale.US) }
     }
 
@@ -225,8 +225,10 @@ private fun uniqueDownloadFile(directory: File, filename: String): File {
     return target
 }
 
-private fun ResolveInfo.toArchiveShareTarget(context: Context): ArchiveShareTarget? {
-    val info = activityInfo ?: return null
+private fun ResolveInfo.toArchiveShareTarget(
+    context: Context, seen: MutableSet<ComponentName>,
+): ArchiveShareTarget? {
+    val info = activityInfo?.takeIf { seen.add(ComponentName(it.packageName, it.name)) } ?: return null
     val label = loadLabel(context.packageManager).toString().takeIf(String::isNotBlank)
         ?: info.packageName
     return ArchiveShareTarget(info.packageName, info.name, label)
