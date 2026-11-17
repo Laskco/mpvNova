@@ -16,12 +16,13 @@ internal fun discardOpenSubtitlesDownload(file: File, cacheDir: File) {
     SUBTITLE_REMOVAL_WORKER.execute { OpenSubtitlesDownloadUi.discard(file, cacheDir) }
 }
 
-internal fun MPVActivity.openSubtitlesTrackIds(file: File): List<Int> {
-    val count = mpvGetPropertyInt("track-list/count") ?: return emptyList()
-    return (0 until count).mapNotNull { index ->
+internal fun openSubtitlesFirstTrackId(file: File): Int? {
+    val count = mpvGetPropertyInt("track-list/count") ?: return null
+    val path = file.absolutePath
+    return (0 until count).firstNotNullOfOrNull { index ->
         val prefix = "track-list/$index"
         if (mpvGetPropertyString("$prefix/type") == "sub" &&
-            mpvGetPropertyString("$prefix/external-filename") == file.absolutePath) {
+            mpvGetPropertyString("$prefix/external-filename") == path) {
             mpvGetPropertyInt("$prefix/id")
         } else null
     }

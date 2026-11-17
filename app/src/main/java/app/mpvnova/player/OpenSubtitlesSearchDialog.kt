@@ -365,7 +365,7 @@ internal class OpenSubtitlesSearchDialog(
             val outcome = runCatching { service.languages(auth) }
             post(ticket, auth) {
                 outcome.fold(onSuccess = { options ->
-                    val valid = options.filter { it.code.matches(Regex("[a-z]{2,3}(?:-[a-z]{2,3})?")) }
+                    val valid = options.filter { OPEN_SUBTITLES_LANGUAGE_CODE.matches(it.code) }
                         .distinctBy { it.code }.sortedBy { it.name }.take(MAX_LANGUAGES)
                     if (valid.isNotEmpty()) {
                         languagesLoaded = true

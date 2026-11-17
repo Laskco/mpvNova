@@ -48,6 +48,14 @@ private val DOWNLOAD_HOSTS = API_HOSTS + setOf(
 private val ERROR_CONTENT_TYPES = setOf(
     "text/html", "application/xhtml+xml", "application/json", "text/json", "application/xml", "text/xml",
 )
+private val PARTIAL_SUBTITLE_NAME = Regex("opensubtitles--?\\d+\\.part")
+private val VTT_TIME_LINE = Regex("(?m)^\\s*(?:\\d{2}:)?\\d{2}:\\d{2}\\.\\d{3}\\s+-->\\s+")
+private val ASS_SCRIPT_INFO = Regex("(?im)^\\[Script Info]\\s*$")
+private val ASS_EVENTS = Regex("(?im)^\\[Events]\\s*$")
+private val ASS_DIALOGUE = Regex("(?im)^Dialogue:\\s*")
+private val SRT_TIME_LINE = Regex("(?m)^\\s*\\d{1,3}:\\d{2}:\\d{2},\\d{3}\\s+-->\\s+\\d{1,3}:\\d{2}:\\d{2},\\d{3}")
+private val MICRODVD_ENTRY = Regex("\\A\\{[0-9]{1,10}\\}\\{[0-9]{1,10}\\}[^\\r\\n]+(?:\\r?\\n|$)")
+private val MPL_ENTRY = Regex("\\A\\[[0-9]{1,10}\\]\\[[0-9]{1,10}\\][^\\r\\n]+(?:\\r?\\n|$)")
 private val DEADLINES = ScheduledThreadPoolExecutor(1) { task ->
     Thread(task, "opensubtitles-deadline").apply { isDaemon = true }
 }.apply { removeOnCancelPolicy = true }
@@ -163,7 +171,7 @@ internal object OpenSubtitlesCache {
         records.values.filter { it.file.parentFile == root && !it.pinned && it.expires <= now }
             .forEach(::delete)
         // In-process partials are reserved; all other generated partials are restart orphans.
-        root.listFiles { file -> Regex("opensubtitles--?\\d+\\.part").matches(file.name) }
+        root.listFiles { file -> PARTIAL_SUBTITLE_NAME.matches(file.name) }
             ?.filterNot { it.path in activePartials }
             ?.forEach { if (it.canonicalFile == it.absoluteFile) it.delete() }
     }
@@ -329,7 +337,7 @@ internal class OpenSubtitlesHttp(
                     fail(OpenSubtitlesFailureReason.INVALID_RESPONSE)
                 val output = ByteArrayOutputStream()
                 connection.inputStream.use { copy(operation, connection, it, output, MAX_JSON_BYTES) }
-                return decode(output.toByteArray(), Charsets.UTF_8)
+                return decode(ByteBuffer.wrap(output.toByteArray()), Charsets.UTF_8)
             } finally {
                 operation.release(connection)
             }
@@ -456,14 +464,18 @@ private fun copy(
     if (expected != null && total.toLong() != expected) fail(OpenSubtitlesFailureReason.INVALID_RESPONSE)
 }
 
-private fun decode(bytes: ByteArray, charset: java.nio.charset.Charset): String = try {
+private fun decode(bytes: ByteBuffer, charset: java.nio.charset.Charset): String = try {
     charset.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT)
-        .decode(ByteBuffer.wrap(bytes)).toString()
+        .decode(bytes).toString()
 } catch (_: java.nio.charset.CharacterCodingException) { fail(OpenSubtitlesFailureReason.INVALID_RESPONSE) }
+
+private class SubtitleTextBuffer : ByteArrayOutputStream() {
+    fun byteRange(): ByteBuffer = ByteBuffer.wrap(buf, 0, count)
+}
 
 private fun readSubtitleText(operation: OpenSubtitlesCall, file: File): String {
     val bytes = file.inputStream().use { input ->
-        val output = ByteArrayOutputStream()
+        val output = SubtitleTextBuffer()
         val buffer = ByteArray(8192)
         while (true) {
             operation.checkActive()
@@ -472,11 +484,11 @@ private fun readSubtitleText(operation: OpenSubtitlesCall, file: File): String {
             if (output.size() + count > MAX_SUBTITLE_BYTES) fail(OpenSubtitlesFailureReason.SIZE_LIMIT)
             output.write(buffer, 0, count)
         }
-        output.toByteArray()
+        output.byteRange()
     }
     val charset = when {
-        bytes.size >= 2 && bytes[0] == 0xff.toByte() && bytes[1] == 0xfe.toByte() -> Charsets.UTF_16LE
-        bytes.size >= 2 && bytes[0] == 0xfe.toByte() && bytes[1] == 0xff.toByte() -> Charsets.UTF_16BE
+        bytes.remaining() >= 2 && bytes[0] == 0xff.toByte() && bytes[1] == 0xfe.toByte() -> Charsets.UTF_16LE
+        bytes.remaining() >= 2 && bytes[0] == 0xfe.toByte() && bytes[1] == 0xff.toByte() -> Charsets.UTF_16BE
         else -> Charsets.UTF_8
     }
     return decode(bytes, charset).trimStart('\uFEFF', ' ', '\t', '\r', '\n')
@@ -506,18 +518,16 @@ private fun subtitleExtension(operation: OpenSubtitlesCall, file: File, fileName
 }
 
 private fun isVttSubtitle(text: String): Boolean = text.startsWith("WEBVTT") &&
-    Regex("(?m)^\\s*(?:\\d{2}:)?\\d{2}:\\d{2}\\.\\d{3}\\s+-->\\s+").containsMatchIn(text)
+    VTT_TIME_LINE.containsMatchIn(text)
 
 private fun isAssSubtitle(text: String): Boolean =
-    Regex("(?im)^\\[Script Info]\\s*$").containsMatchIn(text) &&
-        Regex("(?im)^\\[Events]\\s*$").containsMatchIn(text) &&
-        Regex("(?im)^Dialogue:\\s*").containsMatchIn(text)
+    ASS_SCRIPT_INFO.containsMatchIn(text) && ASS_EVENTS.containsMatchIn(text) && ASS_DIALOGUE.containsMatchIn(text)
 
 private fun isSrtSubtitle(text: String): Boolean =
-    Regex("(?m)^\\s*\\d{1,3}:\\d{2}:\\d{2},\\d{3}\\s+-->\\s+\\d{1,3}:\\d{2}:\\d{2},\\d{3}").containsMatchIn(text)
+    SRT_TIME_LINE.containsMatchIn(text)
 
 private fun legacySubtitleExtension(text: String): String? = when {
-    Regex("\\A\\{[0-9]{1,10}\\}\\{[0-9]{1,10}\\}[^\\r\\n]+(?:\\r?\\n|$)").containsMatchIn(text) -> "sub"
-    Regex("\\A\\[[0-9]{1,10}\\]\\[[0-9]{1,10}\\][^\\r\\n]+(?:\\r?\\n|$)").containsMatchIn(text) -> "mpl"
+    MICRODVD_ENTRY.containsMatchIn(text) -> "sub"
+    MPL_ENTRY.containsMatchIn(text) -> "mpl"
     else -> null
 }

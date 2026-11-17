@@ -245,11 +245,11 @@ private fun requireHeader(value: String) {
 private fun validateQuery(query: OpenSubtitlesQuery, page: Int) {
     if (page < 1 || query.title.length > MAX_QUERY_LENGTH) fail(OpenSubtitlesFailureReason.INVALID_REQUEST)
     if (query.title.isBlank() && query.movieHash == null) fail(OpenSubtitlesFailureReason.INVALID_REQUEST)
-    if (!Regex("[a-z]{2,3}(?:-[a-z]{2,3})?").matches(query.language))
+    if (!OPEN_SUBTITLES_LANGUAGE_CODE.matches(query.language))
         fail(OpenSubtitlesFailureReason.INVALID_REQUEST)
     if (query.season?.let { it < 0 } == true || query.episode?.let { it < 1 } == true)
         fail(OpenSubtitlesFailureReason.INVALID_REQUEST)
-    if (query.movieHash?.let { !Regex("[0-9a-fA-F]{16}").matches(it) } == true)
+    if (query.movieHash?.let { !OPEN_SUBTITLES_HASH.matches(it) } == true)
         fail(OpenSubtitlesFailureReason.INVALID_REQUEST)
 }
 

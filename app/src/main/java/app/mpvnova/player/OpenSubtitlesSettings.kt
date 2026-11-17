@@ -47,7 +47,7 @@ internal object OpenSubtitlesSettings {
         PreferenceManager.getDefaultSharedPreferences(context).getString(LANGUAGE, "en") ?: "en"
 
     fun setLanguage(context: Context, value: String) {
-        if (Regex("[a-z]{2,3}(?:-[a-z]{2,4})?").matches(value))
+        if (OPEN_SUBTITLES_PREFERENCE_LANGUAGE.matches(value))
             PreferenceManager.getDefaultSharedPreferences(context).edit().putString(LANGUAGE, value).apply()
     }
 

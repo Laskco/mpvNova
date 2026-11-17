@@ -26,12 +26,13 @@ fun openSubtitlesMovieHash(file: File, isCancelled: () -> Boolean): String? {
             if (size < 2L * HASH_CHUNK_BYTES) return null
             var hash = size
             val bytes = ByteArray(HASH_READ_BYTES)
+            val words = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
             for (offset in longArrayOf(0L, size - HASH_CHUNK_BYTES)) {
                 input.seek(offset)
                 repeat(HASH_CHUNK_BYTES / HASH_READ_BYTES) {
                     checkActive()
                     input.readFully(bytes)
-                    val words = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+                    words.rewind()
                     while (words.hasRemaining()) hash += words.long
                 }
             }

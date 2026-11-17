@@ -48,7 +48,7 @@ internal fun MPVActivity.applyOpenSubtitlesDownload(subtitle: File, result: Open
         discardOpenSubtitlesDownload(subtitle, cacheDir)
         return
     }
-    val existingTrack = openSubtitlesTrackIds(subtitle).firstOrNull()
+    val existingTrack = openSubtitlesFirstTrackId(subtitle)
     openSubtitlesPlaybackFiles += subtitle
     openSubtitlesPlaybackDownloads[result.fileId] = subtitle to result
     pendingOpenSubtitlesFocus = subtitle
@@ -57,7 +57,7 @@ internal fun MPVActivity.applyOpenSubtitlesDownload(subtitle: File, result: Open
         saveUserTrackPick("sub", existingTrack)
     } else if (pendingOpenSubtitlesAdds.add(subtitle)) {
         val flags = if (result.hearingImpaired) "select+hearing-impaired" else "select"
-        val language = result.language.takeIf { Regex("[a-z]{2,3}(?:-[a-z]{2,3})?").matches(it) }.orEmpty()
+        val language = result.language.takeIf(OPEN_SUBTITLES_LANGUAGE_CODE::matches).orEmpty()
         val requestId = openSubtitlesCommandIds.getAndIncrement()
         pendingOpenSubtitlesCommands[requestId] = subtitle
         val status = mpvCommandAsync(requestId, arrayOf("sub-add", subtitle.absolutePath, flags,
