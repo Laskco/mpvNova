@@ -53,18 +53,17 @@ object MediaTitleResolver {
             } else {
                 value.substringAfter('?', missingDelimiterValue = "")
             }
-            rawQuery?.takeUnless { it.isBlank() }?.split('&')?.firstNotNullOfOrNull { part ->
+            rawQuery?.takeUnless { it.isBlank() }?.splitToSequence('&')?.firstNotNullOfOrNull { part ->
                 val separator = part.indexOf('=')
                 if (separator <= 0) {
                     null
                 } else {
                     val key = percentDecode(part.substring(0, separator).replace('+', ' '))
                         .lowercase(Locale.ROOT)
-                    val title = percentDecode(part.substring(separator + 1).replace('+', ' ')).trim()
-                    if (key == "title" || key == "name")
+                    if (key == "title" || key == "name") {
+                        val title = percentDecode(part.substring(separator + 1).replace('+', ' ')).trim()
                         displayTitleFromCandidate(title)
-                    else
-                        null
+                    } else null
                 }
             }
         }
@@ -123,6 +122,7 @@ object MediaTitleResolver {
     }
 
     private fun percentDecode(value: String): String {
+        if ('%' !in value) return value
         val decoded = StringBuilder(value.length)
         var bytes: ByteArrayOutputStream? = null
         var index = 0

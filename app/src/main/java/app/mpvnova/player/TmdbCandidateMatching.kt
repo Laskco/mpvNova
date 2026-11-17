@@ -4,6 +4,8 @@ import org.json.JSONObject
 import java.text.Normalizer
 import java.util.Locale
 
+internal data class VerifiedTmdbCandidate(val item: JSONObject, val episode: JSONObject? = null)
+
 /** Verify aliases returned by search instead of accepting a popular but unrelated result. */
 internal class TmdbCandidateMatching(
     private val query: TmdbTitleQuery,
@@ -13,7 +15,7 @@ internal class TmdbCandidateMatching(
     private val report: (String) -> Unit,
 ) {
     @Suppress("ReturnCount") // Ambiguity and incomplete alias verification must retain local metadata.
-    fun select(candidates: List<JSONObject>): JSONObject? {
+    fun select(candidates: List<JSONObject>): VerifiedTmdbCandidate? {
         val nameKey = if (query.isEpisode) "name" else "title"
         val dateKey = if (query.isEpisode) "first_air_date" else "release_date"
         val eligible = candidates.filter {
@@ -32,7 +34,7 @@ internal class TmdbCandidateMatching(
             report("ambiguous title; keeping local title")
             return distinguishEpisodes(exact)
         }
-        if (exact.size == 1) return exact.single()
+        if (exact.size == 1) return VerifiedTmdbCandidate(exact.single())
         if (eligible.size > MAX_ALIAS_CANDIDATES) {
             report("too many candidates to verify aliases")
             return null
@@ -44,25 +46,25 @@ internal class TmdbCandidateMatching(
             report("ambiguous alias; keeping local title")
             return distinguishEpisodes(aliases)
         }
-        return aliases.singleOrNull()
+        return aliases.singleOrNull()?.let(::VerifiedTmdbCandidate)
     }
 
     @Suppress("ReturnCount") // Missing or conflicting episode evidence must leave the series ambiguous.
-    private fun distinguishEpisodes(candidates: List<JSONObject>): JSONObject? {
+    private fun distinguishEpisodes(candidates: List<JSONObject>): VerifiedTmdbCandidate? {
         val episodeTitle = query.episodeTitle?.let(::normalizedTmdbTitle) ?: return null
         if (!query.isEpisode || candidates.size > MAX_ALIAS_CANDIDATES) return null
-        val matches = candidates.filter { candidate ->
+        val matches = candidates.mapNotNull { candidate ->
             val id = candidate.strictInt("id") ?: return null
             val episode = try {
                 request("tv/$id/season/${query.season}/episode/${query.episode}?language=en-US", token)
             } catch (error: TmdbHttpException) {
-                if (error.status == java.net.HttpURLConnection.HTTP_NOT_FOUND) return@filter false
+                if (error.status == java.net.HttpURLConnection.HTTP_NOT_FOUND) return@mapNotNull null
                 throw error
             }
             if (episode.strictInt("season_number") != query.season ||
                 episode.strictInt("episode_number") != query.episode) return null
             val name = episode.safeTitle("name") ?: return null
-            normalizedTmdbTitle(name) == episodeTitle
+            if (normalizedTmdbTitle(name) == episodeTitle) VerifiedTmdbCandidate(candidate, episode) else null
         }
         return matches.singleOrNull()
     }

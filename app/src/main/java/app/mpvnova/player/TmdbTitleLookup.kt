@@ -34,15 +34,15 @@ internal class TmdbTitleLookup(private val request: (String, String) -> JSONObje
         val path = "search/$type?query=$encoded&include_adult=false&language=en-US$yearFilter"
         val candidates = searchCandidates(path, token, report) ?: return null
         val match = TmdbCandidateMatching(query, type, token, request, report).select(candidates) ?: return null
-        val id = match.strictInt("id")?.takeIf { it > 0 } ?: return null
+        val id = match.item.strictInt("id")?.takeIf { it > 0 } ?: return null
         val titleKey = if (query.isEpisode) "name" else "title"
-        val title = match.safeTitle(titleKey) ?: return null
+        val title = match.item.safeTitle(titleKey) ?: return null
         if (!query.isEpisode) {
             report("matched movie")
             return TmdbTitleMatch(title, null)
         }
         report("verified series; episode unavailable")
-        val details = episodeDetails(id, query, token) ?: return null
+        val details = episodeDetails(match, id, query, token) ?: return null
         if (details.strictInt("season_number") != query.season ||
             details.strictInt("episode_number") != query.episode
         ) return null
@@ -52,7 +52,9 @@ internal class TmdbTitleLookup(private val request: (String, String) -> JSONObje
         }
     }
 
-    private fun episodeDetails(id: Int, query: TmdbTitleQuery, token: String): JSONObject? = try {
+    private fun episodeDetails(
+        match: VerifiedTmdbCandidate, id: Int, query: TmdbTitleQuery, token: String,
+    ): JSONObject? = match.episode ?: try {
         request("tv/$id/season/${query.season}/episode/${query.episode}?language=en-US", token)
     } catch (error: TmdbHttpException) {
         if (error.status == HttpURLConnection.HTTP_NOT_FOUND) null else throw error
