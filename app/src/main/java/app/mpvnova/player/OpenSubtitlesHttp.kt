@@ -105,7 +105,12 @@ internal object OpenSubtitlesCache {
             }
             sweep(root)
             val held = reservations[root.path] ?: 0
-            val files = records.values.filter { it.file.parentFile == root }.sortedBy { it.file.lastModified() }
+            val files = records.values.asSequence()
+                .filter { it.file.parentFile == root }
+                .map { it to it.file.lastModified() }
+                .sortedBy { it.second }
+                .map { it.first }
+                .toList()
             var count = files.size + held
             for (record in files.filterNot { it.pinned }) {
                 if (count < MAX_CACHE_FILES) break

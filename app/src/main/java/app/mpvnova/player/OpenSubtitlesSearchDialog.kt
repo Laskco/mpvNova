@@ -270,8 +270,9 @@ internal class OpenSubtitlesSearchDialog(
         lastQuery = query
         page = requestedPage
         totalPages = response.totalPages.coerceAtLeast(requestedPage)
-        val combined = if (requestedPage == 1) response.results else adapter.snapshot() + response.results
-        adapter.replace(combined.distinctBy { it.fileId }.take(MAX_RESULTS))
+        val incoming = response.results.asSequence()
+        val combined = if (requestedPage == 1) incoming else adapter.snapshot().asSequence() + incoming
+        adapter.replace(combined.distinctBy { it.fileId }.take(MAX_RESULTS).toList())
         if (adapter.count == 0) showStatus(R.string.os_search_empty)
         else if (atLimit()) showStatus(R.string.os_search_limit)
         else status.text = activity.getString(R.string.os_search_result_count, adapter.count)
