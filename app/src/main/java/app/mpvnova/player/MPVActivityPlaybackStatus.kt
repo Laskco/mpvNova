@@ -79,15 +79,19 @@ internal fun MPVActivity.updateDecoderButton() {
         eventUiHandler.post { updateDecoderButton() }
         return
     }
-    val activeHwdec = mpvGetPropertyString("hwdec-current")
+    val mode = currentDecoderUiMode()
+    val activeHwdec = when (mode) {
+        MPVView.DECODER_MODE_SW, MPVView.DECODER_MODE_MPV_CONF -> null
+        else -> mpvGetPropertyString("hwdec-current")
+    }
     val hardwareRejected = gpuNextFallbackState.hardwareDecoderRejected
-    val decoderText = when (currentDecoderUiMode()) {
-        MPVView.DECODER_MODE_AUTO_SAFE -> currentAutoSafeDecoderBadge()
+    val decoderText = when (mode) {
+        MPVView.DECODER_MODE_AUTO_SAFE -> currentAutoSafeDecoderBadge(activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_HW_PLUS -> hardwareDecoderBadge("HW+", activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_HW -> hardwareDecoderBadge("HW", activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_GNEXT,
         MPVView.DECODER_MODE_GNEXT_DIRECT,
-        MPVView.DECODER_MODE_SHIELD_H10P -> currentGpuNextBadge()
+        MPVView.DECODER_MODE_SHIELD_H10P -> gpuNextDecoderBadge(activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_SW -> "SW"
         MPVView.DECODER_MODE_MPV_CONF -> "CFG"
         else -> "HW"
@@ -95,18 +99,17 @@ internal fun MPVActivity.updateDecoderButton() {
     binding.cycleDecoderBtn.setTextIfChanged(decoderText)
 }
 
-private fun MPVActivity.currentAutoSafeDecoderBadge(): String {
+private fun MPVActivity.currentAutoSafeDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean): String {
     if (player.requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
-        return currentGpuNextBadge()
+        return gpuNextDecoderBadge(activeHwdec, hardwareRejected)
 
-    val activeHwdec = mpvGetPropertyString("hwdec-current")
     val badge = when (activeHwdec?.trim()?.lowercase()) {
         MPV_VIEW_HWDEC_MEDIACODEC -> "HW+"
         MPV_VIEW_HWDEC_MEDIACODEC_COPY -> "HW"
         MPV_VIEW_HWDEC_NONE -> "SW"
         else -> "AUTO"
     }
-    return hardwareDecoderBadge(badge, activeHwdec, gpuNextFallbackState.hardwareDecoderRejected)
+    return hardwareDecoderBadge(badge, activeHwdec, hardwareRejected)
 }
 
 private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boolean {

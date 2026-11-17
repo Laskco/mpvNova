@@ -107,13 +107,6 @@ internal fun MPVActivity.currentGpuNextPathLabel(useActivePath: Boolean): String
     )
 }
 
-internal fun MPVActivity.currentGpuNextBadge(): String {
-    return gpuNextDecoderBadge(
-        mpvGetPropertyString("hwdec-current"),
-        gpuNextFallbackState.hardwareDecoderRejected,
-    )
-}
-
 internal fun gpuNextDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean): String {
     return when (activeHwdec?.trim()?.lowercase(Locale.US)) {
         MPV_VIEW_HWDEC_MEDIACODEC_COPY -> "G+CPY"
