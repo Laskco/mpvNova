@@ -3,7 +3,11 @@ package app.mpvnova.player
 private const val MOVIE_SEEK_END_GUARD_SEC = 0.001
 
 /** A supplied skippable segment. Times are in seconds. */
-internal data class SkipSegment(val type: String, val start: Double, val end: Double)
+internal data class SkipSegment(val type: String, val start: Double, val end: Double) {
+    private val lookupKey = "$type:$start"
+
+    fun key(): String = lookupKey
+}
 
 internal fun skipSegmentType(type: String): String {
     val normalized = type.trim().lowercase(java.util.Locale.ROOT).replace('_', '-')

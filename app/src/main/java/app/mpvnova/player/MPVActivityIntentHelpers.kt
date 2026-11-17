@@ -42,11 +42,11 @@ internal fun MPVActivity.addIntentSubtitles(launchExtras: Bundle) {
     if (!launchExtras.containsKey("subs"))
         return
     val subList = getParcelableArray<Uri>(launchExtras, "subs")
-    val subsToEnable = getParcelableArray<Uri>(launchExtras, "subs.enable")
+    val subsToEnable = getParcelableArray<Uri>(launchExtras, "subs.enable").toHashSet()
     for (suburi in subList) {
         val subfile = resolveUri(suburi) ?: continue
         val flag = intentSubtitleAddFlag(
-            isRequestedSelected = subsToEnable.any { it == suburi },
+            isRequestedSelected = suburi in subsToEnable,
             preferExternalForwardedSubtitles = preferExternalForwardedSubtitles,
         )
         Log.v(MPV_ACTIVITY_TAG, "Adding subtitles from intent extras: $subfile")
@@ -106,9 +106,8 @@ internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
             .flatMap { directory -> directory.listConfinedChildren(parent) }
         (exactCandidates + listedCandidates)
             .filter { candidate ->
-                candidate.isFile &&
-                    candidate.canRead() &&
-                    candidate.isMatchingSubtitleFor(videoBase, parent)
+                candidate.isMatchingSubtitleFor(videoBase, parent) &&
+                    candidate.isFile && candidate.canRead()
             }
             .distinctBy { it.absolutePath }
             .sortedWith(

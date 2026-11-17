@@ -16,8 +16,7 @@ internal data class LocalAutoNextLaunch(
 internal fun MPVActivity.prepareLocalAutoNext(filepath: String, appending: Boolean = false) {
     val enabled = getDefaultSharedPreferences(applicationContext).getBoolean(PREF_LOCAL_AUTO_NEXT, true)
     val externalResult = intent.getBooleanExtra(EXTRA_EXTERNAL_PLAYER_RESULT, false)
-    val localFile = isLocalAutoNextMedia(filepath)
-    val autoQueue = enabled && !externalResult && !appending && localFile
+    val autoQueue = enabled && !externalResult && !appending && isLocalAutoNextMedia(filepath)
     localAutoNextLaunch = if (autoQueue) {
         LocalAutoNextLaunch(filepath, pendingPlayerTitleSource, pendingItemTitle, pendingFileName)
     } else null
@@ -42,9 +41,11 @@ internal fun MPVActivity.restoreLocalAutoNextLaunchTitle() {
 
 private fun isLocalAutoNextMedia(filepath: String): Boolean {
     val file = File(filepath)
+    if (!filepath.startsWith('/') || !file.isFile) return false
     val extension = file.extension.lowercase(Locale.ROOT)
-    val mediaExtensions = listOf("video-exts", "audio-exts").flatMap {
-        mpvGetPropertyString("options/$it")?.split(',').orEmpty()
+    return LOCAL_AUTO_NEXT_EXTENSION_OPTIONS.any { option ->
+        mpvGetPropertyString(option)?.splitToSequence(',')?.any { it == extension } == true
     }
-    return filepath.startsWith('/') && file.isFile && extension in mediaExtensions
 }
+
+private val LOCAL_AUTO_NEXT_EXTENSION_OPTIONS = listOf("options/video-exts", "options/audio-exts")

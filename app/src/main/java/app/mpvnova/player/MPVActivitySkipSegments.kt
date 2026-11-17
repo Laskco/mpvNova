@@ -79,13 +79,13 @@ internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
 private fun MPVActivity.rearmSkippedSegmentsAfterRewind(posSec: Double) {
     val previousPosSec = lastSkipSegmentPlaybackPositionSec
     lastSkipSegmentPlaybackPositionSec = posSec
-    if (!posSec.isFinite()) return
     if (!previousPosSec.isFinite()) {
         skipSegments
             .filter { segment -> posSec >= segment.end - SKIP_SEGMENT_END_GUARD_SEC }
             .forEach { segment -> autoSkippedSegmentKeys.add(segment.key()) }
         return
     }
+    if (previousPosSec - posSec < SKIP_SEGMENT_REWIND_MIN_DELTA_SEC) return
 
     skipSegments.forEach { segment ->
         val key = segment.key()
@@ -133,8 +133,6 @@ internal fun MPVActivity.performSegmentSkip(seg: SkipSegment) {
     eventUiHandler.post { showToast(skipSegmentLabel(seg.type), detail, cancel = false) }
     Log.d(MPV_ACTIVITY_TAG, "Skipped ${seg.key()} -> $target")
 }
-
-internal fun SkipSegment.key(): String = "$type:$start"
 
 internal fun MPVActivity.skipSegmentLabel(type: String): String = when (type.lowercase()) {
     "end-credits" -> getString(R.string.skip_segment_movie_credits)
