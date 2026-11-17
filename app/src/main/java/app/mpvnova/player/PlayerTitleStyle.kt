@@ -360,14 +360,16 @@ internal data class PlayerTitleStyle(
 internal object PlayerTitleStyleStore {
     private const val PREFIX = "player_title_style"
 
-    fun read(prefs: SharedPreferences): PlayerTitleStyle = PlayerTitleStyle(
-        season = readPart(prefs, PlayerTitlePart.SEASON),
-        episodeNumber = readPart(prefs, PlayerTitlePart.EPISODE_NUMBER),
-        title = readPart(prefs, PlayerTitlePart.TITLE),
-        episodeTitle = readPart(prefs, PlayerTitlePart.EPISODE_TITLE),
-        date = readPart(prefs, PlayerTitlePart.DATE),
-        clock = readPart(prefs, PlayerTitlePart.CLOCK),
-        endsAt = readPart(prefs, PlayerTitlePart.ENDS_AT),
+    fun read(prefs: SharedPreferences): PlayerTitleStyle = read(prefs, prefs.all)
+
+    private fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerTitleStyle = PlayerTitleStyle(
+        season = readPart(prefs, values, PlayerTitlePart.SEASON),
+        episodeNumber = readPart(prefs, values, PlayerTitlePart.EPISODE_NUMBER),
+        title = readPart(prefs, values, PlayerTitlePart.TITLE),
+        episodeTitle = readPart(prefs, values, PlayerTitlePart.EPISODE_TITLE),
+        date = readPart(prefs, values, PlayerTitlePart.DATE),
+        clock = readPart(prefs, values, PlayerTitlePart.CLOCK),
+        endsAt = readPart(prefs, values, PlayerTitlePart.ENDS_AT),
         separator = enumValueOrDefault(
             prefs.getString(SEPARATOR_KEY, PlayerTitleStyle.DEFAULT.separator.name),
             PlayerTitleStyle.DEFAULT.separator,
@@ -380,13 +382,13 @@ internal object PlayerTitleStyleStore {
             prefs.getString(CLOCK_ORDER_KEY, null),
             PlayerClockUnit.entries,
         ),
-        titlePanel = PlayerTitlePanelStyleStore.readTitle(prefs),
-        clockPanel = PlayerTitlePanelStyleStore.readClock(prefs),
+        titlePanel = PlayerTitlePanelStyleStore.readTitle(prefs, values),
+        clockPanel = PlayerTitlePanelStyleStore.readClock(prefs, values),
         metadataFormat = enumValueOrDefault(
-            prefs.all["${PREFIX}_metadata_format"] as? String,
+            values["${PREFIX}_metadata_format"] as? String,
             PlayerTitleMetadataFormat.WORDS,
         ),
-        combinedPanels = prefs.all["${PREFIX}_combined_panels"] as? Boolean ?: false,
+        combinedPanels = values["${PREFIX}_combined_panels"] as? Boolean ?: false,
     )
 
     fun writePart(
@@ -464,21 +466,22 @@ internal object PlayerTitleStyleStore {
 
     private fun readPart(
         prefs: SharedPreferences,
+        values: Map<String, *>,
         part: PlayerTitlePart,
     ): PlayerTitleTextStyle {
         val defaults = PlayerTitleStyle.defaultFor(part)
         val key = part.keySegment()
-        val effects = readStoredPlayerTitleEffects(prefs, "${PREFIX}_${key}", defaults)
+        val effects = readStoredPlayerTitleEffects(prefs, values, "${PREFIX}_${key}", defaults)
         return PlayerTitleTextStyle(
             font = prefs.getString("${PREFIX}_${key}_font", defaults.font)
                 ?.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) }
                 ?: defaults.font,
-            sizeSp = prefs.numericFloat("${PREFIX}_${key}_size", defaults.sizeSp)
+            sizeSp = values.numericFloat("${PREFIX}_${key}_size", defaults.sizeSp)
                 .coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
             weight = PlayerTitleWeight.entries.firstOrNull {
                 it.value == prefs.getInt("${PREFIX}_${key}_weight", defaults.weight.value)
             } ?: defaults.weight,
-            letterSpacing = prefs.numericFloat(
+            letterSpacing = values.numericFloat(
                 "${PREFIX}_${key}_spacing",
                 defaults.letterSpacing,
             ).coerceIn(PLAYER_TITLE_MIN_LETTER_SPACING, PLAYER_TITLE_MAX_LETTER_SPACING),
@@ -508,15 +511,15 @@ internal object PlayerTitleStyleStore {
             backgroundEnabled = effects.backgroundEnabled,
             backgroundStrengthPercent = effects.backgroundStrengthPercent,
             longTextMode = enumValueOrDefault(
-                prefs.all["${PREFIX}_${key}_long_text"] as? String,
+                values["${PREFIX}_${key}_long_text"] as? String,
                 defaults.longTextMode,
             ),
-            maxLines = prefs.numericInt("${PREFIX}_${key}_max_lines", 0).coerceIn(0, 8),
-            wrappedLineSpacingDp = prefs.numericInt("${PREFIX}_${key}_line_spacing", 0)
+            maxLines = values.numericInt("${PREFIX}_${key}_max_lines", 0).coerceIn(0, 8),
+            wrappedLineSpacingDp = values.numericInt("${PREFIX}_${key}_line_spacing", 0)
                 .coerceIn(0, 24),
-            horizontalOffsetDp = prefs.numericInt("${PREFIX}_${key}_text_offset_x", 0)
+            horizontalOffsetDp = values.numericInt("${PREFIX}_${key}_text_offset_x", 0)
                 .coerceIn(-200, 200),
-            verticalOffsetDp = prefs.numericInt("${PREFIX}_${key}_text_offset_y", 0)
+            verticalOffsetDp = values.numericInt("${PREFIX}_${key}_text_offset_y", 0)
                 .coerceIn(-200, 200),
         )
     }
@@ -564,13 +567,14 @@ private data class StoredPlayerTitleEffects(
 
 private fun readStoredPlayerTitleEffects(
     prefs: SharedPreferences,
+    values: Map<String, *>,
     key: String,
     defaults: PlayerTitleTextStyle,
 ) = StoredPlayerTitleEffects(
-    outlineWidthDp = prefs.numericFloat(
+    outlineWidthDp = values.numericFloat(
         "${key}_text_outline_width",
         // Older versions shared this key with the panel border. Preserve its last saved value.
-        prefs.numericFloat("${key}_outline_width", defaults.outlineWidthDp),
+        values.numericFloat("${key}_outline_width", defaults.outlineWidthDp),
     ).coerceIn(PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP, PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP),
     outlineColor = prefs.getString("${key}_outline_color", defaults.outlineColor.name)
         ?.let { raw -> PlayerTitleColor.entries.firstOrNull { it.name == raw } }

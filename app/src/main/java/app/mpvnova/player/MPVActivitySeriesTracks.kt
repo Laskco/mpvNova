@@ -32,9 +32,10 @@ internal fun MPVActivity.saveSeriesTrackPick(type: String, id: Int): Boolean {
     } else null
     if (key == null) return false
     val cache = SeriesTrackSelectionCache(prefs.getString(SERIES_TRACK_SELECTIONS_KEY, null))
+    val (audioTracks, subtitleTracks) = listAudioAndSubtitleMeta()
     val selection = SeriesTrackSelection(
-        savedSeriesTrack(listTrackMeta("audio"), if (type == "audio") id else player.aid),
-        savedSeriesTrack(listTrackMeta("sub"), if (type == "sub") id else player.sid),
+        savedSeriesTrack(audioTracks, if (type == "audio") id else player.aid),
+        savedSeriesTrack(subtitleTracks, if (type == "sub") id else player.sid),
     )
     cache.put(key, selection)
     prefs.edit().putString(SERIES_TRACK_SELECTIONS_KEY, cache.serialize()).apply()
@@ -53,7 +54,10 @@ internal fun MPVActivity.applyFileTrackSelections(preserveForwardedSubtitles: Bo
     val selection = currentTrackSeriesKey?.let {
         SeriesTrackSelectionCache(prefs.getString(SERIES_TRACK_SELECTIONS_KEY, null)).get(it)
     }
-    val (audioId, subId) = selection?.resolve(listTrackMeta("audio"), listTrackMeta("sub")) ?: (null to null)
+    val (audioId, subId) = selection?.let {
+        val (audioTracks, subtitleTracks) = listAudioAndSubtitleMeta()
+        it.resolve(audioTracks, subtitleTracks)
+    } ?: (null to null)
     if (audioId != null) selectTrackForFile("audio", audioId)
     when {
         subId != null -> selectTrackForFile("sub", subId)

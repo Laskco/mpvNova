@@ -495,8 +495,10 @@ internal object PlayerUiCustomizationStore {
     private const val HIDDEN_CONTROLS = "${PREFIX}_hidden_controls"
     private const val CONTROL_ORDER = "${PREFIX}_control_order"
 
+    fun read(prefs: SharedPreferences): PlayerUiCustomization = read(prefs, prefs.all)
+
     @Suppress("LongMethod")
-    fun read(prefs: SharedPreferences): PlayerUiCustomization = PlayerUiCustomization(
+    private fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerUiCustomization = PlayerUiCustomization(
         surface = PlayerPanelSurface.fromPref(prefs.getString(SURFACE, null)),
         panelOpacityPercent = prefs.getInt(PANEL_OPACITY, PlayerUiCustomization.DEFAULT.panelOpacityPercent),
         scrimStrengthPercent = prefs.getInt(SCRIM_STRENGTH, PlayerUiCustomization.DEFAULT.scrimStrengthPercent),
@@ -557,26 +559,28 @@ internal object PlayerUiCustomizationStore {
         ),
         hiddenControls = readHiddenControls(prefs),
         controlOrder = readControlOrder(prefs),
-        seekbarPlayedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarPlayedColor"),
-        seekbarBufferedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarBufferedColor"),
-        seekbarUnplayedColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("seekbarUnplayedColor"),
-        chapterMarkerColor = prefs.playerBarEnum<PlayerSeekbarThumbColor>("chapterMarkerColor"),
-        chapterMarkerShape = prefs.playerBarEnum<PlayerChapterMarkerShape>("chapterMarkerShape")
+        seekbarPlayedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarPlayedColor"),
+        seekbarBufferedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarBufferedColor"),
+        seekbarUnplayedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarUnplayedColor"),
+        chapterMarkerColor = values.playerBarEnum<PlayerSeekbarThumbColor>("chapterMarkerColor"),
+        chapterMarkerShape = values.playerBarEnum<PlayerChapterMarkerShape>("chapterMarkerShape")
             ?: PlayerChapterMarkerShape.TICKS,
-        chapterMarkerSizePercent = prefs.playerBarInt("chapterMarkerSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
-        currentChapterEmphasis = prefs.all["${PREFIX}_currentChapterEmphasis"] as? Boolean ?: false,
-        buttonFocusOutlineWidthDp = prefs.playerBarInt(
+        chapterMarkerSizePercent = values.playerBarInt("chapterMarkerSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+        currentChapterEmphasis = values["${PREFIX}_currentChapterEmphasis"] as? Boolean ?: false,
+        buttonFocusOutlineWidthDp = values.playerBarInt(
             "buttonFocusOutlineWidthDp", DEFAULT_BUTTON_FOCUS_OUTLINE_WIDTH_DP,
         ),
-        buttonFocusHighlightOpacityPercent = prefs.playerBarInt(
+        buttonFocusHighlightOpacityPercent = values.playerBarInt(
             "buttonFocusHighlightOpacityPercent", DEFAULT_BUTTON_FOCUS_HIGHLIGHT_OPACITY_PERCENT,
         ),
-        buttonFocusEnlargementPercent = prefs.playerBarInt(
+        buttonFocusEnlargementPercent = values.playerBarInt(
             "buttonFocusEnlargementPercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT,
         ),
-        primaryPlayIconSizePercent = prefs.playerBarInt("primaryPlayIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
-        otherIconSizePercent = prefs.playerBarInt("otherIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
-        timeMode = prefs.playerBarEnum<PlayerTimeMode>("timeMode") ?: PlayerTimeMode.PLAYER_DEFAULT,
+        primaryPlayIconSizePercent = values.playerBarInt(
+            "primaryPlayIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT,
+        ),
+        otherIconSizePercent = values.playerBarInt("otherIconSizePercent", DEFAULT_PLAYER_BAR_SCALE_PERCENT),
+        timeMode = values.playerBarEnum<PlayerTimeMode>("timeMode") ?: PlayerTimeMode.PLAYER_DEFAULT,
     ).normalized()
 
     fun write(prefs: SharedPreferences, style: PlayerUiCustomization) {
@@ -634,11 +638,13 @@ internal object PlayerUiCustomizationStore {
             .apply()
     }
 
-    private fun SharedPreferences.playerBarInt(key: String, fallback: Int): Int =
-        (all["${PREFIX}_$key"] as? Int) ?: fallback
+    private fun Map<String, *>.playerBarInt(key: String, fallback: Int): Int =
+        (this["${PREFIX}_$key"] as? Int) ?: fallback
 
-    private inline fun <reified T : Enum<T>> SharedPreferences.playerBarEnum(key: String): T? =
-        enumValues<T>().firstOrNull { it.name == (all["${PREFIX}_$key"] as? String) }
+    private inline fun <reified T : Enum<T>> Map<String, *>.playerBarEnum(key: String): T? {
+        val name = this["${PREFIX}_$key"] as? String
+        return enumValues<T>().firstOrNull { it.name == name }
+    }
 
     fun reset(prefs: SharedPreferences) = write(prefs, PlayerUiCustomization.DEFAULT)
 
