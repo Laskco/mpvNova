@@ -4,6 +4,7 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import app.mpvnova.player.NetworkSetting
 import app.mpvnova.player.R
+import app.mpvnova.player.networkOverrides
 import app.mpvnova.player.networkValueLabel
 import app.mpvnova.player.showNetworkSetting
 
@@ -39,8 +40,10 @@ class NetworkPreference : PreferenceActivity.StyledPreferenceFragment(R.xml.pref
     }
 
     private fun refreshValues() {
+        val context = requireContext()
+        val values = context.networkOverrides()
         NetworkSetting.entries.forEach { setting ->
-            val value = requireContext().networkValueLabel(setting)
+            val value = context.networkValueLabel(setting, values)
             findPreference<Preference>(setting.key)?.summary = if (setting.nextStream) {
                 getString(R.string.network_next_stream_value, value)
             } else {

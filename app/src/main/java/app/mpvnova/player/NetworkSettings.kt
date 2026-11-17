@@ -137,6 +137,12 @@ internal class NetworkOptionSession {
     }
 
     fun apply(values: Map<NetworkSetting, String>, write: (String, String) -> Unit) {
+        if (applied == values) {
+            val priorOrder = applied.keys.iterator()
+            // Preserve tie-breaking order for a future update even when the same values are reordered.
+            if (!values.keys.all { it == priorOrder.next() }) applied = values.toMap()
+            return
+        }
         val changed = (applied.keys + values.keys).filter { applied[it] != values[it] }
         // Release memory before increasing another cap during a preset switch.
         val ordered = changed.sortedBy { setting ->

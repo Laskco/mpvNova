@@ -12,8 +12,9 @@ import app.mpvnova.player.preferences.SettingsChoiceItem
 import app.mpvnova.player.preferences.showSettingsChoiceDialog
 import app.mpvnova.player.preferences.styleAsTvPanel
 
-internal fun Context.networkValueLabel(setting: NetworkSetting): String {
-    val values = networkOverrides()
+internal fun Context.networkValueLabel(
+    setting: NetworkSetting, values: Map<NetworkSetting, String> = networkOverrides(),
+): String {
     if (setting == NetworkSetting.PRESET) {
         val preset = NetworkPreset.entries.firstOrNull { it.values == values }
         return getString(preset?.titleRes ?: R.string.network_custom)

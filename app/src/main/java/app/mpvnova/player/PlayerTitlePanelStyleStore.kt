@@ -15,15 +15,13 @@ import androidx.core.graphics.ColorUtils
 internal object PlayerTitlePanelStyleStore {
     private const val PREFIX = "player_title_style"
 
-    fun readTitle(prefs: SharedPreferences, values: Map<String, *>): PlayerTitlePanelStyle = read(
-        prefs,
+    fun readTitle(values: Map<String, *>): PlayerTitlePanelStyle = read(
         values,
         "title",
         PlayerTitlePanelStyle.TITLE_DEFAULT,
     )
 
-    fun readClock(prefs: SharedPreferences, values: Map<String, *>): PlayerTitlePanelStyle = read(
-        prefs,
+    fun readClock(values: Map<String, *>): PlayerTitlePanelStyle = read(
         values,
         "clock",
         PlayerTitlePanelStyle.CLOCK_DEFAULT,
@@ -43,19 +41,18 @@ internal object PlayerTitlePanelStyleStore {
     fun reset(prefs: SharedPreferences) = write(prefs, PlayerTitleStyle.DEFAULT)
 
     private fun read(
-        prefs: SharedPreferences,
         values: Map<String, *>,
         segment: String,
         defaults: PlayerTitlePanelStyle,
     ): PlayerTitlePanelStyle = PlayerTitlePanelStyle(
-        surface = PlayerPanelSurface.fromPref(prefs.getString(key(segment, "surface"), null)),
+        surface = PlayerPanelSurface.fromPref(values.getString(key(segment, "surface"), null)),
         opacityPercent = values.numericInt(key(segment, "panel_opacity"), defaults.opacityPercent),
         accentStrengthPercent = values.numericInt(
             key(segment, "accent_strength"),
             defaults.accentStrengthPercent,
         ),
-        gradientEnabled = prefs.getBoolean(key(segment, "gradient"), defaults.gradientEnabled),
-        outlineEnabled = prefs.getBoolean(key(segment, "outline"), defaults.outlineEnabled),
+        gradientEnabled = values.getBoolean(key(segment, "gradient"), defaults.gradientEnabled),
+        outlineEnabled = values.getBoolean(key(segment, "outline"), defaults.outlineEnabled),
         outlineWidthDp = values.numericInt(key(segment, "outline_width"), defaults.outlineWidthDp),
         cornerRadiusDp = values.numericInt(key(segment, "corner_radius"), defaults.cornerRadiusDp),
         elevationDp = values.numericInt(key(segment, "elevation"), defaults.elevationDp),
@@ -72,11 +69,11 @@ internal object PlayerTitlePanelStyleStore {
             defaults.contentSpacingDp,
         ),
         alignment = enumValueOrDefault(
-            prefs.getString(key(segment, "alignment"), null),
+            values.getString(key(segment, "alignment"), null),
             defaults.alignment,
         ),
         contentAlignment = enumValueOrDefault(
-            prefs.getString(key(segment, "content_alignment"), null),
+            values.getString(key(segment, "content_alignment"), null),
             defaults.contentAlignment,
         ),
         widthPercent = values.numericInt(key(segment, "width"), defaults.widthPercent),
@@ -84,7 +81,7 @@ internal object PlayerTitlePanelStyleStore {
             key(segment, "vertical_offset"),
             defaults.verticalOffsetDp,
         ),
-        manualPosition = prefs.getBoolean(
+        manualPosition = values.getBoolean(
             key(segment, "manual_position"),
             defaults.manualPosition,
         ),

@@ -1,6 +1,5 @@
 package app.mpvnova.player
 
-import android.content.SharedPreferences
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 
 private val SUB_STYLE_PROPS = listOf(
@@ -139,50 +138,50 @@ private fun MPVActivity.applySubFont() {
     mpvSetPropertyString("sub-font", subStyleFontFamily.ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY })
 }
 
-internal fun MPVActivity.readSubtitleStyleSettings(prefs: SharedPreferences, values: Map<String, *>) {
-    preserveCompanionSubtitleStyle = prefs.getBoolean(PREF_PRESERVE_COMPANION_SUBTITLE_STYLE, false)
+internal fun MPVActivity.readSubtitleStyleSettings(values: Map<String, *>) {
+    preserveCompanionSubtitleStyle = values.getBoolean(PREF_PRESERVE_COMPANION_SUBTITLE_STYLE, false)
     subStyleExtras = SubtitleStyleExtras.read(values)
-    customSubStyleEnabled = persistSubFilters && prefs.getBoolean("custom_sub_style_enabled", false)
+    customSubStyleEnabled = persistSubFilters && values.getBoolean("custom_sub_style_enabled", false)
     subStyleTextColorIndex = subtitleColorOptionIndex(
-        prefs.getString("sub_style_text_color", SUBTITLE_TEXT_COLOR_DEFAULT_ID) ?: SUBTITLE_TEXT_COLOR_DEFAULT_ID
+        values.getString("sub_style_text_color", SUBTITLE_TEXT_COLOR_DEFAULT_ID) ?: SUBTITLE_TEXT_COLOR_DEFAULT_ID
     )
     subStyleTextOpacityIndex = nearestOpacityIndex(
-        prefs.getInt("sub_style_text_opacity", DEFAULT_SUBTITLE_TEXT_OPACITY_PERCENT)
+        values.getInt("sub_style_text_opacity", DEFAULT_SUBTITLE_TEXT_OPACITY_PERCENT)
     )
     subStyleBorderColorIndex = subtitleColorOptionIndex(
-        prefs.getString("sub_style_border_color", SUBTITLE_BORDER_COLOR_DEFAULT_ID) ?: SUBTITLE_BORDER_COLOR_DEFAULT_ID
+        values.getString("sub_style_border_color", SUBTITLE_BORDER_COLOR_DEFAULT_ID) ?: SUBTITLE_BORDER_COLOR_DEFAULT_ID
     )
-    subStyleBorderSizeIndex = prefs.getInt("sub_style_border_size", DEFAULT_SUBTITLE_BORDER_INDEX)
+    subStyleBorderSizeIndex = values.getInt("sub_style_border_size", DEFAULT_SUBTITLE_BORDER_INDEX)
         .coerceIn(0, SUBTITLE_BORDER_SIZE_STEPS.lastIndex)
-    subStyleBlurIndex = prefs.getInt("sub_style_blur", DEFAULT_SUBTITLE_BLUR_INDEX)
+    subStyleBlurIndex = values.getInt("sub_style_blur", DEFAULT_SUBTITLE_BLUR_INDEX)
         .coerceIn(0, SUBTITLE_BLUR_STEPS.lastIndex)
-    subStyleShadowSizeIndex = prefs.getInt("sub_style_shadow_size", DEFAULT_SUBTITLE_SHADOW_SIZE_INDEX)
+    subStyleShadowSizeIndex = values.getInt("sub_style_shadow_size", DEFAULT_SUBTITLE_SHADOW_SIZE_INDEX)
         .coerceIn(0, SUBTITLE_SHADOW_SIZE_STEPS.lastIndex)
     subStyleShadowColorIndex = subtitleColorOptionIndex(
-        prefs.getString("sub_style_shadow_color", SUBTITLE_SHADOW_COLOR_DEFAULT_ID) ?: SUBTITLE_SHADOW_COLOR_DEFAULT_ID
+        values.getString("sub_style_shadow_color", SUBTITLE_SHADOW_COLOR_DEFAULT_ID) ?: SUBTITLE_SHADOW_COLOR_DEFAULT_ID
     )
-    subStyleSpacingIndex = prefs.getInt("sub_style_spacing", DEFAULT_SUBTITLE_SPACING_INDEX)
+    subStyleSpacingIndex = values.getInt("sub_style_spacing", DEFAULT_SUBTITLE_SPACING_INDEX)
         .coerceIn(0, SUBTITLE_SPACING_STEPS.lastIndex)
     subStyleJustify = runCatching {
-        SubtitleJustify.valueOf(prefs.getString("sub_style_justify", DEFAULT_SUBTITLE_JUSTIFY.name)!!)
+        SubtitleJustify.valueOf(values.getString("sub_style_justify", DEFAULT_SUBTITLE_JUSTIFY.name)!!)
     }.getOrDefault(DEFAULT_SUBTITLE_JUSTIFY)
     subStyleBgColorIndex = subtitleColorOptionIndex(
-        prefs.getString("sub_style_bg_color", SUBTITLE_BG_COLOR_DEFAULT_ID) ?: SUBTITLE_BG_COLOR_DEFAULT_ID
+        values.getString("sub_style_bg_color", SUBTITLE_BG_COLOR_DEFAULT_ID) ?: SUBTITLE_BG_COLOR_DEFAULT_ID
     )
     subStyleBgOpacityIndex = nearestOpacityIndex(
-        prefs.getInt("sub_style_bg_opacity", DEFAULT_SUBTITLE_BG_OPACITY_PERCENT)
+        values.getInt("sub_style_bg_opacity", DEFAULT_SUBTITLE_BG_OPACITY_PERCENT)
     )
     subStyleEdge = runCatching {
-        SubtitleEdgeStyle.valueOf(prefs.getString("sub_style_edge", DEFAULT_SUBTITLE_EDGE_STYLE.name)!!)
+        SubtitleEdgeStyle.valueOf(values.getString("sub_style_edge", DEFAULT_SUBTITLE_EDGE_STYLE.name)!!)
     }.getOrDefault(DEFAULT_SUBTITLE_EDGE_STYLE)
-    subStyleFontFamily = (prefs.getString("sub_style_font_family", SUBTITLE_FONT_DEFAULT_FAMILY)
+    subStyleFontFamily = (values.getString("sub_style_font_family", SUBTITLE_FONT_DEFAULT_FAMILY)
         ?: SUBTITLE_FONT_DEFAULT_FAMILY).ifEmpty { SUBTITLE_FONT_DEFAULT_FAMILY }
-    subStyleBold = prefs.getBoolean("sub_style_bold", false)
-    subStyleItalic = prefs.getBoolean("sub_style_italic", false)
-    subStyleGrayImageSubs = persistSubFilters && prefs.getBoolean("sub_style_gray_image_subs", false)
-    subStyleOverrideAss = prefs.getBoolean("sub_style_override_ass", false)
-    subStyleSelectiveAss = prefs.getBoolean("sub_style_selective_ass", false)
-    subStyleForceAllAss = prefs.getBoolean("sub_style_force_all_ass", false)
+    subStyleBold = values.getBoolean("sub_style_bold", false)
+    subStyleItalic = values.getBoolean("sub_style_italic", false)
+    subStyleGrayImageSubs = persistSubFilters && values.getBoolean("sub_style_gray_image_subs", false)
+    subStyleOverrideAss = values.getBoolean("sub_style_override_ass", false)
+    subStyleSelectiveAss = values.getBoolean("sub_style_selective_ass", false)
+    subStyleForceAllAss = values.getBoolean("sub_style_force_all_ass", false)
     normalizeAssOverrideModes()
 }
 

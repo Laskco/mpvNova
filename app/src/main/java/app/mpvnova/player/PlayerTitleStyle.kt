@@ -360,30 +360,30 @@ internal data class PlayerTitleStyle(
 internal object PlayerTitleStyleStore {
     private const val PREFIX = "player_title_style"
 
-    fun read(prefs: SharedPreferences): PlayerTitleStyle = read(prefs, prefs.all)
+    fun read(prefs: SharedPreferences): PlayerTitleStyle = read(prefs.all)
 
-    fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerTitleStyle = PlayerTitleStyle(
-        season = readPart(prefs, values, PlayerTitlePart.SEASON),
-        episodeNumber = readPart(prefs, values, PlayerTitlePart.EPISODE_NUMBER),
-        title = readPart(prefs, values, PlayerTitlePart.TITLE),
-        episodeTitle = readPart(prefs, values, PlayerTitlePart.EPISODE_TITLE),
-        date = readPart(prefs, values, PlayerTitlePart.DATE),
-        clock = readPart(prefs, values, PlayerTitlePart.CLOCK),
-        endsAt = readPart(prefs, values, PlayerTitlePart.ENDS_AT),
+    fun read(values: Map<String, *>): PlayerTitleStyle = PlayerTitleStyle(
+        season = readPart(values, PlayerTitlePart.SEASON),
+        episodeNumber = readPart(values, PlayerTitlePart.EPISODE_NUMBER),
+        title = readPart(values, PlayerTitlePart.TITLE),
+        episodeTitle = readPart(values, PlayerTitlePart.EPISODE_TITLE),
+        date = readPart(values, PlayerTitlePart.DATE),
+        clock = readPart(values, PlayerTitlePart.CLOCK),
+        endsAt = readPart(values, PlayerTitlePart.ENDS_AT),
         separator = enumValueOrDefault(
-            prefs.getString(SEPARATOR_KEY, PlayerTitleStyle.DEFAULT.separator.name),
+            values.getString(SEPARATOR_KEY, PlayerTitleStyle.DEFAULT.separator.name),
             PlayerTitleStyle.DEFAULT.separator,
         ),
         titleOrder = readOrder(
-            prefs.getString(TITLE_ORDER_KEY, null),
+            values.getString(TITLE_ORDER_KEY, null),
             PlayerTitleUnit.entries,
         ),
         clockOrder = readOrder(
-            prefs.getString(CLOCK_ORDER_KEY, null),
+            values.getString(CLOCK_ORDER_KEY, null),
             PlayerClockUnit.entries,
         ),
-        titlePanel = PlayerTitlePanelStyleStore.readTitle(prefs, values),
-        clockPanel = PlayerTitlePanelStyleStore.readClock(prefs, values),
+        titlePanel = PlayerTitlePanelStyleStore.readTitle(values),
+        clockPanel = PlayerTitlePanelStyleStore.readClock(values),
         metadataFormat = enumValueOrDefault(
             values["${PREFIX}_metadata_format"] as? String,
             PlayerTitleMetadataFormat.WORDS,
@@ -465,41 +465,40 @@ internal object PlayerTitleStyleStore {
     }
 
     private fun readPart(
-        prefs: SharedPreferences,
         values: Map<String, *>,
         part: PlayerTitlePart,
     ): PlayerTitleTextStyle {
         val defaults = PlayerTitleStyle.defaultFor(part)
         val key = part.keySegment()
-        val effects = readStoredPlayerTitleEffects(prefs, values, "${PREFIX}_${key}", defaults)
+        val effects = readStoredPlayerTitleEffects(values, "${PREFIX}_${key}", defaults)
         return PlayerTitleTextStyle(
-            font = prefs.getString("${PREFIX}_${key}_font", defaults.font)
+            font = values.getString("${PREFIX}_${key}_font", defaults.font)
                 ?.takeIf { it == PlayerTitleStyle.INHERIT_FONT || UiFont.hasChoice(it) }
                 ?: defaults.font,
             sizeSp = values.numericFloat("${PREFIX}_${key}_size", defaults.sizeSp)
                 .coerceIn(PLAYER_TITLE_MIN_CUSTOM_SIZE_SP, PLAYER_TITLE_MAX_CUSTOM_SIZE_SP),
             weight = PlayerTitleWeight.entries.firstOrNull {
-                it.value == prefs.getInt("${PREFIX}_${key}_weight", defaults.weight.value)
+                it.value == values.getInt("${PREFIX}_${key}_weight", defaults.weight.value)
             } ?: defaults.weight,
             letterSpacing = values.numericFloat(
                 "${PREFIX}_${key}_spacing",
                 defaults.letterSpacing,
             ).coerceIn(PLAYER_TITLE_MIN_LETTER_SPACING, PLAYER_TITLE_MAX_LETTER_SPACING),
             color = enumValueOrDefault(
-                prefs.getString("${PREFIX}_${key}_color", defaults.color.name),
+                values.getString("${PREFIX}_${key}_color", defaults.color.name),
                 defaults.color,
             ),
             shadow = enumValueOrDefault(
-                prefs.getString("${PREFIX}_${key}_shadow", defaults.shadow.name),
+                values.getString("${PREFIX}_${key}_shadow", defaults.shadow.name),
                 defaults.shadow,
             ),
-            italic = prefs.getBoolean("${PREFIX}_${key}_italic", defaults.italic),
-            opacityPercent = prefs.getInt("${PREFIX}_${key}_opacity", defaults.opacityPercent)
+            italic = values.getBoolean("${PREFIX}_${key}_italic", defaults.italic),
+            opacityPercent = values.getInt("${PREFIX}_${key}_opacity", defaults.opacityPercent)
                 .coerceIn(PLAYER_TITLE_MIN_OPACITY_PERCENT, PLAYER_TITLE_MAX_OPACITY_PERCENT),
-            visible = prefs.getBoolean("${PREFIX}_${key}_visible", defaults.visible),
+            visible = values.getBoolean("${PREFIX}_${key}_visible", defaults.visible),
             textCase = enumValueOrDefault(
-                prefs.getString("${PREFIX}_${key}_text_case", null),
-                if (prefs.getBoolean("${PREFIX}_${key}_uppercase", false)) {
+                values.getString("${PREFIX}_${key}_text_case", null),
+                if (values.getBoolean("${PREFIX}_${key}_uppercase", false)) {
                     PlayerTitleTextCase.UPPERCASE
                 } else {
                     defaults.textCase
@@ -566,7 +565,6 @@ private data class StoredPlayerTitleEffects(
 )
 
 private fun readStoredPlayerTitleEffects(
-    prefs: SharedPreferences,
     values: Map<String, *>,
     key: String,
     defaults: PlayerTitleTextStyle,
@@ -576,21 +574,21 @@ private fun readStoredPlayerTitleEffects(
         // Older versions shared this key with the panel border. Preserve its last saved value.
         values.numericFloat("${key}_outline_width", defaults.outlineWidthDp),
     ).coerceIn(PLAYER_TITLE_MIN_OUTLINE_WIDTH_DP, PLAYER_TITLE_MAX_OUTLINE_WIDTH_DP),
-    outlineColor = prefs.getString("${key}_outline_color", defaults.outlineColor.name)
+    outlineColor = values.getString("${key}_outline_color", defaults.outlineColor.name)
         ?.let { raw -> PlayerTitleColor.entries.firstOrNull { it.name == raw } }
         ?: defaults.outlineColor,
-    shadowStrengthPercent = prefs.getInt(
+    shadowStrengthPercent = values.getInt(
         "${key}_shadow_strength",
         defaults.shadowStrengthPercent,
     ).coerceIn(
         PLAYER_TITLE_MIN_EFFECT_STRENGTH_PERCENT,
         PLAYER_TITLE_MAX_EFFECT_STRENGTH_PERCENT,
     ),
-    backgroundEnabled = prefs.getBoolean(
+    backgroundEnabled = values.getBoolean(
         "${key}_background_enabled",
         defaults.backgroundEnabled,
     ),
-    backgroundStrengthPercent = prefs.getInt(
+    backgroundStrengthPercent = values.getInt(
         "${key}_background_strength",
         defaults.backgroundStrengthPercent,
     ).coerceIn(

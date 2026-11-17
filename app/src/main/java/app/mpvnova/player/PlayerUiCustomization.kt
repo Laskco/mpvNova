@@ -495,70 +495,70 @@ internal object PlayerUiCustomizationStore {
     private const val HIDDEN_CONTROLS = "${PREFIX}_hidden_controls"
     private const val CONTROL_ORDER = "${PREFIX}_control_order"
 
-    fun read(prefs: SharedPreferences): PlayerUiCustomization = read(prefs, prefs.all)
+    fun read(prefs: SharedPreferences): PlayerUiCustomization = read(prefs.all)
 
     @Suppress("LongMethod")
-    fun read(prefs: SharedPreferences, values: Map<String, *>): PlayerUiCustomization = PlayerUiCustomization(
-        surface = PlayerPanelSurface.fromPref(prefs.getString(SURFACE, null)),
-        panelOpacityPercent = prefs.getInt(PANEL_OPACITY, PlayerUiCustomization.DEFAULT.panelOpacityPercent),
-        scrimStrengthPercent = prefs.getInt(SCRIM_STRENGTH, PlayerUiCustomization.DEFAULT.scrimStrengthPercent),
-        gradientEnabled = prefs.getBoolean(GRADIENT, PlayerUiCustomization.DEFAULT.gradientEnabled),
-        panelOutlineEnabled = prefs.getBoolean(
+    fun read(values: Map<String, *>): PlayerUiCustomization = PlayerUiCustomization(
+        surface = PlayerPanelSurface.fromPref(values.getString(SURFACE, null)),
+        panelOpacityPercent = values.getInt(PANEL_OPACITY, PlayerUiCustomization.DEFAULT.panelOpacityPercent),
+        scrimStrengthPercent = values.getInt(SCRIM_STRENGTH, PlayerUiCustomization.DEFAULT.scrimStrengthPercent),
+        gradientEnabled = values.getBoolean(GRADIENT, PlayerUiCustomization.DEFAULT.gradientEnabled),
+        panelOutlineEnabled = values.getBoolean(
             PANEL_OUTLINE,
             PlayerUiCustomization.DEFAULT.panelOutlineEnabled,
         ),
-        panelOutlineWidthDp = prefs.getInt(
+        panelOutlineWidthDp = values.getInt(
             PANEL_OUTLINE_WIDTH,
             PlayerUiCustomization.DEFAULT.panelOutlineWidthDp,
         ),
-        cornerRadiusDp = prefs.getInt(CORNER_RADIUS, PlayerUiCustomization.DEFAULT.cornerRadiusDp),
-        widthPercent = prefs.getInt(WIDTH, PlayerUiCustomization.DEFAULT.widthPercent),
-        density = PlayerPanelDensity.fromPref(prefs.getString(DENSITY, null)),
-        verticalOffsetDp = prefs.getInt(
+        cornerRadiusDp = values.getInt(CORNER_RADIUS, PlayerUiCustomization.DEFAULT.cornerRadiusDp),
+        widthPercent = values.getInt(WIDTH, PlayerUiCustomization.DEFAULT.widthPercent),
+        density = PlayerPanelDensity.fromPref(values.getString(DENSITY, null)),
+        verticalOffsetDp = values.getInt(
             VERTICAL_OFFSET,
             PlayerUiCustomization.DEFAULT.verticalOffsetDp,
         ),
-        horizontalPaddingDp = prefs.getInt(
+        horizontalPaddingDp = values.getInt(
             HORIZONTAL_PADDING,
             PlayerUiCustomization.DEFAULT.horizontalPaddingDp,
         ),
-        topPaddingDp = prefs.getInt(TOP_PADDING, PlayerUiCustomization.DEFAULT.topPaddingDp),
-        bottomPaddingDp = prefs.getInt(BOTTOM_PADDING, PlayerUiCustomization.DEFAULT.bottomPaddingDp),
-        rowSpacingDp = prefs.getInt(ROW_SPACING, PlayerUiCustomization.DEFAULT.rowSpacingDp),
-        panelElevationDp = prefs.getInt(PANEL_ELEVATION, PlayerUiCustomization.DEFAULT.panelElevationDp),
-        seekbarSize = PlayerSeekbarSize.fromPref(prefs.getString(SEEKBAR_SIZE, null)),
-        seekbarPosition = PlayerSeekbarPosition.fromPref(prefs.getString(SEEKBAR_POSITION, null)),
-        seekbarInsetDp = prefs.getInt(SEEKBAR_INSET, PlayerUiCustomization.DEFAULT.seekbarInsetDp),
-        seekbarThumbSize = PlayerSeekbarThumbSize.fromPref(prefs.getString(SEEKBAR_THUMB_SIZE, null)),
-        seekbarThumbShape = PlayerSeekbarThumbShape.fromPref(prefs.getString(SEEKBAR_THUMB_SHAPE, null)),
-        seekbarThumbGlowEnabled = prefs.getBoolean(
+        topPaddingDp = values.getInt(TOP_PADDING, PlayerUiCustomization.DEFAULT.topPaddingDp),
+        bottomPaddingDp = values.getInt(BOTTOM_PADDING, PlayerUiCustomization.DEFAULT.bottomPaddingDp),
+        rowSpacingDp = values.getInt(ROW_SPACING, PlayerUiCustomization.DEFAULT.rowSpacingDp),
+        panelElevationDp = values.getInt(PANEL_ELEVATION, PlayerUiCustomization.DEFAULT.panelElevationDp),
+        seekbarSize = PlayerSeekbarSize.fromPref(values.getString(SEEKBAR_SIZE, null)),
+        seekbarPosition = PlayerSeekbarPosition.fromPref(values.getString(SEEKBAR_POSITION, null)),
+        seekbarInsetDp = values.getInt(SEEKBAR_INSET, PlayerUiCustomization.DEFAULT.seekbarInsetDp),
+        seekbarThumbSize = PlayerSeekbarThumbSize.fromPref(values.getString(SEEKBAR_THUMB_SIZE, null)),
+        seekbarThumbShape = PlayerSeekbarThumbShape.fromPref(values.getString(SEEKBAR_THUMB_SHAPE, null)),
+        seekbarThumbGlowEnabled = values.getBoolean(
             SEEKBAR_THUMB_GLOW,
             PlayerUiCustomization.DEFAULT.seekbarThumbGlowEnabled,
         ),
-        seekbarThumbColor = readThumbColor(prefs),
-        seekbarVisible = prefs.getBoolean(SEEKBAR_VISIBLE, PlayerUiCustomization.DEFAULT.seekbarVisible),
-        chapterMarkersVisible = prefs.getBoolean(
+        seekbarThumbColor = readThumbColor(values),
+        seekbarVisible = values.getBoolean(SEEKBAR_VISIBLE, PlayerUiCustomization.DEFAULT.seekbarVisible),
+        chapterMarkersVisible = values.getBoolean(
             CHAPTER_MARKERS_VISIBLE,
             PlayerUiCustomization.DEFAULT.chapterMarkersVisible,
         ),
-        timeVisible = prefs.getBoolean(TIME_VISIBLE, PlayerUiCustomization.DEFAULT.timeVisible),
-        timeTextSizeSp = prefs.getInt(TIME_TEXT_SIZE, PlayerUiCustomization.DEFAULT.timeTextSizeSp),
-        timePosition = PlayerTimePosition.fromPref(prefs.getString(TIME_POSITION, null)),
-        timePresentation = PlayerTimePresentation.fromPref(prefs.getString(TIME_PRESENTATION, null)),
-        timeControlGapDp = prefs.getInt(
+        timeVisible = values.getBoolean(TIME_VISIBLE, PlayerUiCustomization.DEFAULT.timeVisible),
+        timeTextSizeSp = values.getInt(TIME_TEXT_SIZE, PlayerUiCustomization.DEFAULT.timeTextSizeSp),
+        timePosition = PlayerTimePosition.fromPref(values.getString(TIME_POSITION, null)),
+        timePresentation = PlayerTimePresentation.fromPref(values.getString(TIME_PRESENTATION, null)),
+        timeControlGapDp = values.getInt(
             TIME_CONTROL_GAP,
             PlayerUiCustomization.DEFAULT.timeControlGapDp,
         ),
-        controlAlignment = PlayerControlAlignment.fromPref(prefs.getString(CONTROL_ALIGNMENT, null)),
-        controlSize = PlayerControlSize.fromPref(prefs.getString(CONTROL_SIZE, null)),
-        controlSpacingDp = prefs.getInt(CONTROL_SPACING, PlayerUiCustomization.DEFAULT.controlSpacingDp),
-        buttonTreatment = PlayerButtonTreatment.fromPref(prefs.getString(BUTTON_TREATMENT, null)),
-        iconTextOutlineEnabled = prefs.getBoolean(
+        controlAlignment = PlayerControlAlignment.fromPref(values.getString(CONTROL_ALIGNMENT, null)),
+        controlSize = PlayerControlSize.fromPref(values.getString(CONTROL_SIZE, null)),
+        controlSpacingDp = values.getInt(CONTROL_SPACING, PlayerUiCustomization.DEFAULT.controlSpacingDp),
+        buttonTreatment = PlayerButtonTreatment.fromPref(values.getString(BUTTON_TREATMENT, null)),
+        iconTextOutlineEnabled = values.getBoolean(
             ICON_TEXT_OUTLINE,
             PlayerUiCustomization.DEFAULT.iconTextOutlineEnabled,
         ),
-        hiddenControls = readHiddenControls(prefs),
-        controlOrder = readControlOrder(prefs),
+        hiddenControls = readHiddenControls(values),
+        controlOrder = readControlOrder(values),
         seekbarPlayedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarPlayedColor"),
         seekbarBufferedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarBufferedColor"),
         seekbarUnplayedColor = values.playerBarEnum<PlayerSeekbarThumbColor>("seekbarUnplayedColor"),
@@ -648,17 +648,17 @@ internal object PlayerUiCustomizationStore {
 
     fun reset(prefs: SharedPreferences) = write(prefs, PlayerUiCustomization.DEFAULT)
 
-    private fun readThumbColor(prefs: SharedPreferences): PlayerSeekbarThumbColor =
-        prefs.getString(SEEKBAR_THUMB_COLOR, null)
+    private fun readThumbColor(values: Map<String, *>): PlayerSeekbarThumbColor =
+        values.getString(SEEKBAR_THUMB_COLOR, null)
             ?.let { raw -> PlayerSeekbarThumbColor.entries.firstOrNull { it.name == raw } }
             ?: PlayerUiCustomization.DEFAULT.seekbarThumbColor
 
-    private fun readHiddenControls(prefs: SharedPreferences): Set<PlayerBarControl> {
-        val controls = prefs.getStringSet(
+    private fun readHiddenControls(values: Map<String, *>): Set<PlayerBarControl> {
+        val controls = values.getStringSet(
             HIDDEN_CONTROLS,
             DEFAULT_HIDDEN_PLAYER_CONTROLS.mapTo(mutableSetOf()) { it.prefValue },
-        ).orEmpty().mapNotNullTo(mutableSetOf()) { PlayerBarControl.fromPref(it) }
-        val savedOrder = prefs.getString(CONTROL_ORDER, null)
+        ).mapNotNullTo(mutableSetOf()) { PlayerBarControl.fromPref(it) }
+        val savedOrder = values.getString(CONTROL_ORDER, null)
         if (PlayerBarControl.VERTICAL_SCALE.prefValue !in savedOrder.orEmpty().split(',')) {
             controls += PlayerBarControl.VERTICAL_SCALE
         }
@@ -673,8 +673,8 @@ internal object PlayerUiCustomizationStore {
         return controls
     }
 
-    private fun readControlOrder(prefs: SharedPreferences): List<PlayerBarControl> {
-        val saved = prefs.getString(CONTROL_ORDER, null)
+    private fun readControlOrder(values: Map<String, *>): List<PlayerBarControl> {
+        val saved = values.getString(CONTROL_ORDER, null)
             ?.split(',')
             ?.mapNotNull { PlayerBarControl.fromPref(it) }
             ?: return PlayerBarControl.entries

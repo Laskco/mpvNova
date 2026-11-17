@@ -6,7 +6,7 @@ internal fun MPVActivity.readPlayerUiSettings(prefs: SharedPreferences, values: 
     controlsAtBottom = true
     topActionsInPlayerBar = prefs.getBoolean(PREF_TOP_ACTIONS_IN_PLAYERBAR, false)
     showMediaTitle = true
-    playerTitleStyle = PlayerTitleStyleStore.read(prefs, values)
+    playerTitleStyle = PlayerTitleStyleStore.read(values)
     showClockOverlay = prefs.getBoolean("display_clock_overlay", true)
     showClockDate = prefs.getBoolean("display_clock_date", false)
     showClockOnPause = prefs.getBoolean("display_clock_on_pause", false)

@@ -42,16 +42,16 @@ internal fun MPVActivity.readSettings() {
     val prefs = getDefaultSharedPreferences(applicationContext)
     val values = prefs.all
     val getString: (String, Int) -> String = { key, defaultRes ->
-        prefs.getString(key, resources.getString(defaultRes)) ?: resources.getString(defaultRes)
+        prefs.getString(key, null) ?: resources.getString(defaultRes)
     }
 
     readPlaybackSettings(prefs, values, getString)
-    playerUiCustomization = PlayerUiCustomizationStore.read(prefs, values)
+    playerUiCustomization = PlayerUiCustomizationStore.read(values)
     readAudioFilterSettings(prefs)
     clampAudioFilterState()
     readSubFilterSettings(prefs)
     clampSubFilterState()
-    readSubtitleStyleSettings(prefs, values)
+    readSubtitleStyleSettings(values)
     player.applyNetworkSettings()
 }
 
