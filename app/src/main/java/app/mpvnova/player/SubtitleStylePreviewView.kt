@@ -65,8 +65,19 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
     }
 
     fun setSpec(spec: Spec) {
-        if (this.spec == spec) return
+        val previous = this.spec
+        if (previous == spec) return
         this.spec = spec
+        if (previous != null && textLayout != null && previous.copy(
+                textColor = spec.textColor,
+                outlineColor = spec.outlineColor,
+                backgroundColor = spec.backgroundColor,
+                shadowColor = spec.shadowColor,
+            ) == spec
+        ) {
+            invalidate()
+            return
+        }
         textLayout = null
         contentDescription = spec.text
         requestLayout()

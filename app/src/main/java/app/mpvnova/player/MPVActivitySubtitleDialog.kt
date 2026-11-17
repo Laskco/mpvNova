@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.view.LayoutInflater
 import androidx.appcompat.app.AlertDialog
+import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 import kotlin.math.roundToLong
 
 internal fun MPVActivity.configureSubPickerCallbacks(
@@ -78,6 +79,7 @@ internal fun MPVActivity.createSubPickerDialog(
 }
 
 private fun MPVActivity.subPickerOptions(delayValue: String): MediaPickerDialog.Options {
+    val presets = loadSubtitleStylePresets(getDefaultSharedPreferences(applicationContext))
     return MediaPickerDialog.Options(
         title = getString(R.string.dialog_title_subs),
         items = buildSubItems(),
@@ -90,8 +92,8 @@ private fun MPVActivity.subPickerOptions(delayValue: String): MediaPickerDialog.
         initialSecondarySubState = currentSecondarySubState(),
         persistSubFiltersOn = persistSubFilters,
         subStyleStateText = subtitleStyleToggleText(),
-        showSubPresetCycler = hasSubtitleStylePresets(),
-        initialSubPresetName = currentSubtitleStylePresetName(),
+        showSubPresetCycler = presets.isNotEmpty(),
+        initialSubPresetName = currentSubtitleStylePresetName(presets),
         showOnlineSubtitleSearch = OpenSubtitlesSettings.isAvailable(this),
         showOnlineSubtitleDownloads = openSubtitlesPlaybackDownloads.isNotEmpty(),
     )

@@ -89,13 +89,14 @@ internal fun MPVActivity.subtitleTypefaceFor(
     // Prefer the real face whose own flags match the request (the face libass uses), so the
     // preview shows true italic/bold letterforms. Otherwise fall back to the regular file and let
     // Android synthesize, mirroring libass's own oblique/bold fallback.
-    val exactFace = faces.firstOrNull { SubtitleFontTable.style(it) == SubtitleFontTable.Style(bold, italic) }
+    val preferredStyle = SubtitleFontTable.Style(bold, italic)
+    val exactFace = faces.firstOrNull { SubtitleFontTable.style(it) == preferredStyle }
         ?.let { typefaceFromFile(it) }
-    val regularFile = faces.firstOrNull {
-        SubtitleFontTable.style(it) == SubtitleFontTable.Style(bold = false, italic = false)
-    } ?: faces.firstOrNull()
-    val synthesized = styledTypeface(regularFile?.let { typefaceFromFile(it) } ?: Typeface.DEFAULT, bold, italic)
-    return exactFace ?: synthesized
+    return exactFace ?: run {
+        val regularStyle = SubtitleFontTable.Style(bold = false, italic = false)
+        val regularFile = faces.firstOrNull { SubtitleFontTable.style(it) == regularStyle } ?: faces.firstOrNull()
+        styledTypeface(regularFile?.let { typefaceFromFile(it) } ?: Typeface.DEFAULT, bold, italic)
+    }
 }
 
 private fun typefaceFromFile(file: File): Typeface? =
@@ -128,6 +129,3 @@ private fun styledTypeface(base: Typeface, bold: Boolean, italic: Boolean): Type
     }
     return if (style == Typeface.NORMAL) base else Typeface.create(base, style)
 }
-
-private fun subtitleArgb(rgb: Int, opacityPercent: Int): Int =
-    Color.parseColor(mpvSubtitleColor(rgb, opacityPercent))

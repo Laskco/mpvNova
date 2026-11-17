@@ -23,8 +23,8 @@ internal fun MPVActivity.subtitleFontChoices(): List<SubtitleFontChoice> {
     return SUBTITLE_GENERIC_FONTS + discovered
 }
 
-internal fun MPVActivity.subtitleFontLabel(family: String): String {
-    return subtitleFontChoices().firstOrNull { it.family == family }?.label
+internal fun subtitleFontLabel(family: String): String {
+    return SUBTITLE_GENERIC_FONTS.firstOrNull { it.family == family }?.label
         ?: family.ifEmpty { SUBTITLE_GENERIC_FONTS.first().label }
 }
 

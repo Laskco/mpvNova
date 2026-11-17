@@ -75,21 +75,28 @@ internal fun nearestOpacityIndex(percent: Int): Int =
     }
 
 private const val RGB_MASK = 0xFFFFFF
+private const val ARGB_ALPHA_SHIFT = 24
 private const val ALPHA_MAX = 255
 private const val PERCENT_MAX = 100
 private const val PERCENT_HALF = 50
 
 // mpv's alpha is the normal way round here (FF opaque), unlike ASS's own tags.
 internal fun mpvSubtitleColor(rgb: Int, opacityPercent: Int): String {
-    val opacity = opacityPercent.coerceIn(0, PERCENT_MAX)
-    val alpha = (opacity * ALPHA_MAX + PERCENT_HALF) / PERCENT_MAX
+    val alpha = subtitleAlpha(opacityPercent)
     return "#%02X%06X".format(alpha, rgb and RGB_MASK)
+}
+
+internal fun subtitleArgb(rgb: Int, opacityPercent: Int): Int =
+    (subtitleAlpha(opacityPercent) shl ARGB_ALPHA_SHIFT) or (rgb and RGB_MASK)
+
+private fun subtitleAlpha(opacityPercent: Int): Int {
+    val opacity = opacityPercent.coerceIn(0, PERCENT_MAX)
+    return (opacity * ALPHA_MAX + PERCENT_HALF) / PERCENT_MAX
 }
 
 // ASS stores color as inverted alpha followed by BGR, unlike mpv's AARRGGBB option format.
 internal fun assSubtitleColor(rgb: Int, opacityPercent: Int): String {
-    val opacity = opacityPercent.coerceIn(0, PERCENT_MAX)
-    val alpha = ALPHA_MAX - (opacity * ALPHA_MAX + PERCENT_HALF) / PERCENT_MAX
+    val alpha = ALPHA_MAX - subtitleAlpha(opacityPercent)
     val red = rgb shr 16 and 0xFF
     val green = rgb shr 8 and 0xFF
     val blue = rgb and 0xFF

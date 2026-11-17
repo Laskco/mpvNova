@@ -135,10 +135,9 @@ internal object SubtitleFontTable {
 
     private fun decodeName(data: ByteArray, start: Int, length: Int, platformId: Int): String? {
         if (length <= 0 || start < 0 || start + length > data.size) return null
-        val bytes = data.copyOfRange(start, start + length)
         return when (platformId) {
-            PLATFORM_WINDOWS, PLATFORM_UNICODE -> String(bytes, Charsets.UTF_16BE)
-            else -> String(bytes, Charsets.ISO_8859_1)
+            PLATFORM_WINDOWS, PLATFORM_UNICODE -> String(data, start, length, Charsets.UTF_16BE)
+            else -> String(data, start, length, Charsets.ISO_8859_1)
         }
     }
 

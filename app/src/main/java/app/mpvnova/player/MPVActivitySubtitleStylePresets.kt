@@ -98,11 +98,9 @@ private fun MPVActivity.saveSubtitleStylePreset(
     subStylePresetIndex = updated.indexOfFirst { it.name.equals(name, ignoreCase = true) }.coerceAtLeast(0)
 }
 
-internal fun MPVActivity.hasSubtitleStylePresets(): Boolean =
-    loadSubtitleStylePresets(getDefaultSharedPreferences(applicationContext)).isNotEmpty()
-
-internal fun MPVActivity.currentSubtitleStylePresetName(): String {
-    val presets = loadSubtitleStylePresets(getDefaultSharedPreferences(applicationContext))
+internal fun MPVActivity.currentSubtitleStylePresetName(
+    presets: List<SubtitleStylePreset> = loadSubtitleStylePresets(getDefaultSharedPreferences(applicationContext)),
+): String {
     if (presets.isEmpty() || !customSubStyleEnabled)
         return getString(R.string.sub_style_preset_none)
     return presets[subStylePresetIndex.coerceIn(0, presets.lastIndex)].name
