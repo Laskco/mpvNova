@@ -208,6 +208,8 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             Property("paused-for-cache", MPV_FORMAT_FLAG),
             Property("speed", MPV_FORMAT_STRING),
             Property("track-list"),
+            // A chapter-list replacement can keep the same count.
+            Property(CHAPTER_LIST_PROPERTY),
             Property("sid"),
             Property("aid"),
             Property("video-params/aspect", MPV_FORMAT_DOUBLE),

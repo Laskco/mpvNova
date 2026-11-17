@@ -3,6 +3,7 @@ package app.mpvnova.player
 import app.mpvnova.player.databinding.DialogPlaylistBinding
 import android.content.res.ColorStateList
 import android.util.Log
+import android.util.SparseArray
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,6 +15,7 @@ internal class PlaylistDialog(private val player: MPVView) {
     private lateinit var binding: DialogPlaylistBinding
 
     private var playlist = listOf<MPVView.PlaylistItem>()
+    private val basenames = SparseArray<String>()
     private var selectedIndex = -1
 
     interface Listeners {
@@ -41,7 +43,7 @@ internal class PlaylistDialog(private val player: MPVView) {
             }
             binding.repeatBtn.setOnClickListener {
                 player.cycleRepeat()
-                refresh()
+                refreshRepeatButton()
             }
             handleInsetsAsPadding(binding.root)
         } else {
@@ -56,6 +58,7 @@ internal class PlaylistDialog(private val player: MPVView) {
         selectedIndex = mpvGetPropertyInt("playlist-pos") ?: -1
         val oldCount = playlist.size
         playlist = player.loadPlaylist()
+        basenames.clear()
         Log.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
         binding.list.adapter?.notifyRangeRefresh(oldCount, playlist.size)
         binding.list.scrollToPosition(playlist.indexOfFirst { it.index == selectedIndex })
@@ -86,6 +89,13 @@ internal class PlaylistDialog(private val player: MPVView) {
                 }
             )
         }
+        refreshRepeatButton(accent, normal)
+    }
+
+    private fun refreshRepeatButton(
+        accent: Int = ContextCompat.getColor(binding.root.context, R.color.accent),
+        normal: Int = ContextCompat.getColor(binding.root.context, R.color.tv_text),
+    ) {
         val repeatState = player.getRepeat()
         binding.repeatBtn.apply {
             isSelected = repeatState > 0
@@ -95,9 +105,14 @@ internal class PlaylistDialog(private val player: MPVView) {
     }
 
     private fun clickItem(position: Int) {
-        val item = playlist[position]
+        val item = playlist.getOrNull(position) ?: return
         listeners?.onItemPicked(item)
     }
+
+    private fun basename(item: MPVView.PlaylistItem): String =
+        basenames[item.index] ?: Utils.fileBasename(item.filename).also {
+            basenames.put(item.index, it)
+        }
 
     class CustomAdapter(private val parent: PlaylistDialog) :
         RecyclerView.Adapter<CustomAdapter.ViewHolder>() {
@@ -118,13 +133,13 @@ internal class PlaylistDialog(private val player: MPVView) {
             }
 
             fun bind(item: MPVView.PlaylistItem, selected: Boolean) {
-                textView.text = item.title ?: Utils.fileBasename(item.filename)
+                textView.text = item.title ?: parent.basename(item)
                 itemView.isActivated = selected
                 UiFont.applyWeight(textView, bold = selected)
                 val subtitle = if (item.title.isNullOrBlank()) {
                     "#${item.index + 1}"
                 } else {
-                    Utils.fileBasename(item.filename)
+                    parent.basename(item)
                 }
                 subtitleView.text = subtitle
                 subtitleView.visibility = if (subtitle.isBlank()) View.GONE else View.VISIBLE

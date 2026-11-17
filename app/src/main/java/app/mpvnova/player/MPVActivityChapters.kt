@@ -6,6 +6,42 @@ import androidx.appcompat.app.AlertDialog
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
+internal const val CHAPTER_LIST_PROPERTY = "chapter-list"
+
+internal fun MPVActivity.invalidateChapterSnapshot() {
+    chapterCache.revision++
+}
+
+internal fun MPVActivity.resetChapterCache() {
+    chapterCache = MPVActivity.ChapterCache(fileReplacementGeneration)
+    pendingChapterSeekTime = null
+    eventUiHandler.removeCallbacks(clearPendingChapterSeek)
+}
+
+private fun MPVActivity.readChapters(refresh: Boolean = false): List<MPVView.Chapter> {
+    val cache = chapterCache
+    val generation = fileReplacementGeneration
+    val duration = psc.durationSec
+    val revision = cache.revision
+    // Until the observer has delivered a notification, a later mutation may go unseen.
+    val canCacheEmpty = cache.fileLoaded && revision != 0L
+    val cached = cache.chapters
+    val sameReplacement = cache.replacementGeneration == generation
+    if (!refresh && sameReplacement && cache.snapshotRevision == revision) {
+        if (cached != null && (cached.isNotEmpty() || cache.emptyAtDurationSec == duration)) return cached
+    }
+
+    val chapters = player.loadChapters()
+    // A native read can straddle a file event or a replacement intent.
+    val sameFile = chapterCache === cache && fileReplacementGeneration == generation
+    if (sameFile && sameReplacement) {
+        cache.snapshotRevision = revision
+        cache.emptyAtDurationSec = duration
+        cache.chapters = chapters?.takeIf { it.isNotEmpty() || canCacheEmpty }
+    }
+    return if (sameFile) chapters.orEmpty() else emptyList()
+}
+
 /**
  * Chapter navigation + the chapter-marker drawing on the seekbar + the
  * full-list chapter picker dialog.
@@ -21,9 +57,7 @@ import kotlin.math.roundToLong
  */
 
 internal fun MPVActivity.seekChapterRelative(direction: Int, showFeedback: Boolean = true) {
-    val chapters = cachedChapters.ifEmpty {
-        player.loadChapters().also { cachedChapters = it }
-    }
+    val chapters = readChapters()
     if (chapters.isEmpty()) {
         mpvCommand(arrayOf("add", "chapter", direction.toString()))
         if (showFeedback) showChapterUnavailableToast()
@@ -96,8 +130,8 @@ private fun MPVActivity.showChapterUnavailableToast() {
 
 internal fun MPVActivity.updateChapterMarkers() {
     val duration = psc.durationSec
-    val chapters = player.loadChapters()
-    cachedChapters = chapters
+    // Preserve the live refresh: scripts can change the chapter list mid-file.
+    val chapters = readChapters(refresh = true)
     val hasChapters = chapters.isNotEmpty()
 
     binding.nextChapterBtn.visibility = if (hasChapters) View.VISIBLE else View.GONE
@@ -115,7 +149,7 @@ internal fun MPVActivity.updateChapterMarkers() {
 }
 
 internal fun MPVActivity.showChapterPickerDialog() {
-    val chapters = player.loadChapters()
+    val chapters = readChapters(refresh = true)
     if (chapters.isEmpty()) return
     val restore = keepPlaybackForDialog()
     val items = chapters.map { ch ->

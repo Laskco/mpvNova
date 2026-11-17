@@ -63,13 +63,16 @@ internal fun MPVView.loadPlaylist(): MutableList<MPVView.PlaylistItem> {
     return playlist
 }
 
-internal fun MPVView.loadChapters(): MutableList<MPVView.Chapter> {
-    val chapters = mutableListOf<MPVView.Chapter>()
-    val count = mpvGetPropertyInt("chapter-list/count") ?: return chapters
-    for (index in 0 until count) {
-        val title = mpvGetPropertyString("chapter-list/$index/title")
-        val time = mpvGetPropertyDouble("chapter-list/$index/time") ?: continue
-        chapters.add(MPVView.Chapter(index = index, title = title, time = time))
-    }
-    return chapters
+// Null means unavailable; only an explicit zero count is a definitive empty list.
+internal fun MPVView.loadChapters(): List<MPVView.Chapter>? {
+    val count = mpvGetPropertyInt("chapter-list/count") ?: return null
+    return if (count == 0) emptyList() else buildList {
+        for (index in 0 until count) {
+            val time = mpvGetPropertyDouble("chapter-list/$index/time")
+            if (time != null && time.isFinite()) {
+                val title = mpvGetPropertyString("chapter-list/$index/title")
+                add(MPVView.Chapter(index = index, title = title, time = time))
+            }
+        }
+    }.takeIf { it.isNotEmpty() }
 }

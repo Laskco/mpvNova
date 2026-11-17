@@ -7,6 +7,7 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
     when (eventId) {
         MpvEvent.MPV_EVENT_END_FILE -> handleMpvEndFile()
         MpvEvent.MPV_EVENT_SHUTDOWN -> {
+            resetChapterCache()
             recordPlaybackDiagnostic("shutdown")
             markPlaybackEnded()
             finishWithResult(
@@ -41,6 +42,7 @@ private fun MPVActivity.handleMpvPlaybackRestart() {
 }
 
 private fun MPVActivity.handleMpvEndFile() {
+    resetChapterCache()
     // A new external intent that replaced the file stops the outgoing one with an
     // END_FILE. Its progress was saved before switching to the incoming identity.
     val replacedOutgoingFile = synchronized(fileReplacementLock) {
@@ -70,6 +72,7 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    resetChapterCache()
     skipSegmentPlaybackReady = false
     psc.update("demuxer-cache-time")
     eventUiHandler.post {
@@ -95,8 +98,6 @@ private fun MPVActivity.handleMpvStartFile() {
     controlsOverlayAutoPaused = false
     resetPlaybackSeekState()
     clearFireTvVideoEdgeCrop()
-    cachedChapters = emptyList()
-    pendingChapterSeekTime = null
     currentPlayerTitleSource = pendingPlayerTitleSource
     currentItemTitle = pendingItemTitle
     currentFileName = pendingFileName ?: MediaTitleResolver.fileNameFromPathLike(currentMpvPath())
@@ -142,6 +143,7 @@ private fun MPVActivity.runOnloadCommands() {
 }
 
 private fun MPVActivity.handleMpvFileLoaded() {
+    chapterCache.fileLoaded = true
     localAutoNextLaunch = null
     val preserveForwardedSubtitles = preferExternalForwardedSubtitles && onloadCommands.any {
         it.firstOrNull() == "sub-add" && it.getOrNull(2) == "select"

@@ -89,16 +89,18 @@ internal class PlayerTitleCombinedPanel(
 
     override fun onPreDraw(): Boolean {
         if (!enabled || root.width <= 0 || root.height <= 0) return true
-        val panels = listOf(title, clock).filter { it.visibility == View.VISIBLE && it.hasVisibleText() }
-        surface.visibility = if (panels.isEmpty()) View.GONE else View.VISIBLE
-        return panels.isEmpty() || layoutPanels(panels)
+        val visibleTitle = title.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
+        val visibleClock = clock.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
+        val first = visibleTitle ?: visibleClock
+        surface.visibility = if (first == null) View.GONE else View.VISIBLE
+        return first == null || layoutPanels(first, if (visibleTitle != null) visibleClock else null)
     }
 
-    private fun layoutPanels(panels: List<ViewGroup>): Boolean {
+    private fun layoutPanels(first: ViewGroup, second: ViewGroup?): Boolean {
         val style = styleProvider().titlePanel
         val density = root.resources.displayMetrics.density
-        val width = panels.maxOf { it.width }.coerceAtMost(root.width)
-        val height = panels.sumOf { it.height }.coerceAtMost(root.height)
+        val width = maxOf(first.width, second?.width ?: first.width).coerceAtMost(root.width)
+        val height = (first.height + (second?.height ?: 0)).coerceAtMost(root.height)
         val left = if (style.manualPosition) (style.horizontalOffsetDp * density).toInt() else {
             when (style.alignment) {
                 PlayerTitlePanelAlignment.START -> (SHARED_PANEL_EDGE_MARGIN_DP * density).toInt()
@@ -110,22 +112,32 @@ internal class PlayerTitleCombinedPanel(
             .coerceIn(0, (root.height - height).coerceAtLeast(0))
         val clampedLeft = left.coerceIn(0, (root.width - width).coerceAtLeast(0))
         if (updateSurfaceLayout(clampedLeft, top, width, height)) return false
-        surface.alpha = panels.maxOf { it.alpha }
-        var y = top
-        panels.forEach { panel ->
-            val x = clampedLeft + when (style.contentAlignment) {
-                PlayerTitlePanelAlignment.START -> 0
-                PlayerTitlePanelAlignment.CENTER -> (width - panel.width) / 2
-                PlayerTitlePanelAlignment.END -> width - panel.width
-            }
-            panel.translationX = (x - panel.left).toFloat()
-            panel.translationY = (y - panel.top).toFloat()
-            panel.clipBounds = Rect(
-                0, 0, panel.width.coerceAtMost(width), (top + height - y).coerceIn(0, panel.height),
-            )
-            y += panel.height
+        surface.alpha = maxOf(first.alpha, second?.alpha ?: first.alpha)
+        layoutPanel(first, style.contentAlignment, clampedLeft, top, width, top + height)
+        if (second != null) {
+            layoutPanel(second, style.contentAlignment, clampedLeft, top + first.height, width, top + height)
         }
         return true
+    }
+
+    private fun layoutPanel(
+        panel: ViewGroup,
+        alignment: PlayerTitlePanelAlignment,
+        left: Int,
+        top: Int,
+        width: Int,
+        bottom: Int,
+    ) {
+        val x = left + when (alignment) {
+            PlayerTitlePanelAlignment.START -> 0
+            PlayerTitlePanelAlignment.CENTER -> (width - panel.width) / 2
+            PlayerTitlePanelAlignment.END -> width - panel.width
+        }
+        panel.translationX = (x - panel.left).toFloat()
+        panel.translationY = (top - panel.top).toFloat()
+        panel.clipBounds = Rect(
+            0, 0, panel.width.coerceAtMost(width), (bottom - top).coerceIn(0, panel.height),
+        )
     }
 
     private fun updateSurfaceLayout(left: Int, top: Int, width: Int, height: Int): Boolean {

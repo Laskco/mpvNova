@@ -27,7 +27,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.IntentCompat
 import androidx.core.view.updateLayoutParams
 import java.text.SimpleDateFormat
-import java.util.Locale
 
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
 typealias StateRestoreCallback = () -> Unit
@@ -498,7 +497,19 @@ open class MPVActivity : AppCompatActivity() {
     internal val automaticSubtitleCommands = mutableListOf<Array<String>>()
     internal var streamOpenLoading = false
     internal var streamCacheLoading = false
-    internal var cachedChapters: List<MPVView.Chapter> = emptyList()
+    internal class ChapterCache(generation: Long) {
+        val replacementGeneration = generation
+        @Volatile var fileLoaded = false
+        @Volatile var revision = 0L
+        @Volatile var chapters: List<MPVView.Chapter>? = null
+        var snapshotRevision = -1L
+        var emptyAtDurationSec = 0
+    }
+
+    @Volatile internal var chapterCache = ChapterCache(0L)
+    internal val cachedChapters: List<MPVView.Chapter>
+        get() = chapterCache.takeIf { it.replacementGeneration == fileReplacementGeneration }
+            ?.chapters.orEmpty()
     internal var pendingChapterSeekTime: Double? = null
     internal val clearPendingChapterSeek = Runnable { pendingChapterSeekTime = null }
 
@@ -731,8 +742,7 @@ open class MPVActivity : AppCompatActivity() {
 
     internal var clockFormatter: SimpleDateFormat? = null
     internal var clockFormatterIs24: Boolean? = null
-    internal var clockDateFormatter: SimpleDateFormat? = null
-    internal var clockDateFormatterLocale: Locale? = null
+    internal var clockLabels: ClockLabels? = null
 
     override fun dispatchKeyEvent(ev: KeyEvent): Boolean {
         // A key-down may have reached mpv before a dialog, overlay, or controls transition

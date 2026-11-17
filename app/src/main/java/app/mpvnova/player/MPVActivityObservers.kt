@@ -123,6 +123,7 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     /** FORMAT_NONE / metadata-string event-thread side-effects. */
     private fun MPVActivity.dispatchEventThreadMetadata(property: String) {
         when (property) {
+            CHAPTER_LIST_PROPERTY -> invalidateChapterSnapshot()
             "aid" -> updateDiagnosticAudioTrack()
             "current-tracks/audio/selected" -> {
                 updateDiagnosticAudioTrack()
