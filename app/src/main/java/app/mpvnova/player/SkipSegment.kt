@@ -16,14 +16,19 @@ internal fun skipSegmentType(type: String): String {
 
 internal fun normalizedSkipSegments(segments: List<SkipSegment>): List<SkipSegment> {
     val valid = segments.filter { it.start.isFinite() && it.end.isFinite() && it.start >= 0 && it.end > it.start }
+    val postCredits = valid.filter { it.type == "post-credits" }
     return valid.mapNotNull { segment ->
         // Credits must never swallow a post-credits scene, even if the source ranges overlap.
         val sceneStart = if (segment.type == "end-credits") {
-            valid.filter { it.type == "post-credits" && it.end > segment.start && it.start < segment.end }
+            postCredits.asSequence().filter { it.end > segment.start && it.start < segment.end }
                 .minOfOrNull { it.start }
         } else null
         val end = sceneStart?.let { minOf(segment.end, it) } ?: segment.end
-        segment.copy(end = end).takeIf { end > segment.start }
+        when {
+            end <= segment.start -> null
+            end == segment.end -> segment
+            else -> segment.copy(end = end)
+        }
     }.sortedBy { it.start }
 }
 

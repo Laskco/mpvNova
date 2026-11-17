@@ -7,18 +7,15 @@ import java.io.File
 import java.util.Locale
 
 internal val FONT_EXTENSIONS = setOf("ttf", "otf", "ttc")
+private val GENERIC_FONT_FAMILIES = SUBTITLE_GENERIC_FONTS.mapTo(hashSetOf()) { it.family }
 
 internal fun MPVActivity.subtitleFontsDir(): File = File(filesDir, "fonts").apply { mkdirs() }
 
 internal fun MPVActivity.subtitleFontChoices(): List<SubtitleFontChoice> {
-    val genericFamilies = SUBTITLE_GENERIC_FONTS.mapTo(mutableSetOf()) { it.family }
     val discovered = subtitleFontsDir()
         .listFiles { file -> file.isFile && file.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
-        ?.mapNotNull { SubtitleFontTable.familyName(it) }
-        ?.filter { it !in genericFamilies }
-        ?.distinct()
-        ?.sortedBy { it.lowercase(Locale.ROOT) }
-        .orEmpty()
+        ?.mapNotNullTo(linkedSetOf()) { SubtitleFontTable.familyName(it)?.takeUnless(GENERIC_FONT_FAMILIES::contains) }
+        .orEmpty().sortedFontFamilies()
         .map { SubtitleFontChoice(it, it) }
     return SUBTITLE_GENERIC_FONTS + discovered
 }
@@ -51,9 +48,8 @@ private fun MPVActivity.userFontFiles(): List<File> {
 
 internal fun MPVActivity.removableFontFamilies(): List<String> =
     userFontFiles()
-        .mapNotNull { SubtitleFontTable.familyName(it) }
-        .distinct()
-        .sortedBy { it.lowercase(Locale.ROOT) }
+        .mapNotNullTo(linkedSetOf(), SubtitleFontTable::familyName)
+        .sortedFontFamilies()
 
 // Bundled fonts are never touched.
 internal fun MPVActivity.removeSubtitleFontFamily(family: String) {

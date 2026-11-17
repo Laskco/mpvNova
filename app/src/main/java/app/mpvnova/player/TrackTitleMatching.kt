@@ -105,14 +105,17 @@ internal fun isLimitedSubtitleTrack(title: String, forced: Boolean, language: St
         (FORCED_SUBTITLE_PATTERN.containsMatchIn(title) && !FULL_SUBTITLE_PATTERN.containsMatchIn(title))
 
 internal fun isCompanionSubtitleTrack(title: String, forced: Boolean, language: String = ""): Boolean {
+    if (forced) return true
     val label = title.replace('_', ' ')
-    return forced || isSignsSubtitleTitle(label) || isSameLanguageAudioSubtitleTitle(label, language) ||
-        (FORCED_SUBTITLE_PATTERN.containsMatchIn(label) && !FULL_SUBTITLE_PATTERN.containsMatchIn(label) &&
-            !NOT_FORCED_SUBTITLE_PATTERN.containsMatchIn(label))
+    return !FULL_SUBTITLE_PATTERN.containsMatchIn(label) &&
+        (SIGNS_SUBTITLE_PATTERN.containsMatchIn(label) || isSameLanguageAudioSubtitleTitle(label, language, false) ||
+            (FORCED_SUBTITLE_PATTERN.containsMatchIn(label) && !NOT_FORCED_SUBTITLE_PATTERN.containsMatchIn(label)))
 }
 
-private fun isSameLanguageAudioSubtitleTitle(title: String, language: String): Boolean {
-    if (FULL_SUBTITLE_PATTERN.containsMatchIn(title)) return false
+private fun isSameLanguageAudioSubtitleTitle(
+    title: String, language: String, fullTitle: Boolean = FULL_SUBTITLE_PATTERN.containsMatchIn(title),
+): Boolean {
+    if (fullTitle) return false
     // A label such as "With English Audio" identifies the dub companion track,
     // but English subtitles "With Japanese Audio" are still full subtitles.
     val audioLanguage = AUDIO_SUBTITLE_PATTERN.find(title)?.groupValues?.get(1).orEmpty()

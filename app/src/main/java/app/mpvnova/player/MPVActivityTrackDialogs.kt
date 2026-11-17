@@ -150,19 +150,7 @@ internal fun MPVActivity.buildSubItems(): List<MediaPickerDialog.Item> {
     val primaryId = player.sid
     val secondaryId = player.secondarySid
 
-    val noneTrack = rawTracks.firstOrNull { it.mpvId == -1 }
-    val primaryTrack = rawTracks.firstOrNull { it.mpvId != -1 && it.mpvId == primaryId }
-    val secondaryTrack = rawTracks.firstOrNull { it.mpvId != -1 && it.mpvId == secondaryId }
-    val pinnedIds = setOfNotNull(primaryTrack?.mpvId, secondaryTrack?.mpvId)
-
-    val orderedTracks = buildList {
-        noneTrack?.let { add(it) }
-        primaryTrack?.let { add(it) }
-        secondaryTrack?.let { add(it) }
-        addAll(rawTracks.filter { it.mpvId != -1 && it.mpvId !in pinnedIds })
-    }
-
-    val hasSecondary = secondaryTrack != null
+    val (orderedTracks, hasSecondary) = orderSubtitlePickerTracks(rawTracks, primaryId, secondaryId)
     return orderedTracks.map { t ->
         val label: CharSequence = when {
             t.mpvId == -1 -> t.name

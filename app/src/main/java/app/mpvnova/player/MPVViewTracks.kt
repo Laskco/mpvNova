@@ -11,9 +11,10 @@ internal fun MPVView.removeObserver(observer: MpvEventObserver) {
 }
 
 internal fun MPVView.loadTracks() {
+    val off = MPVView.Track(-1, context.getString(R.string.track_off))
     for (list in tracks.values) {
         list.clear()
-        list.add(MPVView.Track(-1, context.getString(R.string.track_off)))
+        list.add(off)
     }
     val count = mpvGetPropertyInt("track-list/count") ?: return
     // Note that because events are async, properties might disappear at any moment

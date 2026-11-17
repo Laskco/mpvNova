@@ -3,6 +3,13 @@ package app.mpvnova.player
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.Locale
+
+internal fun Set<String>.sortedFontFamilies(): List<String> = asSequence()
+    .map { it to it.lowercase(Locale.ROOT) }
+    .sortedBy { it.second }
+    .map { it.first }
+    .toList()
 
 // Reads a font's real family name so the picker shows it and sub-font matches.
 internal object SubtitleFontTable {
