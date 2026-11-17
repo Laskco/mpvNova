@@ -47,6 +47,7 @@ import java.util.Map;
 public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
     protected static final String PERMISSION_PRE33 = Manifest.permission.READ_EXTERNAL_STORAGE;
+    private static final long REFRESH_WINDOW_MS = 100;
     protected boolean showHiddenItems = false;
     protected FileFilter filterPredicate = null;
     private File mRequestedPath = null;
@@ -304,10 +305,24 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
         final boolean includeHidden = areHiddenItemsShown();
         final FileFilter predicate = filterPredicate;
         return new AsyncTaskLoader<>(requireContext()) {
-            FileObserver fileObserver;
+            private final Object observerLock = new Object();
+            private FileObserver fileObserver;
+            private boolean refreshPosted;
+            // Only accessed on the main thread.
+            private boolean loadInFlight;
+            private boolean reloadAfterLoad;
             private final Handler observerHandler = new Handler(Looper.getMainLooper());
             private final Runnable refreshFiles = () -> {
-                if (isStarted() && !isAbandoned() && !isReset()) onContentChanged();
+                synchronized (observerLock) {
+                    refreshPosted = false;
+                }
+                if (!isStarted() || isAbandoned() || isReset())
+                    return;
+                // Don't let repeated notifications keep canceling a slow directory listing.
+                if (loadInFlight)
+                    reloadAfterLoad = true;
+                else
+                    onContentChanged();
             };
 
             @Override
@@ -322,7 +337,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 for (File f : listFiles) {
                     if (isLoadInBackgroundCanceled())
                         return new ArrayList<>(0);
-                    if (f.isHidden() && !includeHidden)
+                    if (!includeHidden && f.isHidden())
                         continue;
                     if (predicate != null && !predicate.accept(f))
                         continue;
@@ -342,10 +357,29 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
 
                 // Start watching for changes
                 stopWatching();
-                fileObserver = createFileObserver(currentPath);
-                fileObserver.startWatching();
+                final FileObserver observer = createFileObserver(currentPath);
+                synchronized (observerLock) {
+                    fileObserver = observer;
+                }
+                observer.startWatching();
 
                 forceLoad();
+            }
+
+            @Override
+            protected void onForceLoad() {
+                loadInFlight = true;
+                super.onForceLoad();
+            }
+
+            @Override
+            public void deliverResult(@Nullable List<File> data) {
+                loadInFlight = false;
+                if (reloadAfterLoad) {
+                    reloadAfterLoad = false;
+                    scheduleRefresh(fileObserver);
+                }
+                super.deliverResult(data);
             }
 
             private FileObserver createFileObserver(@NonNull File path) {
@@ -357,7 +391,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                     return new FileObserver(path, mask) {
                         @Override
                         public void onEvent(int event, String path) {
-                            scheduleRefresh();
+                            scheduleRefresh(this);
                         }
                     };
                 }
@@ -369,20 +403,23 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 return new FileObserver(path, mask) {
                     @Override
                     public void onEvent(int event, String path) {
-                        scheduleRefresh();
+                        scheduleRefresh(this);
                     }
                 };
             }
 
-            private void scheduleRefresh() {
-                // FileObserver delivers on its own thread; Loader state belongs to the main thread.
-                observerHandler.removeCallbacks(refreshFiles);
-                observerHandler.post(refreshFiles);
+            private void scheduleRefresh(FileObserver source) {
+                // Keep the first event's deadline; late events from a stopped watch are ignored.
+                synchronized (observerLock) {
+                    if (source != null && source == fileObserver && !refreshPosted)
+                        refreshPosted = observerHandler.postDelayed(refreshFiles, REFRESH_WINDOW_MS);
+                }
             }
 
             @Override
             protected void onStopLoading() {
                 cancelLoad();
+                loadInFlight = false;
                 stopWatching();
             }
 
@@ -399,11 +436,16 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
             }
 
             private void stopWatching() {
-                observerHandler.removeCallbacks(refreshFiles);
-                if (fileObserver != null) {
-                    fileObserver.stopWatching();
+                final FileObserver observer;
+                synchronized (observerLock) {
+                    observer = fileObserver;
                     fileObserver = null;
+                    observerHandler.removeCallbacks(refreshFiles);
+                    refreshPosted = false;
                 }
+                reloadAfterLoad = false;
+                if (observer != null)
+                    observer.stopWatching();
             }
         };
     }

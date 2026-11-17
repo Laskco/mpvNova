@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.CancellationSignal;
+import android.os.OperationCanceledException;
 import android.provider.DocumentsContract;
 import android.util.Log;
 
@@ -99,16 +101,10 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
     private static boolean isDir(@NonNull Context context, @NonNull Uri path) {
         final ContentResolver contentResolver = context.getContentResolver();
         final String[] cols = new String[] { DocumentsContract.Document.COLUMN_MIME_TYPE };
-        boolean ret = false;
         try (Cursor c = contentResolver.query(path, cols, null, null, null, null)) {
-            if (c == null)
-                return ret;
-            if (!c.moveToFirst())
-                return ret;
-            final int i = c.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE);
-            ret = c.getString(i).equals(DocumentsContract.Document.MIME_TYPE_DIR);
+            return c != null && c.moveToFirst() && DocumentsContract.Document.MIME_TYPE_DIR.equals(
+                    readString(c, c.getColumnIndex(cols[0])));
         }
-        return ret;
     }
 
     @NonNull
@@ -122,16 +118,20 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
         // retrieve the data uncached (not supposed to happen)
         final ContentResolver contentResolver = requireContext().getContentResolver();
         final String[] cols = new String[] { DocumentsContract.Document.COLUMN_DISPLAY_NAME };
-        String ret = "";
         try (Cursor c = contentResolver.query(path, cols, null, null, null, null)) {
-            if (c == null)
-                return ret;
-            if (!c.moveToFirst())
-                return ret;
-            final int i = c.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME);
-            ret = c.getString(i);
+            if (c == null || !c.moveToFirst())
+                return "";
+            final String name = readString(c, c.getColumnIndex(cols[0]));
+            return name != null ? name : "";
         }
-        return ret;
+    }
+
+    private static @Nullable String readString(Cursor cursor, int column) {
+        if (column < 0)
+            return null;
+        final int type = cursor.getType(column);
+        return type == Cursor.FIELD_TYPE_NULL || type == Cursor.FIELD_TYPE_BLOB
+                ? null : cursor.getString(column);
     }
 
     @NonNull
@@ -195,6 +195,8 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
         private final Uri currentPath;
         private final Uri childUri;
         private final Predicate<Document> predicate;
+        private final Object queryLock = new Object();
+        private CancellationSignal querySignal;
         private static final String[] COLUMNS = new String[] {
                 DocumentsContract.Document.COLUMN_DOCUMENT_ID,
                 DocumentsContract.Document.COLUMN_MIME_TYPE,
@@ -215,23 +217,39 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
         @Override
         public List<Uri> loadInBackground() {
             final ContentResolver contentResolver = getContext().getContentResolver();
-            DocumentResult result = new DocumentResult();
-            ArrayList<Document> files = new ArrayList<>();
-            try (Cursor c = contentResolver.query(childUri, COLUMNS, null, null, null, null)) {
+            final DocumentResult result = new DocumentResult();
+            final ArrayList<Document> files = new ArrayList<>();
+            final CancellationSignal signal = new CancellationSignal();
+            synchronized (queryLock) {
+                // A cancellation that beat the worker to this lock may have found no signal.
+                if (isLoadInBackgroundCanceled())
+                    return result;
+                querySignal = signal;
+            }
+
+            try (Cursor c = contentResolver.query(childUri, COLUMNS, null, null, null, signal)) {
                 if (c == null) {
                     return result;
                 }
 
-                final int i1 = c.getColumnIndex(COLUMNS[0]);
-                final int i2 = c.getColumnIndex(COLUMNS[1]);
-                final int i3 = c.getColumnIndex(COLUMNS[2]);
+                final int idColumn = c.getColumnIndex(COLUMNS[0]);
+                final int mimeColumn = c.getColumnIndex(COLUMNS[1]);
+                final int nameColumn = c.getColumnIndex(COLUMNS[2]);
+                if (idColumn < 0 || mimeColumn < 0)
+                    return result;
+
                 while (!isLoadInBackgroundCanceled() && c.moveToNext()) {
-                    final String docId = c.getString(i1);
-                    final boolean isDir = c.getString(i2).equals(DocumentsContract.Document.MIME_TYPE_DIR);
+                    final String docId = readString(c, idColumn);
+                    final String mimeType = readString(c, mimeColumn);
+                    // A row without an ID or a usable type cannot be navigated safely.
+                    if (docId == null || docId.isEmpty() || mimeType == null || mimeType.isEmpty())
+                        continue;
+                    final boolean isDir = DocumentsContract.Document.MIME_TYPE_DIR.equals(mimeType);
+                    final String name = readString(c, nameColumn);
                     final Document doc = new Document(
                             DocumentsContract.buildDocumentUriUsingTree(root, docId),
                             isDir,
-                            c.getString(i3)
+                            name != null ? name : docId
                     );
                     if (predicate != null && !predicate.test(doc))
                         continue;
@@ -241,14 +259,36 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
                     if (isDir)
                         result.parents.put(docId, currentPath);
                 }
+            } catch (OperationCanceledException e) {
+                // AsyncTaskLoader accepts a normal return for a canceled task and drops its result.
+                if (!isLoadInBackgroundCanceled())
+                    Log.w(TAG, "Document provider canceled the query", e);
+                return new DocumentResult();
+            } finally {
+                synchronized (queryLock) {
+                    querySignal = null;
+                }
             }
 
+            if (isLoadInBackgroundCanceled())
+                return result;
             Collections.sort(files);
             for (Document doc : files) {
                 result.add(doc.uri);
                 result.documents.put(doc.uri, doc);
             }
             return result;
+        }
+
+        @Override
+        public void cancelLoadInBackground() {
+            super.cancelLoadInBackground();
+            final CancellationSignal signal;
+            synchronized (queryLock) {
+                signal = querySignal;
+            }
+            if (signal != null)
+                signal.cancel();
         }
 
         @Override
@@ -265,6 +305,12 @@ public class DocumentPickerFragment extends AbstractFilePickerFragment<Uri> {
         @Override
         protected void onReset() {
             super.onReset();
+            onStopLoading();
+        }
+
+        @Override
+        protected void onAbandon() {
+            super.onAbandon();
             onStopLoading();
         }
     }
