@@ -56,8 +56,23 @@ private fun clearEntryTracks(file: File, kind: RememberedTrackKind) {
     }
 }
 
-internal fun removeWatchLaterTrackOptions(source: String, kind: RememberedTrackKind): String =
-    source.splitToSequence('\n').filterNot { line ->
+internal fun removeWatchLaterTrackOptions(source: String, kind: RememberedTrackKind): String {
+    var output: StringBuilder? = null
+    var offset = 0
+    var keptLine = false
+    for (line in source.splitToSequence('\n')) {
         val option = line.trimStart().removePrefix("--")
-        '=' in option && option.substringBefore('=').trimEnd() in kind.resumeKeys
-    }.joinToString("\n")
+        if ('=' in option && option.substringBefore('=').trimEnd() in kind.resumeKeys) {
+            if (output == null) {
+                output = StringBuilder().append(source, 0, (offset - 1).coerceAtLeast(0))
+                keptLine = offset > 0
+            }
+        } else if (output != null) {
+            if (keptLine) output.append('\n')
+            output.append(line)
+            keptLine = true
+        }
+        offset += line.length + 1
+    }
+    return output?.toString() ?: source
+}

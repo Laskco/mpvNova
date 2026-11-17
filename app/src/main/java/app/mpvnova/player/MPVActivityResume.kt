@@ -20,10 +20,7 @@ internal fun MPVActivity.resumeIdentityFromSource(source: String?): ResumeIdenti
         }
         RESUME_HASH_REGEX.find(path)?.let { match ->
             val hash = match.groupValues[1].lowercase(Locale.US)
-            val lastSegment = path
-                .split('/')
-                .lastOrNull { it.isNotBlank() && !it.equals(hash, ignoreCase = true) }
-            val fileToken = lastSegment
+            val fileToken = lastResumePathSegment(path, hash)
                 ?.lowercase(Locale.US)
                 ?.replace(FILE_EXTENSION_REGEX, "")
                 ?.replace(NON_ALNUM_REGEX, "-")
@@ -33,6 +30,17 @@ internal fun MPVActivity.resumeIdentityFromSource(source: String?): ResumeIdenti
             ResumeIdentity(hash, fileToken)
         }
     }
+}
+
+internal fun lastResumePathSegment(path: String, hash: String): String? {
+    var end = path.length
+    while (end > 0) {
+        val delimiter = path.lastIndexOf('/', end - 1)
+        val segment = path.substring(delimiter + 1, end)
+        if (segment.isNotBlank() && !segment.equals(hash, ignoreCase = true)) return segment
+        end = delimiter
+    }
+    return null
 }
 
 internal fun MPVActivity.resumeKey(identity: ResumeIdentity): String {
@@ -110,21 +118,12 @@ internal fun MPVActivity.clearFinishedPositions() {
 internal fun MPVActivity.pruneResumeTable() {
     val prefs = getDefaultSharedPreferences(applicationContext)
     val now = System.currentTimeMillis()
-    val entries = prefs.all.asSequence()
-        .filter { it.key.startsWith("resume:") }
-        .mapNotNull { e ->
-            val v = e.value as? String ?: return@mapNotNull null
-            val parts = v.split("|")
-            if (parts.size < RESUME_ENTRY_PART_COUNT) return@mapNotNull null
-            val ts = parts[RESUME_ENTRY_TIMESTAMP_INDEX].toLongOrNull() ?: return@mapNotNull null
-            e.key to ts
-        }
-        .toList()
-
     val toDelete = mutableListOf<String>()
     val recent = mutableListOf<Pair<String, Long>>()
-    for (e in entries) {
-        if (now - e.second > RESUME_TABLE_MAX_AGE_MS) toDelete.add(e.first) else recent.add(e)
+    for ((key, value) in prefs.all) {
+        val timestamp = (value as? String)?.takeIf { key.startsWith("resume:") }
+            ?.let(::resumeEntryTimestamp) ?: continue
+        if (now - timestamp > RESUME_TABLE_MAX_AGE_MS) toDelete.add(key) else recent.add(key to timestamp)
     }
     if (recent.size > RESUME_TABLE_MAX_ENTRIES) {
         val sorted = recent.sortedBy { it.second }
@@ -136,8 +135,16 @@ internal fun MPVActivity.pruneResumeTable() {
         for (k in toDelete) editor.remove(k)
         editor.apply()
         Log.v(MPV_ACTIVITY_TAG, "resume: pruned ${toDelete.size} stale entries " +
-                "(${entries.size - toDelete.size} remain)")
+                "(${minOf(recent.size, RESUME_TABLE_MAX_ENTRIES)} remain)")
     }
+}
+
+internal fun resumeEntryTimestamp(entry: String): Long? {
+    val first = entry.indexOf('|')
+    val second = if (first < 0) -1 else entry.indexOf('|', first + 1)
+    if (second < 0) return null
+    val end = entry.indexOf('|', second + 1).takeIf { it >= 0 } ?: entry.length
+    return entry.substring(second + 1, end).toLongOrNull()
 }
 
 /** Format a resume-table millisecond timestamp as MM:SS / H:MM:SS for the toast. */

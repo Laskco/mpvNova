@@ -319,6 +319,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
 
                 ArrayList<File> files = new ArrayList<>(listFiles.length);
+                ArrayList<File> directories = new ArrayList<>();
                 for (File f : listFiles) {
                     if (isLoadInBackgroundCanceled())
                         return new ArrayList<>(0);
@@ -326,12 +327,13 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                         continue;
                     if (predicate != null && !predicate.accept(f))
                         continue;
-                    files.add(f);
+                    (f.isDirectory() ? directories : files).add(f);
                 }
 
-                Collections.sort(files, (lhs, rhs) -> compareFiles(lhs, rhs));
-
-                return files;
+                Collections.sort(directories, (lhs, rhs) -> naturalCompare(lhs.getName(), rhs.getName()));
+                Collections.sort(files, (lhs, rhs) -> naturalCompare(lhs.getName(), rhs.getName()));
+                directories.addAll(files);
+                return directories;
             }
 
             /**
@@ -407,26 +409,6 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                 }
             }
         };
-    }
-
-    /**
-     * Compare two files to determine their relative sort order. This follows the usual
-     * comparison interface. Override to determine your own custom sort order.
-     * <p/>
-     * Default behaviour is to place directories before files, but sort them in natural order
-     * otherwise.
-     * Runs on the loader's worker thread; overrides must not access views or activity contexts.
-     *
-     * @param lhs File on the "left-hand side"
-     * @param rhs File on the "right-hand side"
-     * @return -1 if if lhs should be placed before rhs, 0 if they are equal,
-     * and 1 if rhs should be placed before lhs
-     */
-    protected int compareFiles(@NonNull File lhs, @NonNull File rhs) {
-        final boolean ldir = lhs.isDirectory(), rdir = rhs.isDirectory();
-        if (ldir != rdir)
-            return rdir ? 1 : -1;
-        return naturalCompare(lhs.getName(), rhs.getName());
     }
 
     private static final String TAG = "mpv";

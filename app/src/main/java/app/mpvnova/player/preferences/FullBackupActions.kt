@@ -206,6 +206,7 @@ object FullBackupActions {
 
     private fun extractAndValidateArchive(archive: File, destination: File) {
         destination.mkdirs()
+        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
         val seen = HashSet<String>()
         var totalBytes = 0L
         var entryCount = 0
@@ -214,7 +215,7 @@ object FullBackupActions {
             while (entry != null) {
                 entryCount++
                 requireValidBackup(entryCount <= MAX_ARCHIVE_ENTRIES, "Too many backup entries")
-                totalBytes += extractArchiveEntry(zip, entry, destination, seen, MAX_BACKUP_BYTES - totalBytes)
+                totalBytes += extractArchiveEntry(zip, entry, destination, seen, MAX_BACKUP_BYTES - totalBytes, buffer)
                 zip.closeEntry()
                 entry = zip.nextEntry
             }
@@ -231,6 +232,7 @@ object FullBackupActions {
         destination: File,
         seen: MutableSet<String>,
         remainingBytes: Long,
+        buffer: ByteArray,
     ): Long {
         val name = entry.name.replace('\\', '/')
         requireValidBackup(seen.add(name) && isAllowedEntry(name), "Invalid backup entry")
@@ -239,7 +241,7 @@ object FullBackupActions {
         ensureInside(destination, target)
         target.parentFile?.mkdirs()
         return FileOutputStream(target).use { output ->
-            zip.copyLimitedTo(output, minOf(perEntryLimit(name), remainingBytes))
+            zip.copyLimitedTo(output, minOf(perEntryLimit(name), remainingBytes), buffer)
         }
     }
 
@@ -692,6 +694,7 @@ object FullBackupActions {
     private class BackupArchiveWriter(private val zip: ZipOutputStream) {
         private var totalBytes = 0L
         private val names = HashSet<String>()
+        private val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 
         fun textEntry(name: String, text: String) {
             val bytes = text.toByteArray(Charsets.UTF_8)
@@ -709,15 +712,16 @@ object FullBackupActions {
             requireValidBackup(names.size <= MAX_ARCHIVE_ENTRIES, "Too many backup entries")
             zip.putNextEntry(ZipEntry(name))
             // Count actual bytes, including metadata and URI assets, even if a source grows after preflight.
-            totalBytes += input.copyLimitedTo(zip, remainingLimit(name))
+            totalBytes += input.copyLimitedTo(zip, remainingLimit(name), buffer)
             zip.closeEntry()
         }
 
         private fun remainingLimit(name: String) = minOf(perEntryLimit(name), MAX_BACKUP_BYTES - totalBytes)
     }
 
-    private fun InputStream.copyLimitedTo(output: java.io.OutputStream, limit: Long): Long {
-        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    private fun InputStream.copyLimitedTo(
+        output: java.io.OutputStream, limit: Long, buffer: ByteArray = ByteArray(DEFAULT_BUFFER_SIZE),
+    ): Long {
         var total = 0L
         while (true) {
             val read = read(buffer)

@@ -90,8 +90,9 @@ internal object UserShaderManager {
             .filter { file ->
                 file.isFile && file.extension.lowercase(Locale.ROOT) in extensions
             }
-            .sortedBy { file -> file.name.lowercase(Locale.ROOT) }
-            .map { file -> Uri.fromFile(file) }
+            .map { file -> file to file.name.lowercase(Locale.ROOT) }
+            .sortedBy { it.second }
+            .map { (file, _) -> Uri.fromFile(file) }
             .toList()
     }
 
@@ -368,7 +369,18 @@ internal object UserShaderManager {
     }
 
     private fun shaderHash(root: File, shader: UserShader): String? =
-        runCatching { File(root, shader.fileName).readBytes().sha256() }.getOrNull()
+        runCatching {
+            val digest = MessageDigest.getInstance("SHA-256")
+            File(root, shader.fileName).inputStream().use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                var read = input.read(buffer)
+                while (read >= 0) {
+                    digest.update(buffer, 0, read)
+                    read = input.read(buffer)
+                }
+            }
+            digest.digest().sha256Hex()
+        }.getOrNull()
 
     private fun readShader(context: Context, uri: Uri): ByteArray {
         return when (uri.scheme?.lowercase(Locale.ROOT)) {
@@ -494,8 +506,9 @@ internal object UserShaderManager {
             File(fileName).extension.lowercase(Locale.ROOT) in extensions
 
     private fun ByteArray.sha256(): String = MessageDigest.getInstance("SHA-256")
-        .digest(this)
-        .joinToString("") { byte -> "%02x".format(byte) }
+        .digest(this).sha256Hex()
+
+    private fun ByteArray.sha256Hex(): String = joinToString("") { byte -> "%02x".format(byte) }
 
     private const val MAX_DISPLAY_NAME_LENGTH = 160
 }
