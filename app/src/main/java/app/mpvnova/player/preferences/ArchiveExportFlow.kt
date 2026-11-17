@@ -26,6 +26,58 @@ import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+internal fun createRetainedExportArchive(
+    directory: File,
+    filenamePrefix: String,
+    timestamp: String,
+    writeArchive: (File) -> Unit,
+): File {
+    if (!directory.isDirectory && !directory.mkdirs() && !directory.isDirectory) {
+        throw IOException("Could not create export cache directory")
+    }
+    synchronized(ARCHIVE_RETENTION_LOCK) {
+        val cutoff = System.currentTimeMillis() - ARCHIVE_RETENTION_MS
+        directory.listFiles()?.forEach { file ->
+            val isExportArchive = file.name.startsWith(filenamePrefix) && file.extension == "zip"
+            if (isExportArchive && file.isFile && file.lastModified() in 1L..cutoff) {
+                file.delete()
+            }
+        }
+    }
+    val archive = File.createTempFile("$filenamePrefix$timestamp-", ".zip", directory)
+    var completed = false
+    try {
+        writeArchive(archive)
+        refreshExportArchiveRetention(archive)
+        scheduleExportArchiveCleanup(archive, ARCHIVE_RETENTION_MS)
+        completed = true
+        return archive
+    } finally {
+        if (!completed) archive.delete()
+    }
+}
+
+private fun refreshExportArchiveRetention(archive: File) {
+    synchronized(ARCHIVE_RETENTION_LOCK) {
+        if (!archive.setLastModified(System.currentTimeMillis())) {
+            throw IOException("Export archive is unavailable")
+        }
+    }
+}
+
+private fun scheduleExportArchiveCleanup(archive: File, delayMs: Long) {
+    ARCHIVE_EXPORT_IO_EXECUTOR.schedule({
+        synchronized(ARCHIVE_RETENTION_LOCK) {
+            val modified = archive.lastModified()
+            if (modified == 0L) return@synchronized
+            val remaining = ARCHIVE_RETENTION_MS - (System.currentTimeMillis() - modified)
+            if (remaining <= 0L) archive.delete()
+            else scheduleExportArchiveCleanup(archive, minOf(remaining, ARCHIVE_RETENTION_MS))
+        }
+    }, delayMs, TimeUnit.MILLISECONDS)
+}
 
 internal fun showSupportBundleExportFlow(activity: Activity, bundle: File) {
     ArchiveExportFlow(activity, bundle, SUPPORT_EXPORT_LABELS).show()
@@ -82,6 +134,7 @@ private class ArchiveExportFlow(
         val progress = activity.showSettingsProgressDialog(activity.getString(labels.saving))
         ARCHIVE_EXPORT_IO_EXECUTOR.execute {
             val result = runCatching {
+                refreshExportArchiveRetention(archive)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     saveToDownloadsMediaStore()
                 } else {
@@ -133,9 +186,11 @@ private class ArchiveExportFlow(
             }.use { output -> archive.inputStream().use { input -> input.copyTo(output) } }
             values.clear()
             values.put(MediaStore.Downloads.IS_PENDING, 0)
-            resolver.update(uri, values, null, null)
-        }.onFailure {
-            resolver.delete(uri, null, null)
+            if (resolver.update(uri, values, null, null) != 1) {
+                throw IOException("Could not publish Downloads entry")
+            }
+        }.onFailure { error ->
+            runCatching { resolver.delete(uri, null, null) }.onFailure(error::addSuppressed)
         }.getOrThrow()
         return archive.name
     }
@@ -143,11 +198,17 @@ private class ArchiveExportFlow(
     @Suppress("DEPRECATION")
     private fun saveToLegacyDownloads(): String {
         val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        if (!downloads.exists() && !downloads.mkdirs()) {
+        if (!downloads.isDirectory && !downloads.mkdirs() && !downloads.isDirectory) {
             throw IOException("Could not create Downloads directory")
         }
-        val target = uniqueDownloadFile(downloads, archive.name)
-        archive.copyTo(target, overwrite = false)
+        val target = reserveLegacyDownloadFile(downloads, archive.name)
+        runCatching {
+            archive.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
+        }.onFailure { error ->
+            runCatching {
+                if (!target.delete() && target.exists()) throw IOException("Could not remove partial download")
+            }.onFailure(error::addSuppressed)
+        }.getOrThrow()
         return target.name
     }
 
@@ -187,11 +248,14 @@ private class ArchiveExportFlow(
         val (shareIntent, uri) = buildShareIntent()
         shareIntent.component = ComponentName(target.packageName, target.className)
         try {
+            refreshExportArchiveRetention(archive)
             activity.grantUriPermission(target.packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             activity.startActivity(shareIntent)
         } catch (_: ActivityNotFoundException) {
             Toast.makeText(activity, labels.shareFailed, Toast.LENGTH_SHORT).show()
         } catch (_: SecurityException) {
+            Toast.makeText(activity, labels.shareFailed, Toast.LENGTH_SHORT).show()
+        } catch (_: IOException) {
             Toast.makeText(activity, labels.shareFailed, Toast.LENGTH_SHORT).show()
         }
     }
@@ -212,16 +276,16 @@ private class ArchiveExportFlow(
     }
 }
 
-private fun uniqueDownloadFile(directory: File, filename: String): File {
+private fun reserveLegacyDownloadFile(directory: File, filename: String): File {
     var target = File(directory, filename)
-    if (!target.exists()) return target
     val base = target.nameWithoutExtension
     val extension = target.extension.takeIf(String::isNotBlank)?.let { ".$it" }.orEmpty()
     var index = 2
-    do {
+    // Claim the path before copying so a colliding file is never truncated or removed.
+    while (!target.createNewFile()) {
         target = File(directory, "$base-$index$extension")
         index++
-    } while (target.exists())
+    }
     return target
 }
 
@@ -276,7 +340,9 @@ private data class ArchiveShareTarget(
 private const val LOCALSEND_PACKAGE = "org.localsend.localsend_app"
 private const val ARCHIVE_MIME_TYPE = "application/zip"
 private const val REQUEST_WRITE_DOWNLOADS = 24061
-private val ARCHIVE_EXPORT_IO_EXECUTOR = Executors.newSingleThreadExecutor { runnable ->
+private const val ARCHIVE_RETENTION_MS = 60 * 60 * 1000L
+private val ARCHIVE_RETENTION_LOCK = Any()
+private val ARCHIVE_EXPORT_IO_EXECUTOR = Executors.newSingleThreadScheduledExecutor { runnable ->
     Thread(runnable, "mpvNova-archive-export")
 }
 

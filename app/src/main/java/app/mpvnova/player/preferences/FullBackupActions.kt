@@ -6,6 +6,8 @@ import android.content.SharedPreferences
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.system.ErrnoException
+import android.system.Os
 import android.util.Log
 import android.widget.Toast
 import androidx.preference.PreferenceManager
@@ -38,11 +40,6 @@ import java.util.zip.ZipOutputStream
 object FullBackupActions {
     const val MIME_TYPE = "application/zip"
 
-    fun suggestedFilename(): String {
-        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        return "mpvNova-backup-$stamp.zip"
-    }
-
     fun exportWithDestinationFlow(activity: Activity) {
         val progress = activity.showSettingsProgressDialog(
             activity.getString(R.string.full_backup_exporting)
@@ -70,18 +67,12 @@ object FullBackupActions {
     }
 
     private fun createShareableBackup(context: Context): File {
-        val backupDir = File(context.cacheDir, "full-backup").apply { mkdirs() }
-        backupDir.listFiles()?.forEach(File::delete)
-        val backup = File(backupDir, suggestedFilename())
-        var completed = false
-        try {
+        val backupDir = File(context.cacheDir, "full-backup")
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        return createRetainedExportArchive(backupDir, "mpvNova-backup-", stamp) { backup ->
             ZipOutputStream(backup.outputStream().buffered()).use { writeBackup(context, it) }
             // The importer also bounds the compressed input, including ZIP overhead.
             requireValidBackup(backup.length() <= MAX_BACKUP_BYTES, "Backup is too large")
-            completed = true
-            return backup
-        } finally {
-            if (!completed) backup.delete()
         }
     }
 
@@ -480,12 +471,25 @@ object FullBackupActions {
             deleteRequiredFile(target)
             return
         }
-        target.parentFile?.mkdirs()
-        val temporary = File(target.parentFile, ".${target.name}.restore")
-        source.copyTo(temporary, overwrite = true)
-        if ((!target.exists() || target.delete()) && temporary.renameTo(target)) return
-        temporary.delete()
-        throw IOException("Could not replace ${target.name}")
+        val parent = checkNotNull(target.absoluteFile.parentFile)
+        if (!parent.isDirectory && !parent.mkdirs() && !parent.isDirectory) {
+            throw IOException("Could not create restore directory")
+        }
+        val temporary = File.createTempFile(".${target.name}-", ".restore", parent)
+        try {
+            source.inputStream().use { input ->
+                temporary.outputStream().use { output ->
+                    input.copyTo(output)
+                    output.fd.sync()
+                }
+            }
+            // A same-directory POSIX rename replaces the target without first unlinking it.
+            Os.rename(temporary.absolutePath, target.absolutePath)
+        } catch (error: ErrnoException) {
+            throw IOException("Could not replace ${target.name}", error)
+        } finally {
+            temporary.delete()
+        }
     }
 
     private fun deleteRequiredFile(target: File) {

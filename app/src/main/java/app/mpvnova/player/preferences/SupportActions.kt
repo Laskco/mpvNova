@@ -31,6 +31,7 @@ import app.mpvnova.player.mpeg2SoftwareFallbackEnabled
 import app.mpvnova.player.toShieldDecoderFallback
 import app.mpvnova.player.sanitizeMpvLogText
 import java.io.File
+import java.io.FileNotFoundException
 import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -116,12 +117,13 @@ object SupportActions {
 
     private fun createSupportBundle(context: Context): File {
         val supportDir = File(context.cacheDir, "support")
-        if (!supportDir.exists())
-            supportDir.mkdirs()
-        supportDir.listFiles()?.forEach { it.delete() }
-
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
-        val bundle = File(supportDir, "mpvNova-support-$stamp.zip")
+        return createRetainedExportArchive(supportDir, "mpvNova-support-", stamp) { bundle ->
+            writeSupportBundle(context, bundle)
+        }
+    }
+
+    private fun writeSupportBundle(context: Context, bundle: File) {
         val logcat = captureCurrentProcessLogcat()
         val exitHistory = captureExitHistory(context)
         ZipOutputStream(bundle.outputStream()).use { zip ->
@@ -136,13 +138,12 @@ object SupportActions {
             zip.textEntry("media-codecs.txt", buildCodecReport())
             zip.configEntry(context, "mpv.conf")
             zip.configEntry(context, "input.conf")
-            zip.textEntry("mpv-log.txt", sanitizeMpvLogText(buildMpvLogDump()))
+            zip.writeSupportMpvLogEntry(MpvLogRingBuffer.previousSessionText(), MpvLogRingBuffer.snapshot())
             zip.textEntry("android-logcat.txt", logcat.text)
             zip.textEntry("exit-history.txt", exitHistory.summary)
             exitHistory.traces.forEach { (name, content) -> zip.textEntry(name, content) }
             zip.crashEntries(context)
         }
-        return bundle
     }
 
     fun resetPlayerUiSettings(activity: Activity) {
@@ -235,12 +236,6 @@ object SupportActions {
         textEntry(filename, content)
     }
 
-    private fun ZipOutputStream.textEntry(name: String, content: String) {
-        putNextEntry(ZipEntry(name))
-        write(content.toByteArray(Charsets.UTF_8))
-        closeEntry()
-    }
-
     /**
      * Emit every persistent crash file the [CrashReporter] has written and any
      * reports left in the legacy cache location into the bundle
@@ -256,26 +251,14 @@ object SupportActions {
         }.distinctBy { it.name }
         if (files.isEmpty()) return
         for (file in files.sortedBy { it.lastModified() }) {
-            textEntry("crashes/${file.name}", sanitizeMpvLogText(file.readText()))
-        }
-    }
-
-    private fun buildMpvLogDump(): String {
-        val previous = MpvLogRingBuffer.previousSessionText().trimEnd()
-        val lines = MpvLogRingBuffer.snapshot()
-        if (previous.isEmpty() && lines.isEmpty()) {
-            return "No mpv log lines captured in this or the previous process.\n"
-        }
-        return buildString {
-            if (previous.isNotEmpty()) {
-                appendLine("Previous mpvNova process (last bounded session snapshot):")
-                appendLine(previous)
+            val content = try {
+                file.readText()
+            } catch (error: FileNotFoundException) {
+                // A concurrent crash can prune this report after the directory was listed.
+                if (!file.exists()) continue
+                throw error
             }
-            if (lines.isNotEmpty()) {
-                if (previous.isNotEmpty()) appendLine()
-                appendLine("Current mpvNova process (last ${lines.size} mpv log lines):")
-                for (line in lines) appendLine(line)
-            }
+            textEntry("crashes/${file.name}", sanitizeMpvLogText(content))
         }
     }
 
@@ -292,6 +275,31 @@ object SupportActions {
     }
 
     private const val AMAZON_FEATURE_FIRE_TV = "amazon.hardware.fire_tv"
+}
+
+private fun ZipOutputStream.textEntry(name: String, content: String) {
+    putNextEntry(ZipEntry(name))
+    write(content.toByteArray(Charsets.UTF_8))
+    closeEntry()
+}
+
+internal fun ZipOutputStream.writeSupportMpvLogEntry(previousSessionText: String, lines: List<String>) {
+    val previous = previousSessionText.trimEnd()
+    val log = if (previous.isEmpty() && lines.isEmpty()) {
+        "No mpv log lines captured in this or the previous process.\n"
+    } else buildString {
+        if (previous.isNotEmpty()) {
+            appendLine("Previous mpvNova process (last bounded session snapshot):")
+            appendLine(previous)
+        }
+        if (lines.isNotEmpty()) {
+            if (previous.isNotEmpty()) appendLine()
+            appendLine("Current mpvNova process (last ${lines.size} mpv log lines):")
+            for (line in lines) appendLine(line)
+        }
+    }
+    // Previous sessions can contain logs saved before capture-time redaction was added.
+    textEntry("mpv-log.txt", sanitizeMpvLogText(log))
 }
 
 private data class SupportCapture(
