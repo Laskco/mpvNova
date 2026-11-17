@@ -39,11 +39,10 @@ internal fun normalizeTrackTitleTokens(title: String): Set<String> {
  * should match a candidate "[Group] Signs & Songs (en)" cleanly even
  * though the candidate has extra release-group cruft.
  */
-internal fun titleSimilarityScore(saved: String, candidate: String): Double {
-    val savedTokens = normalizeTrackTitleTokens(saved)
+internal fun titleSimilarityScore(savedTokens: Set<String>, candidate: String): Double {
+    if (savedTokens.isEmpty()) return 0.0
     val candidateTokens = normalizeTrackTitleTokens(candidate)
-    if (savedTokens.isEmpty() || candidateTokens.isEmpty()) return 0.0
-    val common = savedTokens.intersect(candidateTokens).size
+    val common = savedTokens.count { it in candidateTokens }
     return common.toDouble() / savedTokens.size.toDouble()
 }
 
@@ -51,14 +50,14 @@ internal fun bestTrackTitleMatch(
     tracks: List<TrackMeta>, savedTitle: String, type: String, savedForced: Boolean = false,
     savedLang: String = "",
 ): Pair<TrackMeta?, Double> {
+    val savedTokens = normalizeTrackTitleTokens(savedTitle)
+    val subtitle = type == "sub"
+    val savedSigns = subtitle && isLimitedSubtitleTrack(savedTitle, savedForced, savedLang)
     var bestMatch: TrackMeta? = null
     var bestScore = 0.0
     tracks.forEach { track ->
-        val score = if (type == "sub") {
-            subtitleTitleSimilarityScore(savedTitle, track.title, savedForced, track.forced, savedLang, track.lang)
-        } else {
-            titleSimilarityScore(savedTitle, track.title)
-        }
+        val candidateSigns = subtitle && isLimitedSubtitleTrack(track.title, track.forced, track.lang)
+        val score = trackTitleScore(savedTokens, track.title, savedSigns, candidateSigns)
         if (score > bestScore) {
             bestScore = score
             bestMatch = track
@@ -82,18 +81,15 @@ internal fun rememberedTrackMatch(
     return match.takeIf { score >= TRACK_MEMORY_MIN_SCORE } to score
 }
 
-internal fun subtitleTitleSimilarityScore(
-    saved: String, candidate: String, savedForced: Boolean = false, candidateForced: Boolean = false,
-    savedLang: String = "", candidateLang: String = "",
+private fun trackTitleScore(
+    savedTokens: Set<String>, candidate: String, savedSigns: Boolean, candidateSigns: Boolean,
 ): Double {
-    val savedSigns = isLimitedSubtitleTrack(saved, savedForced, savedLang)
-    val candidateSigns = isLimitedSubtitleTrack(candidate, candidateForced, candidateLang)
     // Shared language/source/group words must not turn a Signs choice into full dialogue (or vice versa).
     return when {
         savedSigns != candidateSigns -> 0.0
         savedSigns -> TRACK_MEMORY_MIN_SCORE +
-            (1.0 - TRACK_MEMORY_MIN_SCORE) * titleSimilarityScore(saved, candidate)
-        else -> titleSimilarityScore(saved, candidate)
+            (1.0 - TRACK_MEMORY_MIN_SCORE) * titleSimilarityScore(savedTokens, candidate)
+        else -> titleSimilarityScore(savedTokens, candidate)
     }
 }
 

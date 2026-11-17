@@ -21,14 +21,15 @@ private const val PREF_SUBTITLE_OPT_IN_RESET = "preferred_subtitles_opt_in_reset
 internal fun MPVActivity.applyPreferredLanguageSubtitles(): Boolean {
     val prefs = getDefaultSharedPreferences(applicationContext)
     if (!prefs.getBoolean(PREF_LIMIT_PREFERRED_LANGUAGE_SUBTITLES, false)) return false
-    val audioLanguage = listTrackMeta("audio").firstOrNull { it.mpvId == player.aid }?.lang.orEmpty()
-    val candidates = limitedSubtitlesForPreferredAudio(
+    val audioLanguage = findTrackMeta("audio", player.aid)?.lang?.let(::normalizedLanguage) ?: return false
+    val preferredAudio = prefs.getString("default_audio_language", "eng").orEmpty()
+    if (audioLanguage !in preferredLanguageCodes(preferredAudio)) return false
+    val candidates = rankPreferredSubtitles(
         audioLanguage,
-        prefs.getString("default_audio_language", "eng").orEmpty(),
         prefs.getString("default_subtitle_language", "eng").orEmpty(),
         listTrackMeta("sub"),
         player.sid,
-    ) ?: return false
+    )
     // Constrain mpv's later autoselection too; explicit manual selections still work.
     mpvSetPropertyString("file-local-options/subs-with-matching-audio", "forced")
     selectTrackForFile("sub", candidates.firstOrNull()?.mpvId ?: -1)
@@ -39,21 +40,34 @@ internal fun limitedSubtitlesForPreferredAudio(
     audioLanguage: String, preferredAudio: String, preferredSubtitles: String, tracks: List<TrackMeta>,
     currentSubtitle: Int? = null,
 ): List<TrackMeta>? {
-    val audioLanguages = preferredAudio.split(',').map(String::trim).filter(String::isNotEmpty)
-    if (audioLanguages.none { subtitleLanguageMatches(audioLanguage, it) }) return null
-    val subtitleLanguages = preferredSubtitles.split(',').map(String::trim).filter(String::isNotEmpty)
+    val audio = normalizedLanguage(audioLanguage) ?: return null
+    return if (audio in preferredLanguageCodes(preferredAudio)) {
+        rankPreferredSubtitles(audio, preferredSubtitles, tracks, currentSubtitle)
+    } else null
+}
+
+private fun rankPreferredSubtitles(
+    audioLanguage: String, preferredSubtitles: String, tracks: List<TrackMeta>, currentSubtitle: Int?,
+): List<TrackMeta> {
     // Without a configured subtitle language, use the selected (understood) audio language.
-    val languages = subtitleLanguages.ifEmpty { listOf(audioLanguage) }
-    return tracks.filter { track ->
-        val companionLanguage = track.lang.takeIf { subtitleLanguageMatches(it, audioLanguage) }.orEmpty()
-        isCompanionSubtitleTrack(track.title, track.forced, companionLanguage) &&
-            (languages.any { subtitleLanguageMatches(track.lang, it) } ||
+    val languages = preferredLanguageCodes(preferredSubtitles).ifEmpty { setOf(audioLanguage) }.toList()
+    return tracks.mapNotNull { track ->
+        val language = normalizedLanguage(track.lang)
+        val rank = languages.indexOf(language)
+        val companionLanguage = track.lang.takeIf { language == audioLanguage }.orEmpty()
+        val eligible = isCompanionSubtitleTrack(track.title, track.forced, companionLanguage) &&
+            (rank >= 0 ||
                 isCompanionSubtitleTrack(track.title, track.forced) ||
                 (track.lang.isBlank() && track.mpvId == currentSubtitle))
-    }.sortedBy { track ->
-        languages.indexOfFirst { subtitleLanguageMatches(track.lang, it) }.takeIf { it >= 0 } ?: Int.MAX_VALUE
-    }
+        if (eligible) track to (rank.takeIf { it >= 0 } ?: Int.MAX_VALUE) else null
+    }.sortedBy { it.second }.map { it.first }
 }
+
+private fun preferredLanguageCodes(languages: String): Set<String> =
+    languages.splitToSequence(',').mapNotNull(::normalizedLanguage).toCollection(linkedSetOf())
+
+private fun normalizedLanguage(language: String): String? =
+    language.takeIf(String::isNotBlank)?.let(::subtitleLanguageCode)
 
 internal fun subtitleLanguageMatches(first: String, second: String): Boolean =
     first.isNotBlank() && second.isNotBlank() && subtitleLanguageCode(first) == subtitleLanguageCode(second)

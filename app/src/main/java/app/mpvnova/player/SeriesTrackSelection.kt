@@ -28,10 +28,22 @@ internal data class SavedSeriesTrack(
         }
         val exact = rememberedDuplicateTrack(compatible, title, language, forced, duplicateIndex, duplicateCount)
             ?: compatible.firstOrNull { it.title.equals(title, ignoreCase = true) }
-        val scored = compatible.maxByOrNull { titleSimilarityScore(title, it.title) }
-            ?.takeIf { companion || titleSimilarityScore(title, it.title) >= TRACK_MEMORY_MIN_SCORE }
         // Keep language and subtitle kind when releases rename their tracks. Never use old IDs.
-        return (exact ?: scored ?: compatible.singleOrNull())?.mpvId
+        return (exact ?: bestScoredTrack(compatible, companion) ?: compatible.singleOrNull())?.mpvId
+    }
+
+    private fun bestScoredTrack(compatible: List<TrackMeta>, companion: Boolean): TrackMeta? {
+        val tokens = normalizeTrackTitleTokens(title)
+        var best: TrackMeta? = null
+        var bestScore = if (companion) 0.0 else TRACK_MEMORY_MIN_SCORE
+        for (track in compatible) {
+            val score = titleSimilarityScore(tokens, track.title)
+            if (score > bestScore || (best == null && score == bestScore)) {
+                best = track
+                bestScore = score
+            }
+        }
+        return best
     }
 
     private fun memoryLanguageMatches(track: TrackMeta, type: String): Boolean {
