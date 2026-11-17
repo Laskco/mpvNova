@@ -62,4 +62,4 @@ internal fun MPVActivity.applyFileTrackSelections(preserveForwardedSubtitles: Bo
     }
 }
 
-private const val SERIES_TRACK_SELECTIONS_KEY = "series_track_selections_v1"
+internal const val SERIES_TRACK_SELECTIONS_KEY = "series_track_selections_v1"

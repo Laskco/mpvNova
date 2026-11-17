@@ -128,6 +128,7 @@ Optional: [Compile mpvNova for speed after sideloading](docs/speed-compilation.m
 - Decoder and buffering settings
 - Shader management
 - Playback resume and per-series preferences
+- Clear remembered audio or subtitle choices in **Settings > Advanced > Remembered tracks**
 - Settings backup and restore
 - In-app updates
 

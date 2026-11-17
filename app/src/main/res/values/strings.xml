@@ -1126,6 +1126,15 @@
     <string name="settings_category_decoder">Hardware decoding</string>
     <string name="settings_category_device_compatibility">Device compatibility</string>
     <string name="settings_category_configuration">Configuration files</string>
+    <string name="settings_category_remembered_tracks">Remembered tracks</string>
+    <string name="pref_clear_remembered_audio_title">Clear remembered audio choices</string>
+    <string name="pref_clear_remembered_subtitles_title">Clear remembered subtitle choices</string>
+    <string name="pref_clear_remembered_audio_message">Clear saved audio track choices for all media? Subtitle choices, language preferences, and playback positions will be kept.</string>
+    <string name="pref_clear_remembered_subtitles_message">Clear saved subtitle track choices for all media? Audio choices, subtitle styling, and playback positions will be kept.</string>
+    <string name="clearing_remembered_tracks">Clearing remembered tracks...</string>
+    <string name="remembered_audio_cleared">Remembered audio choices cleared.</string>
+    <string name="remembered_subtitles_cleared">Remembered subtitle choices cleared.</string>
+    <string name="clear_remembered_tracks_incomplete">Some saved track choices could not be cleared.</string>
     <string name="settings_category_diagnostics">Playback diagnostics</string>
     <string name="settings_category_experimental">Experimental</string>
     <string name="pref_experimental_ass_edges_title">ASS performance rendering</string>

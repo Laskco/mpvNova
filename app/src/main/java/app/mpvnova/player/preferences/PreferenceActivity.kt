@@ -1020,6 +1020,7 @@ class PreferenceActivity : AppCompatActivity(),
         }
 
         override fun onPreferencesLoaded() {
+            bindTrackMemorySettings()
             val autoFallbackPref = findPreference<SwitchPreferenceCompat>("decoder_auto_fallback")
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
 

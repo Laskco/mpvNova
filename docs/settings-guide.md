@@ -202,6 +202,8 @@ Open the player's **Subtitles** panel for tracks, **Open external subtitle**, an
 | Size, position, and delay | Adjusts subtitle scale, vertical placement, and synchronization through the custom panel. Secondary controls are separate where offered. |
 | Persist subtitle settings | Keeps subtitle tweaks and remembered manual track choices for following files. Matching uses language and track identity/title information rather than assuming track numbers stay the same. |
 
+In **Settings > Advanced > Remembered tracks**, clear all saved audio or subtitle track choices independently. This keeps playback positions, preferred languages, and subtitle styling.
+
 A manual choice can override automatic selection. Remembered choices depend on matching available tracks; missing or inconsistently labeled tracks cannot always be matched. Forced flags and Signs & Songs labels are hints, not an analysis of the subtitle dialogue.
 
 ### OpenSubtitles.com

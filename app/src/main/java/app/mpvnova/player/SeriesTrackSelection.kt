@@ -6,6 +6,11 @@ import org.json.JSONObject
 import java.text.Normalizer
 import java.util.Locale
 
+internal enum class RememberedTrackKind(val trackType: String, val resumeKeys: Set<String>) {
+    AUDIO("audio", setOf("aid")),
+    SUBTITLE("sub", setOf("sid", "secondary-sid")),
+}
+
 internal data class SavedSeriesTrack(
     val title: String,
     val language: String,
@@ -87,6 +92,21 @@ internal class SeriesTrackSelectionCache(serialized: String?) {
     }
 
     fun get(key: String): SeriesTrackSelection? = entries[key]
+
+    fun clear(kind: RememberedTrackKind) {
+        val iterator = entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            val remaining = when (kind) {
+                RememberedTrackKind.AUDIO -> entry.value.copy(audio = null)
+                RememberedTrackKind.SUBTITLE -> entry.value.copy(sub = null)
+            }
+            if (remaining.audio == null && remaining.sub == null) iterator.remove()
+            else entry.setValue(remaining)
+        }
+    }
+
+    fun isEmpty(): Boolean = entries.isEmpty()
 
     fun put(key: String, selection: SeriesTrackSelection) {
         if (key.isBlank() || key.length > SERIES_TRACK_TEXT_LIMIT) return

@@ -127,10 +127,27 @@ internal fun MPVActivity.setTrackForMemory(
     )
 }
 
-internal fun MPVActivity.trackMemoryKeys(type: String): Pair<String, String> = when (type) {
+private fun trackMemoryKeys(type: String): Pair<String, String> = when (type) {
     "sub"   -> "last_user_sub_title" to "last_user_sub_lang"
     "audio" -> "last_user_audio_title" to "last_user_audio_lang"
     else    -> throw IllegalArgumentException("unknown track type: $type")
+}
+
+internal fun clearTrackMemory(prefs: SharedPreferences, kind: RememberedTrackKind) {
+    val (titleKey, langKey) = trackMemoryKeys(kind.trackType)
+    val editor = prefs.edit().remove(titleKey).remove(langKey)
+    if (kind == RememberedTrackKind.SUBTITLE) {
+        editor.remove(TRACK_MEMORY_SUB_OFF_KEY)
+            .remove(TRACK_MEMORY_SUB_FORCED_KEY)
+            .remove(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY)
+            .remove(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY)
+            .remove(TRACK_MEMORY_SUB_SERIES_KEY)
+    }
+    val cache = SeriesTrackSelectionCache(prefs.getString(SERIES_TRACK_SELECTIONS_KEY, null))
+    cache.clear(kind)
+    if (cache.isEmpty()) editor.remove(SERIES_TRACK_SELECTIONS_KEY)
+    else editor.putString(SERIES_TRACK_SELECTIONS_KEY, cache.serialize())
+    editor.apply()
 }
 
 private const val TRACK_MEMORY_SUB_OFF_KEY = "last_user_sub_off"
