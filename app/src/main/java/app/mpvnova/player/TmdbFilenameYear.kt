@@ -18,13 +18,14 @@ internal object TmdbFilenameYear {
         val pathLike = name.contains('/') || name.contains('\\')
         if (pathLike || !extension.containsMatchIn(name)) return null
         val stem = name.replace(extension, "")
+        val titleIdentity = seriesTitleIdentity(title)
         val candidates = year.findAll(stem).mapNotNull { match ->
             val prefix = stem.substring(0, match.range.first).replace(separators, " ")
                 .let(::cleanTitleBrackets).trim(' ', '-')
             val suffix = stem.substring(match.range.last + 1).trimStart(' ', '.', '_', '-', ')', ']')
             val releaseTail = suffix.isEmpty() || releaseSuffix.containsMatchIn(suffix)
-            match.groupValues[1].toIntOrNull().takeIf { releaseTail && sameSeriesTitle(prefix, title) }
-        }.toList()
+            match.groupValues[1].toIntOrNull().takeIf { releaseTail && seriesTitleIdentity(prefix) == titleIdentity }
+        }
         return candidates.singleOrNull()
     }
 }

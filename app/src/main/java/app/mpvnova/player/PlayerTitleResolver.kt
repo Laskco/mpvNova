@@ -13,15 +13,16 @@ internal object PlayerTitleResolver {
         sourceTitle: String?,
         mediaTitle: String?,
         fileName: String?,
-    ): PlayerTitlePresentation? = resolveCleaned(
-        AnimeReleaseTitle.cleanSource(displayTitle, fileName),
-        AnimeReleaseTitle.cleanSource(sourceTitle, fileName),
-        AnimeReleaseTitle.cleanSource(mediaTitle, fileName),
-        AnimeReleaseTitle.cleanSource(fileName, fileName),
-        AnimeReleaseTitle.parse(sourceTitle) ?: AnimeReleaseTitle.parse(fileName),
-        sourceTitle?.let(AnimeReleaseTitle::parse) != null,
-    )?.let { presentation ->
-        presentation.copy(episodeTitle = presentation.episodeTitle ?: filenameEpisodeTitle(fileName, presentation))
+    ): PlayerTitlePresentation? {
+        val display = AnimeReleaseTitle.cleanSource(displayTitle, fileName)
+        val source = AnimeReleaseTitle.cleanSource(sourceTitle, fileName)
+        val media = AnimeReleaseTitle.cleanSource(mediaTitle, fileName)
+        val filename = AnimeReleaseTitle.cleanSource(fileName, fileName)
+        val sourceRelease = AnimeReleaseTitle.parse(sourceTitle)
+        val release = sourceRelease ?: AnimeReleaseTitle.parse(fileName)
+        return resolveCleaned(display, source, media, filename, release, sourceRelease != null)?.let { presentation ->
+            presentation.copy(episodeTitle = presentation.episodeTitle ?: filenameEpisodeTitle(fileName, presentation))
+        }
     }
 
     private fun resolveCleaned(
@@ -36,9 +37,7 @@ internal object PlayerTitleResolver {
             ?.replace(FINAL_MEDIA_EXTENSION_PATTERN, "")?.let { fallbackTitle ->
             val candidates = listOfNotNull(sourceTitle, fallbackTitle, mediaTitle, fileName)
                 .mapNotNull(::episodeTitleParts)
-            val primaryParts = episodeTitleParts(sourceTitle)
-                ?: episodeTitleParts(fallbackTitle)
-                ?: candidates.firstOrNull()
+            val primaryParts = candidates.firstOrNull()
             if (primaryParts == null) {
                 if (release != null && acceptsRelease(sourceTitle, release, fileName, sourceIsFilename)) {
                     release.copy(episodeTitle = release.episodeTitle

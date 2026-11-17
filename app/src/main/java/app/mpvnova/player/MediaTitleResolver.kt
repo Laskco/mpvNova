@@ -103,7 +103,7 @@ object MediaTitleResolver {
     private fun displayTitleFromCandidate(candidate: String): String? {
         val trimmed = titleSourceFromExtra(candidate)?.replace(FINAL_MEDIA_EXTENSION, "") ?: return null
         val seasonEpisode = SEASON_EPISODE_PATTERN.find(trimmed)
-        val releaseTag = RELEASE_TAG_PATTERN.find(trimmed)
+        val releaseTag = if (seasonEpisode == null) RELEASE_TAG_PATTERN.find(trimmed) else null
         val displayTitle = when {
             seasonEpisode != null -> trimmed.substring(0, seasonEpisode.range.last + 1)
             releaseTag != null && releaseTag.range.first > 0 -> trimmed.substring(0, releaseTag.range.first)

@@ -15,11 +15,8 @@ internal object AnitomyNg {
     }
 
     fun parse(filename: String): List<Pair<String, String>> {
-        if (filename.length > MAX_FILENAME_LENGTH) return emptyList()
-        val fields = if (available) parseNative(filename) else null
-        return fields?.asList()?.chunked(2)?.mapNotNull { pair ->
-            if (pair.size == 2) pair[0] to pair[1] else null
-        }.orEmpty()
+        val fields = if (filename.length <= MAX_FILENAME_LENGTH && available) parseNative(filename) else null
+        return fields?.let { List(it.size / 2) { index -> it[2 * index] to it[2 * index + 1] } }.orEmpty()
     }
 
     @JvmStatic

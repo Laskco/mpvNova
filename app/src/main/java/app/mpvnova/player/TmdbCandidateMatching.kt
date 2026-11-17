@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import org.json.JSONArray
 import org.json.JSONObject
 import java.text.Normalizer
 import java.util.Locale
@@ -77,21 +78,24 @@ internal class TmdbCandidateMatching(
             val alternatives = details.optJSONObject("alternative_titles")
                 ?.optJSONArray(if (query.isEpisode) "results" else "titles") ?: return null
             val translations = details.optJSONObject("translations")?.optJSONArray("translations") ?: return null
-            val names = (0 until alternatives.length()).mapNotNull {
-                val alternative = alternatives.optJSONObject(it) ?: return null
-                if (alternative.opt("title") !is String) return null
-                alternative.safeTitle("title")
-            } + (0 until translations.length()).mapNotNull {
-                val translated = translations.optJSONObject(it)?.optJSONObject("data") ?: return null
-                if (translated.opt(nameKey) !is String) return null
-                translated.safeTitle(nameKey)
-            }
-            names.any { normalizedTmdbTitle(it) == name }
+            val foundAlternative = alternatives.hasMatchingTitle("title", name) { it } ?: return null
+            translations.hasMatchingTitle(nameKey, name, foundAlternative) { it.optJSONObject("data") } ?: return null
         }
 
     companion object {
         private const val MAX_ALIAS_CANDIDATES = 4
     }
+}
+
+private inline fun JSONArray.hasMatchingTitle(
+    key: String, name: String, alreadyMatched: Boolean = false, select: (JSONObject) -> JSONObject?,
+): Boolean? {
+    var matched = alreadyMatched
+    for (index in 0 until length()) {
+        val entry = optJSONObject(index)?.let(select)?.takeIf { it.opt(key) is String } ?: return null
+        if (!matched) matched = entry.safeTitle(key)?.let(::normalizedTmdbTitle) == name
+    }
+    return matched
 }
 
 private val LATIN_DIACRITICS = Regex("[\\u0300-\\u036f]")

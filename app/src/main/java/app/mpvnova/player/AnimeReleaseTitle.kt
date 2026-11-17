@@ -77,21 +77,21 @@ internal object AnimeReleaseTitle {
         val bracketed = findBracketedTitle(withoutGroup, normalized)
         val parseName = bracketed?.let { withoutGroup.replaceRange(it.range, it.groupValues[1]) } ?: normalized
         val elements = elements(normalizeBracketedEpisode(parseName))
-        fun single(kind: String) = elements.filter { it.first == kind }.map { it.second }.singleOrNull()
-        val episode = single("episode")?.toIntOrNull()
-        val title = single("title")?.let(::cleanTitleBrackets)
+        val fields = uniqueReleaseFields(elements)
+        val episode = fields["episode"]?.toIntOrNull()
+        val title = fields["title"]?.let(::cleanTitleBrackets)
             ?.takeIf { it.isNotBlank() }
             ?.let { restoreQuotedTitle(normalized, it) }
             ?.let { restoreTitleBrackets(it, bracketed, packed) }
-        val season = single("season")?.toIntOrNull()
-        val year = single("year")?.takeIf { it.toIntOrNull() != null }
+        val season = fields["season"]?.toIntOrNull()
+        val year = fields["year"]?.takeIf { it.toIntOrNull() != null }
         if (title == null || !hasReliableEpisode(name, elements)) return null
         val titleWithYear = if (year != null && !title.endsWith("($year)")) "$title ($year)" else title
         return PlayerTitlePresentation(
             titleWithYear,
             season,
             episode,
-            single("episode_title")?.let(::cleanTitleBrackets)?.takeIf { it.isNotBlank() },
+            fields["episode_title"]?.let(::cleanTitleBrackets)?.takeIf { it.isNotBlank() },
         )
     }
 
@@ -137,6 +137,9 @@ internal object AnimeReleaseTitle {
     }
 }
 
+internal fun uniqueReleaseFields(elements: List<Pair<String, String>>): Map<String, String?> =
+    buildMap { elements.forEach { (kind, value) -> put(kind, if (kind in this) null else value) } }
+
 private fun restoreTitleBrackets(title: String, bracketed: MatchResult?, packed: String?): String =
     if (packed == null && bracketed != null && title == bracketed.groupValues[1]) "[$title]" else title
 
@@ -174,7 +177,7 @@ private val RELEASE_EPISODE_MARKER = Regex(
 private val BARE_EPISODE_MARKER = Regex("""(?i)^\s*\d{1,4}(?:v\d+)?(?=$|\s|\[)""")
 
 internal fun sameSeriesTitle(first: String, second: String): Boolean =
-    titleIdentity(first) == titleIdentity(second)
+    seriesTitleIdentity(first) == seriesTitleIdentity(second)
 
-private fun titleIdentity(value: String): String = cleanTitleBrackets(value)
+internal fun seriesTitleIdentity(value: String): String = cleanTitleBrackets(value)
     .filter { it.isLetterOrDigit() }.lowercase(Locale.ROOT)
