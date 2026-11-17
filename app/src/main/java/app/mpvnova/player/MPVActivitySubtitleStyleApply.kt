@@ -30,8 +30,10 @@ private val SUB_STYLE_PROPS = listOf(
 private const val SUB_SHADOW_OFFSET_OFF = 0.0
 private const val SUB_TRANSPARENT = 0x000000
 
-internal fun MPVActivity.applyCustomSubtitleStyle() {
-    subStylePreservingCompanionTrack = shouldPreserveSelectedSubtitleStyle()
+internal fun MPVActivity.applyCustomSubtitleStyle(
+    preserveCompanionTrack: Boolean = shouldPreserveSelectedSubtitleStyle(),
+) {
+    subStylePreservingCompanionTrack = preserveCompanionTrack
     val styleEnabled = customSubStyleEnabled && !subStylePreservingCompanionTrack
     if (styleEnabled || subStylePreservingCompanionTrack)
         snapshotSubStyleBaselineIfNeeded()

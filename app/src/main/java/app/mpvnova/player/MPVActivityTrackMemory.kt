@@ -11,39 +11,6 @@ internal fun MPVActivity.availableSecondarySubTracks(): List<MPVView.Track> {
     return subs.filter { it.mpvId >= 1 && it.mpvId != primarySid }
 }
 
-internal fun MPVActivity.listTrackMeta(type: String): List<TrackMeta> = buildList {
-    forEachTrackMeta({ it == type }) { _, track -> add(track) }
-}
-
-internal fun listAudioAndSubtitleMeta(): Pair<List<TrackMeta>, List<TrackMeta>> {
-    val audio = mutableListOf<TrackMeta>()
-    val subtitles = mutableListOf<TrackMeta>()
-    forEachTrackMeta({ it == "audio" || it == "sub" }) { type, track ->
-        if (type == "audio") audio.add(track) else subtitles.add(track)
-    }
-    return audio to subtitles
-}
-
-private inline fun forEachTrackMeta(
-    accepts: (String) -> Boolean,
-    onTrack: (String, TrackMeta) -> Unit,
-) {
-    val count = mpvGetPropertyInt("track-list/count") ?: return
-    for (index in 0 until count) {
-        val prefix = "track-list/$index"
-        val type = mpvGetPropertyString("$prefix/type")?.takeIf(accepts) ?: continue
-        readTrackMeta(prefix)?.let { onTrack(type, it) }
-    }
-}
-
-private fun readTrackMeta(prefix: String): TrackMeta? {
-    val id = mpvGetPropertyInt("$prefix/id") ?: return null
-    val title = mpvGetPropertyString("$prefix/title") ?: ""
-    val lang = mpvGetPropertyString("$prefix/lang") ?: ""
-    val forced = mpvGetPropertyBoolean("$prefix/forced") == true
-    return TrackMeta(id, title, lang, forced)
-}
-
 internal fun MPVActivity.saveUserTrackPick(type: String, mpvId: Int) {
     if (saveSeriesTrackPick(type, mpvId)) return
     val prefs = getDefaultSharedPreferences(applicationContext)
