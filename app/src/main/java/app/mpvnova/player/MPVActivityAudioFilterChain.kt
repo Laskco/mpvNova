@@ -96,11 +96,8 @@ internal fun MPVActivity.getVoiceBoostLabel(): String = getString(voiceBoostPres
 
 internal fun MPVActivity.getDownmixBaseLabel(): String = getString(downmixPresetLabelIds[downmixLevel])
 
-internal fun MPVActivity.getDownmixLabel(): String {
-    if (!isDownmixOn()) {
-        return getString(R.string.filter_value_off)
-    }
-    val channels = currentAudioChannelCount()
+internal fun MPVActivity.getDownmixLabel(channels: Int?): String {
+    if (channels == null) return getString(R.string.filter_value_off)
     return if (channels >= MIN_SURROUND_CHANNELS) {
         getString(R.string.format_downmix_active, getDownmixBaseLabel(), channels)
     } else if (channels <= STEREO_CHANNEL_COUNT) {

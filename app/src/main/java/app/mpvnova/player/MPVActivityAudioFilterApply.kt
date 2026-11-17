@@ -130,11 +130,12 @@ internal fun MPVActivity.adjustDownmix(delta: Int, wrap: Boolean = false): Media
     downmixLevel = nextLevel
     rebuildAudioFilters()
     writeSettings()
+    val state = currentDownmixState()
     showToast(
         getString(R.string.btn_dialogue_downmix),
-        getDownmixLabel()
+        state.label
     )
-    return currentDownmixState()
+    return state
 }
 
 internal fun MPVActivity.adjustCenterBoost(delta: Int, wrap: Boolean = false): MediaPickerDialog.ValueState {

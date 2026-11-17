@@ -32,10 +32,10 @@ internal fun MPVActivity.currentVolumeBoostState(): MediaPickerDialog.ValueState
 
 internal fun MPVActivity.currentDownmixState(): MediaPickerDialog.ValueState {
     val maxLevel = downmixPresetLabelIds.lastIndex
-    val active = isDownmixOn() && currentAudioChannelCount() >= MIN_SURROUND_CHANNELS
+    val channels = if (isDownmixOn()) currentAudioChannelCount() else null
     return MediaPickerDialog.ValueState(
-        label = getDownmixLabel(),
-        active = active,
+        label = getDownmixLabel(channels),
+        active = channels != null && channels >= MIN_SURROUND_CHANNELS,
         canDecrease = downmixLevel > 0,
         canIncrease = downmixLevel < maxLevel
     )
