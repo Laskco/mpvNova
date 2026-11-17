@@ -342,8 +342,8 @@ Open **Settings > Advanced** for startup preferences, or the player decoder pick
 | HW | MediaCodec copy hardware path. |
 | SW | Software decoding on the normal renderer. |
 | G-NEXT Copy | gpu-next rendering with MediaCodec copy decoding. |
-| G-NEXT Direct | gpu-next with the direct MediaCodec path. Disabled on NVIDIA Shield because of the purple-screen incompatibility. |
-| G-NEXT SW Hi10P fallback | Manually selects gpu-next software decoding with the selected Hi10P tuning. It is a manual decoder choice, not an anime detector. |
+| G-NEXT Direct | gpu-next with direct MediaCodec decoding. Available on Android 8.0 and later. |
+| G-NEXT SW (software) | Manually selects gpu-next software decoding with the selected Hi10P tuning. |
 | Custom / mpv.conf | Uses the decoder options from your configuration. |
 | Use gpu-next | Chooses the libplacebo-based rendering backend where the active decoder mode does not override it. |
 | Hardware decoding | Enables the ordinary hardware-decoding preference; explicit modes can override it. |
