@@ -22,14 +22,14 @@ internal fun openDocumentChooser(
     return Intent.createChooser(target, context.getString(R.string.document_picker_choose_app))
 }
 
-internal fun Intent.selectedDocumentUris(): List<Uri> = buildList {
+internal fun Intent.selectedDocumentUris(): List<Uri> = buildSet {
     data?.let(::add)
     clipData?.let { selected ->
         for (index in 0 until selected.itemCount) {
             add(selected.getItemAt(index).uri)
         }
     }
-}.distinct()
+}.toList()
 
 internal fun shaderImportUrisFromResult(resultCode: Int, data: Intent?): List<Uri> {
     val path = data?.getStringExtra("path")

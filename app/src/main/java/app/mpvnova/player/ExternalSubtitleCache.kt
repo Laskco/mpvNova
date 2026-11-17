@@ -122,9 +122,11 @@ internal data class PreparedExternalSubtitles(val directory: File?, val copied: 
 internal fun Intent.applyPreparedSubtitles(source: Intent, prepared: PreparedExternalSubtitles): Int {
     val subs = source.getParcelableArrayExtra("subs")?.filterIsInstance<Uri>().orEmpty()
     val indices = subs.indices.filter { subs[it].scheme != "content" || it in prepared.copied }
-    val rewritten = indices.associate { subs[it] to (prepared.copied[it] ?: subs[it]) }
     putExtra("subs", indices.map { prepared.copied[it] ?: subs[it] }.toTypedArray())
     source.getParcelableArrayExtra("subs.enable")?.filterIsInstance<Uri>()?.let { selected ->
+        val rewritten = if (selected.isEmpty()) emptyMap() else {
+            indices.associate { subs[it] to (prepared.copied[it] ?: subs[it]) }
+        }
         putExtra("subs.enable", selected.mapNotNull { rewritten[it] }.toTypedArray())
     }
     for (key in listOf("subs.name", "subs.filename")) {
@@ -169,6 +171,7 @@ internal fun Context.materializeContentSubtitles(
 
 private class SubtitleCopyBudget {
     var remaining = MAX_SUBTITLE_REQUEST_BYTES
+    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
 }
 
 private fun Context.copyContentSubtitle(
@@ -218,7 +221,7 @@ private fun copyBoundedSubtitle(
     budget: SubtitleCopyBudget,
     request: ExternalSubtitleCopyRequest,
 ) {
-    val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+    val buffer = budget.buffer
     var fileBytes = 0L
     while (true) {
         request.checkActive()

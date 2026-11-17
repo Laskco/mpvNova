@@ -200,17 +200,24 @@ class ExternalPlayerActivity : Activity() {
     }
 
     private fun copyArrayListExtra(key: String, value: ArrayList<*>, target: Intent) {
-        if (value.all { it is Uri })
-            target.putParcelableArrayListExtra(key, ArrayList(value.filterIsInstance<Uri>()))
+        val uris = ArrayList<Uri>(value.size)
+        for (entry in value) uris.add(entry as? Uri ?: return)
+        target.putParcelableArrayListExtra(key, uris)
     }
 
     private fun copyArrayExtra(key: String, value: Array<*>, target: Intent) {
-        when {
-            value.all { it is String } ->
-                target.putExtra(key, value.filterIsInstance<String>().toTypedArray())
-            value.all { it is Uri } ->
-                target.putExtra(key, value.filterIsInstance<Uri>().toTypedArray())
+        when (value.firstOrNull()) {
+            is String -> value.copyArrayOfType<String>()?.let { target.putExtra(key, it) }
+            is Uri -> value.copyArrayOfType<Uri>()?.let { target.putExtra(key, it) }
+            else -> if (value.isEmpty()) target.putExtra(key, emptyArray<String>())
         }
+    }
+
+    private inline fun <reified T> Array<*>.copyArrayOfType(): Array<T>? {
+        val result = arrayOfNulls<T>(size)
+        for (index in indices) result[index] = this[index] as? T ?: return null
+        @Suppress("UNCHECKED_CAST") // Every slot has been checked and filled.
+        return result as Array<T>
     }
 
     @Deprecated("Deprecated in Android API, but still required for legacy external-player callers.")

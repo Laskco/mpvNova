@@ -142,8 +142,8 @@ private fun twoDigits(value: Int): String {
 @RequiresApi(Build.VERSION_CODES.N)
 private object StorageVolumeResolver {
     @Suppress("DEPRECATION")
-    fun collectCandidates(context: Context): List<String> {
-        val candidates = mutableListOf<String>()
+    fun collectCandidates(context: Context): Set<String> {
+        val candidates = linkedSetOf<String>()
         candidates.add(Environment.getExternalStorageDirectory().absolutePath)
         runCatching {
             context.externalMediaDirs.forEach {
@@ -190,8 +190,12 @@ private object StorageVolumeResolver {
         return state == Environment.MEDIA_MOUNTED || state == Environment.MEDIA_MOUNTED_READ_ONLY
     }
 
-    private fun addProcMountCandidate(candidates: MutableList<String>, line: String) {
-        val path = line.split(' ', limit = 3).getOrNull(1) ?: return
+    private fun addProcMountCandidate(candidates: MutableSet<String>, line: String) {
+        val delimiter = line.indexOf(' ')
+        if (delimiter < 0) return
+        val start = delimiter + 1
+        val end = line.indexOf(' ', start).takeIf { it >= 0 } ?: line.length
+        val path = line.substring(start, end)
         // The rootfs mount ("/") shows up in /proc/mounts and, when
         // MANAGE_EXTERNAL_STORAGE is granted, StorageManager.getStorageVolume(/)
         // happily returns the primary volume — so "/" leaks into the list of

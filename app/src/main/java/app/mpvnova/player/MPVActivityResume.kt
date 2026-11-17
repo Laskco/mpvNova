@@ -92,9 +92,8 @@ internal fun MPVActivity.loadResumePosition(): Long? {
     return identity?.let {
         val prefs = getDefaultSharedPreferences(applicationContext)
         val raw = prefs.getString(resumeKey(it), null)
-        val parts = raw?.split("|").orEmpty()
-        val pos = parts.getOrNull(0)?.toLongOrNull()
-        val dur = parts.getOrNull(1)?.toLongOrNull() ?: 0L
+        val pos = raw?.substringBefore('|')?.toLongOrNull()
+        val dur = raw?.substringAfter('|', "")?.substringBefore('|')?.toLongOrNull() ?: 0L
         pos?.takeIf { value ->
             value >= RESUME_MIN_POSITION_MS && (dur <= 0L || value < dur - RESUME_NEAR_END_MS)
         }

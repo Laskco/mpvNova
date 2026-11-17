@@ -110,13 +110,17 @@ internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
                     candidate.isFile && candidate.canRead()
             }
             .distinctBy { it.absolutePath }
-            .sortedWith(
-                compareBy<File> { matchingSubtitleRank(videoBase, it.nameWithoutExtension) }
-                    .thenBy { it.name.lowercase(Locale.ROOT) }
-            )
+            .map { candidate ->
+                RankedSidecar(candidate, matchingSubtitleRank(videoBase, candidate.nameWithoutExtension),
+                    candidate.name.lowercase(Locale.ROOT))
+            }
+            .sortedWith(compareBy<RankedSidecar> { it.rank }.thenBy { it.name })
+            .map { it.file }
             .toList()
     }
 }
+
+private data class RankedSidecar(val file: File, val rank: Int, val name: String)
 
 private val AUTOMATIC_SUBTITLE_DIRS = listOf("subs", "sub", "subtitles", "subtitle")
 
