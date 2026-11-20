@@ -242,3 +242,7 @@ For a transparent launcher icon, use [mpvnova-transparent-icon.png](assets/mpvno
 - [mpv-android](https://github.com/mpv-android/mpv-android)
 - [mpv](https://github.com/mpv-player/mpv)
 - The contributors to mpv-android, mpv, and their dependencies.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Laskco/mpvNova&type=Date&theme=dark)](https://star-history.com/#Laskco/mpvNova&Date)
