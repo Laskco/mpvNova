@@ -9,6 +9,38 @@ private const val SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP = 450f
 private const val STEPPER_ENABLED_ALPHA = 1f
 private const val STEPPER_DISABLED_ALPHA = 0.35f
 
+internal fun MPVActivity.applySubMarginX(styleEnabled: Boolean) {
+    if (!subStylePreservingCompanionTrack && isSubWidthOn()) {
+        mpvSetPropertyInt("sub-margin-x", subWidthMarginX(subWidthSteps[subWidthLevel]))
+        return
+    }
+    val restored = (if (styleEnabled) subStyleExtras.sideMargin?.toString() else null)
+        ?: subStyleSavedDefaults?.get("sub-margin-x")
+    restored?.let { mpvSetPropertyString("sub-margin-x", it) }
+}
+
+internal fun MPVActivity.applySubWidthProperty() {
+    if (isSubWidthOn()) snapshotSubStyleBaselineIfNeeded()
+    val styleEnabled = customSubStyleEnabled && !subStylePreservingCompanionTrack
+    applySubMarginX(styleEnabled)
+    applyAssStyleOverrides(styleEnabled)
+}
+
+internal fun MPVActivity.refreshSubWidthAssOverrides() {
+    if (isSubWidthOn() || subStyleAppliedAssOverrides != null) {
+        applyAssStyleOverrides(customSubStyleEnabled && !subStylePreservingCompanionTrack)
+    }
+}
+
+internal fun MPVActivity.adjustSubWidth(delta: Int): MediaPickerDialog.ValueState {
+    val maxLevel = subWidthSteps.lastIndex
+    subWidthLevel = (subWidthLevel + delta).coerceIn(0, maxLevel)
+    applySubWidthProperty()
+    writeSettings()
+    showToast(getString(R.string.btn_sub_width), getSubWidthLabel())
+    return currentSubWidthState()
+}
+
 internal fun MPVActivity.showSubtitleAdjustDialog() {
     val controls = DialogSubtitleAdjustmentBinding.inflate(layoutInflater)
     val restore = keepPlaybackForDialog()
@@ -34,70 +66,82 @@ internal fun MPVActivity.showSubtitleAdjustDialog() {
 }
 
 private fun MPVActivity.bindSubtitleAdjustControls(controls: DialogSubtitleAdjustmentBinding) {
-    fun updateStepperButton(button: View, sibling: View, enabled: Boolean) {
-        if (!enabled && button.hasFocus() && sibling.isEnabled) {
-            sibling.requestFocus()
-        }
-        button.isEnabled = enabled
-        button.alpha = if (enabled) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
+    fun step(applyChange: () -> Unit) {
+        applyChange()
+        writeSettings()
+        refreshSubtitleAdjustControls(controls)
     }
 
-    fun refresh() {
-        val posState = currentSubPosState()
-        controls.posValue.text = posState.label
-        updateStepperButton(controls.posDecreaseBtn, controls.posIncreaseBtn, posState.canDecrease)
-        updateStepperButton(controls.posIncreaseBtn, controls.posDecreaseBtn, posState.canIncrease)
-
-        val scaleState = currentSubScaleState()
-        controls.scaleValue.text = scaleState.label
-        updateStepperButton(controls.scaleDecreaseBtn, controls.scaleIncreaseBtn, scaleState.canDecrease)
-        updateStepperButton(controls.scaleIncreaseBtn, controls.scaleDecreaseBtn, scaleState.canIncrease)
-    }
-
-    fun refreshRememberState() {
-        controls.rememberRow.isActivated = persistSubFilters
-        controls.rememberCheck.visibility = if (persistSubFilters) View.VISIBLE else View.INVISIBLE
-        ViewCompat.setStateDescription(
-            controls.rememberRow,
-            getString(if (persistSubFilters) R.string.status_on else R.string.status_off),
-        )
-    }
-
-    fun stepPos(delta: Int) {
+    fun stepPos(delta: Int) = step {
         subPosLevel = (subPosLevel + delta).coerceIn(0, subPosSteps.lastIndex)
         applySubPosProperty()
-        writeSettings()
-        refresh()
     }
-
-    fun stepScale(delta: Int) {
+    fun stepScale(delta: Int) = step {
         subScaleLevel = (subScaleLevel + delta).coerceIn(0, subScaleSteps.lastIndex)
         applySubScaleProperty()
-        writeSettings()
-        refresh()
+    }
+    fun stepWidth(delta: Int) = step {
+        subWidthLevel = (subWidthLevel + delta).coerceIn(0, subWidthSteps.lastIndex)
+        applySubWidthProperty()
     }
 
     controls.posDecreaseBtn.setOnClickListener { stepPos(-1) }
     controls.posIncreaseBtn.setOnClickListener { stepPos(1) }
     controls.scaleDecreaseBtn.setOnClickListener { stepScale(-1) }
     controls.scaleIncreaseBtn.setOnClickListener { stepScale(1) }
+    controls.widthDecreaseBtn.setOnClickListener { stepWidth(-1) }
+    controls.widthIncreaseBtn.setOnClickListener { stepWidth(1) }
     controls.resetBtn.setOnClickListener {
-        subPosLevel = DEFAULT_SUB_POSITION_INDEX.coerceIn(0, subPosSteps.lastIndex)
-        subScaleLevel = DEFAULT_SUB_SCALE_INDEX.coerceIn(0, subScaleSteps.lastIndex)
-        applySubPosProperty()
-        applySubScaleProperty()
-        writeSettings()
-        refresh()
+        step {
+            subPosLevel = DEFAULT_SUB_POSITION_INDEX.coerceIn(0, subPosSteps.lastIndex)
+            subScaleLevel = DEFAULT_SUB_SCALE_INDEX.coerceIn(0, subScaleSteps.lastIndex)
+            subWidthLevel = DEFAULT_SUB_WIDTH_INDEX.coerceIn(0, subWidthSteps.lastIndex)
+            applySubPosProperty()
+            applySubScaleProperty()
+            applySubWidthProperty()
+        }
     }
     controls.rememberRow.setOnClickListener {
         persistSubFilters = !persistSubFilters
-        if (persistSubFilters) {
-            saveUserTrackPick("sub", player.sid)
-        }
+        if (persistSubFilters) saveUserTrackPick("sub", player.sid)
         writeSettings()
-        refreshRememberState()
+        refreshSubtitleAdjustRemember(controls)
     }
 
-    refresh()
-    refreshRememberState()
+    refreshSubtitleAdjustControls(controls)
+    refreshSubtitleAdjustRemember(controls)
+}
+
+private fun MPVActivity.refreshSubtitleAdjustControls(controls: DialogSubtitleAdjustmentBinding) {
+    val posState = currentSubPosState()
+    controls.posValue.text = posState.label
+    updateStepperButton(controls.posDecreaseBtn, controls.posIncreaseBtn, posState.canDecrease)
+    updateStepperButton(controls.posIncreaseBtn, controls.posDecreaseBtn, posState.canIncrease)
+
+    val scaleState = currentSubScaleState()
+    controls.scaleValue.text = scaleState.label
+    updateStepperButton(controls.scaleDecreaseBtn, controls.scaleIncreaseBtn, scaleState.canDecrease)
+    updateStepperButton(controls.scaleIncreaseBtn, controls.scaleDecreaseBtn, scaleState.canIncrease)
+
+    val widthState = currentSubWidthState()
+    controls.widthValue.text = widthState.label
+    updateStepperButton(controls.widthDecreaseBtn, controls.widthIncreaseBtn, widthState.canDecrease)
+    updateStepperButton(controls.widthIncreaseBtn, controls.widthDecreaseBtn, widthState.canIncrease)
+}
+
+private fun MPVActivity.refreshSubtitleAdjustRemember(controls: DialogSubtitleAdjustmentBinding) {
+    controls.rememberRow.isActivated = persistSubFilters
+    controls.rememberCheck.visibility = if (persistSubFilters) View.VISIBLE else View.INVISIBLE
+    ViewCompat.setStateDescription(
+        controls.rememberRow,
+        getString(if (persistSubFilters) R.string.status_on else R.string.status_off),
+    )
+}
+
+private fun updateStepperButton(button: View, sibling: View, enabled: Boolean) {
+    if (!enabled && button.hasFocus() && sibling.isEnabled) {
+        sibling.requestFocus()
+    }
+    button.isEnabled = enabled
+    button.alpha = if (enabled) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
 }

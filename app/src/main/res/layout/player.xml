@@ -337,17 +337,7 @@
                         android:layout_height="wrap_content"
                         android:visibility="gone"
                         android:contentDescription="@string/subtitle_adjust"
-                        app:srcCompat="@drawable/ic_sub_position"
-                        app:tint="@color/tv_text" />
-
-                    <app.mpvnova.player.ShadowImageButton
-                        android:id="@+id/subWidthBtn"
-                        style="@style/MpvPlayer.ButtonBarIconButton"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:visibility="gone"
-                        android:contentDescription="@string/btn_sub_width"
-                        app:srcCompat="@drawable/ic_sub_width_24dp"
+                        app:srcCompat="@drawable/ic_sub_adjust_24dp"
                         app:tint="@color/tv_text" />
 
                     <app.mpvnova.player.ShadowImageButton

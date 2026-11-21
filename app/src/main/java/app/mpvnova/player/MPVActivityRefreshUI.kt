@@ -103,7 +103,7 @@ private val VIDEO_UI_BUTTONS = intArrayOf(
     R.id.playBtn, R.id.nextChapterBtn, R.id.prevBtn, R.id.nextBtn,
     R.id.cycleSubsBtn, R.id.cycleAudioBtn,
     R.id.cycleSpeedBtn, R.id.cycleDecoderBtn, R.id.videoFiltersBtn, R.id.statsToggleBtn,
-    R.id.verticalScaleBtn, R.id.subAdjustBtn, R.id.subWidthBtn,
+    R.id.verticalScaleBtn, R.id.subAdjustBtn,
     R.id.voiceBoostBtn, R.id.volumeBoostBtn, R.id.nightModeBtn, R.id.audioNormBtn,
 )
 private val AUDIO_UI_TITLE_GROUP = intArrayOf(R.id.titleTextView, R.id.minorTitleTextView)
