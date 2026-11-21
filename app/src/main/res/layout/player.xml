@@ -331,6 +331,16 @@
                         app:tint="@color/tv_text" />
 
                     <app.mpvnova.player.ShadowImageButton
+                        android:id="@+id/subAdjustBtn"
+                        style="@style/MpvPlayer.ButtonBarIconButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:visibility="gone"
+                        android:contentDescription="@string/subtitle_adjust"
+                        app:srcCompat="@drawable/ic_sub_position"
+                        app:tint="@color/tv_text" />
+
+                    <app.mpvnova.player.ShadowImageButton
                         android:id="@+id/voiceBoostBtn"
                         style="@style/MpvPlayer.ButtonBarIconButton"
                         android:layout_width="wrap_content"
