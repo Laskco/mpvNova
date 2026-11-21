@@ -1,13 +1,16 @@
 package app.mpvnova.player
 
+import android.content.res.ColorStateList
 import android.view.View
+import android.widget.ImageButton
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import app.mpvnova.player.databinding.DialogSubtitleAdjustmentBinding
 
-private const val SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP = 450f
+private const val SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP = 390f
 private const val STEPPER_ENABLED_ALPHA = 1f
-private const val STEPPER_DISABLED_ALPHA = 0.35f
+private const val STEPPER_DISABLED_ALPHA = 0.38f
 
 internal fun MPVActivity.applySubMarginX(styleEnabled: Boolean) {
     if (!subStylePreservingCompanionTrack && isSubWidthOn()) {
@@ -57,7 +60,7 @@ internal fun MPVActivity.showSubtitleAdjustDialog() {
         dialog,
         videoAdjustmentDialogLayout().copy(maxWidthDp = SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP),
     )
-    val initialFocus = if (controls.posDecreaseBtn.isEnabled) {
+    val initialFocus = if (controls.posDecreaseBtn.isClickable) {
         controls.posDecreaseBtn
     } else {
         controls.posIncreaseBtn
@@ -115,18 +118,18 @@ private fun MPVActivity.bindSubtitleAdjustControls(controls: DialogSubtitleAdjus
 private fun MPVActivity.refreshSubtitleAdjustControls(controls: DialogSubtitleAdjustmentBinding) {
     val posState = currentSubPosState()
     controls.posValue.text = posState.label
-    updateStepperButton(controls.posDecreaseBtn, controls.posIncreaseBtn, posState.canDecrease)
-    updateStepperButton(controls.posIncreaseBtn, controls.posDecreaseBtn, posState.canIncrease)
+    updateStepperButton(controls.posDecreaseBtn, posState.canDecrease)
+    updateStepperButton(controls.posIncreaseBtn, posState.canIncrease)
 
     val scaleState = currentSubScaleState()
     controls.scaleValue.text = scaleState.label
-    updateStepperButton(controls.scaleDecreaseBtn, controls.scaleIncreaseBtn, scaleState.canDecrease)
-    updateStepperButton(controls.scaleIncreaseBtn, controls.scaleDecreaseBtn, scaleState.canIncrease)
+    updateStepperButton(controls.scaleDecreaseBtn, scaleState.canDecrease)
+    updateStepperButton(controls.scaleIncreaseBtn, scaleState.canIncrease)
 
     val widthState = currentSubWidthState()
     controls.widthValue.text = widthState.label
-    updateStepperButton(controls.widthDecreaseBtn, controls.widthIncreaseBtn, widthState.canDecrease)
-    updateStepperButton(controls.widthIncreaseBtn, controls.widthDecreaseBtn, widthState.canIncrease)
+    updateStepperButton(controls.widthDecreaseBtn, widthState.canDecrease)
+    updateStepperButton(controls.widthIncreaseBtn, widthState.canIncrease)
 }
 
 private fun MPVActivity.refreshSubtitleAdjustRemember(controls: DialogSubtitleAdjustmentBinding) {
@@ -138,10 +141,16 @@ private fun MPVActivity.refreshSubtitleAdjustRemember(controls: DialogSubtitleAd
     )
 }
 
-private fun updateStepperButton(button: View, sibling: View, enabled: Boolean) {
-    if (!enabled && button.hasFocus() && sibling.isEnabled) {
-        sibling.requestFocus()
-    }
-    button.isEnabled = enabled
+private fun updateStepperButton(button: ImageButton, enabled: Boolean) {
+    // Keep focus stable and column D-pad navigation intact when a +/- button reaches its limit.
+    button.isEnabled = true
+    button.isClickable = enabled
+    button.isFocusable = true
     button.alpha = if (enabled) STEPPER_ENABLED_ALPHA else STEPPER_DISABLED_ALPHA
+    button.imageTintList = ColorStateList.valueOf(
+        ContextCompat.getColor(
+            button.context,
+            if (enabled) R.color.tv_text else R.color.tint_disabled,
+        ),
+    )
 }

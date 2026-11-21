@@ -7,10 +7,10 @@
     android:background="@drawable/bg_tv_dialog_shell"
     android:elevation="24dp"
     android:orientation="vertical"
-    android:paddingStart="28dp"
-    android:paddingTop="26dp"
-    android:paddingEnd="28dp"
-    android:paddingBottom="22dp">
+    android:paddingStart="20dp"
+    android:paddingTop="18dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="16dp">
 
     <TextView
         style="@style/MpvTv.TextSmallCaps"
@@ -22,25 +22,25 @@
         android:id="@+id/adjustmentTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
+        android:layout_marginTop="4dp"
         android:ellipsize="end"
-        android:letterSpacing="0"
+        android:letterSpacing="-0.01"
         android:singleLine="true"
         android:text="@string/subtitle_adjust"
         android:textColor="@color/tv_text"
-        android:textSize="28sp"
+        android:textSize="22sp"
         android:textStyle="bold" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="14dp"
         android:background="@drawable/bg_tv_panel_card"
         android:orientation="vertical"
-        android:paddingStart="16dp"
-        android:paddingTop="18dp"
-        android:paddingEnd="16dp"
-        android:paddingBottom="18dp">
+        android:paddingStart="14dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -56,15 +56,18 @@
                 android:singleLine="true"
                 android:text="@string/btn_sub_pos"
                 android:textColor="@color/tv_text"
-                android:textSize="15sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/posDecreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_pos_decrease"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_remove_24dp"
                 app:tint="@color/tv_text" />
 
@@ -75,18 +78,21 @@
                 android:accessibilityLiveRegion="polite"
                 android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:minWidth="84dp"
+                android:minWidth="74dp"
                 android:textColor="@color/tv_text"
-                android:textSize="18sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="Default" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/posIncreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_pos_increase"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_add_24dp"
                 app:tint="@color/tv_text" />
         </LinearLayout>
@@ -94,7 +100,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -106,15 +112,18 @@
                 android:singleLine="true"
                 android:text="@string/btn_sub_scale"
                 android:textColor="@color/tv_text"
-                android:textSize="15sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/scaleDecreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_scale_decrease"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_remove_24dp"
                 app:tint="@color/tv_text" />
 
@@ -125,18 +134,21 @@
                 android:accessibilityLiveRegion="polite"
                 android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:minWidth="84dp"
+                android:minWidth="74dp"
                 android:textColor="@color/tv_text"
-                android:textSize="18sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="Default" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/scaleIncreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_scale_increase"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_add_24dp"
                 app:tint="@color/tv_text" />
         </LinearLayout>
@@ -144,7 +156,7 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -156,15 +168,18 @@
                 android:singleLine="true"
                 android:text="@string/btn_sub_width"
                 android:textColor="@color/tv_text"
-                android:textSize="15sp"
+                android:textSize="13sp"
                 android:textStyle="bold" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/widthDecreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_width_decrease"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_remove_24dp"
                 app:tint="@color/tv_text" />
 
@@ -175,18 +190,21 @@
                 android:accessibilityLiveRegion="polite"
                 android:fontFamily="sans-serif"
                 android:gravity="center"
-                android:minWidth="84dp"
+                android:minWidth="74dp"
                 android:textColor="@color/tv_text"
-                android:textSize="18sp"
+                android:textSize="14sp"
                 android:textStyle="bold"
                 tools:text="Default" />
 
             <androidx.appcompat.widget.AppCompatImageButton
                 android:id="@+id/widthIncreaseBtn"
                 style="@style/MpvPlayer.ButtonBarIconButton"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:contentDescription="@string/subtitle_width_increase"
+                android:minWidth="36dp"
+                android:minHeight="36dp"
+                android:padding="6dp"
                 app:srcCompat="@drawable/ic_add_24dp"
                 app:tint="@color/tv_text" />
         </LinearLayout>
@@ -195,16 +213,16 @@
             android:id="@+id/rememberRow"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
+            android:layout_marginTop="10dp"
             android:background="@drawable/bg_tv_track_row"
             android:clickable="true"
             android:focusable="true"
-            android:minHeight="64dp"
+            android:minHeight="52dp"
             android:orientation="horizontal"
-            android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp"
-            android:paddingBottom="10dp">
+            android:paddingStart="10dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="8dp">
 
             <LinearLayout
                 android:layout_width="0dp"
@@ -218,7 +236,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/remember_video_adjustment"
                     android:textColor="@color/tv_text"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -227,15 +245,15 @@
                     android:layout_marginTop="2dp"
                     android:text="@string/remember_subtitle_adjustment_summary"
                     android:textColor="@color/tv_text_dim"
-                    android:textSize="11sp" />
+                    android:textSize="10sp" />
             </LinearLayout>
 
             <ImageView
                 android:id="@+id/rememberCheck"
-                android:layout_width="22dp"
-                android:layout_height="22dp"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
                 android:layout_gravity="center_vertical"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:contentDescription="@string/remember_video_adjustment"
                 android:src="@drawable/ic_tv_check"
                 android:visibility="invisible"
@@ -247,7 +265,7 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="12dp"
         android:gravity="end"
         android:orientation="horizontal">
 
@@ -255,21 +273,23 @@
             android:id="@+id/resetBtn"
             style="@style/Mpv.SurfaceButton.Compact"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:minWidth="84dp"
+            android:layout_height="40dp"
+            android:minWidth="76dp"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:text="@string/dialog_reset" />
+            android:text="@string/dialog_reset"
+            android:textSize="13sp" />
 
         <Button
             android:id="@+id/doneBtn"
             style="@style/Mpv.SurfaceButton"
             android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:layout_marginStart="10dp"
-            android:minWidth="84dp"
-            android:paddingStart="16dp"
-            android:paddingEnd="16dp"
-            android:text="@string/dialog_done" />
+            android:layout_height="40dp"
+            android:layout_marginStart="8dp"
+            android:minWidth="76dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:text="@string/dialog_done"
+            android:textSize="13sp" />
     </LinearLayout>
 </LinearLayout>
