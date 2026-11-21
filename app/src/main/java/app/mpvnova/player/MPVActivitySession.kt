@@ -87,6 +87,10 @@ internal fun MPVActivity.writeSettings() {
                 DEFAULT_SECONDARY_SUB_POSITION_PERCENT
             )
         )
+        putInt(
+            "sub_width_pct",
+            persistedSubPositionLevel(subWidthSteps[subWidthLevel], DEFAULT_SUB_WIDTH_PERCENT)
+        )
         apply()
     }
 }

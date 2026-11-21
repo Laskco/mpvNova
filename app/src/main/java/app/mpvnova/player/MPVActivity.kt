@@ -422,6 +422,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var subPosLevel = DEFAULT_SUB_POSITION_INDEX
     // secondaryPosSteps index; default=0% at index 25
     internal var secondaryPosLevel = DEFAULT_SECONDARY_SUB_POSITION_INDEX
+    // subWidthSteps index; default=100% ("Default") at lastIndex
+    internal var subWidthLevel = DEFAULT_SUB_WIDTH_INDEX
     // The custom sub look is always saved, but only applied while the toggle is on.
     internal var customSubStyleEnabled = false
     internal var preserveCompanionSubtitleStyle = false
@@ -824,6 +826,7 @@ open class MPVActivity : AppCompatActivity() {
     internal val subScaleSteps = SUB_SCALE_STEPS
     internal val subPosSteps = SUB_POSITION_STEPS
     internal val secondaryPosSteps = subPosSteps
+    internal val subWidthSteps = SUB_WIDTH_STEPS
 
     internal var pendingActivityResultCallback: ActivityResultCallback? = null
     internal val filePickerResultLauncher =

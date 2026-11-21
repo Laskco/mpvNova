@@ -34,7 +34,7 @@ internal fun MPVActivity.applyCustomSubtitleStyle(
 ) {
     subStylePreservingCompanionTrack = preserveCompanionTrack
     val styleEnabled = customSubStyleEnabled && !subStylePreservingCompanionTrack
-    if (styleEnabled || subStylePreservingCompanionTrack)
+    if (styleEnabled || subStylePreservingCompanionTrack || isSubWidthOn())
         snapshotSubStyleBaselineIfNeeded()
     if (styleEnabled) {
         writeCustomSubtitleStyle()
@@ -43,6 +43,7 @@ internal fun MPVActivity.applyCustomSubtitleStyle(
     }
     if (subStylePreservingCompanionTrack)
         mpvSetPropertyString("sub-ass-override", "no")
+    applySubMarginX(styleEnabled)
     mpvSetPropertyString("sub-gray", if (subStyleGrayImageSubs && !subStylePreservingCompanionTrack) "yes" else "no")
     applyAssStyleOverrides(styleEnabled)
 }
@@ -53,10 +54,12 @@ internal fun MPVActivity.applyCustomSubtitleStyleOnFileLoad() {
         customSubStyleEnabled = false
     if (!persistSubFilters && subStyleGrayImageSubs)
         subStyleGrayImageSubs = false
+    if (!persistSubFilters && isSubWidthOn())
+        subWidthLevel = DEFAULT_SUB_WIDTH_INDEX
     applyCustomSubtitleStyle()
 }
 
-private fun MPVActivity.snapshotSubStyleBaselineIfNeeded() {
+internal fun MPVActivity.snapshotSubStyleBaselineIfNeeded() {
     if (subStyleSavedDefaults != null) return
     subStyleSavedDefaults = SUB_STYLE_PROPS.associateWith { mpvGetPropertyString(it) }
 }

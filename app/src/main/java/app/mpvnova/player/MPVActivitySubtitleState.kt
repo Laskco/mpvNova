@@ -46,6 +46,16 @@ internal fun MPVActivity.currentSecondaryPosState(): MediaPickerDialog.ValueStat
     )
 }
 
+internal fun MPVActivity.currentSubWidthState(): MediaPickerDialog.ValueState {
+    val maxLevel = subWidthSteps.lastIndex
+    return MediaPickerDialog.ValueState(
+        label = getSubWidthLabel(),
+        active = isSubWidthOn(),
+        canDecrease = subWidthLevel > 0,
+        canIncrease = subWidthLevel < maxLevel,
+    )
+}
+
 internal fun MPVActivity.currentSecondarySubState(): MediaPickerDialog.ValueState {
     val available = availableSecondarySubTracks()
     if (available.isEmpty()) {
@@ -75,6 +85,7 @@ internal fun MPVActivity.currentSubFilterStates(): MediaPickerDialog.SubFilterSt
         subScale = currentSubScaleState(),
         subPos = currentSubPosState(),
         secondaryPos = currentSecondaryPosState(),
+        subWidth = currentSubWidthState(),
         secondarySub = currentSecondarySubState(),
     )
 }

@@ -20,6 +20,7 @@ internal fun MPVActivity.configureSubPickerCallbacks(
     impl.onSubScaleAdjust = { delta -> adjustSubScale(delta) }
     impl.onSubPosAdjust = { delta -> adjustSubPos(delta) }
     impl.onSecondaryPosAdjust = { delta -> adjustSecondaryPos(delta) }
+    impl.onSubWidthAdjust = { delta -> adjustSubWidth(delta) }
     impl.onSecondarySubAdjust = { delta -> handleSecondarySubAdjust(impl, delta) }
     impl.onSecondarySubSwap = {
         swapPrimaryAndSecondarySub()
@@ -89,6 +90,7 @@ private fun MPVActivity.subPickerOptions(delayValue: String): MediaPickerDialog.
         initialSubScaleState = currentSubScaleState(),
         initialSubPosState = currentSubPosState(),
         initialSecondaryPosState = currentSecondaryPosState(),
+        initialSubWidthState = currentSubWidthState(),
         initialSecondarySubState = currentSecondarySubState(),
         persistSubFiltersOn = persistSubFilters,
         subStyleStateText = subtitleStyleToggleText(),

@@ -163,12 +163,17 @@ internal fun MPVActivity.readSubFilterSettings(prefs: SharedPreferences) {
             secondaryPosSteps,
             prefs.getInt("secondary_sub_pos_pct", DEFAULT_SECONDARY_SUB_POSITION_PERCENT)
         )
+        subWidthLevel = nearestSubPositionIndex(
+            subWidthSteps,
+            prefs.getInt("sub_width_pct", DEFAULT_SUB_WIDTH_PERCENT)
+        )
     } else {
         subScaleLevel = DEFAULT_SUB_SCALE_INDEX
         subPosLevel = subPosSteps.indexOf(DEFAULT_SUB_POSITION_PERCENT).coerceAtLeast(0)
         secondaryPosLevel = secondaryPosSteps
             .indexOf(DEFAULT_SECONDARY_SUB_POSITION_PERCENT)
             .coerceAtLeast(0)
+        subWidthLevel = DEFAULT_SUB_WIDTH_INDEX
     }
 }
 

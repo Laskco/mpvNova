@@ -175,6 +175,7 @@ internal enum class PlayerBarControl(
     FILTERS("filters", R.id.videoFiltersBtn, R.string.video_filter_presets_title, true),
     VERTICAL_SCALE("vertical_scale", R.id.verticalScaleBtn, R.string.vertical_scale, true),
     SUBTITLE_ADJUST("subtitle_adjust", R.id.subAdjustBtn, R.string.subtitle_adjust, true),
+    SUBTITLE_WIDTH("subtitle_width", R.id.subWidthBtn, R.string.btn_sub_width, true),
     STATS("stats", R.id.statsToggleBtn, R.string.toggle_stats, true),
     VOICE_BOOST("voice_boost", R.id.voiceBoostBtn, R.string.btn_voice_boost, true),
     VOLUME_BOOST("volume_boost", R.id.volumeBoostBtn, R.string.btn_volume_boost, true),
@@ -190,6 +191,7 @@ internal enum class PlayerBarControl(
 private val DEFAULT_HIDDEN_PLAYER_CONTROLS = setOf(
     PlayerBarControl.VERTICAL_SCALE,
     PlayerBarControl.SUBTITLE_ADJUST,
+    PlayerBarControl.SUBTITLE_WIDTH,
     PlayerBarControl.FILTERS,
     PlayerBarControl.PICTURE_IN_PICTURE,
 )
@@ -352,6 +354,7 @@ private val CINEMA_PLAYER_UI_PRESET = PlayerUiCustomization(
         PlayerBarControl.FILTERS,
         PlayerBarControl.VERTICAL_SCALE,
         PlayerBarControl.SUBTITLE_ADJUST,
+        PlayerBarControl.SUBTITLE_WIDTH,
         PlayerBarControl.STATS,
         PlayerBarControl.VOICE_BOOST,
         PlayerBarControl.VOLUME_BOOST,
@@ -667,6 +670,9 @@ internal object PlayerUiCustomizationStore {
         }
         if (PlayerBarControl.SUBTITLE_ADJUST.prefValue !in savedOrder.orEmpty().split(',')) {
             controls += PlayerBarControl.SUBTITLE_ADJUST
+        }
+        if (PlayerBarControl.SUBTITLE_WIDTH.prefValue !in savedOrder.orEmpty().split(',')) {
+            controls += PlayerBarControl.SUBTITLE_WIDTH
         }
 
         // New optional controls stay hidden for users with a layout saved by an older version.

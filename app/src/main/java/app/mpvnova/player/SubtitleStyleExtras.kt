@@ -74,10 +74,15 @@ internal fun MPVActivity.adjustSubtitleExtras(control: SubtitleStyleDialog.Contr
         SubtitleStyleDialog.Control.FONT_SIZE -> s.copy(fontSize = stepSubtitleFontSize(s.fontSize, delta))
         SubtitleStyleDialog.Control.LINE_SPACING ->
             s.copy(lineSpacing = stepSubtitleOptional(s.lineSpacing, delta, SUBTITLE_EDITOR_LINE_RANGE, 0))
-        SubtitleStyleDialog.Control.SIDE_MARGIN ->
+        SubtitleStyleDialog.Control.SIDE_MARGIN -> {
+            if (isSubWidthOn()) {
+                subWidthLevel = DEFAULT_SUB_WIDTH_INDEX
+                writeSettings()
+            }
             s.copy(sideMargin = stepSubtitleOptional(
                 s.sideMargin, delta, SUBTITLE_EDITOR_MARGIN_RANGE, SUBTITLE_EDITOR_DEFAULT_SIDE_MARGIN,
             ))
+        }
         SubtitleStyleDialog.Control.ALIGNMENT -> s.copy(alignment = SubtitleJustify.entries[
             (s.alignment.ordinal + delta + SubtitleJustify.entries.size) % SubtitleJustify.entries.size
         ])

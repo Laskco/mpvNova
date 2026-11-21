@@ -7,6 +7,7 @@ internal fun MPVActivity.clampSubFilterState() {
     subScaleLevel = subScaleLevel.coerceIn(0, subScaleSteps.lastIndex)
     subPosLevel = subPosLevel.coerceIn(0, subPosSteps.lastIndex)
     secondaryPosLevel = secondaryPosLevel.coerceIn(0, secondaryPosSteps.lastIndex)
+    subWidthLevel = subWidthLevel.coerceIn(0, subWidthSteps.lastIndex)
 }
 
 internal fun MPVActivity.pickSpeed() {

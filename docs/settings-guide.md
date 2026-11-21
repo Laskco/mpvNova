@@ -117,11 +117,13 @@ Open **Player UI customization** during playback. The tabs are **Presets**, **Su
 
 ### Controls And Editor Actions
 
-Reorder the controls and hide optional ones: Previous, Next, Speed, Decoder, Color filters, Vertical Scale, Subtitle Adjust, Stats, Voice Boost, Volume Boost, DRC, Audio Normalization, and PiP. Play, Chapters, Audio, Subtitles, and Settings are protected. Settings/PiP placement also depends on **Place Settings and PiP in player bar**.
+Reorder the controls and hide optional ones: Previous, Next, Speed, Decoder, Color filters, Vertical Scale, Subtitle Adjust, Subtitle width, Stats, Voice Boost, Volume Boost, DRC, Audio Normalization, and PiP. Play, Chapters, Audio, Subtitles, and Settings are protected. Settings/PiP placement also depends on **Place Settings and PiP in player bar**.
 
 Vertical Scale is hidden by default. Enable it in the Controls tab to adjust picture height in 0.01 steps, or Reset to 1.00x. Changes apply to the current file; enable **Remember choice** to use the chosen scale for future playback too.
 
 Subtitle Adjust is hidden by default. Enable it in the Controls tab for quick live adjustments to subtitle vertical position (1% steps) and subtitle size (0.05x steps) without leaving playback, or Reset both to Default. Enable **Remember choice** to persist your subtitle settings for future playback.
+
+Subtitle width is hidden by default in the player bar (and always available in the Subtitles menu above Secondary track). Enable it in the Controls tab for quick live adjustments to wrap long subtitle lines sooner (40% to 90% or Default), or Reset to Default. Enable **Remember choice** to persist your subtitle settings for future playback.
 
 PiP is hidden by default in the player bar. Moving the actions into the bar does not automatically enable PiP; turn it on in the Controls tab.
 
@@ -202,6 +204,7 @@ Open the player's **Subtitles** panel for tracks, **Open external subtitle**, an
 | Primary / secondary track | Selects the main subtitle and an optional second subtitle. |
 | Swap primary and secondary | Exchanges the selected tracks. |
 | Size, position, and delay | Adjusts subtitle scale, vertical placement, and synchronization through the custom panel. Secondary controls are separate where offered. |
+| Subtitle width | Wraps long subtitle lines sooner using a narrower centered width from 40% to 90% (or Default), placed above Secondary track. Works on plain text and native ASS subtitles while respecting preserved Signs & Songs / forced styling, and is also available as an optional player bar button. |
 | Persist subtitle settings | Keeps subtitle tweaks and remembered manual track choices for following files. Matching uses language and track identity/title information rather than assuming track numbers stay the same. |
 
 In **Settings > Advanced > Remembered tracks**, clear all saved audio or subtitle track choices independently. This keeps playback positions, preferred languages, and subtitle styling.
@@ -264,7 +267,7 @@ With **Preserve Signs & Songs / forced styling** enabled, matching tracks use th
 | --- | --- |
 | Scale | Multiplier on subtitle size, separate from the base font size. |
 | Line spacing | Space between lines. |
-| Side margin | Horizontal space kept free at the sides. |
+| Side margin | Horizontal space kept free at the sides. Adjusting this resets Subtitle width back to Default so the custom editor margin takes effect directly. |
 | Alignment | Placement of the subtitle block. |
 | Justify | Alignment of individual lines inside that block. |
 | Position | Vertical placement. |

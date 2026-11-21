@@ -59,6 +59,7 @@ internal class MediaPickerDialog {
         val subScale: ValueState,
         val subPos: ValueState,
         val secondaryPos: ValueState,
+        val subWidth: ValueState,
         val secondarySub: ValueState,
     )
     data class SubPresetState(
@@ -82,6 +83,7 @@ internal class MediaPickerDialog {
         val initialSubScaleState: ValueState = ValueState("", active = false),
         val initialSubPosState: ValueState = ValueState("", active = false),
         val initialSecondaryPosState: ValueState = ValueState("", active = false),
+        val initialSubWidthState: ValueState = ValueState("", active = false),
         val initialSecondarySubState: ValueState = ValueState("", active = false),
         val persistSubFiltersOn: Boolean = false,
         val subStyleStateText: String = "",
@@ -108,6 +110,7 @@ internal class MediaPickerDialog {
     private var subScaleState = ValueState("", false)
     private var subPosState = ValueState("", false)
     private var secondaryPosState = ValueState("", false)
+    private var subWidthState = ValueState("", false)
     private var secondarySubState = ValueState("", false)
     private var persistSubFiltersEnabled = false
     var displayedDelayValue: CharSequence? = null
@@ -142,6 +145,7 @@ internal class MediaPickerDialog {
     var onSubScaleAdjust: ((Int) -> ValueState)? = null
     var onSubPosAdjust: ((Int) -> ValueState)? = null
     var onSecondaryPosAdjust: ((Int) -> ValueState)? = null
+    var onSubWidthAdjust: ((Int) -> ValueState)? = null
     var onSecondarySubAdjust: ((Int) -> ValueState)? = null
     var onSecondarySubSwap: (() -> Unit)? = null
     var onPersistSubClick: (() -> Unit)? = null
@@ -301,62 +305,49 @@ internal class MediaPickerDialog {
     }
 
     private fun configureSubtitleFilters(options: Options) {
-        if (options.showSubFilters) {
-            this.subScaleState = options.initialSubScaleState
-            this.subPosState = options.initialSubPosState
-            this.secondaryPosState = options.initialSecondaryPosState
-            this.secondarySubState = options.initialSecondarySubState
-            persistSubFiltersEnabled = options.persistSubFiltersOn
-            binding.subStyleValue.text = options.subStyleStateText
-            binding.subStyleRow.setOnClickListener { onSubStyleClick?.invoke() }
-            binding.configureSubPresetCycler(
-                options.initialSubPresetName,
-                onSubPresetAdjust,
-                ::refreshSubFilterStates,
-            )
+        if (!options.showSubFilters) return
+        subScaleState = options.initialSubScaleState
+        subPosState = options.initialSubPosState
+        secondaryPosState = options.initialSecondaryPosState
+        subWidthState = options.initialSubWidthState
+        secondarySubState = options.initialSecondarySubState
+        persistSubFiltersEnabled = options.persistSubFiltersOn
+        binding.subStyleValue.text = options.subStyleStateText
+        binding.subStyleRow.setOnClickListener { onSubStyleClick?.invoke() }
+        binding.configureSubPresetCycler(
+            options.initialSubPresetName,
+            onSubPresetAdjust,
+            ::refreshSubFilterStates,
+        )
+        syncSubFilterChecks()
+        val bindStepper: (View, View, () -> ((Int) -> ValueState)?, (ValueState) -> Unit) -> Unit =
+            { minus, plus, adjust, update ->
+                minus.setOnClickListener {
+                    adjust()?.invoke(-1)?.let(update)
+                    refreshSubFilterStates()
+                }
+                plus.setOnClickListener {
+                    adjust()?.invoke(1)?.let(update)
+                    refreshSubFilterStates()
+                }
+            }
+        bindStepper(binding.subScaleMinusBtn, binding.subScalePlusBtn, { onSubScaleAdjust }) { subScaleState = it }
+        bindStepper(binding.subPosMinusBtn, binding.subPosPlusBtn, { onSubPosAdjust }) { subPosState = it }
+        bindStepper(binding.secondaryPosMinusBtn, binding.secondaryPosPlusBtn, { onSecondaryPosAdjust }) {
+            secondaryPosState = it
+        }
+        bindStepper(binding.subWidthMinusBtn, binding.subWidthPlusBtn, { onSubWidthAdjust }) { subWidthState = it }
+        bindStepper(binding.secondarySubMinusBtn, binding.secondarySubPlusBtn, { onSecondarySubAdjust }) {
+            secondarySubState = it
+        }
+        binding.secondarySubSwapBtn.setOnClickListener {
+            onSecondarySubSwap?.invoke()
+            refreshSubFilterStates()
+        }
+        binding.persistSubFiltersRow.setOnClickListener {
+            onPersistSubClick?.invoke()
+            persistSubFiltersEnabled = !persistSubFiltersEnabled
             syncSubFilterChecks()
-
-            binding.subScaleMinusBtn.setOnClickListener {
-                subScaleState = onSubScaleAdjust?.invoke(-1) ?: subScaleState
-                refreshSubFilterStates()
-            }
-            binding.subScalePlusBtn.setOnClickListener {
-                subScaleState = onSubScaleAdjust?.invoke(1) ?: subScaleState
-                refreshSubFilterStates()
-            }
-            binding.subPosMinusBtn.setOnClickListener {
-                subPosState = onSubPosAdjust?.invoke(-1) ?: subPosState
-                refreshSubFilterStates()
-            }
-            binding.subPosPlusBtn.setOnClickListener {
-                subPosState = onSubPosAdjust?.invoke(1) ?: subPosState
-                refreshSubFilterStates()
-            }
-            binding.secondaryPosMinusBtn.setOnClickListener {
-                secondaryPosState = onSecondaryPosAdjust?.invoke(-1) ?: secondaryPosState
-                refreshSubFilterStates()
-            }
-            binding.secondaryPosPlusBtn.setOnClickListener {
-                secondaryPosState = onSecondaryPosAdjust?.invoke(1) ?: secondaryPosState
-                refreshSubFilterStates()
-            }
-            binding.secondarySubMinusBtn.setOnClickListener {
-                secondarySubState = onSecondarySubAdjust?.invoke(-1) ?: secondarySubState
-                refreshSubFilterStates()
-            }
-            binding.secondarySubPlusBtn.setOnClickListener {
-                secondarySubState = onSecondarySubAdjust?.invoke(1) ?: secondarySubState
-                refreshSubFilterStates()
-            }
-            binding.secondarySubSwapBtn.setOnClickListener {
-                onSecondarySubSwap?.invoke()
-                refreshSubFilterStates()
-            }
-            binding.persistSubFiltersRow.setOnClickListener {
-                onPersistSubClick?.invoke()
-                persistSubFiltersEnabled = !persistSubFiltersEnabled
-                syncSubFilterChecks()
-            }
         }
     }
 
@@ -399,6 +390,7 @@ internal class MediaPickerDialog {
             subScaleState = states.subScale
             subPosState = states.subPos
             secondaryPosState = states.secondaryPos
+            subWidthState = states.subWidth
             secondarySubState = states.secondarySub
         }
         syncSubFilterChecks()
@@ -416,6 +408,10 @@ internal class MediaPickerDialog {
         syncValueRow(binding.secondaryPosRow, binding.secondaryPosValue, secondaryPosState)
         syncAdjustButton(binding.secondaryPosMinusBtn, secondaryPosState.canDecrease)
         syncAdjustButton(binding.secondaryPosPlusBtn, secondaryPosState.canIncrease)
+
+        syncValueRow(binding.subWidthRow, binding.subWidthValue, subWidthState)
+        syncAdjustButton(binding.subWidthMinusBtn, subWidthState.canDecrease)
+        syncAdjustButton(binding.subWidthPlusBtn, subWidthState.canIncrease)
 
         syncValueRow(binding.secondarySubRow, binding.secondarySubValue, secondarySubState)
         syncAdjustButton(binding.secondarySubMinusBtn, secondarySubState.canDecrease)
@@ -509,6 +505,7 @@ private fun DialogMediaPickerBinding.configurePanelVisibility(options: MediaPick
     subScaleRow.isVisible = options.showSubFilters
     subPosRow.isVisible = options.showSubFilters
     secondaryPosRow.isVisible = options.showSubFilters
+    subWidthRow.isVisible = options.showSubFilters
     secondarySubRow.isVisible = options.showSubFilters
 }
 

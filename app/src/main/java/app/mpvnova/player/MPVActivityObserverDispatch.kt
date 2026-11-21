@@ -34,6 +34,7 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
         player.loadTracks()
         refreshSubPickerAfterTrackChange(tracksChanged = true)
         refreshCompanionSubtitleStyle()
+        refreshSubWidthAssOverrides()
         applyFireTvVideoEdgeCropIfNeeded()
         maybeApplyShieldHi10pFallback()
     },
@@ -43,6 +44,7 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     },
     "sid" to {
         refreshCompanionSubtitleStyle()
+        refreshSubWidthAssOverrides()
         refreshSubPickerAfterTrackChange()
     },
     "current-tracks/video/image" to {

@@ -13,6 +13,8 @@
     <string name="subtitle_pos_increase">Move subtitles down</string>
     <string name="subtitle_scale_decrease">Decrease subtitle size</string>
     <string name="subtitle_scale_increase">Increase subtitle size</string>
+    <string name="subtitle_width_decrease">Narrow subtitle width</string>
+    <string name="subtitle_width_increase">Widen subtitle width</string>
     <string name="remember_subtitle_adjustment_summary">Use these subtitle settings for future playback.</string>
     <string name="pref_local_auto_next_title">Auto-next local files</string>
     <string name="pref_local_auto_next_summary">Automatically queue media from the same local folder. Requires folder access and does not apply to playback managed by another app. Changes apply when opening a file.</string>
@@ -211,6 +213,8 @@
     <string name="btn_sub_pos_summary" formatted="false">Place the bottom subs anywhere from top (0%) to bottom (100%).</string>
     <string name="btn_secondary_pos">Top sub position</string>
     <string name="btn_secondary_pos_summary" formatted="false">Place the top subs anywhere from top (0%) to bottom (100%).</string>
+    <string name="btn_sub_width">Subtitle width</string>
+    <string name="btn_sub_width_summary">Wrap long subtitle lines into a narrower width.</string>
     <string name="btn_secondary_sub">Secondary track</string>
     <string name="btn_secondary_sub_summary">Show a second subtitle track above the primary one.</string>
     <string name="btn_secondary_sub_swap">Swap primary / secondary</string>
@@ -219,6 +223,7 @@
     <!-- Subtitle preset labels -->
     <string name="sub_scale_default">Default</string>
     <string name="sub_pos_default">Default</string>
+    <string name="sub_width_default">Default</string>
     <string name="sub_secondary_unavailable">Unavailable</string>
 
     <!-- Subtitle style customizer -->

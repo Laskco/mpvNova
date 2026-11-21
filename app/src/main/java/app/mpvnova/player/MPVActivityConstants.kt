@@ -136,6 +136,7 @@ internal const val MAX_PLAYER_BRIGHTNESS_DIM_ALPHA = 0.99f
 internal const val DEFAULT_SUB_SCALE = 1.0
 internal const val DEFAULT_SUB_POSITION_PERCENT = 100
 internal const val DEFAULT_SECONDARY_SUB_POSITION_PERCENT = 0
+internal const val DEFAULT_SUB_WIDTH_PERCENT = 100
 internal const val DEFAULT_SUB_SCALE_INDEX = 10
 internal const val DEFAULT_SUB_POSITION_INDEX = 125
 internal const val DEFAULT_SECONDARY_SUB_POSITION_INDEX = 25
@@ -143,6 +144,14 @@ internal const val SUB_SCALE_STEPS_VERSION = 2
 internal const val SUB_POSITION_MIN_PERCENT = -25
 internal const val SUB_POSITION_MAX_PERCENT = 125
 internal const val SUB_POSITION_STEP_PERCENT = 1
+internal const val SUB_WIDTH_MIN_PERCENT = 40
+internal const val SUB_WIDTH_MAX_NARROW_PERCENT = 90
+internal const val SUB_WIDTH_STEP_PERCENT = 5
+internal const val SUB_WIDTH_MARGIN_X_NUMERATOR = 48
+internal const val SUB_WIDTH_MARGIN_X_ROUND_HALF = 5
+internal const val SUB_WIDTH_MARGIN_X_DENOMINATOR = 10
+internal const val SUB_WIDTH_ASS_REF_WIDTH = 1280
+internal const val SUB_WIDTH_ASS_MARGIN_DIVISOR = 200
 internal const val PLAYER_TITLE_HORIZONTAL_MARGIN_DP = 160f
 internal const val PLAYER_TITLE_MAX_WIDTH_DP = 464f
 internal const val PLAYER_TITLE_EDGE_MAX_WIDTH_DP = 360f
@@ -237,6 +246,23 @@ internal val SUB_POSITION_STEPS =
     (SUB_POSITION_MIN_PERCENT..SUB_POSITION_MAX_PERCENT step SUB_POSITION_STEP_PERCENT)
         .toList()
         .toIntArray()
+internal val SUB_WIDTH_STEPS =
+    ((SUB_WIDTH_MIN_PERCENT..SUB_WIDTH_MAX_NARROW_PERCENT step SUB_WIDTH_STEP_PERCENT).toList() +
+        DEFAULT_SUB_WIDTH_PERCENT).toIntArray()
+internal val DEFAULT_SUB_WIDTH_INDEX = SUB_WIDTH_STEPS.lastIndex
+
+// mpv scales converted SRT/WebVTT sub-margin-x by (PlayResX / 960) per side on every aspect ratio.
+internal fun subWidthMarginX(widthPercent: Int): Int {
+    val clamped = widthPercent.coerceIn(SUB_WIDTH_MIN_PERCENT, DEFAULT_SUB_WIDTH_PERCENT)
+    return ((DEFAULT_SUB_WIDTH_PERCENT - clamped) * SUB_WIDTH_MARGIN_X_NUMERATOR + SUB_WIDTH_MARGIN_X_ROUND_HALF) /
+        SUB_WIDTH_MARGIN_X_DENOMINATOR
+}
+
+// Native ASS scripts ignore sub-margin-x, so MarginL/MarginR overrides use a 1280px PlayResX reference.
+internal fun subWidthAssMarginX(widthPercent: Int): Int {
+    val clamped = widthPercent.coerceIn(SUB_WIDTH_MIN_PERCENT, DEFAULT_SUB_WIDTH_PERCENT)
+    return ((DEFAULT_SUB_WIDTH_PERCENT - clamped) * SUB_WIDTH_ASS_REF_WIDTH) / SUB_WIDTH_ASS_MARGIN_DIVISOR
+}
 internal val RESUME_HASH_REGEX = Regex("/([a-fA-F0-9]{40,64})(?=/|$)")
 internal val FILE_EXTENSION_REGEX = Regex("""\.[a-z0-9]{2,5}$""")
 internal val NON_ALNUM_REGEX = Regex("""[^a-z0-9]+""")

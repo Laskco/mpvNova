@@ -201,6 +201,9 @@ private fun JSONObject.readPlayerUiPresetHiddenControls(): Set<PlayerBarControl>
     if (PlayerBarControl.SUBTITLE_ADJUST !in savedOrder) {
         hidden += PlayerBarControl.SUBTITLE_ADJUST
     }
+    if (PlayerBarControl.SUBTITLE_WIDTH !in savedOrder) {
+        hidden += PlayerBarControl.SUBTITLE_WIDTH
+    }
     if (savedOrder.isNotEmpty() && PlayerBarControl.PICTURE_IN_PICTURE !in savedOrder) {
         hidden += PlayerBarControl.PICTURE_IN_PICTURE
     }

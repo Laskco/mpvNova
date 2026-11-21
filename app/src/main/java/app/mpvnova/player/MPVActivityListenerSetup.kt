@@ -19,6 +19,8 @@ internal fun MPVActivity.bindClickListeners() = with(binding) {
     TooltipCompat.setTooltipText(verticalScaleBtn, getString(R.string.vertical_scale))
     subAdjustBtn.setOnClickListener { showSubtitleAdjustDialog() }
     TooltipCompat.setTooltipText(subAdjustBtn, getString(R.string.subtitle_adjust))
+    subWidthBtn.setOnClickListener { showSubtitleWidthDialog() }
+    TooltipCompat.setTooltipText(subWidthBtn, getString(R.string.btn_sub_width))
     statsToggleBtn.setOnClickListener { toggleStatsFromButton() }
     cycleSpeedBtn.setOnClickListener { cycleSpeed() }
     voiceBoostBtn.setOnClickListener { adjustVoiceBoost(1, wrap = true) }

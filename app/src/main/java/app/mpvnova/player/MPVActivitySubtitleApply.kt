@@ -93,4 +93,8 @@ internal fun MPVActivity.applySavedSubFilterDefaults() {
     mpvSetOptionString("sub-scale", subScaleSteps[subScaleLevel].toString())
     mpvSetOptionString("sub-pos", subPosSteps[subPosLevel].toString())
     mpvSetOptionString("secondary-sub-pos", secondaryPosSteps[secondaryPosLevel].toString())
+    if (isSubWidthOn()) {
+        snapshotSubStyleBaselineIfNeeded()
+        mpvSetPropertyInt("sub-margin-x", subWidthMarginX(subWidthSteps[subWidthLevel]))
+    }
 }

@@ -82,7 +82,8 @@ internal object BackupPreferenceCompatibility {
         )
         keys(Type.INT,
             "player_screen_brightness_percent", "volume_boost_db", "sub_scale_level", "sub_scale_steps_version",
-            "sub_pos_pct", "secondary_sub_pos_pct", "last_user_sub_duplicate_index", "last_user_sub_duplicate_count",
+            "sub_pos_pct", "secondary_sub_pos_pct", "sub_width_pct",
+            "last_user_sub_duplicate_index", "last_user_sub_duplicate_count",
         )
         keys(Type.LONG, "audio_delay_ms", "sub_delay_ms", "secondary_sub_delay_ms", "bluetooth_audio_delay_ms")
         keys(Type.STRING_SET, "shader_manager_folder_uris", "player_ui_custom_hidden_controls")

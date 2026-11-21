@@ -59,6 +59,8 @@ internal fun MPVActivity.isSubPosOn() = subPosSteps[subPosLevel] != DEFAULT_SUB_
 internal fun MPVActivity.isSecondaryPosOn() =
     secondaryPosSteps[secondaryPosLevel] != DEFAULT_SECONDARY_SUB_POSITION_PERCENT
 
+internal fun MPVActivity.isSubWidthOn() = subWidthSteps[subWidthLevel] != DEFAULT_SUB_WIDTH_PERCENT
+
 internal fun MPVActivity.getSubScaleLabel(): String =
     if (isSubScaleOn()) String.format(Locale.US, "%.2fx", subScaleSteps[subScaleLevel])
     else getString(R.string.sub_scale_default)
@@ -70,3 +72,7 @@ internal fun MPVActivity.getSubPosLabel(): String =
 internal fun MPVActivity.getSecondaryPosLabel(): String =
     if (isSecondaryPosOn()) "${secondaryPosSteps[secondaryPosLevel]}%"
     else getString(R.string.sub_pos_default)
+
+internal fun MPVActivity.getSubWidthLabel(): String =
+    if (isSubWidthOn()) "${subWidthSteps[subWidthLevel]}%"
+    else getString(R.string.sub_width_default)
