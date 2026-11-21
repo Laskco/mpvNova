@@ -9,6 +9,7 @@ import java.io.IOException
 internal object TmdbSettings {
     const val ENABLED = "tmdb_title_lookup"
     const val TOKEN_ACTION = "tmdb_read_token"
+    @Volatile
     private var cachedToken: String? = null
     private var verification: TmdbKeyVerification? = null
     private const val MAX_TOKEN_LENGTH = 8192
@@ -37,6 +38,8 @@ internal object TmdbSettings {
         }
         return current
     }
+
+    fun peekToken(): String? = cachedToken
 
     @Synchronized
     fun token(context: Context): String {

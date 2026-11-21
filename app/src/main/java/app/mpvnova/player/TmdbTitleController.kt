@@ -24,17 +24,66 @@ internal class TmdbTitleController(
     private val handler = Handler(Looper.getMainLooper())
     private val worker = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, LinkedBlockingQueue())
     private var pending: Future<*>? = null
+    private var pendingPrepare: Future<*>? = null
+    private var pendingPrepareInputs: OverlayTitleInputs? = null
     private var generation = 0
+    private var prepareGeneration = 0
     private var activeQuery: TmdbTitleQuery? = null
     private var activeToken = ""
     private var closed = false
     private var lastSkippedInput: Pair<PlayerTitlePresentation, String?>? = null
     private val cache = LinkedHashMap<TmdbTitleQuery, CachedMatch>()
 
+    @Suppress("ReturnCount") // Fast paths return the cached or fallback presentation without blocking UI.
+    fun resolveInputs(
+        inputs: OverlayTitleInputs,
+        titleCache: OverlayTitleCache,
+        prefetchOnly: Boolean = false,
+    ): PlayerTitlePresentation {
+        if (closed) return titleCache.peek(inputs) ?: PlayerTitlePresentation(inputs.display)
+        val parsed = titleCache.peek(inputs)
+        val enabled = preferences.getBoolean(TmdbSettings.ENABLED, false)
+        val cachedToken = if (enabled) TmdbSettings.peekToken() else ""
+        if (parsed == null || cachedToken == null) {
+            schedulePrepare(inputs, titleCache, enabled)
+            return parsed ?: PlayerTitlePresentation(inputs.display)
+        }
+        val resolved = resolve(parsed, inputs.filename)
+        return if (prefetchOnly) parsed else resolved
+    }
+
+    private fun schedulePrepare(
+        inputs: OverlayTitleInputs,
+        titleCache: OverlayTitleCache,
+        loadToken: Boolean,
+    ) {
+        if (pendingPrepare != null && pendingPrepareInputs == inputs) return
+        cancelPrepare()
+        if (titleCache.peek(inputs) == null) cancelPending()
+        val requestGeneration = prepareGeneration
+        pendingPrepareInputs = inputs
+        pendingPrepare = worker.submit {
+            val parsed = titleCache.peek(inputs)
+                ?: PlayerTitleResolver.resolve(inputs.display, inputs.source, inputs.media, inputs.filename)
+                ?: PlayerTitlePresentation(inputs.display)
+            if (loadToken) TmdbSettings.token(context)
+            handler.post {
+                if (!closed && requestGeneration == prepareGeneration) {
+                    pendingPrepare = null
+                    pendingPrepareInputs = null
+                    titleCache.put(inputs, parsed)
+                    resolve(parsed, inputs.filename)
+                    onChanged()
+                }
+            }
+        }
+    }
+
     @Suppress("ReturnCount") // Disabled, ineligible, and cached misses all retain the local presentation.
     fun resolve(local: PlayerTitlePresentation, filename: String? = null): PlayerTitlePresentation {
         if (closed) return local
-        val token = if (preferences.getBoolean(TmdbSettings.ENABLED, false)) TmdbSettings.token(context) else ""
+        val enabled = preferences.getBoolean(TmdbSettings.ENABLED, false)
+        val token = if (enabled) TmdbSettings.peekToken() ?: return local else ""
         val query = if (token.isNotBlank()) TmdbTitleQuery.from(local, filename) else null
         logSkippedIdentity(local, filename, token.isNotBlank() && query == null)
         if (query != activeQuery || token != activeToken) {
@@ -106,6 +155,14 @@ internal class TmdbTitleController(
         return "title=$safeTitle year=$year season=$season episode=$episode"
     }
 
+    private fun cancelPrepare() {
+        prepareGeneration++
+        pendingPrepare?.cancel(true)
+        pendingPrepare = null
+        pendingPrepareInputs = null
+        worker.purge()
+    }
+
     private fun cancelPending() {
         generation++
         pending?.cancel(true)
@@ -115,6 +172,7 @@ internal class TmdbTitleController(
 
     fun close() {
         closed = true
+        cancelPrepare()
         cancelPending()
         worker.shutdownNow()
         handler.removeCallbacksAndMessages(null)

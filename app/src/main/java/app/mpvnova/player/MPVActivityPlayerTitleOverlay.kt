@@ -7,6 +7,9 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
     val title = currentVideoTitle?.trim().orEmpty()
     if (!shouldShowPlayerTitleOverlay(title)) {
         hidePlayerTitleOverlay()
+        if (shouldPrefetchPlayerTitle(title)) {
+            resolvePlayerTitlePresentation(title, prefetchOnly = true)
+        }
         return
     }
 
@@ -22,6 +25,9 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
     if (wasHidden || contentChanged)
         schedulePlayerTitleToastPlacement()
 }
+
+private fun MPVActivity.shouldPrefetchPlayerTitle(title: String): Boolean =
+    !playbackEnded && !useAudioUI && showMediaTitle && title.isNotBlank()
 
 private fun MPVActivity.shouldShowPlayerTitleOverlay(title: String): Boolean {
     val playbackAllowsTitle =
@@ -50,36 +56,36 @@ private fun MPVActivity.hidePlayerTitleOverlay() {
         updatePlayerToastPlacement()
 }
 
-private fun MPVActivity.resolvePlayerTitlePresentation(title: String): PlayerTitlePresentation =
-    overlayTitleCache.resolve(
-        displayTitle = title,
-        sourceTitle = currentPlayerTitleSource,
-        mediaTitle = psc.meta.mediaTitle,
-        fileName = currentFileName,
-    ).let { tmdbTitleController.resolve(it, currentFileName) }
+private fun MPVActivity.resolvePlayerTitlePresentation(
+    title: String,
+    prefetchOnly: Boolean = false,
+): PlayerTitlePresentation = tmdbTitleController.resolveInputs(
+    inputs = OverlayTitleInputs(
+        display = title,
+        source = currentPlayerTitleSource,
+        media = psc.meta.mediaTitle,
+        filename = currentFileName,
+    ),
+    titleCache = overlayTitleCache,
+    prefetchOnly = prefetchOnly,
+)
+
+internal data class OverlayTitleInputs(
+    val display: String,
+    val source: String?,
+    val media: String?,
+    val filename: String?,
+)
 
 internal class OverlayTitleCache {
-    private data class Inputs(
-        val display: String,
-        val source: String?,
-        val media: String?,
-        val filename: String?,
-    )
+    @Volatile
+    private var last: Pair<OverlayTitleInputs, PlayerTitlePresentation>? = null
 
-    private var last: Pair<Inputs, PlayerTitlePresentation>? = null
+    fun peek(inputs: OverlayTitleInputs): PlayerTitlePresentation? =
+        last?.let { (previous, title) -> if (inputs == previous) title else null }
 
-    fun resolve(
-        displayTitle: String,
-        sourceTitle: String?,
-        mediaTitle: String?,
-        fileName: String?,
-    ): PlayerTitlePresentation {
-        val inputs = Inputs(displayTitle, sourceTitle, mediaTitle, fileName)
-        last?.let { (previous, title) -> if (inputs == previous) return title }
-        val parsed = PlayerTitleResolver.resolve(displayTitle, sourceTitle, mediaTitle, fileName)
-            ?: PlayerTitlePresentation(displayTitle)
+    fun put(inputs: OverlayTitleInputs, parsed: PlayerTitlePresentation) {
         last = inputs to parsed
-        return parsed
     }
 }
 
