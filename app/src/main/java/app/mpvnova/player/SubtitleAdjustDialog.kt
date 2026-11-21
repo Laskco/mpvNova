@@ -8,7 +8,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import app.mpvnova.player.databinding.DialogSubtitleAdjustmentBinding
 
-private const val SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP = 390f
+private const val SUBTITLE_ADJUST_DIALOG_MAX_WIDTH_DP = 450f
 private const val STEPPER_ENABLED_ALPHA = 1f
 private const val STEPPER_DISABLED_ALPHA = 0.38f
 
