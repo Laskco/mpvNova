@@ -25,6 +25,16 @@ if [ ! -d ffmpeg ]; then
 	git clone --depth=1 -b "$v_ci_ffmpeg" https://github.com/FFmpeg/FFmpeg ffmpeg
 fi
 
+for patch_name in ffmpeg-mediacodec-reconfig-yield; do
+	patch="$PWD/../patches/$patch_name.patch"
+	if git -C ffmpeg apply --check "$patch" 2>/dev/null; then
+		git -C ffmpeg apply "$patch"
+	elif ! git -C ffmpeg apply --reverse --check "$patch" 2>/dev/null; then
+		echo >&2 "ffmpeg patch $patch_name does not match the dependency checkout."
+		exit 1
+	fi
+done
+
 # freetype2
 [ ! -d freetype2 ] && git clone --recurse-submodules https://gitlab.freedesktop.org/freetype/freetype.git freetype2 -b VER-${v_freetype//./-}
 
@@ -100,7 +110,7 @@ if [ ! -d mpv ]; then
 	git -C mpv checkout "$v_mpv"
 fi
 
-for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url mpv-ass-fade-upload mpv-audiotrack-pcm-resume; do
+for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url mpv-ass-fade-upload mpv-audiotrack-pcm-resume mpv-mediacodec-drain-stall; do
 	patch="$PWD/../patches/$patch_name.patch"
 	if git -C mpv apply --check "$patch" 2>/dev/null; then
 		git -C mpv apply "$patch"

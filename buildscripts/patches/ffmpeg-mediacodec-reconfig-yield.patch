@@ -1,0 +1,71 @@
+diff --git a/libavcodec/mediacodecdec.c b/libavcodec/mediacodecdec.c
+index bc176d8..0c913c2 100644
+--- a/libavcodec/mediacodecdec.c
++++ b/libavcodec/mediacodecdec.c
+@@ -491,6 +491,7 @@ static int mediacodec_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+     MediaCodecH264DecContext *s = avctx->priv_data;
+     int ret;
+     ssize_t index;
++    int try_again_count = 0;
+ 
+     /* In delay_flush mode, wait until the user has released or rendered
+        all retained frames. */
+@@ -519,8 +520,13 @@ static int mediacodec_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+                  * return EAGAIN, which violate the design.
+                  */
+                 if (ff_AMediaCodec_infoTryAgainLater(s->ctx->codec, index) &&
+-                    ret == AVERROR(EAGAIN))
++                    ret == AVERROR(EAGAIN)) {
++                    if (s->ctx->surface &&
++                        atomic_load(&s->ctx->hw_buffer_count) > 0 &&
++                        ++try_again_count >= 4)
++                        return AVERROR(EAGAIN);
+                     continue;
++                }
+                 return ret;
+             }
+             s->ctx->current_input_buffer = index;
+@@ -554,10 +560,12 @@ static int mediacodec_receive_frame(AVCodecContext *avctx, AVFrame *frame)
+         /* fetch new packet or eof */
+         ret = ff_decode_get_packet(avctx, &s->buffered_pkt);
+         if (ret == AVERROR_EOF) {
+-            AVPacket null_pkt = { 0 };
+-            ret = ff_mediacodec_dec_send(avctx, s->ctx, &null_pkt, true);
+-            if (ret < 0)
+-                return ret;
++            if (!s->ctx->draining) {
++                AVPacket null_pkt = { 0 };
++                ret = ff_mediacodec_dec_send(avctx, s->ctx, &null_pkt, true);
++                if (ret < 0)
++                    return ret;
++            }
+             return ff_mediacodec_dec_receive(avctx, s->ctx, frame, true);
+         } else if (ret == AVERROR(EAGAIN) && s->ctx->current_input_buffer < 0) {
+             return ff_mediacodec_dec_receive(avctx, s->ctx, frame, true);
+diff --git a/libavcodec/mediacodecdec_common.c b/libavcodec/mediacodecdec_common.c
+index 9a627c0..62f4f3a 100644
+--- a/libavcodec/mediacodecdec_common.c
++++ b/libavcodec/mediacodecdec_common.c
+@@ -1003,8 +1003,11 @@ int ff_mediacodec_dec_receive(AVCodecContext *avctx, MediaCodecDecContext *s,
+ 
+     if (s->draining) {
+         /* If the codec is flushing or need to be flushed, block for a fair
+-         * amount of time to ensure we got a frame */
+-        output_dequeue_timeout_us = OUTPUT_DEQUEUE_BLOCK_TIMEOUT_US;
++         * amount of time to ensure we got a frame, unless the caller still
++         * retains surface output buffers that may block port reconfiguration. */
++        output_dequeue_timeout_us = (s->surface && atomic_load(&s->hw_buffer_count) > 0)
++            ? OUTPUT_DEQUEUE_TIMEOUT_US
++            : OUTPUT_DEQUEUE_BLOCK_TIMEOUT_US;
+     } else if (s->output_buffer_count == 0 || !wait) {
+         /* If the codec hasn't produced any frames, do not block so we
+          * can push data to it as fast as possible, and get the first
+@@ -1081,7 +1084,7 @@ int ff_mediacodec_dec_receive(AVCodecContext *avctx, MediaCodecDecContext *s,
+     } else if (ff_AMediaCodec_infoOutputBuffersChanged(codec, index)) {
+         ff_AMediaCodec_cleanOutputBuffers(codec);
+     } else if (ff_AMediaCodec_infoTryAgainLater(codec, index)) {
+-        if (s->draining) {
++        if (s->draining && !(s->surface && atomic_load(&s->hw_buffer_count) > 0)) {
+             av_log(avctx, AV_LOG_ERROR, "Failed to dequeue output buffer within %" PRIi64 "ms "
+                                         "while draining remaining frames, output will probably lack frames\n",
+                                         output_dequeue_timeout_us / 1000);

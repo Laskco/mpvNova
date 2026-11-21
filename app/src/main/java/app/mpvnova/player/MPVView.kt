@@ -233,10 +233,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
         for ((name, format) in p)
             mpvObserveProperty(name, format)
-        if (isNvidiaShieldDevice()) {
-            mpvObserveProperty("options/interpolation", MPV_FORMAT_NONE)
-            mpvObserveProperty("options/video-sync", MPV_FORMAT_NONE)
-        }
     }
 
     data class Track(val mpvId: Int, val name: String)

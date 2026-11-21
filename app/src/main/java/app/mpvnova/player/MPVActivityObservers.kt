@@ -23,16 +23,11 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
 
     private var pendingEndFileReason: Long? = null
     private var pendingFileEntryId: Long? = null
-    private val directTail = if (isNvidiaShieldDevice()) ShieldDirectTailLookahead() else null
 
     override fun eventProperty(property: String): Unit = with(activity) {
         if (activityIsDestroying) return
         val metaUpdated = psc.update(property)
         if (metaUpdated) updateMediaSession()
-        when (property) {
-            "hwdec-current", "options/interpolation", "options/video-sync" ->
-                directTail?.update(psc.position, psc.duration, recheck = true)
-        }
         dispatchEventThreadMetadata(property)
         if (!activityIsForeground) return
         postMetadataPropertyUi(property, metaUpdated)
@@ -73,8 +68,6 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
     override fun eventProperty(property: String, value: Double): Unit = with(activity) {
         if (activityIsDestroying) return
         if (psc.update(property, value)) updateMediaSession()
-        if (property == "time-pos/full" || property == "duration/full")
-            directTail?.update(psc.position, psc.duration)
         if (!activityIsForeground) return
         // time-pos/full fires at frame rate — coalesce to ~5 UI/sec or it
         // starves the SW Hi10p decoder.
@@ -97,21 +90,12 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         if (activityIsDestroying) return
         val metaUpdated = psc.update(property, value)
         if (metaUpdated) updateMediaSession()
-        if (property == "current-vo") directTail?.update(psc.position, psc.duration, recheck = true)
         if (!activityIsForeground) return
         postStringPropertyUi(property, metaUpdated)
     }
 
     override fun event(eventId: Int) {
         if (activity.activityIsDestroying) return
-        when (eventId) {
-            MpvEvent.MPV_EVENT_START_FILE, MpvEvent.MPV_EVENT_END_FILE -> directTail?.reset()
-            MpvEvent.MPV_EVENT_FILE_LOADED -> directTail?.fileLoaded()
-            MpvEvent.MPV_EVENT_SEEK -> directTail?.refreshPosition()
-            MpvEvent.MPV_EVENT_PLAYBACK_RESTART -> directTail?.update(
-                activity.psc.position, activity.psc.duration, recheck = true,
-            )
-        }
         val endFileReason = pendingEndFileReason
         val fileEntryId = pendingFileEntryId
         pendingEndFileReason = null

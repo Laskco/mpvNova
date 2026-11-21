@@ -102,6 +102,10 @@ jobs:
           git -C buildscripts/deps/libplacebo diff --exit-code
           grep -qx '#define HAVE_LIBCURL 1' "buildscripts/deps/mpv/_build_${{ matrix.arch }}/config.h"
           grep -qx '#define CONFIG_ACOMPRESSOR_FILTER 1' "buildscripts/deps/ffmpeg/_build_${{ matrix.arch }}/config_components.h"
+          git -C buildscripts/deps/ffmpeg apply --reverse ../../patches/ffmpeg-mediacodec-reconfig-yield.patch
+          git -C buildscripts/deps/ffmpeg diff --exit-code
+          test -z "$(git -C buildscripts/deps/ffmpeg status --porcelain --untracked-files=no)"
+          git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-mediacodec-drain-stall.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-ass-fade-upload.patch
