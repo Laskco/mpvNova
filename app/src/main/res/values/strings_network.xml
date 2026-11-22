@@ -17,13 +17,13 @@
     <string name="network_unsteady">Unsteady connection</string>
     <string name="network_unsteady_summary">96 MiB ahead, 16 MiB behind, up to 3 minutes. Refills 5 seconds after a stall. Cannot fix a consistently slow server.</string>
     <string name="network_large">High-bitrate video</string>
-    <string name="network_large_summary">256 MiB ahead, 32 MiB behind, up to 3 minutes. More space for large video streams; uses more memory.</string>
+    <string name="network_large_summary">256 MiB ahead, 32 MiB behind, up to 3 minutes. Uses heavy RAM and may cause stalls, A/V drift, or frame drops on 3 GB or lower TV devices, especially with heavy subtitles. Use Default or Balanced if playback stalls.</string>
     <string name="network_custom">Custom</string>
     <string name="network_custom_value">Custom value…</string>
     <string name="network_forward">Video buffer size</string>
-    <string name="network_forward_summary">Memory limit for video buffered ahead. More can help brief connection drops; it does not make downloads faster. Updates during playback.</string>
+    <string name="network_forward_summary">Memory limit for video buffered ahead. More can help brief connection drops; it does not make downloads faster. Large values (128+ MiB) may cause stalls, A/V drift, or frame drops on 3 GB or lower TV devices. Updates during playback.</string>
     <string name="network_backward">Rewind buffer size</string>
-    <string name="network_backward_summary">Keeps recently played data for faster backward seeks. Set to 0 to keep none. Updates during playback; discarded data must be fetched again.</string>
+    <string name="network_backward_summary">Keeps recently played data for faster backward seeks. Set to 0 to keep none. Large values share memory with the forward buffer and can cause stalls on lower RAM devices. Updates during playback; discarded data must be fetched again.</string>
     <string name="network_target">Buffer ahead</string>
     <string name="network_target_summary">How far ahead to buffer network streams. The memory limit may be reached sooner. Default fills up to the memory limit. Updates during playback.</string>
     <string name="network_pause">Wait for the buffer to refill</string>

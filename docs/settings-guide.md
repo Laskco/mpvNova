@@ -317,7 +317,7 @@ Open **Settings > Network**, or the player's **Network** drawer tab. The control
 | Unsteady connection | 96 / 16 MiB | 180 seconds | 5 seconds |
 | High-bitrate video | 256 / 32 MiB | 180 seconds | 3 seconds |
 
-Non-default presets enable waiting for the buffer to refill. Values are limited by the device's memory budget; the largest preset may be reduced on 32-bit or low-memory devices. Individual changes display as Custom. Default removes the app's network overrides rather than replacing your mpv.conf with a hard-coded preset.
+Non-default presets enable waiting for the buffer to refill. Values are limited by the device's memory budget; the largest preset may be reduced on 32-bit or low-memory devices. Large buffers (such as High-bitrate video or custom values of 128 MiB and up) can push 3 GB or lower Android TV boxes into memory pressure stalls, A/V drift, or frame drops, especially during heavy ASS subtitles; switch back to Default or Balanced if playback stalls. Individual changes display as Custom. Default removes the app's network overrides rather than replacing your mpv.conf with a hard-coded preset.
 
 | Control | Purpose and timing |
 | --- | --- |
