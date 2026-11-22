@@ -37,14 +37,14 @@
         android:textColor="@color/tv_text_dim"
         android:textSize="12sp" />
 
-    <!-- Keep the usual list height, but let short windows shrink it before the action row. -->
+    <!-- Hug the options vertically, while still letting short windows shrink and scroll before the action row. -->
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="300dp"
+        android:layout_height="wrap_content"
         android:layout_weight="1"
         android:layout_marginTop="14dp"
         android:clipToPadding="true"
-        android:fillViewport="true"
+        android:fillViewport="false"
         android:overScrollMode="never"
         android:scrollbarDefaultDelayBeforeFade="1200"
         android:scrollbarFadeDuration="240"
