@@ -24,7 +24,6 @@ internal fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferenc
 private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferences, fallback: String) {
     applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_SHIELD_H10P)
     when (fallback.toShieldDecoderFallback()) {
-        MPVView.SHIELD_DECODER_FALLBACK_FRAMEDROP -> applyShieldHi10pFramedropFallback(sharedPreferences)
         MPVView.SHIELD_DECODER_FALLBACK_COPY -> applyShieldHi10pCopyFallback(sharedPreferences)
         else -> applyShieldHi10pDefaultFallback(sharedPreferences)
     }
@@ -33,8 +32,6 @@ private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreference
 private fun MPVView.applyShieldHi10pDefaultFallback(sharedPreferences: SharedPreferences) {
     setRuntimeOption("hwdec", MPV_VIEW_HWDEC_NONE)
     applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
-    // Keep the audio clock authoritative when expensive subtitles delay output.
-    setRuntimeOption("framedrop", "vo")
 }
 
 private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPreferences) {
@@ -44,13 +41,6 @@ private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPrefer
     setRuntimeOption("audio-buffer", "1.0")
     // Sharp upscale for gpu-next software decode.
     setRuntimeOption("scale", "ewa_lanczossharp")
-}
-
-// Light tuning plus output catch-up. The stock Hi10P path also allows catch-up,
-// without changing deblocking, upscaling, or audio buffering.
-private fun MPVView.applyShieldHi10pFramedropFallback(sharedPreferences: SharedPreferences) {
-    applyShieldHi10pCopyFallback(sharedPreferences)
-    setRuntimeOption("framedrop", "vo")
 }
 
 // New builds request hwdec=no directly. Keep the legacy copy-tuning check so
@@ -76,10 +66,11 @@ private fun MPVView.matchesShieldOption(name: String, vararg expected: String): 
     return expected.any { value == it.lowercase() }
 }
 
+// Legacy "g_next_framedrop" maps to COPY now that standard tuning uses mpv's default framedrop=vo.
 // Unknown values (including the removed legacy "g_next_sw") map to DEFAULT.
 internal fun String?.toShieldDecoderFallback(): String {
     return when (this) {
-        MPVView.SHIELD_DECODER_FALLBACK_FRAMEDROP -> MPVView.SHIELD_DECODER_FALLBACK_FRAMEDROP
+        MPVView.SHIELD_DECODER_FALLBACK_FRAMEDROP,
         MPVView.SHIELD_DECODER_FALLBACK_COPY -> MPVView.SHIELD_DECODER_FALLBACK_COPY
         else -> MPVView.SHIELD_DECODER_FALLBACK_DEFAULT
     }

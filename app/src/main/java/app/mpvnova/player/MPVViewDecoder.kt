@@ -122,7 +122,7 @@ internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPrefere
         setRuntimeOption("vd-lavc-skiploopfilter", "default")
     }
     setRuntimeOption("vd-lavc-threads", "0")
-    setRuntimeOption("framedrop", "no")
+    setRuntimeOption("framedrop", "vo")
     setRuntimeOption("gpu-api", "auto")
     applyNetworkSettings()
 }

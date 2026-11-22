@@ -360,7 +360,7 @@ The bar badge follows the active path, for example G+SW when gpu-next is softwar
 | Setting | Behavior |
 | --- | --- |
 | Hi10P fallback on this device | Automatically uses G-NEXT SW for 10-bit H.264 when mpvNova's automatic fallback is enabled. Defaults on for Shield, off elsewhere; saved choices persist. Does not mean all 10-bit codecs use this rule. |
-| Hi10P fallback tuning | No tuning, Light tuning, or frame-drop tuning. No tuning is the default. Light tuning skips the non-reference deblocking filter, adds a 1-second audio buffer, and uses Lanczos-sharp upscaling. Frame-drop tuning adds late-frame dropping. Revert to no tuning if synchronization or frame delivery worsens. |
+| Hi10P fallback tuning | No tuning or Light tuning. No tuning is the default. Light tuning skips the non-reference deblocking filter, adds a 1-second audio buffer, and uses Lanczos-sharp upscaling. Revert to no tuning if synchronization or frame delivery worsens. |
 | MPEG2 / Xvid software fallback on this device | Uses G-NEXT software decoding for MPEG2 and MPEG4 (Xvid/DivX). Defaults on for Shield, off elsewhere. |
 | Pause Hi10P while controls are open | Pauses Hi10P while the controls are visible to reduce contention. Defaults on for Shield, off elsewhere. Independent of the general Pause when controls show toggle. |
 | Bottom-edge artifact cleanup | Default Off. Automatic uses the Fire TV workaround; manual 8/16/24/32-row choices crop the bottom on this device across videos. This hides an edge artifact, not its decoder cause. Existing independent custom crops are left alone. |
