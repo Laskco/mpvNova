@@ -14,7 +14,7 @@ index b62836e..83ff30d 100644
  };
  
 diff --git a/sub/packer.c b/sub/packer.c
-index bebb456..623c8da 100644
+index bebb456..19009ae 100644
 --- a/sub/packer.c
 +++ b/sub/packer.c
 @@ -21,6 +21,7 @@
@@ -25,7 +25,12 @@ index bebb456..623c8da 100644
  
  #include "config.h"
  
-@@ -47,6 +48,8 @@ struct mp_sub_packer {
+@@ -43,10 +44,13 @@ struct mp_sub_packer {
+     struct mp_image *cached_img;
+     struct sub_bitmaps cached_subs;
+     bool cached_subs_valid;
++    int last_mismatch_part;
+     struct sub_bitmap rgba_imgs[MP_SUB_BB_LIST_MAX];
      struct bitmap_packer *packer;
  };
  
@@ -34,12 +39,39 @@ index bebb456..623c8da 100644
  // Free with talloc_free().
  struct mp_sub_packer *mp_sub_packer_alloc(void *ta_parent)
  {
-@@ -203,6 +206,56 @@ static bool pack_libass(struct mp_sub_packer *p, struct sub_bitmaps *res)
+@@ -203,6 +207,98 @@ static bool pack_libass(struct mp_sub_packer *p, struct sub_bitmaps *res)
          b->stride = stride;
      }
  
 +    res->packed_id = atomic_fetch_add_explicit(&next_packed_id, 1,
 +                                               memory_order_relaxed) + 1;
++    return true;
++}
++
++static bool libass_part_pixels_match(const ASS_Image *img,
++                                     const struct sub_bitmap *b)
++{
++    // libass can reuse allocations for different masks. Compare owned
++    // pixels, not source pointers, and never read the last row padding.
++    // Probe the middle and last rows first to reject animated parts fast.
++    if (img->h > 2) {
++        int mid = img->h / 2;
++        if (memcmp(img->bitmap + (ptrdiff_t)mid * img->stride,
++                   (uint8_t *)b->bitmap + (ptrdiff_t)mid * b->stride,
++                   img->w))
++            return false;
++        int last = img->h - 1;
++        if (memcmp(img->bitmap + (ptrdiff_t)last * img->stride,
++                   (uint8_t *)b->bitmap + (ptrdiff_t)last * b->stride,
++                   img->w))
++            return false;
++    }
++    for (int y = 0; y < img->h; y++) {
++        if (memcmp(img->bitmap + (ptrdiff_t)y * img->stride,
++                   (uint8_t *)b->bitmap + (ptrdiff_t)y * b->stride,
++                   img->w))
++            return false;
++    }
 +    return true;
 +}
 +
@@ -51,28 +83,43 @@ index bebb456..623c8da 100644
 +        !cached->packed || !cached->packed_id)
 +        return false;
 +
++    // Verify part count and dimensions before reading any bitmap pixels.
 +    int part = 0;
++    const ASS_Image *hot_img = NULL;
++    int hot_idx = p->last_mismatch_part;
 +    for (int n = 0; n < count; n++) {
 +        for (ASS_Image *img = lists[n]; img; img = img->next) {
 +            if (!img->w || !img->h)
 +                continue;
 +            if (part >= cached->num_parts)
 +                return false;
-+            const struct sub_bitmap *b = &cached->parts[part++];
++            const struct sub_bitmap *b = &cached->parts[part];
 +            if (img->w != b->w || img->h != b->h)
 +                return false;
-+            // libass can reuse allocations for different masks. Compare owned
-+            // pixels, not source pointers, and never read the last row padding.
-+            for (int y = 0; y < img->h; y++) {
-+                if (memcmp(img->bitmap + (ptrdiff_t)y * img->stride,
-+                           (uint8_t *)b->bitmap + (ptrdiff_t)y * b->stride,
-+                           img->w))
-+                    return false;
-+            }
++            if (part == hot_idx)
++                hot_img = img;
++            part++;
 +        }
 +    }
 +    if (part != cached->num_parts)
 +        return false;
++
++    if (hot_img && !libass_part_pixels_match(hot_img, &cached->parts[hot_idx]))
++        return false;
++
++    part = 0;
++    for (int n = 0; n < count; n++) {
++        for (ASS_Image *img = lists[n]; img; img = img->next) {
++            if (!img->w || !img->h)
++                continue;
++            if (part != hot_idx &&
++                !libass_part_pixels_match(img, &cached->parts[part])) {
++                p->last_mismatch_part = part;
++                return false;
++            }
++            part++;
++        }
++    }
 +
 +    part = 0;
 +    for (int n = 0; n < count; n++) {
@@ -91,7 +138,7 @@ index bebb456..623c8da 100644
      return true;
  }
  
-@@ -283,6 +336,10 @@ void mp_sub_packer_pack_ass(struct mp_sub_packer *p, ASS_Image **image_lists,
+@@ -283,6 +379,10 @@ void mp_sub_packer_pack_ass(struct mp_sub_packer *p, ASS_Image **image_lists,
          return;
      }
  

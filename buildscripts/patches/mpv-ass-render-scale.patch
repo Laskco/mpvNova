@@ -1,0 +1,119 @@
+diff --git a/options/options.c b/options/options.c
+index a432414..10a9a79 100644
+--- a/options/options.c
++++ b/options/options.c
+@@ -344,6 +344,7 @@ const struct m_sub_options mp_subtitle_sub_opts = {
+         {"sub-scale-by-window", OPT_BOOL(sub_scale_by_window)},
+         {"sub-scale-with-window", OPT_BOOL(sub_scale_with_window)},
+         {"sub-ass-scale-with-window", OPT_BOOL(ass_scale_with_window)},
++        {"sub-ass-render-scale", OPT_FLOAT(ass_render_scale), M_RANGE(0.25, 1.0)},
+         {"sub", OPT_SUBSTRUCT(sub_style, sub_style_conf)},
+         {"sub-clear-on-seek", OPT_BOOL(sub_clear_on_seek)},
+         {"teletext-page", OPT_INT(teletext_page), M_RANGE(-1, 999), .flags = UPDATE_SUB_FILT},
+@@ -363,6 +364,7 @@ const struct m_sub_options mp_subtitle_sub_opts = {
+         .sub_scale_by_window = true,
+         .sub_use_margins = true,
+         .sub_scale_with_window = true,
++        .ass_render_scale = 1.0f,
+         .ass_prune_delay = -1.0,
+         .teletext_page = 0,
+         .ass_vsfilter_color_compat = 1,
+diff --git a/options/options.h b/options/options.h
+index 1f8e7cb..da6d18c 100644
+--- a/options/options.h
++++ b/options/options.h
+@@ -109,6 +109,7 @@ struct mp_subtitle_opts {
+     bool sub_scale_by_window;
+     bool sub_scale_with_window;
+     bool ass_scale_with_window;
++    float ass_render_scale;
+     struct osd_style_opts *sub_style;
+     bool sub_scale_signs;
+     float sub_gauss;
+diff --git a/sub/sd_ass.c b/sub/sd_ass.c
+index c329b61..9a0e2b4 100644
+--- a/sub/sd_ass.c
++++ b/sub/sd_ass.c
+@@ -58,6 +58,7 @@ struct sd_ass_priv {
+     struct mp_image_params video_params;
+     struct mp_image_params last_params;
+     struct mp_osd_res osd;
++    struct mp_osd_res render_osd;
+     struct seen_packet *seen_packets;
+     int num_seen_packets;
+     bool check_animated;
+@@ -749,7 +750,6 @@ static struct sub_bitmaps *get_bitmaps(struct sd *sd, struct mp_osd_res dim,
+     struct sub_bitmaps *res = &(struct sub_bitmaps){0};
+ 
+     // Always update the osd_res
+-    struct mp_osd_res old_osd = ctx->osd;
+     ctx->osd = dim;
+ 
+     if (pts == MP_NOPTS_VALUE || !renderer)
+@@ -761,7 +761,28 @@ static struct sub_bitmaps *get_bitmaps(struct sd *sd, struct mp_osd_res dim,
+     if (opts->sub_forced_events_only)
+         goto done;
+ 
+-    double scale = dim.display_par;
++    struct mp_osd_res render_dim = dim;
++    float render_scale = opts->ass_render_scale;
++    if (render_scale > 0.0f && render_scale < 0.999f && dim.w > 0 && dim.h > 0) {
++        render_dim.w = MPMAX(1, (int)lround(dim.w * (double)render_scale));
++        render_dim.h = MPMAX(1, (int)lround(dim.h * (double)render_scale));
++        render_dim.ml = (int)lround(dim.ml * (double)render_scale);
++        render_dim.mr = (int)lround(dim.mr * (double)render_scale);
++        render_dim.mt = (int)lround(dim.mt * (double)render_scale);
++        render_dim.mb = (int)lround(dim.mb * (double)render_scale);
++        if (render_dim.ml + render_dim.mr >= render_dim.w)
++            render_dim.ml = render_dim.mr = 0;
++        if (render_dim.mt + render_dim.mb >= render_dim.h)
++            render_dim.mt = render_dim.mb = 0;
++        double sx = (double)dim.w / render_dim.w;
++        double sy = (double)dim.h / render_dim.h;
++        render_dim.display_par = dim.display_par * (sx / sy);
++    }
++
++    struct mp_osd_res old_render_osd = ctx->render_osd;
++    ctx->render_osd = render_dim;
++
++    double scale = render_dim.display_par;
+     if (!converted && (!shared_opts->ass_style_override[sd->order] ||
+                        opts->ass_use_video_data >= 1))
+     {
+@@ -772,8 +793,8 @@ static struct sub_bitmaps *get_bitmaps(struct sd *sd, struct mp_osd_res dim,
+         if (isnormal(par))
+             scale *= par;
+     }
+-    if (!ctx->ass_configured || !osd_res_equals(old_osd, ctx->osd)) {
+-        configure_ass(sd, &dim, converted, track);
++    if (!ctx->ass_configured || !osd_res_equals(old_render_osd, ctx->render_osd)) {
++        configure_ass(sd, &render_dim, converted, track);
+         ctx->ass_configured = true;
+     }
+     ass_set_pixel_aspect(renderer, scale);
+@@ -797,6 +818,25 @@ done:
+     // mangle_colors() modifies the color field, so copy the thing _before_.
+     res = sub_bitmaps_copy(&ctx->copy_cache, res);
+ 
++    if (res && res->num_parts > 0 &&
++        ctx->render_osd.w > 0 && ctx->render_osd.h > 0 &&
++        (ctx->render_osd.w != dim.w || ctx->render_osd.h != dim.h))
++    {
++        double sx = (double)dim.w / ctx->render_osd.w;
++        double sy = (double)dim.h / ctx->render_osd.h;
++        for (int n = 0; n < res->num_parts; n++) {
++            struct sub_bitmap *b = &res->parts[n];
++            int x0 = (int)lround(b->x * sx);
++            int y0 = (int)lround(b->y * sy);
++            int x1 = (int)lround((b->x + b->dw) * sx);
++            int y1 = (int)lround((b->y + b->dh) * sy);
++            b->x = x0;
++            b->y = y0;
++            b->dw = MPMAX(1, x1 - x0);
++            b->dh = MPMAX(1, y1 - y0);
++        }
++    }
++
+     if (!converted && res)
+         mangle_colors(sd, res);
+ 
