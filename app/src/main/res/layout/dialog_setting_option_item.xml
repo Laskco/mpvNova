@@ -48,11 +48,9 @@
 
         <TextView
             android:id="@+id/optionDetailText"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:ellipsize="end"
-            android:maxLines="2"
             android:textColor="@color/tv_text_dim"
             android:textSize="10sp"
             tools:text="Use Nuvio skip intervals automatically." />
