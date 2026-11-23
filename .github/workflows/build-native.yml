@@ -109,6 +109,7 @@ jobs:
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-ass-fade-upload.patch
+          git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-ass-render-scale.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-audiotrack-pcm-resume.patch
           git -C buildscripts/deps/mpv diff --exit-code
           test -z "$(git -C buildscripts/deps/mpv status --porcelain --untracked-files=no)"
