@@ -71,9 +71,14 @@ import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.UiFont
 import app.mpvnova.player.UserShaderManager
 import app.mpvnova.player.VideoFilterPreset
+import app.mpvnova.player.PREF_ASS_RENDERING_MODE
+import app.mpvnova.player.assRenderingModeDescriptionRes
+import app.mpvnova.player.assRenderingModeOptions
 import app.mpvnova.player.decoderModeDescriptionRes
+import app.mpvnova.player.normalizedAssRenderingMode
 import app.mpvnova.player.normalizedPreferredDecoderMode
 import app.mpvnova.player.migrateDeviceCompatibilityPreferences
+import app.mpvnova.player.migrateRetiredPreferences
 import app.mpvnova.player.preferredDecoderModeOptions
 import app.mpvnova.player.applyUiTextShadow
 import app.mpvnova.player.AppearanceColorChoice
@@ -1014,13 +1019,24 @@ class PreferenceActivity : AppCompatActivity(),
 
     class AdvancePreference : StyledPreferenceFragment(R.xml.pref_advanced) {
         override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
-            PreferenceManager.getDefaultSharedPreferences(requireContext())
-                .migrateDeviceCompatibilityPreferences()
+            val prefs = PreferenceManager.getDefaultSharedPreferences(requireContext())
+            prefs.migrateRetiredPreferences()
+            prefs.migrateDeviceCompatibilityPreferences()
             super.onCreatePreferences(savedInstanceState, rootKey)
+        }
+
+        override fun onDisplayPreferenceDialog(preference: Preference) {
+            val listPref = preference as? ListPreference
+            if (listPref?.key == PREF_ASS_RENDERING_MODE) {
+                showAssRenderingModeChoice(listPref)
+            } else {
+                super.onDisplayPreferenceDialog(preference)
+            }
         }
 
         override fun onPreferencesLoaded() {
             bindTrackMemorySettings()
+            bindAssRenderingModePreference()
             val autoFallbackPref = findPreference<SwitchPreferenceCompat>("decoder_auto_fallback")
             val preferredDecoderPref = findPreference<ListPreference>("preferred_decoder_mode")
 
@@ -1052,6 +1068,43 @@ class PreferenceActivity : AppCompatActivity(),
                 preferredDecoderPref?.isVisible = (newValue as? Boolean) == false
                 true
             }
+        }
+
+        private fun bindAssRenderingModePreference() {
+            val pref = findPreference<ListPreference>(PREF_ASS_RENDERING_MODE) ?: return
+            val options = assRenderingModeOptions()
+            pref.entries = options.map { getString(it.titleRes) as CharSequence }.toTypedArray()
+            pref.entryValues = options.map { it.value as CharSequence }.toTypedArray()
+            pref.value = normalizedAssRenderingMode(pref.value)
+            pref.summaryProvider = SummaryProvider<ListPreference> { listPref ->
+                val normalized = normalizedAssRenderingMode(listPref.value)
+                val entry = listPref.entry?.toString() ?: getString(R.string.pref_ass_rendering_mode_performance)
+                getString(
+                    R.string.pref_ass_rendering_mode_summary_format,
+                    entry,
+                    getString(assRenderingModeDescriptionRes(normalized))
+                )
+            }
+        }
+
+        private fun showAssRenderingModeChoice(pref: ListPreference) {
+            val current = normalizedAssRenderingMode(pref.value)
+            val items = assRenderingModeOptions().map { option ->
+                SettingsChoiceItem(
+                    title = getString(option.titleRes),
+                    detail = getString(option.descriptionRes),
+                    checked = current == option.value,
+                ) {
+                    if (pref.callChangeListener(option.value)) {
+                        pref.value = option.value
+                    }
+                }
+            }
+            requireActivity().showSettingsChoiceDialog(
+                title = pref.title ?: getString(R.string.pref_ass_rendering_mode_title),
+                items = items,
+                message = pref.dialogMessage ?: getString(R.string.pref_ass_rendering_mode_dialog_message),
+            )
         }
 
         private fun buildDecoderPreferenceOptions(): Pair<Array<CharSequence>, Array<CharSequence>> {

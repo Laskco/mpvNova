@@ -365,6 +365,16 @@ The bar badge follows the active path, for example G+SW when gpu-next is softwar
 | Pause Hi10P while controls are open | Pauses Hi10P while the controls are visible to reduce contention. Defaults on for Shield, off elsewhere. Independent of the general Pause when controls show toggle. |
 | Bottom-edge artifact cleanup | Default Off. Automatic uses the Fire TV workaround; manual 8/16/24/32-row choices crop the bottom on this device across videos. This hides an edge artifact, not its decoder cause. Existing independent custom crops are left alone. |
 
+### ASS Subtitle Rendering
+
+Open **Settings > Advanced > ASS rendering mode** to choose how `libass` renders complex ASS/SSA signs, vector drawings, and blur. Reopen playback to apply changes.
+
+| Mode | Behavior |
+| --- | --- |
+| Off (Exact) | Pixel exact ASS rendering with full precision curves and blur. Highest visual accuracy, slowest on heavy signs and typesetting. |
+| Performance | Default. Faster rendering for complex ASS drawings and animations with minimal visual difference. Recommended for most devices. |
+| Ultra Performance | Maximum speed for lower end Android TV boxes. Uses coarser blur scaling, faster small blurs, integer positioning, and stronger curve simplification to prevent frame drops on heavy signs. Fine edges and blur may look softer. |
+
 ### Dolby Vision FEL
 
 **FEL decoding is disabled by default, not Dolby Vision as a whole.** For interleaved Profile 7 sources, the patch prevents the extra enhancement-layer decoder from starting and removes enhancement video packets while retaining the base video and RPU metadata. Separate enhancement tracks are not automatically paired when FEL is disabled.

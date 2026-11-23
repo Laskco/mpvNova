@@ -58,11 +58,11 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val assPerformanceEnabled = sharedPreferences.getBoolean("experimental_ass_edges", true)
+        val assRenderingMode = sharedPreferences.assRenderingMode()
         runCatching {
-            Os.setenv("LIBASS_EXPERIMENTAL_EDGES", if (assPerformanceEnabled) "1" else "0", true)
+            Os.setenv("LIBASS_EXPERIMENTAL_EDGES", assRenderingMode, true)
         }.onFailure { error ->
-            Log.w(MPV_VIEW_LOG_TAG, "Could not configure experimental ASS rendering", error)
+            Log.w(MPV_VIEW_LOG_TAG, "Could not configure ASS rendering mode", error)
         }
         val startupDecoderMode = startupPreferredDecoderMode(sharedPreferences)
 

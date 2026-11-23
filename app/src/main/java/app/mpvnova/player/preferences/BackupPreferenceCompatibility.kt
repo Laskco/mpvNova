@@ -51,6 +51,7 @@ internal object BackupPreferenceCompatibility {
         keys(Type.STRING,
             "default_file_manager_path", "default_audio_language", "default_subtitle_language",
             "background_play", "no_ui_pause", "seek_step_seconds", "stats_mode", "preferred_decoder_mode",
+            "ass_rendering_mode",
             "video_edge_cleanup", "shield_decoder_fallback", "screensaver_mode", "screensaver_timeout",
             "screensaver_logo_uri", "intro_skip_mode", "outro_skip_mode", "recap_skip_mode",
             "movie_credits_mode", "post_credits_mode", "skip_button_display", UiScale.PREF_KEY,

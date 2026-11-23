@@ -14,6 +14,7 @@ private val retiredKeys = setOf(
     "gesture_horiz", "gesture_tap_center", "gesture_tap_left", "gesture_tap_right",
     "gesture_vert_left", "gesture_vert_right", "seek_gesture_smooth",
     "dolby_vision_fel", "dolby_vision_processing",
+    LEGACY_PREF_EXPERIMENTAL_ASS_EDGES,
     OLD_MEDIA_TITLE, OLD_BOTTOM_CONTROLS, OLD_SKIP_MODE, OLD_AUTO_SKIP,
 ) + legacyDeviceCompatibilityKeys
 
@@ -43,6 +44,10 @@ private fun retiredPreferenceReplacements(values: Map<String, *>, isShield: Bool
     buildMap {
         if (legacyDeviceCompatibilityKeys.any(values::containsKey)) {
             putAll(deviceCompatibilityUpdates(values, isShield))
+        }
+        if (values.containsKey(LEGACY_PREF_EXPERIMENTAL_ASS_EDGES) &&
+            !values.containsKey(PREF_ASS_RENDERING_MODE)) {
+            put(PREF_ASS_RENDERING_MODE, assRenderingModeFromValues(values))
         }
         if (values.containsKey(OLD_SKIP_MODE) || values.containsKey(OLD_AUTO_SKIP)) {
             val modes = readSegmentSkipModes(values)
