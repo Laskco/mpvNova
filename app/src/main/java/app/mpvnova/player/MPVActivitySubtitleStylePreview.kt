@@ -73,30 +73,40 @@ internal fun MPVActivity.subtitleTypefaceFor(
     bold: Boolean = false,
     italic: Boolean = false,
 ): Typeface {
+    SubtitleTypefaceCache.getResolved(family, bold, italic)?.let { return it }
+
     val generic = when (family) {
         "", "sans-serif" -> Typeface.SANS_SERIF
         "serif" -> Typeface.SERIF
         "monospace" -> Typeface.MONOSPACE
         else -> null
     }
-    if (generic != null) return styledTypeface(generic, bold, italic)
+    val resolved = if (generic != null) {
+        styledTypeface(generic, bold, italic)
+    } else {
+        val faces = subtitleFontsDir()
+            .listFiles { f -> f.isFile && f.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
+            ?.filter { SubtitleFontTable.familyName(it) == family }
+            .orEmpty()
 
-    val faces = subtitleFontsDir()
-        .listFiles { f -> f.isFile && f.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
-        ?.filter { SubtitleFontTable.familyName(it) == family }
-        .orEmpty()
-
-    // Prefer the real face whose own flags match the request (the face libass uses), so the
-    // preview shows true italic/bold letterforms. Otherwise fall back to the regular file and let
-    // Android synthesize, mirroring libass's own oblique/bold fallback.
-    val preferredStyle = SubtitleFontTable.Style(bold, italic)
-    val exactFace = faces.firstOrNull { SubtitleFontTable.style(it) == preferredStyle }
-        ?.let { typefaceFromFile(it) }
-    return exactFace ?: run {
-        val regularStyle = SubtitleFontTable.Style(bold = false, italic = false)
-        val regularFile = faces.firstOrNull { SubtitleFontTable.style(it) == regularStyle } ?: faces.firstOrNull()
-        styledTypeface(regularFile?.let { typefaceFromFile(it) } ?: Typeface.DEFAULT, bold, italic)
+        // Prefer the real face whose own flags match the request (the face libass uses), so the
+        // preview shows true italic/bold letterforms. Otherwise fall back to the regular file and let
+        // Android synthesize, mirroring libass's own oblique/bold fallback.
+        val preferredStyle = SubtitleFontTable.Style(bold, italic)
+        val exactFace = faces.firstOrNull { SubtitleFontTable.style(it) == preferredStyle }
+            ?.let { typefaceFromFile(it) }
+        exactFace ?: run {
+            val regularStyle = SubtitleFontTable.Style(bold = false, italic = false)
+            val regularFile = faces.firstOrNull { SubtitleFontTable.style(it) == regularStyle } ?: faces.firstOrNull()
+            styledTypeface(regularFile?.let { typefaceFromFile(it) } ?: Typeface.DEFAULT, bold, italic)
+        }
     }
+    SubtitleTypefaceCache.putResolved(family, bold, italic, resolved)
+    return resolved
+}
+
+internal fun invalidateSubtitleTypefaceCache() {
+    SubtitleTypefaceCache.clearResolved()
 }
 
 private fun typefaceFromFile(file: File): Typeface? =
@@ -105,7 +115,9 @@ private fun typefaceFromFile(file: File): Typeface? =
 private object SubtitleTypefaceCache {
     private const val MAX_ENTRIES = 32
     private data class Key(val path: String, val size: Long, val modified: Long)
+    private data class ResolvedKey(val family: String, val bold: Boolean, val italic: Boolean)
     private val entries = LinkedHashMap<Key, Typeface?>()
+    private val resolvedEntries = LinkedHashMap<ResolvedKey, Typeface>()
 
     @Synchronized
     fun get(file: File): Typeface? {
@@ -117,6 +129,23 @@ private object SubtitleTypefaceCache {
         while (entries.size > MAX_ENTRIES)
             entries.remove(entries.keys.first())
         return typeface
+    }
+
+    @Synchronized
+    fun getResolved(family: String, bold: Boolean, italic: Boolean): Typeface? =
+        resolvedEntries[ResolvedKey(family, bold, italic)]
+
+    @Synchronized
+    fun putResolved(family: String, bold: Boolean, italic: Boolean, typeface: Typeface) {
+        resolvedEntries[ResolvedKey(family, bold, italic)] = typeface
+        while (resolvedEntries.size > MAX_ENTRIES) {
+            resolvedEntries.remove(resolvedEntries.keys.first())
+        }
+    }
+
+    @Synchronized
+    fun clearResolved() {
+        resolvedEntries.clear()
     }
 }
 

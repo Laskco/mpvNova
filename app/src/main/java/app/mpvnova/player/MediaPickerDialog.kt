@@ -1,6 +1,8 @@
 package app.mpvnova.player
 
+import app.mpvnova.player.databinding.DialogMediaPickerAudioFiltersBinding
 import app.mpvnova.player.databinding.DialogMediaPickerBinding
+import app.mpvnova.player.databinding.DialogMediaPickerSubFiltersBinding
 import android.content.res.ColorStateList
 import android.graphics.Rect
 import android.view.LayoutInflater
@@ -31,6 +33,7 @@ private const val INACTIVE_ROW_ALPHA = 0.92f
 private const val DISABLED_VALUE_ALPHA = 0.55f
 private const val INACTIVE_VALUE_ALPHA = 0.72f
 private const val DISABLED_BUTTON_ALPHA = 0.38f
+private const val PICKER_LIST_VIEW_CACHE_SIZE = 10
 
 internal class MediaPickerDialog {
 
@@ -94,6 +97,10 @@ internal class MediaPickerDialog {
     )
 
     private lateinit var binding: DialogMediaPickerBinding
+    private var audioBinding: DialogMediaPickerAudioFiltersBinding? = null
+    private var subBinding: DialogMediaPickerSubFiltersBinding? = null
+    private lateinit var enabledButtonTint: ColorStateList
+    private lateinit var disabledButtonTint: ColorStateList
 
     /** Current row data backing the list. Readable so callers can translate an
      *  item index back to its tag without holding their own parallel list. */
@@ -158,9 +165,9 @@ internal class MediaPickerDialog {
     var downloadedSubtitlesVisible: Boolean = false
         set(value) {
             field = value
-            if (::binding.isInitialized) {
-                binding.onlineSubtitleDownloads.isVisible = value
-                binding.onlineSubtitleActions.isVisible = value || binding.onlineSubtitleSearch.isVisible
+            subBinding?.let { sub ->
+                sub.onlineSubtitleDownloads.isVisible = value
+                sub.onlineSubtitleActions.isVisible = value || sub.onlineSubtitleSearch.isVisible
             }
         }
 
@@ -168,27 +175,39 @@ internal class MediaPickerDialog {
         val firstBuild = !::binding.isInitialized
         if (firstBuild) {
             binding = DialogMediaPickerBinding.inflate(layoutInflater)
+            binding.list.itemAnimator = null
+            binding.list.setItemViewCacheSize(PICKER_LIST_VIEW_CACHE_SIZE)
+            binding.delayRow.setOnClickListener { onDelayClick?.invoke() }
+            enabledButtonTint = ColorStateList.valueOf(ContextCompat.getColor(binding.root.context, R.color.tv_text))
+            disabledButtonTint = ColorStateList.valueOf(
+                ContextCompat.getColor(binding.root.context, R.color.tint_disabled),
+            )
             handleInsetsAsPadding(binding.root)
         } else {
             binding.root.detachFromParent()
         }
 
+        val audio = if (options.showFilters) ensureAudioBinding() else audioBinding
+        val sub = if (options.showSubFilters) ensureSubBinding() else subBinding
+
         binding.bindHeader(options)
-        binding.onlineSubtitleActions.isVisible = options.showSubFilters &&
-            (options.showOnlineSubtitleSearch || options.showOnlineSubtitleDownloads)
-        binding.onlineSubtitleSearch.isVisible = options.showSubFilters && options.showOnlineSubtitleSearch
-        binding.onlineSubtitleSearch.setOnClickListener { onOnlineSubtitleSearch?.invoke() }
-        binding.onlineSubtitleDownloads.isVisible = options.showSubFilters && options.showOnlineSubtitleDownloads
-        binding.onlineSubtitleDownloads.setOnClickListener { onOnlineSubtitleDownloads?.invoke() }
+        sub?.let {
+            it.onlineSubtitleActions.isVisible = options.showSubFilters &&
+                (options.showOnlineSubtitleSearch || options.showOnlineSubtitleDownloads)
+            it.onlineSubtitleSearch.isVisible = options.showSubFilters && options.showOnlineSubtitleSearch
+            it.onlineSubtitleDownloads.isVisible = options.showSubFilters && options.showOnlineSubtitleDownloads
+        }
         configureList(options)
-        binding.configurePanelVisibility(options)
+        binding.configurePanelVisibility(options, audio, sub)
         binding.configureResponsiveSizing(options.showDelay, options.showFilters, options.showSubFilters)
-        binding.configureDelay(options, onDelayClick)
-        configureAudioFilters(options)
-        configureSubtitleFilters(options)
-        binding.positionDelayRow(options)
+        binding.configureDelay(options)
+        configureAudioFilters(options, audio)
+        configureSubtitleFilters(options, sub)
+        binding.positionDelayRow(options, audio, sub)
         focusDelayRow = { binding.delayRow.post { binding.delayRow.requestFocus() } }
-        focusSubtitleStyleRow = { binding.subStyleRow.post { binding.subStyleRow.requestFocus() } }
+        focusSubtitleStyleRow = {
+            subBinding?.subStyleRow?.post { subBinding?.subStyleRow?.requestFocus() }
+        }
         focusInitialSelection = {
             if (::binding.isInitialized)
                 binding.requestInitialFocus(items, options.showDelay)
@@ -198,11 +217,82 @@ internal class MediaPickerDialog {
         return binding.root
     }
 
+    private fun ensureAudioBinding(): DialogMediaPickerAudioFiltersBinding {
+        audioBinding?.let { return it }
+        val inflated = DialogMediaPickerAudioFiltersBinding.bind(binding.audioFiltersStub.inflate())
+        audioBinding = inflated
+        bindAudioFilterAdjusters(inflated)
+        inflated.persistFiltersRow.setOnClickListener {
+            onPersistClick?.invoke()
+            persistFiltersEnabled = !persistFiltersEnabled
+            syncFilterChecks()
+        }
+        return inflated
+    }
+
+    private fun ensureSubBinding(): DialogMediaPickerSubFiltersBinding {
+        subBinding?.let { return it }
+        val inflated = DialogMediaPickerSubFiltersBinding.bind(binding.subFiltersStub.inflate())
+        subBinding = inflated
+        inflated.onlineSubtitleSearch.setOnClickListener { onOnlineSubtitleSearch?.invoke() }
+        inflated.onlineSubtitleDownloads.setOnClickListener { onOnlineSubtitleDownloads?.invoke() }
+        inflated.subStyleRow.setOnClickListener { onSubStyleClick?.invoke() }
+        inflated.subPresetMinusBtn.setOnClickListener { adjustSubPreset(-1) }
+        inflated.subPresetPlusBtn.setOnClickListener { adjustSubPreset(1) }
+        val bindStepper: (View, View, () -> ((Int) -> ValueState)?, (ValueState) -> Unit) -> Unit =
+            { minus, plus, adjust, update ->
+                minus.setOnClickListener {
+                    adjust()?.invoke(-1)?.let(update)
+                    refreshSubFilterStates()
+                }
+                plus.setOnClickListener {
+                    adjust()?.invoke(1)?.let(update)
+                    refreshSubFilterStates()
+                }
+            }
+        bindStepper(inflated.subScaleMinusBtn, inflated.subScalePlusBtn, { onSubScaleAdjust }) { subScaleState = it }
+        bindStepper(inflated.subPosMinusBtn, inflated.subPosPlusBtn, { onSubPosAdjust }) { subPosState = it }
+        bindStepper(inflated.secondaryPosMinusBtn, inflated.secondaryPosPlusBtn, { onSecondaryPosAdjust }) {
+            secondaryPosState = it
+        }
+        bindStepper(inflated.subWidthMinusBtn, inflated.subWidthPlusBtn, { onSubWidthAdjust }) { subWidthState = it }
+        bindStepper(inflated.secondarySubMinusBtn, inflated.secondarySubPlusBtn, { onSecondarySubAdjust }) {
+            secondarySubState = it
+        }
+        inflated.secondarySubSwapBtn.setOnClickListener {
+            onSecondarySubSwap?.invoke()
+            refreshSubFilterStates()
+        }
+        inflated.persistSubFiltersRow.setOnClickListener {
+            onPersistSubClick?.invoke()
+            persistSubFiltersEnabled = !persistSubFiltersEnabled
+            syncSubFilterChecks()
+        }
+        return inflated
+    }
+
+    private fun adjustSubPreset(delta: Int) {
+        val sub = subBinding ?: return
+        onSubPresetAdjust?.invoke(delta)?.let { state ->
+            sub.subPresetValue.setTextIfChanged(state.presetName)
+            sub.subStyleValue.setTextIfChanged(state.subStyleStateText)
+            refreshSubFilterStates()
+        }
+    }
+
     private fun configureList(options: Options) {
         val hasFilters = options.showFilters || options.showSubFilters
-        val listMinHeight = Utils.convertDp(binding.root.context, TRACK_LIST_MIN_HEIGHT_DP)
         binding.list.stopScroll()
         binding.list.clearFocus()
+        updateListLayoutParams(options, hasFilters)
+        if (binding.list.adapter == null) {
+            binding.list.adapter = Adapter(this)
+        }
+        updateItems(options.items)
+    }
+
+    private fun updateListLayoutParams(options: Options, hasFilters: Boolean) {
+        val listMinHeight = Utils.convertDp(binding.root.context, TRACK_LIST_MIN_HEIGHT_DP)
         binding.list.layoutParams = binding.list.layoutParams.apply {
             height = if (hasFilters) 0 else listMinHeight
             if (this is android.widget.LinearLayout.LayoutParams) {
@@ -223,22 +313,12 @@ internal class MediaPickerDialog {
                     weight = 0f
                 }
         }
-        if (binding.list.adapter == null) {
-            binding.list.adapter = Adapter(this)
-        }
-        updateItems(options.items)
     }
 
-    private fun configureAudioFilters(options: Options) {
-        binding.filterGroup.isVisible = options.showFilters || options.showSubFilters
-        if (options.showFilters) {
+    private fun configureAudioFilters(options: Options, audio: DialogMediaPickerAudioFiltersBinding?) {
+        binding.filterGroup.isVisible = options.showFilters || options.showSubFilters || options.showDelay
+        if (options.showFilters && audio != null) {
             bindAudioFilterStates(options)
-            bindAudioFilterAdjusters()
-            binding.persistFiltersRow.setOnClickListener {
-                onPersistClick?.invoke()
-                persistFiltersEnabled = !persistFiltersEnabled
-                syncFilterChecks()
-            }
         }
     }
 
@@ -253,102 +333,68 @@ internal class MediaPickerDialog {
         syncFilterChecks()
     }
 
-    private fun bindAudioFilterAdjusters() {
-        binding.voiceBoostMinusBtn.setOnClickListener {
+    private fun bindAudioFilterAdjusters(audio: DialogMediaPickerAudioFiltersBinding) {
+        audio.voiceBoostMinusBtn.setOnClickListener {
             voiceBoostState = onVoiceBoostAdjust?.invoke(-1) ?: voiceBoostState
             refreshFilterStates()
         }
-        binding.voiceBoostPlusBtn.setOnClickListener {
+        audio.voiceBoostPlusBtn.setOnClickListener {
             voiceBoostState = onVoiceBoostAdjust?.invoke(1) ?: voiceBoostState
             refreshFilterStates()
         }
-        binding.volumeBoostMinusBtn.setOnClickListener {
+        audio.volumeBoostMinusBtn.setOnClickListener {
             volumeBoostState = onVolumeBoostAdjust?.invoke(-1) ?: volumeBoostState
             refreshFilterStates()
         }
-        binding.volumeBoostPlusBtn.setOnClickListener {
+        audio.volumeBoostPlusBtn.setOnClickListener {
             volumeBoostState = onVolumeBoostAdjust?.invoke(1) ?: volumeBoostState
             refreshFilterStates()
         }
-        binding.nightModeMinusBtn.setOnClickListener {
+        audio.nightModeMinusBtn.setOnClickListener {
             nightModeState = onNightModeAdjust?.invoke(-1) ?: nightModeState
             refreshFilterStates()
         }
-        binding.nightModePlusBtn.setOnClickListener {
+        audio.nightModePlusBtn.setOnClickListener {
             nightModeState = onNightModeAdjust?.invoke(1) ?: nightModeState
             refreshFilterStates()
         }
-        binding.audioNormMinusBtn.setOnClickListener {
+        audio.audioNormMinusBtn.setOnClickListener {
             audioNormState = onAudioNormAdjust?.invoke(-1) ?: audioNormState
             refreshFilterStates()
         }
-        binding.audioNormPlusBtn.setOnClickListener {
+        audio.audioNormPlusBtn.setOnClickListener {
             audioNormState = onAudioNormAdjust?.invoke(1) ?: audioNormState
             refreshFilterStates()
         }
-        binding.downmixMinusBtn.setOnClickListener {
+        audio.downmixMinusBtn.setOnClickListener {
             downmixState = onDownmixAdjust?.invoke(-1) ?: downmixState
             refreshFilterStates()
         }
-        binding.downmixPlusBtn.setOnClickListener {
+        audio.downmixPlusBtn.setOnClickListener {
             downmixState = onDownmixAdjust?.invoke(1) ?: downmixState
             refreshFilterStates()
         }
-        binding.centerBoostMinusBtn.setOnClickListener {
+        audio.centerBoostMinusBtn.setOnClickListener {
             centerBoostState = onCenterBoostAdjust?.invoke(-1) ?: centerBoostState
             refreshFilterStates()
         }
-        binding.centerBoostPlusBtn.setOnClickListener {
+        audio.centerBoostPlusBtn.setOnClickListener {
             centerBoostState = onCenterBoostAdjust?.invoke(1) ?: centerBoostState
             refreshFilterStates()
         }
     }
 
-    private fun configureSubtitleFilters(options: Options) {
-        if (!options.showSubFilters) return
+    private fun configureSubtitleFilters(options: Options, sub: DialogMediaPickerSubFiltersBinding?) {
+        if (!options.showSubFilters || sub == null) return
         subScaleState = options.initialSubScaleState
         subPosState = options.initialSubPosState
         secondaryPosState = options.initialSecondaryPosState
         subWidthState = options.initialSubWidthState
         secondarySubState = options.initialSecondarySubState
         persistSubFiltersEnabled = options.persistSubFiltersOn
-        binding.subStyleValue.text = options.subStyleStateText
-        binding.subStyleRow.setOnClickListener { onSubStyleClick?.invoke() }
-        binding.configureSubPresetCycler(
-            options.initialSubPresetName,
-            onSubPresetAdjust,
-            ::refreshSubFilterStates,
-        )
+        sub.subStyleValue.setTextIfChanged(options.subStyleStateText)
+        sub.subPresetValue.setTextIfChanged(options.initialSubPresetName)
         syncSubFilterChecks()
-        val bindStepper: (View, View, () -> ((Int) -> ValueState)?, (ValueState) -> Unit) -> Unit =
-            { minus, plus, adjust, update ->
-                minus.setOnClickListener {
-                    adjust()?.invoke(-1)?.let(update)
-                    refreshSubFilterStates()
-                }
-                plus.setOnClickListener {
-                    adjust()?.invoke(1)?.let(update)
-                    refreshSubFilterStates()
-                }
-            }
-        bindStepper(binding.subScaleMinusBtn, binding.subScalePlusBtn, { onSubScaleAdjust }) { subScaleState = it }
-        bindStepper(binding.subPosMinusBtn, binding.subPosPlusBtn, { onSubPosAdjust }) { subPosState = it }
-        bindStepper(binding.secondaryPosMinusBtn, binding.secondaryPosPlusBtn, { onSecondaryPosAdjust }) {
-            secondaryPosState = it
-        }
-        bindStepper(binding.subWidthMinusBtn, binding.subWidthPlusBtn, { onSubWidthAdjust }) { subWidthState = it }
-        bindStepper(binding.secondarySubMinusBtn, binding.secondarySubPlusBtn, { onSecondarySubAdjust }) {
-            secondarySubState = it
-        }
-        binding.secondarySubSwapBtn.setOnClickListener {
-            onSecondarySubSwap?.invoke()
-            refreshSubFilterStates()
-        }
-        binding.persistSubFiltersRow.setOnClickListener {
-            onPersistSubClick?.invoke()
-            persistSubFiltersEnabled = !persistSubFiltersEnabled
-            syncSubFilterChecks()
-        }
     }
 
     private fun refreshFilterStates() {
@@ -364,25 +410,29 @@ internal class MediaPickerDialog {
     }
 
     private fun syncFilterChecks() {
-        syncValueRow(binding.voiceBoostRow, binding.voiceBoostValue, voiceBoostState)
-        syncValueRow(binding.volumeBoostRow, binding.volumeBoostValue, volumeBoostState)
-        syncValueRow(binding.nightModeRow, binding.nightModeValue, nightModeState)
-        syncValueRow(binding.audioNormRow, binding.audioNormValue, audioNormState)
-        syncValueRow(binding.downmixRow, binding.downmixValue, downmixState)
-        syncValueRow(binding.centerBoostRow, binding.centerBoostValue, centerBoostState)
-        syncAdjustButton(binding.voiceBoostMinusBtn, voiceBoostState.canDecrease)
-        syncAdjustButton(binding.voiceBoostPlusBtn, voiceBoostState.canIncrease)
-        syncAdjustButton(binding.volumeBoostMinusBtn, volumeBoostState.canDecrease)
-        syncAdjustButton(binding.volumeBoostPlusBtn, volumeBoostState.canIncrease)
-        syncAdjustButton(binding.nightModeMinusBtn, nightModeState.canDecrease)
-        syncAdjustButton(binding.nightModePlusBtn, nightModeState.canIncrease)
-        syncAdjustButton(binding.audioNormMinusBtn, audioNormState.canDecrease)
-        syncAdjustButton(binding.audioNormPlusBtn, audioNormState.canIncrease)
-        syncAdjustButton(binding.downmixMinusBtn, downmixState.canDecrease)
-        syncAdjustButton(binding.downmixPlusBtn, downmixState.canIncrease)
-        syncAdjustButton(binding.centerBoostMinusBtn, centerBoostState.canDecrease)
-        syncAdjustButton(binding.centerBoostPlusBtn, centerBoostState.canIncrease)
-        binding.persistFiltersCheck.visibility = if (persistFiltersEnabled) View.VISIBLE else View.INVISIBLE
+        val audio = audioBinding ?: return
+        syncValueRow(audio.voiceBoostRow, audio.voiceBoostValue, voiceBoostState)
+        syncValueRow(audio.volumeBoostRow, audio.volumeBoostValue, volumeBoostState)
+        syncValueRow(audio.nightModeRow, audio.nightModeValue, nightModeState)
+        syncValueRow(audio.audioNormRow, audio.audioNormValue, audioNormState)
+        syncValueRow(audio.downmixRow, audio.downmixValue, downmixState)
+        syncValueRow(audio.centerBoostRow, audio.centerBoostValue, centerBoostState)
+        val onTint = enabledButtonTint
+        val offTint = disabledButtonTint
+        syncAdjustButton(audio.voiceBoostMinusBtn, voiceBoostState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.voiceBoostPlusBtn, voiceBoostState.canIncrease, onTint, offTint)
+        syncAdjustButton(audio.volumeBoostMinusBtn, volumeBoostState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.volumeBoostPlusBtn, volumeBoostState.canIncrease, onTint, offTint)
+        syncAdjustButton(audio.nightModeMinusBtn, nightModeState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.nightModePlusBtn, nightModeState.canIncrease, onTint, offTint)
+        syncAdjustButton(audio.audioNormMinusBtn, audioNormState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.audioNormPlusBtn, audioNormState.canIncrease, onTint, offTint)
+        syncAdjustButton(audio.downmixMinusBtn, downmixState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.downmixPlusBtn, downmixState.canIncrease, onTint, offTint)
+        syncAdjustButton(audio.centerBoostMinusBtn, centerBoostState.canDecrease, onTint, offTint)
+        syncAdjustButton(audio.centerBoostPlusBtn, centerBoostState.canIncrease, onTint, offTint)
+        val persistVis = if (persistFiltersEnabled) View.VISIBLE else View.INVISIBLE
+        audio.persistFiltersCheck.setVisibilityIfChanged(persistVis)
     }
 
     private fun refreshSubFilterStates() {
@@ -397,28 +447,32 @@ internal class MediaPickerDialog {
     }
 
     private fun syncSubFilterChecks() {
-        syncValueRow(binding.subScaleRow, binding.subScaleValue, subScaleState)
-        syncAdjustButton(binding.subScaleMinusBtn, subScaleState.canDecrease)
-        syncAdjustButton(binding.subScalePlusBtn, subScaleState.canIncrease)
+        val sub = subBinding ?: return
+        val onTint = enabledButtonTint
+        val offTint = disabledButtonTint
+        syncValueRow(sub.subScaleRow, sub.subScaleValue, subScaleState)
+        syncAdjustButton(sub.subScaleMinusBtn, subScaleState.canDecrease, onTint, offTint)
+        syncAdjustButton(sub.subScalePlusBtn, subScaleState.canIncrease, onTint, offTint)
 
-        syncValueRow(binding.subPosRow, binding.subPosValue, subPosState)
-        syncAdjustButton(binding.subPosMinusBtn, subPosState.canDecrease)
-        syncAdjustButton(binding.subPosPlusBtn, subPosState.canIncrease)
+        syncValueRow(sub.subPosRow, sub.subPosValue, subPosState)
+        syncAdjustButton(sub.subPosMinusBtn, subPosState.canDecrease, onTint, offTint)
+        syncAdjustButton(sub.subPosPlusBtn, subPosState.canIncrease, onTint, offTint)
 
-        syncValueRow(binding.secondaryPosRow, binding.secondaryPosValue, secondaryPosState)
-        syncAdjustButton(binding.secondaryPosMinusBtn, secondaryPosState.canDecrease)
-        syncAdjustButton(binding.secondaryPosPlusBtn, secondaryPosState.canIncrease)
+        syncValueRow(sub.secondaryPosRow, sub.secondaryPosValue, secondaryPosState)
+        syncAdjustButton(sub.secondaryPosMinusBtn, secondaryPosState.canDecrease, onTint, offTint)
+        syncAdjustButton(sub.secondaryPosPlusBtn, secondaryPosState.canIncrease, onTint, offTint)
 
-        syncValueRow(binding.subWidthRow, binding.subWidthValue, subWidthState)
-        syncAdjustButton(binding.subWidthMinusBtn, subWidthState.canDecrease)
-        syncAdjustButton(binding.subWidthPlusBtn, subWidthState.canIncrease)
+        syncValueRow(sub.subWidthRow, sub.subWidthValue, subWidthState)
+        syncAdjustButton(sub.subWidthMinusBtn, subWidthState.canDecrease, onTint, offTint)
+        syncAdjustButton(sub.subWidthPlusBtn, subWidthState.canIncrease, onTint, offTint)
 
-        syncValueRow(binding.secondarySubRow, binding.secondarySubValue, secondarySubState)
-        syncAdjustButton(binding.secondarySubMinusBtn, secondarySubState.canDecrease)
-        syncAdjustButton(binding.secondarySubPlusBtn, secondarySubState.canIncrease)
-        syncAdjustButton(binding.secondarySubSwapBtn, secondarySubState.active)
+        syncValueRow(sub.secondarySubRow, sub.secondarySubValue, secondarySubState)
+        syncAdjustButton(sub.secondarySubMinusBtn, secondarySubState.canDecrease, onTint, offTint)
+        syncAdjustButton(sub.secondarySubPlusBtn, secondarySubState.canIncrease, onTint, offTint)
+        syncAdjustButton(sub.secondarySubSwapBtn, secondarySubState.active, onTint, offTint)
 
-        binding.persistSubFiltersCheck.visibility = if (persistSubFiltersEnabled) View.VISIBLE else View.INVISIBLE
+        val persistSubVis = if (persistSubFiltersEnabled) View.VISIBLE else View.INVISIBLE
+        sub.persistSubFiltersCheck.setVisibilityIfChanged(persistSubVis)
     }
 
     /** Swap in a new row list and rebuild the RecyclerView. Used when the
@@ -437,6 +491,7 @@ internal class MediaPickerDialog {
             RecyclerView.ViewHolder(view) {
             private val textView: CheckedTextView = ViewCompat.requireViewById(view, android.R.id.text1)
             init {
+                textView.setTextColor(ContextCompat.getColor(textView.context, R.color.tv_text))
                 view.setOnClickListener {
                     val position = bindingAdapterPosition
                     if (position != RecyclerView.NO_POSITION && parent.items[position].enabled)
@@ -444,17 +499,12 @@ internal class MediaPickerDialog {
                 }
             }
             fun bind(item: Item) {
-                textView.text = item.label
-                textView.isChecked = item.selected
-                itemView.isEnabled = item.enabled
-                itemView.isFocusable = item.enabled
-                itemView.alpha = if (item.enabled) 1f else DISABLED_ROW_ALPHA
-                textView.setTextColor(
-                    ContextCompat.getColor(
-                        textView.context,
-                        R.color.tv_text
-                    )
-                )
+                textView.setTextIfChanged(item.label)
+                if (textView.isChecked != item.selected) textView.isChecked = item.selected
+                if (itemView.isEnabled != item.enabled) itemView.isEnabled = item.enabled
+                if (itemView.isFocusable != item.enabled) itemView.isFocusable = item.enabled
+                val targetAlpha = if (item.enabled) 1f else DISABLED_ROW_ALPHA
+                if (itemView.alpha != targetAlpha) itemView.alpha = targetAlpha
             }
         }
 
@@ -488,61 +538,45 @@ private fun DialogMediaPickerBinding.bindHeader(options: MediaPickerDialog.Optio
     }
 }
 
-private fun DialogMediaPickerBinding.configurePanelVisibility(options: MediaPickerDialog.Options) {
+private fun DialogMediaPickerBinding.configurePanelVisibility(
+    options: MediaPickerDialog.Options,
+    audio: DialogMediaPickerAudioFiltersBinding?,
+    sub: DialogMediaPickerSubFiltersBinding?,
+) {
     val hasFilters = options.showFilters || options.showSubFilters
     sidePanel.isVisible = options.showDelay || hasFilters
-    persistFiltersRow.isVisible = options.showFilters
-    persistSubFiltersRow.isVisible = options.showSubFilters
-    filterScroll.isVisible = hasFilters
-    voiceBoostRow.isVisible = options.showFilters
-    volumeBoostRow.isVisible = options.showFilters
-    nightModeRow.isVisible = options.showFilters
-    audioNormRow.isVisible = options.showFilters
-    downmixRow.isVisible = options.showFilters
-    centerBoostRow.isVisible = options.showFilters
-    subStyleRow.isVisible = options.showSubFilters
-    subPresetRow.isVisible = options.showSubFilters && options.showSubPresetCycler
-    subScaleRow.isVisible = options.showSubFilters
-    subPosRow.isVisible = options.showSubFilters
-    secondaryPosRow.isVisible = options.showSubFilters
-    subWidthRow.isVisible = options.showSubFilters
-    secondarySubRow.isVisible = options.showSubFilters
+    filterScroll.isVisible = hasFilters || options.showDelay
+    audio?.let {
+        it.root.isVisible = options.showFilters
+        it.persistFiltersRow.isVisible = options.showFilters
+        it.voiceBoostRow.isVisible = options.showFilters
+        it.volumeBoostRow.isVisible = options.showFilters
+        it.nightModeRow.isVisible = options.showFilters
+        it.audioNormRow.isVisible = options.showFilters
+        it.downmixRow.isVisible = options.showFilters
+        it.centerBoostRow.isVisible = options.showFilters
+    }
+    sub?.let {
+        it.root.isVisible = options.showSubFilters
+        it.persistSubFiltersRow.isVisible = options.showSubFilters
+        it.subStyleRow.isVisible = options.showSubFilters
+        it.subPresetRow.isVisible = options.showSubFilters && options.showSubPresetCycler
+        it.subScaleRow.isVisible = options.showSubFilters
+        it.subPosRow.isVisible = options.showSubFilters
+        it.secondaryPosRow.isVisible = options.showSubFilters
+        it.subWidthRow.isVisible = options.showSubFilters
+        it.secondarySubRow.isVisible = options.showSubFilters
+    }
 }
 
-private fun DialogMediaPickerBinding.configureDelay(
-    options: MediaPickerDialog.Options,
-    onDelayClick: (() -> Unit)?
-) {
+private fun DialogMediaPickerBinding.configureDelay(options: MediaPickerDialog.Options) {
     delayRow.isVisible = options.showDelay
     if (options.showDelay) {
         delayTitle.setText(if (options.showFilters) R.string.audio_delay else R.string.sub_delay)
         delaySummary.setText(
             if (options.showFilters) R.string.dialog_audio_timing_summary else R.string.dialog_section_timing_summary
         )
-        delayValue.text = options.delayText ?: "0.00 s"
-        delayRow.setOnClickListener { onDelayClick?.invoke() }
-    }
-}
-
-private fun DialogMediaPickerBinding.configureSubPresetCycler(
-    initialName: String,
-    adjust: ((Int) -> MediaPickerDialog.SubPresetState)?,
-    refreshSubFilterStates: () -> Unit,
-) {
-    subPresetValue.text = initialName
-    subPresetMinusBtn.setOnClickListener {
-        adjust?.invoke(-1)?.let { state ->
-            subPresetValue.text = state.presetName
-            subStyleValue.text = state.subStyleStateText
-            refreshSubFilterStates()
-        }
-    }
-    subPresetPlusBtn.setOnClickListener {
-        adjust?.invoke(1)?.let { state ->
-            subPresetValue.text = state.presetName
-            subStyleValue.text = state.subStyleStateText
-            refreshSubFilterStates()
-        }
+        delayValue.setTextIfChanged(options.delayText ?: "0.00 s")
     }
 }
 
@@ -564,19 +598,25 @@ private fun DialogMediaPickerBinding.configureResponsiveSizing(
             Utils.convertDp(context, REGULAR_SIDE_PANEL_WIDTH_DP)
         }
 
-        contentRow.layoutParams = contentRow.layoutParams.apply {
-            height = trackHeight + headerPad
+        val targetContentHeight = trackHeight + headerPad
+        if (contentRow.layoutParams.height != targetContentHeight) {
+            contentRow.layoutParams = contentRow.layoutParams.apply { height = targetContentHeight }
         }
-        sidePanel.layoutParams = sidePanel.layoutParams.apply {
-            width = sideWidth
-            height = ViewGroup.LayoutParams.MATCH_PARENT
+        val sideLp = sidePanel.layoutParams
+        if (sideLp.width != sideWidth || sideLp.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+            sideLp.width = sideWidth
+            sideLp.height = ViewGroup.LayoutParams.MATCH_PARENT
+            sidePanel.layoutParams = sideLp
         }
-        filterScroll.layoutParams = filterScroll.layoutParams.apply {
-            height = ViewGroup.LayoutParams.MATCH_PARENT
+        if (filterScroll.layoutParams.height != ViewGroup.LayoutParams.MATCH_PARENT) {
+            filterScroll.layoutParams = filterScroll.layoutParams.apply {
+                height = ViewGroup.LayoutParams.MATCH_PARENT
+            }
         }
     } else if (showDelay) {
-        contentRow.layoutParams = contentRow.layoutParams.apply {
-            height = Utils.convertDp(context, DELAY_CONTENT_HEIGHT_DP) + headerPad
+        val targetContentHeight = Utils.convertDp(context, DELAY_CONTENT_HEIGHT_DP) + headerPad
+        if (contentRow.layoutParams.height != targetContentHeight) {
+            contentRow.layoutParams = contentRow.layoutParams.apply { height = targetContentHeight }
         }
     }
 }
@@ -649,29 +689,33 @@ private fun DialogMediaPickerBinding.focusLaidOutListItem(position: Int) {
 }
 
 private fun syncValueRow(row: View, value: TextView, state: MediaPickerDialog.ValueState) {
-    value.text = state.label
-    row.alpha = when {
+    value.setTextIfChanged(state.label)
+    val rowAlpha = when {
         !state.enabled -> DISABLED_ROW_ALPHA
         state.active -> 1f
         else -> INACTIVE_ROW_ALPHA
     }
-    value.alpha = when {
+    if (row.alpha != rowAlpha) row.alpha = rowAlpha
+    val valueAlpha = when {
         !state.enabled -> DISABLED_VALUE_ALPHA
         state.active -> 1f
         else -> INACTIVE_VALUE_ALPHA
     }
+    if (value.alpha != valueAlpha) value.alpha = valueAlpha
 }
 
-private fun syncAdjustButton(button: ImageButton, enabled: Boolean) {
+private fun syncAdjustButton(
+    button: ImageButton,
+    enabled: Boolean,
+    enabledTint: ColorStateList,
+    disabledTint: ColorStateList,
+) {
     // Keep focus stable when a +/- button reaches its limit.
-    button.isEnabled = true
-    button.isClickable = enabled
-    button.isFocusable = true
-    button.alpha = if (enabled) 1f else DISABLED_BUTTON_ALPHA
-    button.imageTintList = ColorStateList.valueOf(
-        ContextCompat.getColor(
-            button.context,
-            if (enabled) R.color.tv_text else R.color.tint_disabled
-        )
-    )
+    if (!button.isEnabled) button.isEnabled = true
+    if (button.isClickable != enabled) button.isClickable = enabled
+    if (!button.isFocusable) button.isFocusable = true
+    val targetAlpha = if (enabled) 1f else DISABLED_BUTTON_ALPHA
+    if (button.alpha != targetAlpha) button.alpha = targetAlpha
+    val targetTint = if (enabled) enabledTint else disabledTint
+    if (button.imageTintList !== targetTint) button.imageTintList = targetTint
 }

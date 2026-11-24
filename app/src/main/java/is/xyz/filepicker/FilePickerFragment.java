@@ -37,6 +37,7 @@ import java.io.File;
 import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +52,16 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     protected boolean showHiddenItems = false;
     protected FileFilter filterPredicate = null;
     private File mRequestedPath = null;
+    private IdentityHashMap<File, Boolean> mDirectoryCache = null;
+
+    protected static final class FileListResult extends ArrayList<File> {
+        final IdentityHashMap<File, Boolean> directories;
+
+        FileListResult(int initialCapacity) {
+            super(initialCapacity);
+            this.directories = new IdentityHashMap<>(initialCapacity);
+        }
+    }
     private final ActivityResultLauncher<Intent> allFilesAccessLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                     this::onAllFilesAccessResult);
@@ -220,7 +231,29 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
      */
     @Override
     public boolean isDir(@NonNull final File path) {
+        if (mDirectoryCache != null) {
+            Boolean cached = mDirectoryCache.get(path);
+            if (cached != null) {
+                return cached;
+            }
+        }
         return path.isDirectory();
+    }
+
+    @Override
+    public void onLoadFinished(@NonNull Loader<List<File>> loader, List<File> data) {
+        if (data instanceof FileListResult) {
+            mDirectoryCache = ((FileListResult) data).directories;
+        } else {
+            mDirectoryCache = null;
+        }
+        super.onLoadFinished(loader, data);
+    }
+
+    @Override
+    public void onLoaderReset(@NonNull Loader<List<File>> loader) {
+        mDirectoryCache = null;
+        super.onLoaderReset(loader);
     }
 
     /**
@@ -333,7 +366,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                     return new ArrayList<>(0);
                 }
 
-                ArrayList<File> files = new ArrayList<>(listFiles.length);
+                FileListResult files = new FileListResult(listFiles.length);
                 for (File f : listFiles) {
                     if (isLoadInBackgroundCanceled())
                         return new ArrayList<>(0);
@@ -341,6 +374,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
                         continue;
                     if (predicate != null && !predicate.accept(f))
                         continue;
+                    files.directories.put(f, f.isDirectory());
                     files.add(f);
                 }
 
@@ -453,6 +487,12 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     /** Sort a filtered listing on the loader's worker thread. */
     protected void sortFiles(@NonNull List<File> files) {
         Collections.sort(files, this::compareFiles);
+    }
+
+    /** Returns precomputed worker-thread directory flags when available. */
+    @Nullable
+    protected IdentityHashMap<File, Boolean> cachedDirectoryFlags(@NonNull List<File> files) {
+        return (files instanceof FileListResult) ? ((FileListResult) files).directories : null;
     }
 
     /** Override to customize the default worker-thread order of directories first, then natural names. */

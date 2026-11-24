@@ -68,6 +68,7 @@ internal class SubtitleStyleDialog {
     private var grid: SubtitleEditorGrid? = null
     private var lastState: State? = null
     private var columns = 3
+    private var tabButtons: Map<SubtitleEditorTab, Button> = emptyMap()
 
     var onAdjust: ((Control, Int) -> State)? = null
     var stateProvider: (() -> State)? = null
@@ -87,19 +88,33 @@ internal class SubtitleStyleDialog {
         }
 
     fun buildView(layoutInflater: LayoutInflater): View {
-        if (!::binding.isInitialized) {
+        val firstBuild = !::binding.isInitialized
+        if (firstBuild) {
             binding = DialogSubtitleStyleBinding.inflate(layoutInflater)
             bindControls()
         } else {
             binding.root.detachFromParent()
         }
-        stateProvider?.invoke()?.let { render(it) }
-        select(selectedTab)
+        val state = stateProvider?.invoke()
+        if (grid == null) {
+            lastState = state
+            select(selectedTab)
+            state?.let(::render)
+        } else {
+            state?.let(::render)
+            binding.styleScroll.scrollTo(0, 0)
+        }
         return binding.root
     }
 
     private fun bindControls() {
         val b = binding
+        tabButtons = mapOf(
+            SubtitleEditorTab.TEXT to b.styleTextTab,
+            SubtitleEditorTab.EDGES to b.styleEdgesTab,
+            SubtitleEditorTab.LAYOUT to b.styleLayoutTab,
+            SubtitleEditorTab.ADVANCED to b.styleAdvancedTab,
+        )
         b.stylePreview.onContentHeightChanged = { desiredHeight ->
             val viewportHeight = onPreviewHeightChanged?.invoke(desiredHeight) ?: desiredHeight
             if (b.stylePreviewPanel.layoutParams.height != viewportHeight) {
@@ -113,26 +128,19 @@ internal class SubtitleStyleDialog {
         b.stylePresetValue.setOnClickListener { onApplyPreset?.invoke() }
         b.stylePresetMinus.setOnClickListener { cyclePreset(-1) }
         b.stylePresetPlus.setOnClickListener { cyclePreset(1) }
-        tabs().forEach { (tab, button) -> button.setOnClickListener { select(tab) } }
+        tabButtons.forEach { (tab, button) -> button.setOnClickListener { select(tab) } }
         b.styleContent.addOnLayoutChangeListener { view, _, _, _, _, _, _, _, _ ->
             val count = if (view.width / view.resources.displayMetrics.density < 680) 2 else 3
             if (count != columns) {
                 columns = count
-                select(selectedTab)
+                view.post { select(selectedTab) }
             }
         }
     }
 
-    private fun tabs(): Map<SubtitleEditorTab, Button> = mapOf(
-        SubtitleEditorTab.TEXT to binding.styleTextTab,
-        SubtitleEditorTab.EDGES to binding.styleEdgesTab,
-        SubtitleEditorTab.LAYOUT to binding.styleLayoutTab,
-        SubtitleEditorTab.ADVANCED to binding.styleAdvancedTab,
-    )
-
     private fun select(tab: SubtitleEditorTab) {
         selectedTab = tab
-        tabs().forEach { (item, button) ->
+        tabButtons.forEach { (item, button) ->
             button.isSelected = item == tab
             button.isActivated = item == tab
         }

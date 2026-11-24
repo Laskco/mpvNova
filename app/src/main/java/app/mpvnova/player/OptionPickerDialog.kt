@@ -24,6 +24,8 @@ internal class OptionPickerDialog(
         binding.optionPickerTitle.setText(titleRes)
         binding.optionPickerCountText.text = selectedCountText()
         binding.cancelBtn.setOnClickListener { onCancelClick?.invoke() }
+        binding.list.itemAnimator = null
+        binding.list.setItemViewCacheSize(OPTION_LIST_VIEW_CACHE_SIZE)
         binding.list.adapter = Adapter(this)
         binding.list.setHasFixedSize(true)
         TvScrollbars.bind(binding.list, binding.optionScrollbarThumb)
@@ -104,3 +106,5 @@ internal class OptionPickerDialog(
         override fun getItemCount() = parent.items.size
     }
 }
+
+private const val OPTION_LIST_VIEW_CACHE_SIZE = 10

@@ -17,6 +17,7 @@ internal class OpenSubtitlesResultsScroll(private val list: ListView, private va
     private var hovering = false
     private var hoverX = 0f
     private var hoverY = 0f
+    private val minThumbHeightPx = Utils.convertDp(list.context, MIN_THUMB_HEIGHT_DP)
     private val layoutReady get() = rowHeight > 0 && list.height > 0 && list.count > 0
     private val layoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
         updateThumb()
@@ -65,9 +66,12 @@ internal class OpenSubtitlesResultsScroll(private val list: ListView, private va
     }
 
     private fun restoreConfirmationHighlight(code: Int, event: KeyEvent) {
-        if (event.action == KeyEvent.ACTION_DOWN && code in listOf(
-                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
-            )) {
+        if (event.action == KeyEvent.ACTION_DOWN && (
+                code == KeyEvent.KEYCODE_DPAD_CENTER ||
+                    code == KeyEvent.KEYCODE_ENTER ||
+                    code == KeyEvent.KEYCODE_NUMPAD_ENTER
+                )
+        ) {
             hovering = false
             updateRowStates()
         }
@@ -114,21 +118,26 @@ internal class OpenSubtitlesResultsScroll(private val list: ListView, private va
 
     private fun updateThumb() {
         if (closed || !layoutReady) {
-            thumb.visibility = View.INVISIBLE
+            thumb.setVisibilityIfChanged(View.INVISIBLE)
         } else {
             val extent = rowHeight + list.dividerHeight
             val range = list.count * extent - list.dividerHeight
             val travelRange = range - list.height
-            thumb.visibility = if (travelRange > 0) View.VISIBLE else View.INVISIBLE
+            thumb.setVisibilityIfChanged(if (travelRange > 0) View.VISIBLE else View.INVISIBLE)
             if (travelRange > 0) {
-                val height = maxOf(Utils.convertDp(list.context, MIN_THUMB_HEIGHT_DP),
-                    (list.height.toFloat() * list.height / range).roundToInt()).coerceAtMost(list.height)
+                val height = maxOf(
+                    minThumbHeightPx,
+                    (list.height.toFloat() * list.height / range).roundToInt(),
+                ).coerceAtMost(list.height)
                 if (thumb.layoutParams.height != height) {
                     thumb.layoutParams = thumb.layoutParams.apply { this.height = height }
                 }
                 val offset = (list.firstVisiblePosition * extent - (list.getChildAt(0)?.top ?: 0))
                     .coerceIn(0, travelRange)
-                thumb.translationY = (list.height - height) * offset.toFloat() / travelRange
+                val targetY = (list.height - height) * offset.toFloat() / travelRange
+                if (thumb.translationY != targetY) {
+                    thumb.translationY = targetY
+                }
             }
         }
     }

@@ -19,6 +19,8 @@ internal class ChapterPickerDialog(
         binding = DialogChapterPickerBinding.inflate(layoutInflater)
         binding.chapterCountText.text = currentChapterCountText()
         binding.cancelBtn.setOnClickListener { onCancelClick?.invoke() }
+        binding.list.itemAnimator = null
+        binding.list.setItemViewCacheSize(CHAPTER_LIST_VIEW_CACHE_SIZE)
         binding.list.adapter = Adapter(this)
         binding.list.setHasFixedSize(true)
         scrollToSelectedChapter()
@@ -79,10 +81,12 @@ internal class ChapterPickerDialog(
             }
 
             fun bind(item: Item, selected: Boolean) = with(binding) {
-                root.isActivated = selected
-                chapterNumberText.text = root.context.getString(R.string.chapter_number_format, item.index + 1)
-                chapterTitleText.text = item.title
-                chapterTimeText.text = item.timecode
+                if (root.isActivated != selected) root.isActivated = selected
+                chapterNumberText.setTextIfChanged(
+                    root.context.getString(R.string.chapter_number_format, item.index + 1),
+                )
+                chapterTitleText.setTextIfChanged(item.title)
+                chapterTimeText.setTextIfChanged(item.timecode)
                 UiFont.applyWeight(chapterTitleText, bold = selected)
             }
         }
@@ -101,3 +105,5 @@ internal class ChapterPickerDialog(
         override fun getItemCount() = parent.items.size
     }
 }
+
+private const val CHAPTER_LIST_VIEW_CACHE_SIZE = 10

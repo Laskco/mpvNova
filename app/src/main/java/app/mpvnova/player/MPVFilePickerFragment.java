@@ -25,11 +25,18 @@ public class MPVFilePickerFragment extends FilePickerFragment {
             super.sortFiles(files);
             return;
         }
-        IdentityHashMap<File, Boolean> directories = new IdentityHashMap<>(files.size());
-        for (File file : files)
-            directories.put(file, file.isDirectory());
+        IdentityHashMap<File, Boolean> cached = cachedDirectoryFlags(files);
+        IdentityHashMap<File, Boolean> directories;
+        if (cached != null) {
+            directories = cached;
+        } else {
+            directories = new IdentityHashMap<>(files.size());
+            for (File file : files)
+                directories.put(file, file.isDirectory());
+        }
         Collections.sort(files, (lhs, rhs) -> {
-            final boolean ldir = directories.get(lhs), rdir = directories.get(rhs);
+            final boolean ldir = Boolean.TRUE.equals(directories.get(lhs));
+            final boolean rdir = Boolean.TRUE.equals(directories.get(rhs));
             if (ldir != rdir)
                 return rdir ? 1 : -1;
             return naturalCompare(lhs.getName(), rhs.getName());
@@ -43,7 +50,7 @@ public class MPVFilePickerFragment extends FilePickerFragment {
 
     @Override
     protected int getIconResource(@NonNull File file) {
-        if (file.isDirectory())
+        if (isDir(file))
             return R.drawable.ic_folder_white_48dp;
         if (Utils.isLikelyMediaPath(file.getName()))
             return R.drawable.round_play_arrow_24;

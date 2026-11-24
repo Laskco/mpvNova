@@ -1,18 +1,27 @@
 package app.mpvnova.player
 
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.BaseAdapter
 import android.widget.AbsListView
-import android.widget.TextView
+import android.widget.BaseAdapter
 import android.widget.ListView
+import android.widget.TextView
 
 internal class OpenSubtitlesResultsAdapter(
     private val cleanText: (String) -> String,
 ) : BaseAdapter() {
+    private class ViewHolder(
+        val name: TextView,
+        val release: TextView,
+        val meta: TextView,
+    )
+
     private val results = mutableListOf<OpenSubtitlesResult>()
     private var downloadedIds: Set<Int> = emptySet()
+    private var cachedRowHeight = 0
+    private var cachedFontKey: String? = null
 
     fun setDownloadedIds(ids: Set<Int>) {
         downloadedIds = ids.toSet()
@@ -30,39 +39,90 @@ internal class OpenSubtitlesResultsAdapter(
     override fun getItem(position: Int): OpenSubtitlesResult = results[position]
     override fun getItemId(position: Int): Long = getItem(position).fileId.toLong()
 
+    fun measureRowHeight(parent: ViewGroup): Int {
+        val fontKey = UiFont.currentValue(parent.context)
+        if (cachedRowHeight > 0 && cachedFontKey == fontKey) return cachedRowHeight
+        val probe = LayoutInflater.from(parent.context)
+            .inflate(R.layout.row_opensubtitles_result, parent, false)
+        val holder = createHolder(probe)
+        cachedRowHeight = computeRowHeight(probe, holder)
+        cachedFontKey = fontKey
+        return cachedRowHeight
+    }
+
     override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
-        val row = convertView ?: LayoutInflater.from(parent.context)
-            .inflate(R.layout.row_opensubtitles_result, parent, false).also(UiFont::applyToViewTree)
+        val row: View
+        val holder: ViewHolder
+        if (convertView == null) {
+            row = LayoutInflater.from(parent.context)
+                .inflate(R.layout.row_opensubtitles_result, parent, false)
+            holder = createHolder(row)
+            row.tag = holder
+        } else {
+            row = convertView
+            holder = row.tag as ViewHolder
+        }
+
         val item = getItem(position)
         val context = parent.context
-        row.findViewById<TextView>(R.id.osResultName).text = cleanText(item.fileName)
-            .ifBlank { context.getString(R.string.os_search_unnamed) }
-        row.findViewById<TextView>(R.id.osResultRelease).apply {
-            text = cleanText(item.release)
-            visibility = if (text.isEmpty()) View.INVISIBLE else View.VISIBLE
+        holder.name.setTextIfChanged(
+            cleanText(item.fileName).ifBlank { context.getString(R.string.os_search_unnamed) },
+        )
+        val releaseText = cleanText(item.release)
+        holder.release.setTextIfChanged(releaseText)
+        holder.release.setVisibilityIfChanged(if (releaseText.isEmpty()) View.INVISIBLE else View.VISIBLE)
+        holder.meta.setTextIfChanged(formatMeta(context, item))
+
+        val fontKey = UiFont.currentValue(context)
+        if (cachedRowHeight <= 0 || cachedFontKey != fontKey) {
+            cachedRowHeight = computeRowHeight(row, holder)
+            cachedFontKey = fontKey
         }
-        val flags = buildList {
-            if (item.fileId in downloadedIds) add(context.getString(R.string.os_search_downloaded))
-            if (item.hearingImpaired) add(context.getString(R.string.os_search_hearing_impaired))
-            if (item.hashMatched) add(context.getString(R.string.os_search_hash_match))
-        }.joinToString(" / ")
-        row.findViewById<TextView>(R.id.osResultMeta).text = listOf(cleanText(item.language), flags)
-            .filter { it.isNotBlank() }.joinToString(" / ")
-        row.layoutParams = AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, rowHeight(row))
-        row.isActivated = parent is ListView && parent.hasFocus() && parent.selectedItemPosition == position
-        row.isHovered = false
+        val currentLp = row.layoutParams
+        if (currentLp !is AbsListView.LayoutParams || currentLp.height != cachedRowHeight) {
+            row.layoutParams = AbsListView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, cachedRowHeight)
+        }
+        val activated = parent is ListView && parent.hasFocus() && parent.selectedItemPosition == position
+        if (row.isActivated != activated) row.isActivated = activated
+        if (row.isHovered) row.isHovered = false
         return row
     }
 
-    private fun rowHeight(row: View): Int {
-        val textHeight = listOf(R.id.osResultName, R.id.osResultRelease, R.id.osResultMeta).sumOf { id ->
-            val text = row.findViewById<TextView>(id)
-            val margins = text.layoutParams as ViewGroup.MarginLayoutParams
-            val metrics = text.paint.fontMetricsInt
-            val height = if (text.includeFontPadding) metrics.bottom - metrics.top
-                else metrics.descent - metrics.ascent
-            height + text.compoundPaddingTop + text.compoundPaddingBottom + margins.topMargin + margins.bottomMargin
+    private fun createHolder(row: View): ViewHolder = ViewHolder(
+        name = row.findViewById(R.id.osResultName),
+        release = row.findViewById(R.id.osResultRelease),
+        meta = row.findViewById(R.id.osResultMeta),
+    )
+
+    private fun formatMeta(context: Context, item: OpenSubtitlesResult): String {
+        val sb = StringBuilder()
+        fun appendPart(part: String) {
+            if (part.isBlank()) return
+            if (sb.isNotEmpty()) sb.append(" / ")
+            sb.append(part)
         }
+        appendPart(cleanText(item.language))
+        if (item.fileId in downloadedIds) appendPart(context.getString(R.string.os_search_downloaded))
+        if (item.hearingImpaired) appendPart(context.getString(R.string.os_search_hearing_impaired))
+        if (item.hashMatched) appendPart(context.getString(R.string.os_search_hash_match))
+        return sb.toString()
+    }
+
+    private fun computeRowHeight(row: View, holder: ViewHolder): Int {
+        val textHeight = measureLineHeight(holder.name) +
+            measureLineHeight(holder.release) +
+            measureLineHeight(holder.meta)
         return maxOf(row.minimumHeight, textHeight + row.paddingTop + row.paddingBottom)
+    }
+
+    private fun measureLineHeight(text: TextView): Int {
+        val margins = text.layoutParams as ViewGroup.MarginLayoutParams
+        val metrics = text.paint.fontMetricsInt
+        val height = if (text.includeFontPadding) {
+            metrics.bottom - metrics.top
+        } else {
+            metrics.descent - metrics.ascent
+        }
+        return height + text.compoundPaddingTop + text.compoundPaddingBottom + margins.topMargin + margins.bottomMargin
     }
 }

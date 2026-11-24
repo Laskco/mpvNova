@@ -3,4 +3,5 @@
     <item name="settings_back_focus_target" type="id" />
     <item name="ui_font_original_typeface" type="id" />
     <item name="player_title_style_controls" type="id" />
+    <item name="file_picker_icon_res" type="id" />
 </resources>

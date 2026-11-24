@@ -76,12 +76,13 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
         // Lint's wrap_content finding does not apply to this layout's android.R.id.list.
         //noinspection InvalidSetHasFixedSize
         recyclerView.setHasFixedSize(true);
-        // use a linear layout manager
-        layoutManager = new LinearLayoutManager(getActivity());
+        // use a weighted linear layout manager for smooth TV D-pad scrolling
+        layoutManager = new app.mpvnova.player.TvWeightedLinearLayoutManager(getActivity());
         recyclerView.setLayoutManager(layoutManager);
         // Directory swaps should feel immediate on TV. Default item animations
         // make focus and scrollbar range briefly track transient old/new rows.
         recyclerView.setItemAnimator(null);
+        recyclerView.setItemViewCacheSize(12);
         // Set Item Decoration if exists
         configureItemDecoration(inflater, recyclerView);
         // Set adapter
@@ -268,7 +269,9 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
 
     @Override
     public void onBindHeaderViewHolder(@NonNull HeaderViewHolder viewHolder) {
-        viewHolder.text.setText("..");
+        if (!android.text.TextUtils.equals(viewHolder.text.getText(), "..")) {
+            viewHolder.text.setText("..");
+        }
     }
 
     /**
@@ -305,9 +308,19 @@ public abstract class AbstractFilePickerFragment<T> extends Fragment
     @Override
     public void onBindViewHolder(@NonNull DirViewHolder vh, int position, @NonNull T data) {
         vh.file = data;
-        vh.icon.setImageResource(getIconResource(data));
-        vh.icon.setVisibility(View.VISIBLE);
-        vh.text.setText(getName(data));
+        final int iconRes = getIconResource(data);
+        final Object boundRes = vh.icon.getTag(R.id.file_picker_icon_res);
+        if (!(boundRes instanceof Integer) || ((Integer) boundRes) != iconRes) {
+            vh.icon.setImageResource(iconRes);
+            vh.icon.setTag(R.id.file_picker_icon_res, iconRes);
+        }
+        if (vh.icon.getVisibility() != View.VISIBLE) {
+            vh.icon.setVisibility(View.VISIBLE);
+        }
+        final String name = getName(data);
+        if (!android.text.TextUtils.equals(vh.text.getText(), name)) {
+            vh.text.setText(name);
+        }
     }
 
     protected int getIconResource(@NonNull T data) {

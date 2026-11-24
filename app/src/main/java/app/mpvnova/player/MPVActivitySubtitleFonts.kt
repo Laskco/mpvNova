@@ -29,6 +29,7 @@ internal fun subtitleFontLabel(family: String): String {
 internal fun MPVActivity.importSubtitleFont(result: Int, data: Intent?): String? {
     val path = data?.getStringExtra("path")?.takeIf { result == RESULT_OK } ?: return null
     return copyFontInto(subtitleFontsDir(), path)?.let { dest ->
+        invalidateSubtitleTypefaceCache()
         mpvCommand(arrayOf("sub-reload"))
         SubtitleFontTable.familyName(dest)
     }
@@ -56,6 +57,7 @@ internal fun MPVActivity.removeSubtitleFontFamily(family: String) {
     userFontFiles()
         .filter { SubtitleFontTable.familyName(it) == family }
         .forEach { it.delete() }
+    invalidateSubtitleTypefaceCache()
     if (subStyleFontFamily == family) {
         subStyleFontFamily = SUBTITLE_FONT_DEFAULT_FAMILY
         if (customSubStyleEnabled)

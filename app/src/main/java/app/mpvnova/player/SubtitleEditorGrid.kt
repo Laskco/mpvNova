@@ -22,8 +22,18 @@ internal class SubtitleEditorGrid(
     private val context = container.context
     private val steppers = mutableMapOf<C, DialogPlayerTitleStyleControlBinding>()
     private val switches = mutableMapOf<C, SwitchCompat>()
+    private val lastRows = mutableMapOf<C, SubtitleStyleDialog.Row>()
+    private val lastToggles = mutableMapOf<C, Pair<Boolean, Boolean>>()
+    private val chipDrawables = mutableMapOf<C, GradientDrawable>()
+    private val decreaseLabel = context.getString(R.string.btn_decrease)
+    private val increaseLabel = context.getString(R.string.btn_increase)
 
     fun build(tab: SubtitleEditorTab, actions: List<Pair<Int, () -> Unit>>) {
+        steppers.clear()
+        switches.clear()
+        lastRows.clear()
+        lastToggles.clear()
+        chipDrawables.clear()
         container.removeAllViews()
         val controls = subtitleEditorControls(tab)
         controls.chunked(columns).forEach { chunk ->
@@ -47,30 +57,42 @@ internal class SubtitleEditorGrid(
     }
 
     fun render(state: SubtitleStyleDialog.State) {
-        steppers.forEach { (control, b) ->
-            val row = state.editorRow(control)
-            b.titleStyleControlValue.text = row.value
-            b.root.alpha = if (row.enabled) 1f else SUBTITLE_DISABLED_ALPHA
-            b.titleStyleControlPrevious.isEnabled = row.enabled
-            b.titleStyleControlNext.isEnabled = row.enabled
-            val label = context.getString(subtitleEditorLabel(control))
-            b.titleStyleControlPrevious.contentDescription =
-                "$label: ${row.value}, ${context.getString(R.string.btn_decrease)}"
-            b.titleStyleControlNext.contentDescription =
-                "$label: ${row.value}, ${context.getString(R.string.btn_increase)}"
-            val chip = row.chipRgb?.let { rgb -> GradientDrawable().apply {
-                setColor(Color.rgb(Color.red(rgb), Color.green(rgb), Color.blue(rgb)))
-                setStroke(dp(1), Color.GRAY)
-                setBounds(0, 0, dp(ACTION_PADDING_DP), dp(ACTION_PADDING_DP))
-            } }
-            b.titleStyleControlValue.setCompoundDrawablesRelative(chip, null, null, null)
-            b.titleStyleControlValue.compoundDrawablePadding = dp(SWATCH_GAP_DP)
+        val swatchGapPx = dp(SWATCH_GAP_DP)
+        steppers.forEach { (control, binding) ->
+            renderStepper(control, binding, state.editorRow(control), swatchGapPx)
         }
         switches.forEach { (control, button) ->
-            val (on, enabled) = state.editorToggle(control)
-            button.isChecked = on
-            button.isEnabled = enabled
-            button.alpha = if (enabled) 1f else SUBTITLE_DISABLED_ALPHA
+            val toggle = state.editorToggle(control)
+            if (lastToggles.put(control, toggle) != toggle) {
+                applySubtitleToggleState(button, toggle)
+            }
+        }
+    }
+
+    private fun renderStepper(
+        control: C,
+        b: DialogPlayerTitleStyleControlBinding,
+        row: SubtitleStyleDialog.Row,
+        swatchGapPx: Int,
+    ) {
+        val previous = lastRows.put(control, row)
+        if (previous == row) return
+        b.titleStyleControlValue.setTextIfChanged(row.value)
+        val targetAlpha = if (row.enabled) 1f else SUBTITLE_DISABLED_ALPHA
+        if (b.root.alpha != targetAlpha) b.root.alpha = targetAlpha
+        if (b.titleStyleControlPrevious.isEnabled != row.enabled) {
+            b.titleStyleControlPrevious.isEnabled = row.enabled
+        }
+        if (b.titleStyleControlNext.isEnabled != row.enabled) {
+            b.titleStyleControlNext.isEnabled = row.enabled
+        }
+        if (previous == null || previous.value != row.value) {
+            val label = context.getString(subtitleEditorLabel(control))
+            b.titleStyleControlPrevious.contentDescription = "$label: ${row.value}, $decreaseLabel"
+            b.titleStyleControlNext.contentDescription = "$label: ${row.value}, $increaseLabel"
+        }
+        if (previous == null || previous.chipRgb != row.chipRgb) {
+            updateStepperChip(b.titleStyleControlValue, chipDrawables, control, row.chipRgb, swatchGapPx)
         }
     }
 
@@ -145,6 +167,39 @@ internal class SubtitleEditorGrid(
     }
 
     private fun dp(value: Int) = (value * context.resources.displayMetrics.density).toInt()
+}
+
+private fun updateStepperChip(
+    valueView: TextView,
+    chipDrawables: MutableMap<C, GradientDrawable>,
+    control: C,
+    chipRgb: Int?,
+    swatchGapPx: Int,
+) {
+    val density = valueView.resources.displayMetrics.density
+    val chip = chipRgb?.let { rgb ->
+        val drawable = chipDrawables.getOrPut(control) {
+            val sizePx = (ACTION_PADDING_DP * density).toInt()
+            GradientDrawable().apply {
+                setStroke(density.toInt().coerceAtLeast(1), Color.GRAY)
+                setBounds(0, 0, sizePx, sizePx)
+            }
+        }
+        drawable.setColor(Color.rgb(Color.red(rgb), Color.green(rgb), Color.blue(rgb)))
+        drawable
+    }
+    valueView.setCompoundDrawablesRelative(chip, null, null, null)
+    if (valueView.compoundDrawablePadding != swatchGapPx) {
+        valueView.compoundDrawablePadding = swatchGapPx
+    }
+}
+
+private fun applySubtitleToggleState(button: SwitchCompat, toggle: Pair<Boolean, Boolean>) {
+    val (on, enabled) = toggle
+    if (button.isChecked != on) button.isChecked = on
+    if (button.isEnabled != enabled) button.isEnabled = enabled
+    val targetAlpha = if (enabled) 1f else SUBTITLE_DISABLED_ALPHA
+    if (button.alpha != targetAlpha) button.alpha = targetAlpha
 }
 
 private const val SUBTITLE_DISABLED_ALPHA = 0.4f

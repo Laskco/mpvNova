@@ -454,7 +454,7 @@ internal class OpenSubtitlesSearchDialog(
 
     private fun resizeContent() {
         if (!shown || closed || panelMaxHeight <= 0) return
-        val rowHeight = if (adapter.count > 0) adapter.getView(0, null, list).layoutParams.height else 0
+        val rowHeight = if (adapter.count > 0) adapter.measureRowHeight(list) else 0
         val extent = rowHeight + list.dividerHeight
         val visibleRows = adapter.count.coerceAtMost(VISIBLE_RESULTS)
         val desiredHeight = if (visibleRows > 0) visibleRows * extent - list.dividerHeight else 0
