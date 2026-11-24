@@ -21,7 +21,8 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
         super.attachBaseContext(UiScale.wrap(newBase))
     }
 
-    private val updateManager by lazy { AppUpdateManager(this) }
+    private val updateManagerDelegate = lazy { AppUpdateManager(this) }
+    private val updateManager by updateManagerDelegate
     private var checkedForUpdatesThisSession = false
     private var appliedThemeValue = AppearanceTheme.DEFAULT_VALUE
     private var appliedUiScale = UiScale.DEFAULT_SCALE_PERCENT
@@ -62,7 +63,9 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
             recreate()
             return
         }
-        updateManager.resumePendingInstallIfAllowed()
+        if (updateManagerDelegate.isInitialized()) {
+            updateManager.resumePendingInstallIfAllowed()
+        }
     }
 
     override fun onDestroy() {

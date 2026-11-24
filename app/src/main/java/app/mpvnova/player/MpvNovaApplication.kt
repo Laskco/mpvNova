@@ -25,5 +25,17 @@ internal class MpvNovaApplication : Application() {
             migrateRetiredPreferences()
             migratePreferredSubtitleOptIn()
         }
+        val appContext = applicationContext
+        Thread(
+            {
+                Utils.copyAssets(appContext)
+                ensureNativeLibrariesLoaded()
+                createBackgroundPlaybackNotificationChannel(appContext)
+            },
+            "mpvNova-startup-warm",
+        ).apply {
+            isDaemon = true
+            start()
+        }
     }
 }

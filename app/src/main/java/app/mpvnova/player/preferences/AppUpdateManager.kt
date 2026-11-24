@@ -36,11 +36,19 @@ class AppUpdateManager(internal val activity: Activity) {
             }
         })
         if (updateInProgress.compareAndSet(false, true)) {
-            try {
-                cleanupInstalledUpdateIfNeeded()
-                cleanupUpdateCache()
-            } finally {
-                updateInProgress.set(false)
+            Thread(
+                {
+                    try {
+                        cleanupInstalledUpdateIfNeeded()
+                        cleanupUpdateCache()
+                    } finally {
+                        updateInProgress.set(false)
+                    }
+                },
+                "mpvNova-update-cache-clean",
+            ).apply {
+                isDaemon = true
+                start()
             }
         }
     }

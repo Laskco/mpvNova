@@ -25,8 +25,12 @@ import androidx.core.app.PendingIntentCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import app.mpvnova.player.MpvEvent
+import java.util.concurrent.atomic.AtomicBoolean
+
+private val notificationChannelCreated = AtomicBoolean(false)
 
 fun createBackgroundPlaybackNotificationChannel(context: Context) {
+    if (!notificationChannelCreated.compareAndSet(false, true)) return
     val manager = NotificationManagerCompat.from(context)
     val builder = NotificationChannelCompat.Builder(
         NOTIFICATION_CHANNEL_ID,
