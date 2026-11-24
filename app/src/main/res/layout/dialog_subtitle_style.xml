@@ -135,7 +135,10 @@
             android:layout_weight="1"
             android:layout_marginTop="10dp"
             android:background="@drawable/bg_tv_panel_card"
-            tools:ignore="NestedWeights">
+            android:clipChildren="true"
+            android:clipToOutline="true"
+            tools:ignore="NestedWeights"
+            tools:targetApi="s">
             <app.mpvnova.player.TvSmoothScrollView
                 android:id="@+id/styleScroll"
                 android:layout_width="match_parent"
@@ -143,9 +146,11 @@
                 android:fillViewport="true"
                 android:overScrollMode="never"
                 android:paddingStart="8dp"
-                android:paddingEnd="18dp"
+                android:paddingEnd="10dp"
                 android:paddingTop="10dp"
                 android:paddingBottom="10dp"
+                android:scrollbarDefaultDelayBeforeFade="1200"
+                android:scrollbarFadeDuration="240"
                 android:scrollbars="vertical"
                 android:scrollbarStyle="insideInset"
                 android:scrollbarSize="3dp"
@@ -155,7 +160,9 @@
                     android:id="@+id/styleContent"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical" />
+                    android:orientation="vertical"
+                    android:paddingStart="0dp"
+                    android:paddingEnd="8dp" />
             </app.mpvnova.player.TvSmoothScrollView>
         </FrameLayout>
         <LinearLayout
@@ -227,24 +234,30 @@
                 android:stateListAnimator="@null" />
         </LinearLayout>
     </LinearLayout>
-    <ScrollView
+    <app.mpvnova.player.TvSmoothScrollView
         android:id="@+id/stylePreviewPanel"
         android:layout_width="match_parent"
         android:layout_height="84dp"
         android:layout_marginTop="10dp"
+        android:clipToOutline="true"
         android:fillViewport="true"
         android:overScrollMode="never"
+        android:scrollbarDefaultDelayBeforeFade="1200"
+        android:scrollbarFadeDuration="240"
+        android:scrollbarSize="3dp"
         android:scrollbars="vertical"
         android:scrollbarStyle="insideInset"
         android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
         android:background="@drawable/bg_tv_dialog_shell"
         android:paddingStart="12dp"
-        android:paddingEnd="12dp">
+        android:paddingEnd="12dp"
+        tools:targetApi="s">
         <app.mpvnova.player.SubtitleStylePreviewView
             android:id="@+id/stylePreview"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:contentDescription="@string/sub_editor_preview"
             android:importantForAccessibility="yes" />
-    </ScrollView>
+    </app.mpvnova.player.TvSmoothScrollView>
 </LinearLayout>

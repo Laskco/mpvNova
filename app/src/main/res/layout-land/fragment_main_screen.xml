@@ -3,8 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@drawable/bg_tv_launcher">
+    android:layout_height="match_parent">
 
     <View
         android:layout_width="match_parent"
@@ -18,12 +17,13 @@
         android:layout_gravity="bottom"
         android:background="@drawable/bg_scrim_bottom" />
 
-    <androidx.core.widget.NestedScrollView
+    <app.mpvnova.player.TvSmoothScrollView
         android:id="@+id/homeScroll"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -332,5 +332,5 @@
             </LinearLayout>
 
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
+    </app.mpvnova.player.TvSmoothScrollView>
 </FrameLayout>

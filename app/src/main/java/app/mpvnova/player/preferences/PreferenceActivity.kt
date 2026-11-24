@@ -21,14 +21,12 @@ import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.ImageButton
-import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.XmlRes
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.view.ViewCompat
@@ -67,6 +65,8 @@ import app.mpvnova.player.SEEK_STEP_DEFAULT_SEC
 import app.mpvnova.player.SEEK_STEP_MAX_SEC
 import app.mpvnova.player.SEEK_STEP_MIN_SEC
 import app.mpvnova.player.ShaderManagerDialog
+import app.mpvnova.player.StableScrollbarMetrics
+import app.mpvnova.player.StableScrollbarMetricsProvider
 import app.mpvnova.player.TvScrollbars
 import app.mpvnova.player.UiFont
 import app.mpvnova.player.UserShaderManager
@@ -121,6 +121,7 @@ private const val LIST_HORIZONTAL_PADDING_DP = 6
 private const val LIST_TOP_PADDING_DP = 2
 private const val LIST_BOTTOM_PADDING_DP = 6
 private const val LIST_VERTICAL_SPACE_DP = 2
+private const val SETTINGS_LIST_VIEW_CACHE_SIZE = 10
 
 private const val THEME_TILE_PADDING_DP = 8
 private const val THEME_TILE_WIDTH_DP = 88
@@ -295,7 +296,10 @@ class PreferenceActivity : AppCompatActivity(),
             }
         }
 
-        supportFragmentManager.beginTransaction().replace(R.id.main, fragment).addToBackStack(null)
+        supportFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .replace(R.id.main, fragment)
+            .addToBackStack(null)
             .commit()
 
         currentTitle = pref.title ?: getString(R.string.settings_hero_title)
@@ -308,14 +312,17 @@ class PreferenceActivity : AppCompatActivity(),
         binding.heroTitle.text = currentTitle ?: getString(R.string.settings_hero_title)
         binding.heroSubtitle.text = currentSubtitle ?: getString(R.string.settings_root_subtitle)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        if (binding.toolbar.findViewById<View>(R.id.settings_back_focus_target) != null) return
         binding.toolbar.post {
-            val navigationButton = (0 until binding.toolbar.childCount)
+            if (binding.toolbar.findViewById<View>(R.id.settings_back_focus_target) != null) return@post
+            val navButton = (0 until binding.toolbar.childCount)
+                .asSequence()
                 .map(binding.toolbar::getChildAt)
                 .filterIsInstance<ImageButton>()
                 .firstOrNull { it.drawable != null }
                 ?: return@post
-            navigationButton.id = R.id.settings_back_focus_target
-            navigationButton.isFocusable = true
+            navButton.id = R.id.settings_back_focus_target
+            navButton.isFocusable = true
         }
     }
 
@@ -327,6 +334,9 @@ class PreferenceActivity : AppCompatActivity(),
             styleCategoryHeaders()
             onPreferencesLoaded()
         }
+
+        override fun onCreateLayoutManager(): RecyclerView.LayoutManager =
+            app.mpvnova.player.TvWeightedLinearLayoutManager(requireContext())
 
         private fun styleCategoryHeaders() {
             val screen = preferenceScreen ?: return
@@ -340,46 +350,81 @@ class PreferenceActivity : AppCompatActivity(),
         // mapping to preserve TV focus and styling. Keep the library-specific access in this hook.
         @SuppressLint("RestrictedApi")
         override fun onCreateAdapter(preferenceScreen: PreferenceScreen): RecyclerView.Adapter<*> {
-            return object : PreferenceGroupAdapter(preferenceScreen) {
+            val firstRowUpKeyListener = View.OnKeyListener { _, keyCode, event ->
+                if (keyCode != KeyEvent.KEYCODE_DPAD_UP || event.action != KeyEvent.ACTION_DOWN) {
+                    return@OnKeyListener false
+                }
+                val layoutManager = listView.layoutManager as? LinearLayoutManager
+                if (layoutManager?.findFirstCompletelyVisibleItemPosition() != 0) {
+                    layoutManager?.scrollToPositionWithOffset(0, 0)
+                    return@OnKeyListener true
+                }
+                requireActivity()
+                    .findViewById<View>(R.id.settings_back_focus_target)
+                    ?.requestFocus() == true
+            }
+            return object : PreferenceGroupAdapter(preferenceScreen), StableScrollbarMetricsProvider {
+                private var cachedFirstSelectable = RecyclerView.NO_POSITION
+                private var firstSelectableDirty = true
+                private val scrollbarMetrics = PreferenceScrollbarMetricsTracker()
+
+                init {
+                    registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
+                        override fun onChanged() {
+                            firstSelectableDirty = true
+                            scrollbarMetrics.invalidate()
+                        }
+                        override fun onItemRangeChanged(positionStart: Int, itemCount: Int) {
+                            firstSelectableDirty = true
+                            scrollbarMetrics.invalidate()
+                        }
+                        override fun onItemRangeInserted(positionStart: Int, itemCount: Int) {
+                            firstSelectableDirty = true
+                            scrollbarMetrics.invalidate()
+                        }
+                        override fun onItemRangeRemoved(positionStart: Int, itemCount: Int) {
+                            firstSelectableDirty = true
+                            scrollbarMetrics.invalidate()
+                        }
+                        override fun onItemRangeMoved(fromPosition: Int, toPosition: Int, itemCount: Int) {
+                            firstSelectableDirty = true
+                            scrollbarMetrics.invalidate()
+                        }
+                    })
+                }
+
+                override fun stableScrollbarMetrics(recyclerView: RecyclerView): StableScrollbarMetrics? =
+                    scrollbarMetrics.compute(recyclerView, itemCount, ::getItem)
+
                 override fun onBindViewHolder(holder: PreferenceViewHolder, position: Int) {
                     super.onBindViewHolder(holder, position)
+                    val itemView = holder.itemView
                     val preference = getItem(position)
-                    holder.itemView.stateListAnimator = null
-                    holder.itemView.background = if (preference?.isSelectable == true) {
-                        AppCompatResources.getDrawable(holder.itemView.context, R.drawable.bg_list_row)
+                    val isSelectable = preference?.isSelectable == true
+                    itemView.stateListAnimator = null
+                    itemView.background = if (isSelectable) {
+                        AppCompatResources.getDrawable(itemView.context, R.drawable.bg_list_row)
                     } else {
                         null
                     }
-                    holder.itemView.nextFocusUpId = if (position == firstSelectablePosition()) {
-                        R.id.settings_back_focus_target
-                    } else {
-                        View.NO_ID
+                    val isFirstSelectable = position == firstSelectablePosition()
+                    val nextUpId = if (isFirstSelectable) R.id.settings_back_focus_target else View.NO_ID
+                    if (itemView.nextFocusUpId != nextUpId) {
+                        itemView.nextFocusUpId = nextUpId
                     }
-                    holder.itemView.setOnKeyListener(
-                        if (position == firstSelectablePosition()) {
-                            View.OnKeyListener { _, keyCode, event ->
-                                if (keyCode != KeyEvent.KEYCODE_DPAD_UP || event.action != KeyEvent.ACTION_DOWN) {
-                                    return@OnKeyListener false
-                                }
-                                val layoutManager = listView.layoutManager as? LinearLayoutManager
-                                if (layoutManager?.findFirstCompletelyVisibleItemPosition() != 0) {
-                                    layoutManager?.scrollToPositionWithOffset(0, 0)
-                                    return@OnKeyListener true
-                                }
-                                requireActivity()
-                                    .findViewById<View>(R.id.settings_back_focus_target)
-                                    ?.requestFocus() == true
-                            }
-                        } else {
-                            null
-                        }
-                    )
-                    holder.itemView.applyPreferenceTextTreatment()
+                    itemView.setOnKeyListener(if (isFirstSelectable) firstRowUpKeyListener else null)
+                    itemView.applyPreferenceTextTreatment()
                 }
 
-                private fun firstSelectablePosition(): Int =
-                    (0 until itemCount).firstOrNull { getItem(it)?.isSelectable == true }
-                        ?: RecyclerView.NO_POSITION
+                private fun firstSelectablePosition(): Int {
+                    if (firstSelectableDirty) {
+                        cachedFirstSelectable = (0 until itemCount).firstOrNull {
+                            getItem(it)?.isSelectable == true
+                        } ?: RecyclerView.NO_POSITION
+                        firstSelectableDirty = false
+                    }
+                    return cachedFirstSelectable
+                }
             }
         }
 
@@ -430,6 +475,7 @@ class PreferenceActivity : AppCompatActivity(),
             val horizontalPadding = dp(LIST_HORIZONTAL_PADDING_DP)
             listView.apply {
                 itemAnimator = null
+                setItemViewCacheSize(SETTINGS_LIST_VIEW_CACHE_SIZE)
                 clipToPadding = true
                 overScrollMode = View.OVER_SCROLL_NEVER
                 setPadding(horizontalPadding, dp(LIST_TOP_PADDING_DP), horizontalPadding, dp(LIST_BOTTOM_PADDING_DP))
@@ -531,7 +577,10 @@ class PreferenceActivity : AppCompatActivity(),
                 val scrollRange = contentWidth - viewportWidth
                 val trackWidth = track.width
                 val hasOverflow = scrollRange > 0 && viewportWidth > 0 && trackWidth > 0
-                track.visibility = if (hasOverflow) View.VISIBLE else View.INVISIBLE
+                val targetVisibility = if (hasOverflow) View.VISIBLE else View.INVISIBLE
+                if (track.visibility != targetVisibility) {
+                    track.visibility = targetVisibility
+                }
                 if (!hasOverflow) return
 
                 val thumbWidth = ((viewportWidth.toFloat() / contentWidth) * trackWidth)
@@ -539,27 +588,31 @@ class PreferenceActivity : AppCompatActivity(),
                     .coerceIn(dp(THEME_SCROLLBAR_MIN_THUMB_DP), trackWidth)
                 val maxTravel = trackWidth - thumbWidth
                 val scrollFraction = (scroller.scrollX.toFloat() / scrollRange).coerceIn(0f, 1f)
-                val leftMargin = (scrollFraction * maxTravel).toInt()
+                val targetX = (scrollFraction * maxTravel).toInt().toFloat()
                 val params = thumb.layoutParams as FrameLayout.LayoutParams
-                if (params.width != thumbWidth || params.leftMargin != leftMargin) {
+                if (params.width != thumbWidth) {
                     params.width = thumbWidth
-                    params.leftMargin = leftMargin
                     thumb.layoutParams = params
+                }
+                if (thumb.translationX != targetX) {
+                    thumb.translationX = targetX
                 }
             }
 
             val scrollListener = ViewTreeObserver.OnScrollChangedListener { update() }
-            val layoutListener = ViewTreeObserver.OnGlobalLayoutListener { update() }
+            val layoutListener = View.OnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> update() }
             scroller.viewTreeObserver.addOnScrollChangedListener(scrollListener)
-            scroller.viewTreeObserver.addOnGlobalLayoutListener(layoutListener)
+            scroller.addOnLayoutChangeListener(layoutListener)
+            track.addOnLayoutChangeListener(layoutListener)
             scroller.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
                 override fun onViewAttachedToWindow(v: View) = Unit
 
                 override fun onViewDetachedFromWindow(v: View) {
                     if (scroller.viewTreeObserver.isAlive) {
                         scroller.viewTreeObserver.removeOnScrollChangedListener(scrollListener)
-                        scroller.viewTreeObserver.removeOnGlobalLayoutListener(layoutListener)
                     }
+                    scroller.removeOnLayoutChangeListener(layoutListener)
+                    track.removeOnLayoutChangeListener(layoutListener)
                 }
             })
             scroller.post { update() }

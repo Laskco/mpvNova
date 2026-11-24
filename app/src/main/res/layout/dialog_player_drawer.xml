@@ -9,7 +9,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@drawable/bg_tv_dialog_shell"
-    android:elevation="24dp"
     android:orientation="horizontal">
 
     <LinearLayout
@@ -65,7 +64,7 @@
                 android:paddingEnd="9.5dp"
                 android:paddingBottom="20dp"
                 android:scrollbars="none"
-                app:layoutManager="LinearLayoutManager"
+                app:layoutManager="app.mpvnova.player.TvWeightedLinearLayoutManager"
                 tools:ignore="RtlSymmetry"
                 tools:listitem="@layout/drawer_row_full_button" />
 
@@ -92,12 +91,13 @@
         android:alpha="0.18"
         android:background="@color/tv_text_dim" />
 
-    <ScrollView
+    <app.mpvnova.player.TvSmoothScrollView
         android:id="@+id/drawerTabScroll"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_weight="1.1"
         android:fillViewport="true"
+        android:overScrollMode="never"
         android:scrollbars="none"
         android:paddingStart="14dp"
         android:paddingTop="20dp"
@@ -183,5 +183,5 @@
             android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_interface" />
         </LinearLayout>
-    </ScrollView>
+    </app.mpvnova.player.TvSmoothScrollView>
 </LinearLayout>
