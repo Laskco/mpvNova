@@ -163,7 +163,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
 
     private fun applyScreenshotOptions() {
         val screenshotDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES)
-        screenshotDir.mkdirs()
         mpvSetOptionString("screenshot-directory", screenshotDir.path)
     }
 

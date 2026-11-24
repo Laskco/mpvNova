@@ -85,11 +85,14 @@ internal fun networkMemoryBudgetMiB(context: Context): Int {
 }
 
 internal fun readNetworkOverrides(prefs: SharedPreferences, budgetMiB: Int): Map<NetworkSetting, String> {
-    val stored = prefs.all
-    val values = NetworkSetting.entries.mapNotNull { setting ->
-        val raw = stored[setting.key] as? String
-        raw?.takeIf(setting::valid)?.let { setting to it }
-    }.toMap().toMutableMap()
+    val values = mutableMapOf<NetworkSetting, String>()
+    for (setting in NetworkSetting.entries) {
+        val raw = prefs.getStringIfTyped(setting.key)
+        if (raw != null && setting.valid(raw)) {
+            values[setting] = raw
+        }
+    }
+    if (values.isEmpty()) return emptyMap()
     // Backward cache shares the memory allowance. Revalidate backups imported from larger devices.
     val defaultMiB = defaultDemuxerCacheBytes() / NETWORK_MIB.toInt()
     values[NetworkSetting.BACKWARD]?.toInt()?.let {
@@ -126,11 +129,21 @@ internal fun writeNetworkPreset(prefs: SharedPreferences, preset: NetworkPreset)
 internal class NetworkOptionSession {
     private val original = mutableMapOf<NetworkSetting, String>()
     private var applied = emptyMap<NetworkSetting, String>()
+    private var optionReader: ((String) -> String?)? = null
+    private var originalsCaptured = false
 
     @Synchronized
     fun initialize(read: (String) -> String?) {
         original.clear()
         applied = emptyMap()
+        optionReader = read
+        originalsCaptured = false
+    }
+
+    private fun ensureOriginalsCaptured() {
+        if (originalsCaptured) return
+        originalsCaptured = true
+        val read = optionReader ?: return
         NetworkSetting.entries.filter { it.option.isNotEmpty() }.forEach { setting ->
             read(setting.option)?.takeIf(String::isNotBlank)?.let { original[setting] = it }
         }
@@ -143,6 +156,7 @@ internal class NetworkOptionSession {
             if (!values.keys.all { it == priorOrder.next() }) applied = values.toMap()
             return
         }
+        ensureOriginalsCaptured()
         val changed = (applied.keys + values.keys).filter { applied[it] != values[it] }
         // Release memory before increasing another cap during a preset switch.
         val ordered = changed.sortedBy { setting ->
@@ -157,21 +171,24 @@ internal class NetworkOptionSession {
         applied = values.toMap()
     }
 
-    fun verify(read: (String) -> String?): List<String> = NetworkSetting.entries
-        .filter { it.option.isNotEmpty() }
-        .map { setting ->
-            val expected = applied[setting]?.let(setting::mpvValue) ?: original[setting]
-            val actual = read(setting.option)?.takeIf(String::isNotBlank)
-            val matches = expected != null && actual != null &&
-                (expected == actual || (expected.toDoubleOrNull()?.let { it == actual.toDoubleOrNull() } == true))
-            val status = when {
-                expected == null || actual == null -> "UNAVAILABLE"
-                matches -> "MATCH"
-                else -> "MISMATCH"
+    fun verify(read: (String) -> String?): List<String> {
+        ensureOriginalsCaptured()
+        return NetworkSetting.entries
+            .filter { it.option.isNotEmpty() }
+            .map { setting ->
+                val expected = applied[setting]?.let(setting::mpvValue) ?: original[setting]
+                val actual = read(setting.option)?.takeIf(String::isNotBlank)
+                val matches = expected != null && actual != null &&
+                    (expected == actual || (expected.toDoubleOrNull()?.let { it == actual.toDoubleOrNull() } == true))
+                val status = when {
+                    expected == null || actual == null -> "UNAVAILABLE"
+                    matches -> "MATCH"
+                    else -> "MISMATCH"
+                }
+                val timing = if (setting.nextStream) "next-open option, not current stream" else "live option"
+                "${setting.option}: expected=$expected actual=$actual status=$status ($timing)"
             }
-            val timing = if (setting.nextStream) "next-open option, not current stream" else "live option"
-            "${setting.option}: expected=$expected actual=$actual status=$status ($timing)"
-        }
+    }
 }
 
 // Read preferences under the same lock as writes so a waiting decoder callback
