@@ -329,13 +329,14 @@ internal object UserShaderManager {
             }
             else -> {
                 val root = directory(context)
+                val canonicalRoot = runCatching { root.canonicalFile }.getOrNull() ?: root
                 val result = runCatching {
                     val json = JSONObject(raw)
                     if (json.optInt("schema", -1) != SCHEMA) return@runCatching emptyList()
                     val array = json.optJSONArray("entries") ?: JSONArray()
                     buildList {
                         for (index in 0 until array.length()) {
-                            parseEntry(root, array.optJSONObject(index))?.let(::add)
+                            parseEntry(root, canonicalRoot, array.optJSONObject(index))?.let(::add)
                         }
                     }
                 }.getOrDefault(emptyList())
@@ -482,17 +483,17 @@ internal object UserShaderManager {
         return name
     }
 
-    private fun isSafeManagedFile(root: File, file: File, fileName: String): Boolean =
+    private fun isSafeManagedFile(canonicalRoot: File, file: File, fileName: String): Boolean =
         isSafeFileName(fileName) &&
-            file.canonicalFile.parentFile == root.canonicalFile
+            file.canonicalFile.parentFile == canonicalRoot
 
-    private fun parseEntry(root: File, item: JSONObject?): UserShader? {
+    private fun parseEntry(root: File, canonicalRoot: File, item: JSONObject?): UserShader? {
         return item?.let { entry ->
             val id = entry.optString("id")
             val displayName = entry.optString("displayName")
             val fileName = entry.optString("fileName")
             val file = File(root, fileName)
-            if (id.isBlank() || !isSafeManagedFile(root, file, fileName) || !file.isFile) {
+            if (id.isBlank() || !isSafeManagedFile(canonicalRoot, file, fileName) || !file.isFile) {
                 null
             } else {
                 UserShader(id, displayName, fileName, entry.optBoolean("enabled", false))

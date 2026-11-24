@@ -62,10 +62,6 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
         requestLayout()
     }
 
-    init {
-        setLayerType(LAYER_TYPE_SOFTWARE, null)
-    }
-
     fun setSpec(spec: Spec) {
         val previous = this.spec
         if (previous == spec) return
@@ -158,6 +154,10 @@ internal class SubtitleStylePreviewView @JvmOverloads constructor(
                 BlurMaskFilter(effectiveBlurRadius, BlurMaskFilter.Blur.NORMAL)
             } else {
                 null
+            }
+            val desiredLayer = if (blurFilter != null) LAYER_TYPE_SOFTWARE else LAYER_TYPE_NONE
+            if (layerType != desiredLayer) {
+                setLayerType(desiredLayer, null)
             }
         }
         val boxWidth = (ceil(Layout.getDesiredWidth(s.text, paint)).toInt() + 1).coerceIn(1, availableWidth)

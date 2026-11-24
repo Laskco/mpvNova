@@ -8,16 +8,25 @@ import java.util.Locale
 
 internal val FONT_EXTENSIONS = setOf("ttf", "otf", "ttc")
 private val GENERIC_FONT_FAMILIES = SUBTITLE_GENERIC_FONTS.mapTo(hashSetOf()) { it.family }
+@Volatile private var cachedBundledFontAssetNames: Set<String>? = null
+@Volatile private var cachedSubtitleFontChoices: List<SubtitleFontChoice>? = null
 
-internal fun MPVActivity.subtitleFontsDir(): File = File(filesDir, "fonts").apply { mkdirs() }
+internal fun invalidateSubtitleFontChoicesCache() {
+    cachedSubtitleFontChoices = null
+}
+
+internal fun MPVActivity.subtitleFontsDir(): File = File(filesDir, "fonts").apply {
+    if (!isDirectory) mkdirs()
+}
 
 internal fun MPVActivity.subtitleFontChoices(): List<SubtitleFontChoice> {
+    cachedSubtitleFontChoices?.let { return it }
     val discovered = subtitleFontsDir()
         .listFiles { file -> file.isFile && file.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
         ?.mapNotNullTo(linkedSetOf()) { SubtitleFontTable.familyName(it)?.takeUnless(GENERIC_FONT_FAMILIES::contains) }
         .orEmpty().sortedFontFamilies()
         .map { SubtitleFontChoice(it, it) }
-    return SUBTITLE_GENERIC_FONTS + discovered
+    return (SUBTITLE_GENERIC_FONTS + discovered).also { cachedSubtitleFontChoices = it }
 }
 
 internal fun subtitleFontLabel(family: String): String {
@@ -30,13 +39,15 @@ internal fun MPVActivity.importSubtitleFont(result: Int, data: Intent?): String?
     val path = data?.getStringExtra("path")?.takeIf { result == RESULT_OK } ?: return null
     return copyFontInto(subtitleFontsDir(), path)?.let { dest ->
         invalidateSubtitleTypefaceCache()
+        invalidateSubtitleFontChoicesCache()
         mpvCommand(arrayOf("sub-reload"))
         SubtitleFontTable.familyName(dest)
     }
 }
 
 private fun MPVActivity.userFontFiles(): List<File> {
-    val bundled = assets.list("fonts")?.toSet().orEmpty()
+    val bundled = cachedBundledFontAssetNames
+        ?: assets.list("fonts")?.toSet().orEmpty().also { cachedBundledFontAssetNames = it }
     return subtitleFontsDir()
         .listFiles { file ->
             file.isFile &&
@@ -58,6 +69,7 @@ internal fun MPVActivity.removeSubtitleFontFamily(family: String) {
         .filter { SubtitleFontTable.familyName(it) == family }
         .forEach { it.delete() }
     invalidateSubtitleTypefaceCache()
+    invalidateSubtitleFontChoicesCache()
     if (subStyleFontFamily == family) {
         subStyleFontFamily = SUBTITLE_FONT_DEFAULT_FAMILY
         if (customSubStyleEnabled)

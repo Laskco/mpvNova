@@ -33,18 +33,42 @@ internal data class SubtitleStylePreset(
 
 private const val SUB_STYLE_PRESETS_KEY = "sub_style_presets"
 
-internal fun loadSubtitleStylePresets(prefs: SharedPreferences): List<SubtitleStylePreset> {
-    val raw = prefs.getString(SUB_STYLE_PRESETS_KEY, null)
-    val array = raw?.let { runCatching { JSONArray(it) }.getOrNull() } ?: return emptyList()
-    return (0 until array.length()).mapNotNull { i ->
-        array.optJSONObject(i)?.let(::presetFromJson)
+private object SubtitleStylePresetsCache {
+    private var cachedRaw: String? = null
+    private var cachedPresets: List<SubtitleStylePreset> = emptyList()
+    private var initialized = false
+
+    @Synchronized
+    fun get(raw: String?): List<SubtitleStylePreset> {
+        if (initialized && raw == cachedRaw) return cachedPresets
+        val parsed = raw?.let { runCatching { JSONArray(it) }.getOrNull() }?.let { array ->
+            (0 until array.length()).mapNotNull { i ->
+                array.optJSONObject(i)?.let(::presetFromJson)
+            }
+        } ?: emptyList()
+        cachedRaw = raw
+        cachedPresets = parsed
+        initialized = true
+        return parsed
+    }
+
+    @Synchronized
+    fun put(raw: String, presets: List<SubtitleStylePreset>) {
+        cachedRaw = raw
+        cachedPresets = presets.toList()
+        initialized = true
     }
 }
+
+internal fun loadSubtitleStylePresets(prefs: SharedPreferences): List<SubtitleStylePreset> =
+    SubtitleStylePresetsCache.get(prefs.getString(SUB_STYLE_PRESETS_KEY, null))
 
 internal fun saveSubtitleStylePresets(prefs: SharedPreferences, presets: List<SubtitleStylePreset>) {
     val array = JSONArray()
     presets.forEach { array.put(presetToJson(it)) }
-    prefs.edit().putString(SUB_STYLE_PRESETS_KEY, array.toString()).apply()
+    val raw = array.toString()
+    SubtitleStylePresetsCache.put(raw, presets)
+    prefs.edit().putString(SUB_STYLE_PRESETS_KEY, raw).apply()
 }
 
 private fun presetToJson(p: SubtitleStylePreset): JSONObject = JSONObject().apply {
