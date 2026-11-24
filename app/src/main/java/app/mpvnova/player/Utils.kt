@@ -543,8 +543,11 @@ internal object Utils {
             if (property == "metadata") {
                 // If we observe individual keys libmpv won't notify us once they become
                 // unavailable, so we observe "metadata" and read both keys on trigger.
-                mediaArtist = mpvGetPropertyString("metadata/by-key/Artist")
-                mediaAlbum = mpvGetPropertyString("metadata/by-key/Album")
+                val nextArtist = mpvGetPropertyString("metadata/by-key/Artist")
+                val nextAlbum = mpvGetPropertyString("metadata/by-key/Album")
+                if (nextArtist == mediaArtist && nextAlbum == mediaAlbum) return false
+                mediaArtist = nextArtist
+                mediaAlbum = nextAlbum
                 return true
             }
             return false
@@ -552,10 +555,8 @@ internal object Utils {
 
         /** callback for properties of type <code>MPV_FORMAT_STRING</code> */
         fun update(property: String, value: String): Boolean {
-            when (property) {
-                "media-title" -> mediaTitle = value
-                else -> return false
-            }
+            if (property != "media-title" || mediaTitle == value) return false
+            mediaTitle = value
             return true
         }
 
@@ -629,10 +630,13 @@ internal object Utils {
             } else {
                 when (property) {
                     "speed" -> {
-                        value.toFloatOrNull()?.let {
-                            speed = it
+                        val next = value.toFloatOrNull()
+                        if (next != null && next != speed) {
+                            speed = next
                             true
-                        } ?: false
+                        } else {
+                            false
+                        }
                     }
                     else -> false
                 }
@@ -644,10 +648,12 @@ internal object Utils {
         fun update(property: String, value: Boolean): Boolean {
             return when (property) {
                 "pause" -> {
+                    if (pause == value) return false
                     pause = value
                     true
                 }
                 "paused-for-cache" -> {
+                    if (cachePause == value) return false
                     cachePause = value
                     true
                 }
@@ -660,16 +666,31 @@ internal object Utils {
         fun update(property: String, value: Long): Boolean {
             return when (property) {
                 "time-pos" -> {
-                    position = value * MILLIS_PER_SECOND
-                    true
+                    val next = value * MILLIS_PER_SECOND
+                    if (position == next) {
+                        false
+                    } else {
+                        position = next
+                        true
+                    }
                 }
                 "playlist-pos" -> {
-                    playlistPos = value.toInt()
-                    true
+                    val next = value.toInt()
+                    if (playlistPos == next) {
+                        false
+                    } else {
+                        playlistPos = next
+                        true
+                    }
                 }
                 "playlist-count" -> {
-                    playlistCount = value.toInt()
-                    true
+                    val next = value.toInt()
+                    if (playlistCount == next) {
+                        false
+                    } else {
+                        playlistCount = next
+                        true
+                    }
                 }
                 else -> false
             }
@@ -684,7 +705,9 @@ internal object Utils {
                     false
                 }
                 "duration/full" -> {
-                    duration = ceil(value * MILLIS_PER_SECOND_DOUBLE).coerceAtLeast(0.0).toLong()
+                    val next = ceil(value * MILLIS_PER_SECOND_DOUBLE).coerceAtLeast(0.0).toLong()
+                    if (duration == next) return false
+                    duration = next
                     true
                 }
                 "demuxer-cache-time" -> {
@@ -704,10 +727,13 @@ internal object Utils {
             bufferedPosition = 0L
         }
 
+        private val publishLock = Any()
         private val mediaMetadataBuilder = MediaMetadata.Builder()
         private val playbackStateBuilder = PlaybackState.Builder()
         private var publishedSession: MediaSession? = null
         private var publishedMetadata: MetadataSnapshot? = null
+        private var publishedActive: Boolean? = null
+        private var publishedState: PublishedPlaybackState? = null
 
         private data class MetadataSnapshot(
             val album: String?,
@@ -716,6 +742,47 @@ internal object Utils {
             val duration: Long,
             val artwork: Bitmap?,
         )
+
+        private data class PlaybackSnapshot(
+            val metadata: MetadataSnapshot,
+            val stateInt: Int,
+            val actions: Long,
+            val position: Long,
+            val speed: Float,
+        )
+
+        private data class PublishedPlaybackState(
+            val stateInt: Int,
+            val actions: Long,
+            val speed: Float,
+            val position: Long,
+        )
+
+        @Synchronized
+        private fun captureSnapshot(includeThumb: Boolean): PlaybackSnapshot {
+            val stateInt = when {
+                position < 0 || duration <= 0 -> PlaybackState.STATE_NONE
+                cachePause -> PlaybackState.STATE_BUFFERING
+                pause -> PlaybackState.STATE_PAUSED
+                else -> PlaybackState.STATE_PLAYING
+            }
+            var actions = PlaybackState.ACTION_PLAY or
+                PlaybackState.ACTION_PLAY_PAUSE or
+                PlaybackState.ACTION_PAUSE
+            if (duration > 0) actions = actions or PlaybackState.ACTION_SEEK_TO
+            if (playlistCount > 1) {
+                actions = actions or PlaybackState.ACTION_SKIP_TO_PREVIOUS or
+                    PlaybackState.ACTION_SKIP_TO_NEXT
+            }
+            val metadata = MetadataSnapshot(
+                meta.mediaAlbum,
+                meta.mediaArtist,
+                meta.mediaTitle,
+                duration.takeIf { it > 0 } ?: -1,
+                BackgroundPlaybackService.thumbnail.takeIf { includeThumb },
+            )
+            return PlaybackSnapshot(metadata, stateInt, actions, position, speed)
+        }
 
         private fun buildMediaMetadata(metadata: MetadataSnapshot): MediaMetadata {
             return with (mediaMetadataBuilder) {
@@ -729,49 +796,42 @@ internal object Utils {
             }
         }
 
-        private fun buildPlaybackState(): PlaybackState {
-            val stateInt = when {
-                position < 0 || duration <= 0 -> PlaybackState.STATE_NONE
-                cachePause -> PlaybackState.STATE_BUFFERING
-                pause -> PlaybackState.STATE_PAUSED
-                else -> PlaybackState.STATE_PLAYING
-            }
-            var actions = PlaybackState.ACTION_PLAY or
-                    PlaybackState.ACTION_PLAY_PAUSE or
-                    PlaybackState.ACTION_PAUSE
-            if (duration > 0)
-                actions = actions or PlaybackState.ACTION_SEEK_TO
-            if (playlistCount > 1) {
-                // we could be very pedantic here but it's probably better to either show both or none
-                actions = actions or PlaybackState.ACTION_SKIP_TO_PREVIOUS or
-                        PlaybackState.ACTION_SKIP_TO_NEXT
-            }
+        private fun buildPlaybackState(snapshot: PlaybackSnapshot): PlaybackState {
             return with (playbackStateBuilder) {
-                setState(stateInt, position, speed)
-                setActions(actions)
+                setState(snapshot.stateInt, snapshot.position, snapshot.speed)
+                setActions(snapshot.actions)
                 build()
             }
         }
 
-        @Synchronized
         fun write(session: MediaSession, includeThumb: Boolean = true) {
-            val metadata = MetadataSnapshot(
-                meta.mediaAlbum,
-                meta.mediaArtist,
-                meta.mediaTitle,
-                duration.takeIf { it > 0 } ?: -1,
-                BackgroundPlaybackService.thumbnail.takeIf { includeThumb },
-            )
-            with (session) {
-                // Position updates need a playback state, not another artwork Binder transfer.
-                if (publishedSession !== session || publishedMetadata != metadata) {
-                    setMetadata(buildMediaMetadata(metadata))
+            val snapshot = captureSnapshot(includeThumb)
+            // Keep MediaSession Binder IPCs outside the state lock so mpv's event thread never stalls.
+            synchronized(publishLock) {
+                val sameSession = publishedSession === session
+                if (!sameSession || publishedMetadata != snapshot.metadata) {
+                    session.setMetadata(buildMediaMetadata(snapshot.metadata))
                     publishedSession = session
-                    publishedMetadata = metadata
+                    publishedMetadata = snapshot.metadata
                 }
-                val ps = buildPlaybackState()
-                isActive = ps.state != PlaybackState.STATE_NONE
-                setPlaybackState(ps)
+                val active = snapshot.stateInt != PlaybackState.STATE_NONE
+                if (!sameSession || publishedActive != active) {
+                    session.isActive = active
+                    publishedActive = active
+                }
+                val prev = publishedState
+                val stateChanged = !sameSession ||
+                    prev == null ||
+                    prev.stateInt != snapshot.stateInt ||
+                    prev.actions != snapshot.actions ||
+                    prev.speed != snapshot.speed ||
+                    kotlin.math.abs(snapshot.position - prev.position) >= MILLIS_PER_SECOND
+                if (stateChanged) {
+                    session.setPlaybackState(buildPlaybackState(snapshot))
+                    publishedState = PublishedPlaybackState(
+                        snapshot.stateInt, snapshot.actions, snapshot.speed, snapshot.position,
+                    )
+                }
             }
         }
     }
