@@ -42,12 +42,14 @@ internal fun MPVActivity.applyPlayerDialogChrome(
                 .withEndAction {
                     view.visibility = View.GONE
                     view.alpha = 1f
+                    if (view === binding.controls) syncTimelineOverlayVisible()
                     updateSubtitleControlsPosition()
                 }
                 .start()
         } else {
             view.visibility = View.GONE
             view.alpha = 1f
+            if (view === binding.controls) syncTimelineOverlayVisible()
         }
     }
     updateSubtitleControlsPosition()
@@ -62,6 +64,7 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     val snapshot = playerChromeSnapshot ?: return
     playerChromeSnapshot = null
     binding.controls.visibility = snapshot.controlsVisibility
+    syncTimelineOverlayVisible()
     binding.controlsScrim.visibility = snapshot.controlsScrimVisibility
     binding.topControls.visibility = snapshot.topControlsVisibility
     binding.playerTitleOverlay.visibility = snapshot.titleVisibility

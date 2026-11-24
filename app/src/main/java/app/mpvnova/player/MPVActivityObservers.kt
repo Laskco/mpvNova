@@ -69,15 +69,15 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
         if (activityIsDestroying) return
         if (psc.update(property, value)) updateMediaSession()
         if (!activityIsForeground) return
-        // time-pos/full fires at frame rate — coalesce to ~5 UI/sec or it
-        // starves the SW Hi10p decoder.
+        // time-pos/full fires at frame rate — coalesce to ~5 UI/sec and skip
+        // completely when no timeline overlay or skip segment needs updates.
         if (property == "demuxer-cache-time") {
-            if (!bufferUiPending) {
+            if (isTimelineOverlayVisible && !bufferUiPending) {
                 bufferUiPending = true
                 eventUiHandler.postDelayed(bufferUiRunnable, TIME_POS_UI_COALESCE_DELAY_MS)
             }
         } else if (property == "time-pos/full") {
-            if (!timePosUiPending) {
+            if ((isTimelineOverlayVisible || hasActiveSkipSegments) && !timePosUiPending) {
                 timePosUiPending = true
                 eventUiHandler.postDelayed(timePosUiRunnable, TIME_POS_UI_COALESCE_DELAY_MS)
             }
@@ -147,10 +147,10 @@ internal class MpvActivityEventObserver(private val activity: MPVActivity) : Mpv
 
 internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLogObserver {
     override fun logMessage(prefix: String, level: Int, text: String) = activity.run {
-        if (activityIsDestroying) return@run
+        if (activityIsDestroying || level > MpvLogLevel.MPV_LOG_LEVEL_WARN) return@run
         maybeReportHardwareDecoderFailure(prefix, text)
         maybeApplyGpuNextRenderFallback(prefix, level, text)
-        maybeShowAudioNormUnderrunHint(text)
+        maybeShowAudioNormUnderrunHint(prefix, text)
     }
 
     private fun MPVActivity.maybeReportHardwareDecoderFailure(prefix: String, text: String) {
@@ -175,9 +175,10 @@ internal class MpvActivityLogObserver(private val activity: MPVActivity) : MpvLo
      * "Audio device underrun" + normalisation + non-downmixed surround →
      * suggest the downmix toggle (one-shot hint).
      */
-    private fun MPVActivity.maybeShowAudioNormUnderrunHint(text: String) {
+    private fun MPVActivity.maybeShowAudioNormUnderrunHint(prefix: String, text: String) {
         val shouldShowHint = !audioNormUnderrunHintShown &&
             activityIsForeground &&
+            prefix == "cplayer" &&
             text.contains("Audio device underrun detected", ignoreCase = true) &&
             isAudioNormOn() &&
             !isDownmixOn() &&

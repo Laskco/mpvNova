@@ -29,7 +29,8 @@ internal fun MPVActivity.showMinimalSeekOverlay() {
     fadeHandler.removeCallbacks(seekOverlayHideRunnable)
     binding.seekOverlay.animate().cancel()
     binding.seekOverlay.setVisibilityIfChanged(View.VISIBLE)
-    binding.seekOverlay.alpha = 1f
+    syncTimelineOverlayVisible()
+    if (binding.seekOverlay.alpha != 1f) binding.seekOverlay.alpha = 1f
     fadeHandler.postDelayed(seekOverlayHideRunnable, SEEK_OVERLAY_VISIBLE_MS)
 }
 
@@ -49,7 +50,10 @@ internal fun MPVActivity.updateMinimalSeekOverlay(positionMs: Long) {
 
 internal fun MPVActivity.hideMinimalSeekOverlay() {
     fadeHandler.removeCallbacks(seekOverlayHideRunnable)
-    binding.seekOverlay.animate().cancel()
-    binding.seekOverlay.setVisibilityIfChanged(View.GONE)
-    binding.seekOverlay.alpha = 0f
+    if (binding.seekOverlay.visibility != View.GONE) {
+        binding.seekOverlay.animate().cancel()
+        binding.seekOverlay.visibility = View.GONE
+        binding.seekOverlay.alpha = 0f
+        syncTimelineOverlayVisible()
+    }
 }

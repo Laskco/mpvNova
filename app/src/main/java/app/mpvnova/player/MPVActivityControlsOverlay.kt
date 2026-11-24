@@ -1,8 +1,44 @@
 package app.mpvnova.player
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.view.View
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+
+internal fun MPVActivity.createControlsFadeRunnable(): ControlsFadeRunnable = object : ControlsFadeRunnable() {
+    override var hasStarted = false
+    private val listener = object : AnimatorListenerAdapter() {
+        override fun onAnimationStart(animation: Animator) { hasStarted = true }
+
+        override fun onAnimationCancel(animation: Animator) { hasStarted = false }
+
+        override fun onAnimationEnd(animation: Animator) {
+            if (hasStarted)
+                hideControls()
+            hasStarted = false
+        }
+    }
+
+    // Accelerate-out so overlay doesn't linger at half-opacity.
+    private val accelerate = androidx.interpolator.view.animation.FastOutLinearInInterpolator()
+
+    override fun run() {
+        // Only animate the compact bar. Creating hardware layers for every
+        // overlay, including the full-width scrim, competes with video output.
+        binding.topControls.visibility = View.GONE
+        if (!shouldShowTitleWhileControlsHidden())
+            binding.playerTitleOverlay.visibility = View.GONE
+        binding.controlsScrim.visibility = View.GONE
+        if (!shouldShowClockWhileControlsHidden()) binding.timeInfoPanel.visibility = View.GONE
+        binding.statsTextView.visibility = View.GONE
+        binding.controls.animate()
+            .alpha(0f)
+            .setDuration(CONTROLS_FADE_DURATION)
+            .setInterpolator(accelerate)
+            .setListener(listener)
+    }
+}
 
 internal fun MPVActivity.controlsShouldBeVisible(): Boolean {
     return userIsOperatingSeekbar
@@ -74,6 +110,7 @@ private fun MPVActivity.performFirstShowSetup() {
     hideMinimalSeekOverlay()
     maybeAutoPauseForControlsOverlay()
     binding.controls.setVisibilityIfChanged(View.VISIBLE)
+    syncTimelineOverlayVisible()
     binding.topControls.setVisibilityIfChanged(
         if (topActionsInPlayerBar) View.GONE else View.VISIBLE,
     )
@@ -133,6 +170,7 @@ internal fun MPVActivity.hideControls() {
     // use GONE here instead of INVISIBLE (which makes more sense) because of Android bug with surface views
     // see http://stackoverflow.com/a/12655713/2606891
     binding.controls.setVisibilityIfChanged(View.GONE)
+    syncTimelineOverlayVisible()
     binding.topControls.setVisibilityIfChanged(View.GONE)
     updatePlayerTitleOverlay()
     binding.controlsScrim.setVisibilityIfChanged(View.GONE)
@@ -153,6 +191,11 @@ internal fun MPVActivity.hideControls() {
 internal fun MPVActivity.hideControlsFade() {
     fadeHandler.removeCallbacks(fadeRunnable)
     fadeHandler.post(fadeRunnable)
+}
+
+internal fun MPVActivity.syncTimelineOverlayVisible() {
+    isTimelineOverlayVisible =
+        binding.controls.visibility == View.VISIBLE || binding.seekOverlay.visibility == View.VISIBLE
 }
 
 internal fun MPVActivity.toggleControls(): Boolean {

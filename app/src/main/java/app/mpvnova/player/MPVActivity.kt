@@ -1,8 +1,6 @@
 package app.mpvnova.player
 
 import app.mpvnova.player.databinding.PlayerBinding
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -54,6 +52,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastPeriodicSavedPositionSec = Int.MIN_VALUE
     internal var cachedResumeIdentitySource: String? = null
     internal var cachedResumeIdentity: ResumeIdentity? = null
+    @Volatile internal var isTimelineOverlayVisible = false
+    @Volatile internal var hasActiveSkipSegments = false
     // 0 = no restore happened. Drives the "Resumed from X:XX" toast.
     internal var pendingResumeToastMs = 0L
     // Start position from intent/resume table — rechecked at FILE_LOADED
@@ -221,39 +221,7 @@ open class MPVActivity : AppCompatActivity() {
         }
     }
 
-    internal val fadeRunnable: ControlsFadeRunnable = object : ControlsFadeRunnable() {
-        override var hasStarted = false
-        private val listener = object : AnimatorListenerAdapter() {
-            override fun onAnimationStart(animation: Animator) { hasStarted = true }
-
-            override fun onAnimationCancel(animation: Animator) { hasStarted = false }
-
-            override fun onAnimationEnd(animation: Animator) {
-                if (hasStarted)
-                    hideControls()
-                hasStarted = false
-            }
-        }
-
-        // Accelerate-out so overlay doesn't linger at half-opacity.
-        private val accelerate = androidx.interpolator.view.animation.FastOutLinearInInterpolator()
-
-        override fun run() {
-            // Only animate the compact bar. Creating hardware layers for every
-            // overlay, including the full-width scrim, competes with video output.
-            binding.topControls.visibility = View.GONE
-            if (!shouldShowTitleWhileControlsHidden())
-                binding.playerTitleOverlay.visibility = View.GONE
-            binding.controlsScrim.visibility = View.GONE
-            if (!shouldShowClockWhileControlsHidden()) binding.timeInfoPanel.visibility = View.GONE
-            binding.statsTextView.visibility = View.GONE
-            binding.controls.animate()
-                .alpha(0f)
-                .setDuration(CONTROLS_FADE_DURATION)
-                .setInterpolator(accelerate)
-                .setListener(listener)
-        }
-    }
+    internal val fadeRunnable: ControlsFadeRunnable = createControlsFadeRunnable()
 
     internal val playerToastHideRunnable = Runnable {
         val hidingState = playerToastState
@@ -274,7 +242,10 @@ open class MPVActivity : AppCompatActivity() {
             .alpha(0f)
             .setDuration(CONTROLS_FADE_DURATION)
             .withLayer()
-            .withEndAction { binding.seekOverlay.visibility = View.GONE }
+            .withEndAction {
+                binding.seekOverlay.visibility = View.GONE
+                syncTimelineOverlayVisible()
+            }
     }
 
     internal val stopServiceRunnable = Runnable {

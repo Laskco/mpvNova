@@ -29,6 +29,7 @@ internal fun MPVActivity.showSkipButton(seg: SkipSegment) {
     val previousKey = currentSkipButtonSegment?.key()
     val segKey = seg.key()
     currentSkipButtonSegment = seg
+    if (previousKey == segKey && skipButtonVisible) return
     if (previousKey != segKey) {
         cancelSkipButtonAutoHide()
         dismissedSkipSegmentKeys.remove(segKey)
@@ -44,6 +45,7 @@ internal fun MPVActivity.showSkipButton(seg: SkipSegment) {
 }
 
 internal fun MPVActivity.hideSkipButton() {
+    if (currentSkipButtonSegment == null && skipButtonAutoHideDelayMs == null) return
     cancelSkipButtonAutoHide()
     if (currentSkipButtonSegment == null) return
     currentSkipButtonSegment = null

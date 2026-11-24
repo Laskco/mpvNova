@@ -17,6 +17,7 @@ private const val SKIP_SEGMENT_REWIND_MIN_DELTA_SEC = 1.0
 internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
     skipSegmentPlaybackReady = false
     skipSegments = emptyList()
+    hasActiveSkipSegments = false
     autoSkippedSegmentKeys.clear()
     rewoundSkipSegmentKeys.clear()
     dismissedSkipSegmentKeys.clear()
@@ -38,6 +39,7 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
         emptyList()
     }
 
+    hasActiveSkipSegments = skipSegments.isNotEmpty()
     if (skipSegments.isNotEmpty())
         Log.d(MPV_ACTIVITY_TAG, "Loaded ${skipSegments.size} skip segment(s)")
 }
