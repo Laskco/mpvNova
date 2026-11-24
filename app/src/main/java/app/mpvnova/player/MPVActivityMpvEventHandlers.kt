@@ -83,8 +83,9 @@ private fun MPVActivity.handleMpvStartFile() {
     diagnosticAudioTrack = "unavailable"
     recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
+    val path = currentMpvPath()
     val restoreDecoderAfterFailure = gpuNextFallbackState.shouldRestoreForFile(
-        currentMpvPath(), sessionDecoderMode, automaticHi10pFallbackPath,
+        path, sessionDecoderMode, automaticHi10pFallbackPath,
     )
     playbackEnded = false
     currentTrackSeriesKey = null
@@ -100,26 +101,25 @@ private fun MPVActivity.handleMpvStartFile() {
     clearFireTvVideoEdgeCrop()
     currentPlayerTitleSource = pendingPlayerTitleSource
     currentItemTitle = pendingItemTitle
-    currentFileName = pendingFileName ?: MediaTitleResolver.fileNameFromPathLike(currentMpvPath())
+    currentFileName = pendingFileName ?: MediaTitleResolver.fileNameFromPathLike(path)
     currentVideoTitle = resolveVideoTitle()
     pendingPlayerTitleSource = null
     pendingItemTitle = null
     pendingFileName = null
-    streamOpenLoading = isNetworkStreamPath(currentMpvPath())
+    streamOpenLoading = isNetworkStreamPath(path)
     streamCacheLoading = false
     eventUiHandler.post {
         refreshLoadingOverlay()
         updateMetadataDisplay()
         refreshTimeInfoPanelVisibility()
-        updatePlayerTitleOverlay()
     }
-    if (automaticHi10pFallbackPath != null && automaticHi10pFallbackPath != currentMpvPath()) {
+    if (automaticHi10pFallbackPath != null && automaticHi10pFallbackPath != path) {
         restoreDecoderAfterAutomaticHi10pFallback()
     } else if (restoreDecoderAfterFailure) {
         player.applyDefaultDecoderForFileLoad()
     }
     applySessionDecoderModeIfNeeded()
-    addAutomaticSubtitleOptions(currentMpvPath())
+    addAutomaticSubtitleOptions(path)
     runOnloadCommands()
     applyRememberedVideoAdjustments()
     playbackHasStarted = true
@@ -162,6 +162,9 @@ private fun MPVActivity.handleMpvFileLoaded() {
     showResumeToastIfNeeded()
     refreshAudioFiltersAfterFileLoad()
     applyCustomSubtitleStyleOnFileLoad()
+    // Reconcile sub-pos after watch-later loads so a previously saved controls lift cannot stick.
+    applySubPosProperty()
+    eventUiHandler.post { updateSubtitleControlsPosition() }
 }
 
 private fun MPVActivity.guardNearEndStartPosition() {
@@ -220,6 +223,7 @@ private fun MPVActivity.refreshAudioFiltersAfterFileLoad() {
 }
 
 private fun MPVActivity.clearStreamLoading() {
+    if (!streamOpenLoading && !streamCacheLoading) return
     streamOpenLoading = false
     streamCacheLoading = false
     eventUiHandler.post { refreshLoadingOverlay() }

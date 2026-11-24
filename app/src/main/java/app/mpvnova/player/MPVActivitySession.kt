@@ -117,7 +117,17 @@ internal fun MPVActivity.savePosition() {
         resumeIdentityFromSource(currentResumeSource) == null &&
         eofReached != true
     if (shouldWrite) {
+        // Never persist the temporary player-bar subtitle lift into mpv's watch-later config.
+        val liftedForControls = subtitleControlsOffsetPercent != 0
+        if (liftedForControls) {
+            val basePosition = subPosSteps[subPosLevel]
+                .coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT)
+            mpvSetPropertyInt("sub-pos", basePosition)
+        }
         mpvCommand(arrayOf("write-watch-later-config"))
+        if (liftedForControls && !isFinishing) {
+            applySubPosProperty()
+        }
     } else if (eofReached ?: true) {
         Log.d(MPV_ACTIVITY_TAG, "player indicates EOF, not saving watch-later config")
     }
