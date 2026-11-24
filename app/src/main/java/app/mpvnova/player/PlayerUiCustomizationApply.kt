@@ -414,13 +414,17 @@ private fun MPVActivity.applyPlayerPanelSurface(style: PlayerUiCustomization) {
             )
         }
     }
-    binding.controlsScrim.background = GradientDrawable(
-        GradientDrawable.Orientation.BOTTOM_TOP,
-        intArrayOf(
-            Color.BLACK.scaleAlpha(style.scrimStrengthPercent),
-            Color.TRANSPARENT,
-        ),
-    )
+    binding.controlsScrim.background = if (style.scrimStrengthPercent > 0) {
+        GradientDrawable(
+            GradientDrawable.Orientation.BOTTOM_TOP,
+            intArrayOf(
+                Color.BLACK.scaleAlpha(style.scrimStrengthPercent),
+                Color.TRANSPARENT,
+            ),
+        )
+    } else {
+        null
+    }
     binding.controlsScrim.setVisibilityIfChanged(
         if (style.scrimStrengthPercent > 0 && binding.controls.visibility == View.VISIBLE) {
             View.VISIBLE

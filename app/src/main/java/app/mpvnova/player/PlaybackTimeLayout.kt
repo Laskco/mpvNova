@@ -49,7 +49,7 @@ private fun TextView.reservePlaybackTimeWidth(durationSeconds: Int, signed: Bool
     }
     val cached = reservedPlaybackTimeWidths[this]
     if (cached != null && cached.matches(this, hourDigits, signed)) {
-        if (minWidth != cached.width) minWidth = cached.width
+        applyExactReservedWidth(cached.width)
         return
     }
     val widestDigit = ('0'..'9').maxBy { digit -> paint.measureText(digit.toString()) }
@@ -61,7 +61,17 @@ private fun TextView.reservePlaybackTimeWidth(durationSeconds: Int, signed: Bool
     }
     val width = ceil(paint.measureText(if (signed) "-$sample" else sample)).toInt()
     reservedPlaybackTimeWidths[this] = PlaybackTimeWidthReservation(this, hourDigits, signed, width)
+    applyExactReservedWidth(width)
+}
+
+private fun TextView.applyExactReservedWidth(width: Int) {
     if (minWidth != width) minWidth = width
+    val lp = layoutParams ?: return
+    val exactWidth = width + paddingLeft + paddingRight
+    if (lp.width != exactWidth) {
+        lp.width = exactWidth
+        layoutParams = lp
+    }
 }
 
 // Weak keys avoid retaining an Activity; the value contains only paint attributes, never the view.

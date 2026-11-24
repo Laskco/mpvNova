@@ -144,7 +144,6 @@ internal fun MPVActivity.updateMetadataDisplay() {
     } else if (showMediaTitle) {
         currentVideoTitle = resolveVideoTitle()
         updatePlayerTitleOverlay()
-        binding.fullTitleTextView.setTextIfChanged(currentVideoTitle)
     } else {
         updatePlayerTitleOverlay()
     }

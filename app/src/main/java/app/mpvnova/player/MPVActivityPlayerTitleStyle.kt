@@ -3,7 +3,6 @@ package app.mpvnova.player
 import android.view.WindowManager
 import android.view.KeyEvent
 import android.view.View
-import android.widget.RelativeLayout
 import android.widget.TextView
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
@@ -87,12 +86,11 @@ private fun MPVActivity.startPlayerTitlePanelPlacement(
         }
         binding.root.addView(
             hint,
-            RelativeLayout.LayoutParams(
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
-                RelativeLayout.LayoutParams.WRAP_CONTENT,
+            android.widget.FrameLayout.LayoutParams(
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.ViewGroup.LayoutParams.WRAP_CONTENT,
+                android.view.Gravity.BOTTOM or android.view.Gravity.CENTER_HORIZONTAL,
             ).apply {
-                addRule(RelativeLayout.ALIGN_PARENT_BOTTOM)
-                addRule(RelativeLayout.CENTER_HORIZONTAL)
                 bottomMargin = dp(PLACEMENT_HINT_BOTTOM_MARGIN_DP)
             },
         )
