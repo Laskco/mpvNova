@@ -331,7 +331,7 @@ public class FilePickerFragment extends AbstractFilePickerFragment<File> {
     // may retain the fragment until I/O returns, but not its released views or listener.
     @SuppressLint("StaticFieldLeak")
     public Loader<List<File>> getLoader() {
-        if (mCurrentPath == null || !mCurrentPath.isDirectory()) {
+        if (mCurrentPath == null || !isDir(mCurrentPath)) {
             mCurrentPath = getRoot();
         }
         final File currentPath = mCurrentPath;

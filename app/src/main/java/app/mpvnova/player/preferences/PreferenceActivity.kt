@@ -149,7 +149,8 @@ class PreferenceActivity : AppCompatActivity(),
 
     private lateinit var binding: ActivitySettingsBinding
     private lateinit var preferences: SharedPreferences
-    private val updateManager by lazy { AppUpdateManager(this) }
+    private val updateManagerDelegate = lazy { AppUpdateManager(this) }
+    private val updateManager by updateManagerDelegate
     private var currentTitle: CharSequence? = null
     private var currentSubtitle: CharSequence? = null
     private var lastNavigatedPosition: Int = -1
@@ -241,7 +242,9 @@ class PreferenceActivity : AppCompatActivity(),
 
     override fun onResume() {
         super.onResume()
-        updateManager.resumePendingInstallIfAllowed()
+        if (updateManagerDelegate.isInitialized()) {
+            updateManager.resumePendingInstallIfAllowed()
+        }
     }
 
     override fun onRequestPermissionsResult(
@@ -396,12 +399,18 @@ class PreferenceActivity : AppCompatActivity(),
                 override fun stableScrollbarMetrics(recyclerView: RecyclerView): StableScrollbarMetrics? =
                     scrollbarMetrics.compute(recyclerView, itemCount, ::getItem)
 
+                override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PreferenceViewHolder {
+                    return super.onCreateViewHolder(parent, viewType).apply {
+                        itemView.stateListAnimator = null
+                        itemView.applyPreferenceTextTreatment()
+                    }
+                }
+
                 override fun onBindViewHolder(holder: PreferenceViewHolder, position: Int) {
                     super.onBindViewHolder(holder, position)
                     val itemView = holder.itemView
                     val preference = getItem(position)
                     val isSelectable = preference?.isSelectable == true
-                    itemView.stateListAnimator = null
                     itemView.background = if (isSelectable) {
                         AppCompatResources.getDrawable(itemView.context, R.drawable.bg_list_row)
                     } else {
@@ -413,7 +422,6 @@ class PreferenceActivity : AppCompatActivity(),
                         itemView.nextFocusUpId = nextUpId
                     }
                     itemView.setOnKeyListener(if (isFirstSelectable) firstRowUpKeyListener else null)
-                    itemView.applyPreferenceTextTreatment()
                 }
 
                 private fun firstSelectablePosition(): Int {

@@ -35,6 +35,7 @@ import java.lang.ref.WeakReference
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -80,11 +81,24 @@ object SupportActions {
         "minimal_seekbar_while_seeking",
     )
 
+    private val nativeVersionCache = ConcurrentHashMap<String, String>()
+
     fun copyDebugInfo(activity: Activity) {
-        val text = buildDebugInfo(activity)
-        val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        clipboard.setPrimaryClip(ClipData.newPlainText(activity.getString(R.string.support_debug_info_title), text))
-        Toast.makeText(activity, R.string.support_debug_info_copied, Toast.LENGTH_SHORT).show()
+        val activityReference = WeakReference(activity)
+        val applicationContext = activity.applicationContext
+        val label = activity.getString(R.string.support_debug_info_title)
+        SUPPORT_IO_EXECUTOR.execute {
+            val text = buildDebugInfo(applicationContext)
+            val currentActivity = activityReference.get() ?: return@execute
+            currentActivity.runOnUiThread {
+                if (currentActivity.isFinishing || currentActivity.isDestroyed) {
+                    return@runOnUiThread
+                }
+                val clipboard = currentActivity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                clipboard.setPrimaryClip(ClipData.newPlainText(label, text))
+                Toast.makeText(currentActivity, R.string.support_debug_info_copied, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     fun exportConfigBundle(activity: Activity) {
@@ -262,15 +276,19 @@ object SupportActions {
     }
 
     private fun nativeVersion(context: Context, libraryName: String, marker: String): String {
-        val nativeDir = context.applicationInfo.nativeLibraryDir
-        val file = nativeDir?.let { File(it, libraryName) }
-        return if (file?.isFile != true) {
+        val nativeDir = context.applicationInfo.nativeLibraryDir ?: return "unknown"
+        val cacheKey = "$nativeDir/$libraryName:$marker"
+        nativeVersionCache[cacheKey]?.let { return it }
+        val file = File(nativeDir, libraryName)
+        val resolved = if (!file.isFile) {
             "unknown"
         } else {
             runCatching {
                 NativeLibraryVersion.find(file, marker) ?: "unknown"
             }.getOrDefault("unknown")
         }
+        nativeVersionCache[cacheKey] = resolved
+        return resolved
     }
 
     private const val AMAZON_FEATURE_FIRE_TV = "amazon.hardware.fire_tv"

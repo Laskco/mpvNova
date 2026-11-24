@@ -13,9 +13,19 @@ import kotlin.math.roundToInt
  */
 internal class PreferenceScrollbarMetricsTracker {
     private var observedHeights = IntArray(0)
+    private var isHeader = BooleanArray(0)
+    private var headerSum = 0
+    private var headerCount = 0
+    private var rowSum = 0
+    private var rowCount = 0
 
     fun invalidate() {
         observedHeights = IntArray(0)
+        isHeader = BooleanArray(0)
+        headerSum = 0
+        headerCount = 0
+        rowSum = 0
+        rowCount = 0
     }
 
     fun compute(
@@ -29,21 +39,26 @@ internal class PreferenceScrollbarMetricsTracker {
         val firstVisible = lm.findFirstVisibleItemPosition()
         if (firstVisible == RecyclerView.NO_POSITION) return null
 
-        if (observedHeights.size != itemCount) {
-            observedHeights = IntArray(itemCount)
-        }
+        ensureCapacity(itemCount, itemAt)
         recordVisibleHeights(lm, itemCount)
 
         val density = recyclerView.resources.displayMetrics.density
-        val defaultHeaderPx = (DEFAULT_HEADER_HEIGHT_DP * density).roundToInt()
-        val defaultRowPx = (DEFAULT_ROW_HEIGHT_DP * density).roundToInt()
-        val fallbacks = computeFallbackHeights(itemCount, itemAt, defaultHeaderPx, defaultRowPx)
+        val fallbackHeader = if (headerCount > 0) {
+            headerSum / headerCount
+        } else {
+            (DEFAULT_HEADER_HEIGHT_DP * density).roundToInt()
+        }
+        val fallbackRow = if (rowCount > 0) {
+            rowSum / rowCount
+        } else {
+            (DEFAULT_ROW_HEIGHT_DP * density).roundToInt()
+        }
 
         var totalHeight = 0
         var offsetBeforeFirst = 0
         for (pos in 0 until itemCount) {
             val h = observedHeights[pos].takeIf { it > 0 }
-                ?: if (itemAt(pos) is PreferenceCategory) fallbacks.headerPx else fallbacks.rowPx
+                ?: if (isHeader[pos]) fallbackHeader else fallbackRow
             if (pos < firstVisible) offsetBeforeFirst += h
             totalHeight += h
         }
@@ -54,46 +69,40 @@ internal class PreferenceScrollbarMetricsTracker {
         return StableScrollbarMetrics(range = totalHeight, extent = extent, offset = offset)
     }
 
+    private fun ensureCapacity(itemCount: Int, itemAt: (Int) -> Preference?) {
+        if (observedHeights.size == itemCount) return
+        observedHeights = IntArray(itemCount)
+        isHeader = BooleanArray(itemCount) { pos -> itemAt(pos) is PreferenceCategory }
+        headerSum = 0
+        headerCount = 0
+        rowSum = 0
+        rowCount = 0
+    }
+
     private fun recordVisibleHeights(lm: LinearLayoutManager, itemCount: Int) {
         for (i in 0 until lm.childCount) {
             val child = lm.getChildAt(i) ?: continue
             val pos = lm.getPosition(child)
             if (pos in 0 until itemCount) {
                 val h = lm.getDecoratedMeasuredHeight(child)
-                if (h > 0) observedHeights[pos] = h
-            }
-        }
-    }
-
-    private fun computeFallbackHeights(
-        itemCount: Int,
-        itemAt: (Int) -> Preference?,
-        defaultHeaderPx: Int,
-        defaultRowPx: Int,
-    ): FallbackHeights {
-        var headerSum = 0
-        var headerCount = 0
-        var rowSum = 0
-        var rowCount = 0
-        for (pos in 0 until itemCount) {
-            val h = observedHeights[pos]
-            if (h > 0) {
-                if (itemAt(pos) is PreferenceCategory) {
-                    headerSum += h
-                    headerCount++
-                } else {
-                    rowSum += h
-                    rowCount++
+                val prev = observedHeights[pos]
+                if (h > 0 && h != prev) {
+                    observedHeights[pos] = h
+                    updateAggregate(isHeader[pos], prev, h)
                 }
             }
         }
-        return FallbackHeights(
-            headerPx = if (headerCount > 0) headerSum / headerCount else defaultHeaderPx,
-            rowPx = if (rowCount > 0) rowSum / rowCount else defaultRowPx,
-        )
     }
 
-    private data class FallbackHeights(val headerPx: Int, val rowPx: Int)
+    private fun updateAggregate(header: Boolean, previousHeight: Int, newHeight: Int) {
+        if (header) {
+            if (previousHeight > 0) headerSum -= previousHeight else headerCount++
+            headerSum += newHeight
+        } else {
+            if (previousHeight > 0) rowSum -= previousHeight else rowCount++
+            rowSum += newHeight
+        }
+    }
 
     private companion object {
         const val DEFAULT_HEADER_HEIGHT_DP = 36f
