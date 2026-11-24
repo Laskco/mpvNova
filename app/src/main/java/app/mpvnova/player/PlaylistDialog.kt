@@ -1,7 +1,6 @@
 package app.mpvnova.player
 
 import app.mpvnova.player.databinding.DialogPlaylistBinding
-import android.content.res.ColorStateList
 import android.util.Log
 import android.util.SparseArray
 import android.view.LayoutInflater
@@ -29,6 +28,8 @@ internal class PlaylistDialog(private val player: MPVView) {
     fun buildView(layoutInflater: LayoutInflater): View {
         if (!::binding.isInitialized) {
             binding = DialogPlaylistBinding.inflate(layoutInflater)
+            binding.list.itemAnimator = null
+            binding.list.setItemViewCacheSize(PLAYLIST_LIST_VIEW_CACHE_SIZE)
             binding.list.adapter = CustomAdapter(this)
             binding.list.setHasFixedSize(true)
 
@@ -61,7 +62,9 @@ internal class PlaylistDialog(private val player: MPVView) {
         basenames.clear()
         Log.v(TAG, "PlaylistDialog: loaded ${playlist.size} items")
         binding.list.adapter?.notifyRangeRefresh(oldCount, playlist.size)
-        binding.list.scrollToPosition(playlist.indexOfFirst { it.index == selectedIndex })
+        playlist.indexOfFirst { it.index == selectedIndex }
+            .takeIf { it >= 0 }
+            ?.let(binding.list::scrollToPosition)
 
         /*
          * At least on api 33 there is in some cases a (reproducible) bug, where the space below the
@@ -69,11 +72,15 @@ internal class PlaylistDialog(private val player: MPVView) {
          * alert dialog. This fixes it.
          */
         binding.list.post {
-            binding.list.parent.requestLayout()
+            binding.root.requestLayout()
         }
 
         val context = binding.root.context
-        val accent = ContextCompat.getColor(context, R.color.accent)
+        val accent = AppearanceTheme.resolveColor(
+            context,
+            R.attr.mpvAccentHot,
+            ContextCompat.getColor(context, R.color.accent),
+        )
         val normal = ContextCompat.getColor(context, R.color.tv_text)
         val disabled = ContextCompat.getColor(context, R.color.tv_text_dim)
         val shuffleState = player.getShuffle()
@@ -81,25 +88,29 @@ internal class PlaylistDialog(private val player: MPVView) {
             isEnabled = true
             isSelected = shuffleState
             alpha = if (playlist.size > 1) 1f else UNAVAILABLE_ACTION_ALPHA
-            imageTintList = ColorStateList.valueOf(
+            setImageTintColorIfChanged(
                 when {
                     shuffleState -> accent
                     playlist.size > 1 -> normal
                     else -> disabled
-                }
+                },
             )
         }
         refreshRepeatButton(accent, normal)
     }
 
     private fun refreshRepeatButton(
-        accent: Int = ContextCompat.getColor(binding.root.context, R.color.accent),
+        accent: Int = AppearanceTheme.resolveColor(
+            binding.root.context,
+            R.attr.mpvAccentHot,
+            ContextCompat.getColor(binding.root.context, R.color.accent),
+        ),
         normal: Int = ContextCompat.getColor(binding.root.context, R.color.tv_text),
     ) {
         val repeatState = player.getRepeat()
         binding.repeatBtn.apply {
             isSelected = repeatState > 0
-            imageTintList = ColorStateList.valueOf(if (repeatState > 0) accent else normal)
+            setImageTintColorIfChanged(if (repeatState > 0) accent else normal)
             setImageResource(if (repeatState == 2) R.drawable.ic_repeat_one_24dp else R.drawable.ic_repeat_24dp)
         }
     }
@@ -133,16 +144,16 @@ internal class PlaylistDialog(private val player: MPVView) {
             }
 
             fun bind(item: MPVView.PlaylistItem, selected: Boolean) {
-                textView.text = item.title ?: parent.basename(item)
-                itemView.isActivated = selected
+                textView.setTextIfChanged(item.title ?: parent.basename(item))
+                if (itemView.isActivated != selected) itemView.isActivated = selected
                 UiFont.applyWeight(textView, bold = selected)
                 val subtitle = if (item.title.isNullOrBlank()) {
                     "#${item.index + 1}"
                 } else {
                     parent.basename(item)
                 }
-                subtitleView.text = subtitle
-                subtitleView.visibility = if (subtitle.isBlank()) View.GONE else View.VISIBLE
+                subtitleView.setTextIfChanged(subtitle)
+                subtitleView.setVisibilityIfChanged(if (subtitle.isBlank()) View.GONE else View.VISIBLE)
             }
         }
 
@@ -163,5 +174,6 @@ internal class PlaylistDialog(private val player: MPVView) {
     companion object {
         private const val TAG = "mpv"
         private const val UNAVAILABLE_ACTION_ALPHA = 0.55f
+        private const val PLAYLIST_LIST_VIEW_CACHE_SIZE = 10
     }
 }

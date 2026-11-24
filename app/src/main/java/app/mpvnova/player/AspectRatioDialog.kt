@@ -22,6 +22,7 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
     binding.videoProcessingTitle.setText(R.string.aspect_ratio)
     binding.videoProcessingSummary.isVisible = false
     binding.videoProcessingDoneBtn.setOnClickListener { dialog.dismiss() }
+    var selectedRow: android.view.View? = null
     for (index in names.indices) {
         val itemBinding = DialogOptionItemBinding.inflate(
             layoutInflater,
@@ -32,6 +33,7 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
         itemBinding.optionText.text = names[index]
         itemBinding.optionCheck.isVisible = isSelected
         itemBinding.root.isActivated = isSelected
+        if (isSelected) selectedRow = itemBinding.root
         itemBinding.root.setOnClickListener {
             applyAspectRatioChoice(ratios[index])
             saveSeriesAspectRatio(ratios[index])
@@ -61,6 +63,8 @@ internal fun MPVActivity.openAspectMenu(restoreState: StateRestoreCallback): Boo
         create()
     }
     showWidePlayerDialog(dialog, aspectRatioDialogLayout())
+    val focusRow = selectedRow ?: binding.videoProcessingRows.getChildAt(0)
+    focusRow?.post { focusRow.requestFocus() }
     return false
 }
 

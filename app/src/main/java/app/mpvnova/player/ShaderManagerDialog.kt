@@ -16,7 +16,6 @@ import app.mpvnova.player.preferences.showSettingsConfirmationDialog
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
-@Suppress("TooManyFunctions")
 internal class ShaderManagerDialog(
     private val activity: AppCompatActivity,
     private val requestImport: ((List<Uri>) -> Unit) -> Unit,
@@ -36,7 +35,6 @@ internal class ShaderManagerDialog(
             dialog.show()
             configureSettingsWindow(dialog.window)
         }
-        UiFont.applyToViewTree(binding.root)
         binding.shaderManagerEnabled.post { binding.shaderManagerEnabled.requestFocus() }
     }
 
@@ -81,7 +79,6 @@ internal class ShaderManagerDialog(
         binding.shaderManagerRefresh.isEnabled = UserShaderManager.hasRememberedFolders(activity)
         updateActionFocusOrder()
         renderStatus(shaders)
-        UiFont.applyToViewTree(binding.root)
         focusView?.let { target -> target.post { target.requestFocus() } }
     }
 
@@ -96,8 +93,9 @@ internal class ShaderManagerDialog(
         row.shaderEnabled.setOnCheckedChangeListener { _, checked ->
             UserShaderManager.setShaderEnabled(activity, shader.id, checked)
             notifyChanged()
-            updateActionState()
-            renderStatus()
+            val updated = UserShaderManager.shaders(activity)
+            updateActionState(updated)
+            renderStatus(updated)
         }
         bindMoveButton(row.shaderMoveUp, index > 0, shader.id, -1)
         bindMoveButton(row.shaderMoveDown, index < lastIndex, shader.id, 1)
@@ -130,6 +128,7 @@ internal class ShaderManagerDialog(
         setTextColor(activity.getColor(R.color.tv_text_dim))
         textSize = EMPTY_TEXT_SIZE_SP
         textAlignment = View.TEXT_ALIGNMENT_CENTER
+        UiFont.applyToTextView(this)
     }
 
     private fun confirmRemove(shader: UserShader) {
@@ -149,7 +148,7 @@ internal class ShaderManagerDialog(
         SHADER_IO_EXECUTOR.execute {
             val result = runCatching { UserShaderManager.import(activity.applicationContext, uris) }
             activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
+                if (activity.isFinishing || activity.isDestroyed || !dialog.isShowing) return@runOnUiThread
                 setBusy(false, refreshing = false)
                 result.onSuccess { imported ->
                     val message = when {
@@ -168,15 +167,11 @@ internal class ShaderManagerDialog(
                         imported.skipped > 0 -> activity.getString(R.string.shader_import_duplicates)
                         else -> activity.getString(R.string.shader_import_none)
                     }
-                    Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
+                    showFeedback(message)
                     notifyChanged()
                     render()
                 }.onFailure { error ->
-                    Toast.makeText(
-                        activity,
-                        error.message ?: activity.getString(R.string.shader_import_failed),
-                        Toast.LENGTH_LONG,
-                    ).show()
+                    showFeedback(error.message ?: activity.getString(R.string.shader_import_failed))
                 }
             }
         }
@@ -189,7 +184,7 @@ internal class ShaderManagerDialog(
                 UserShaderManager.refreshFolders(activity.applicationContext)
             }
             activity.runOnUiThread {
-                if (activity.isFinishing || activity.isDestroyed) return@runOnUiThread
+                if (activity.isFinishing || activity.isDestroyed || !dialog.isShowing) return@runOnUiThread
                 setBusy(false, refreshing = true)
                 result.onSuccess { refreshed ->
                     val message = when {
@@ -219,17 +214,21 @@ internal class ShaderManagerDialog(
                         )
                         else -> activity.getString(R.string.shader_refresh_none)
                     }
-                    Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
+                    showFeedback(message)
                     if (refreshed.imported > 0) notifyChanged()
                     render()
                 }.onFailure { error ->
-                    Toast.makeText(
-                        activity,
-                        error.message ?: activity.getString(R.string.shader_refresh_failed),
-                        Toast.LENGTH_LONG,
-                    ).show()
+                    showFeedback(error.message ?: activity.getString(R.string.shader_refresh_failed))
                 }
             }
+        }
+    }
+
+    private fun showFeedback(message: String) {
+        if (activity is MPVActivity) {
+            activity.showToast(activity.getString(R.string.shader_manager_title), message)
+        } else {
+            Toast.makeText(activity, message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -247,9 +246,8 @@ internal class ShaderManagerDialog(
         updateActionFocusOrder()
     }
 
-    private fun updateActionState() {
-        binding.shaderManagerDisableAll.isEnabled =
-            UserShaderManager.shaders(activity).any { it.enabled }
+    private fun updateActionState(shaders: List<UserShader>) {
+        binding.shaderManagerDisableAll.isEnabled = shaders.any { it.enabled }
         updateActionFocusOrder()
     }
 
@@ -286,13 +284,15 @@ internal class ShaderManagerDialog(
 
     private fun configureSettingsWindow(window: Window?) {
         val metrics = activity.resources.displayMetrics
+        val maxWidth = Utils.convertDp(activity, SHADER_MANAGER_DIALOG_LAYOUT.maxWidthDp)
+        val maxHeight = Utils.convertDp(activity, SHADER_MANAGER_DIALOG_LAYOUT.maxHeightDp ?: Float.MAX_VALUE)
         window?.apply {
             setBackgroundDrawableResource(android.R.color.transparent)
             decorView.setPadding(0, 0, 0, 0)
             setGravity(Gravity.CENTER)
             setLayout(
-                (metrics.widthPixels * SETTINGS_WIDTH_FRACTION).roundToInt(),
-                (metrics.heightPixels * SETTINGS_HEIGHT_FRACTION).roundToInt(),
+                minOf((metrics.widthPixels * SETTINGS_WIDTH_FRACTION).roundToInt(), maxWidth),
+                minOf((metrics.heightPixels * SETTINGS_HEIGHT_FRACTION).roundToInt(), maxHeight),
             )
         }
     }
@@ -307,7 +307,7 @@ internal class ShaderManagerDialog(
         const val EMPTY_VERTICAL_PADDING_DP = 28
         const val EMPTY_TEXT_SIZE_SP = 13f
         val SHADER_IO_EXECUTOR = Executors.newSingleThreadExecutor { runnable ->
-            Thread(runnable, "mpvNova-shader-io")
+            Thread(runnable, "mpvNova-shader-io").apply { isDaemon = true }
         }
     }
 }

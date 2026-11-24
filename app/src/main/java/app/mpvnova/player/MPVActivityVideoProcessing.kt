@@ -185,6 +185,7 @@ internal fun MPVActivity.openPlayerChoicePanel(
     dismissOnSelection: Boolean = false,
     toggles: List<PlayerPanelToggle> = emptyList(),
     refreshThemeOnChange: Boolean = false,
+    refreshFontOnChange: Boolean = false,
     onToggled: (String, Boolean) -> Unit = { _, _ -> },
     onSelected: (String) -> Unit,
 ) {
@@ -210,9 +211,9 @@ internal fun MPVActivity.openPlayerChoicePanel(
         row.setOnClickListener {
             onSelected(choice.value)
             if (refreshThemeOnChange) refreshPlayerChoicePanelTheme(binding)
-            UiFont.applyToViewTree(binding.root)
+            if (refreshFontOnChange) UiFont.applyToViewTree(binding.root)
             checks.forEach { (value, image) ->
-                image.visibility = if (value == choice.value) View.VISIBLE else View.INVISIBLE
+                image.setVisibilityIfChanged(if (value == choice.value) View.VISIBLE else View.INVISIBLE)
             }
             if (dismissOnSelection) dialog.dismiss()
         }
@@ -227,7 +228,7 @@ internal fun MPVActivity.openPlayerChoicePanel(
             switch.isChecked = checked
             onToggled(toggle.key, checked)
             if (refreshThemeOnChange) refreshPlayerChoicePanelTheme(binding)
-            UiFont.applyToViewTree(binding.root)
+            if (refreshFontOnChange) UiFont.applyToViewTree(binding.root)
         }
         binding.videoProcessingRows.addView(row)
     }
@@ -240,7 +241,7 @@ internal fun MPVActivity.openPlayerChoicePanel(
     binding.videoProcessingDoneBtn.setOnClickListener { dialog.dismiss() }
     showWidePlayerDialog(dialog, VIDEO_PROCESSING_DIALOG_LAYOUT, chrome)
     val focusRow = selectedRow ?: binding.videoProcessingRows.getChildAt(0)
-    focusRow.post { focusRow.requestFocus() }
+    focusRow?.post { focusRow.requestFocus() }
 }
 
 private fun MPVActivity.refreshPlayerChoicePanelTheme(binding: DialogVideoProcessingBinding) {

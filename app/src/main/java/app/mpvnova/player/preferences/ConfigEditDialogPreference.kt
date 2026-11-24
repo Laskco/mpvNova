@@ -8,10 +8,10 @@ import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.core.view.isVisible
 import androidx.core.widget.doOnTextChanged
 import androidx.preference.Preference
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import app.mpvnova.player.R
 import app.mpvnova.player.databinding.ConfEditorBinding
 import java.io.File
@@ -50,7 +50,7 @@ class ConfigEditDialogPreference(
         binding.editText.setText(originalContent)
         // Buttons live in the layout (pinned below the bounded editor), matching the app's
         // other dialogs, so a long config can never push them off-screen (issue #23).
-        val dialog = MaterialAlertDialogBuilder(context)
+        val dialog = AlertDialog.Builder(context)
             .setView(binding.root)
             .create()
         binding.editText.doOnTextChanged { text, _, _, _ ->
@@ -68,6 +68,7 @@ class ConfigEditDialogPreference(
             else Toast.makeText(context, R.string.config_editor_save_failed, Toast.LENGTH_LONG).show()
         }
         dialog.show()
+        dialog.styleAsTvPanel()
     }
 
     private fun save(content: String): Boolean = try {

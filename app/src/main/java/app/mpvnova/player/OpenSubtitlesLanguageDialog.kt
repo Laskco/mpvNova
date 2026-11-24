@@ -1,13 +1,14 @@
 package app.mpvnova.player
 
-import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.core.graphics.ColorUtils
 import androidx.core.view.doOnNextLayout
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.color.MaterialColors
 
 internal class OpenSubtitlesLanguageDialog(
     private val activity: MPVActivity,
@@ -30,11 +31,14 @@ internal class OpenSubtitlesLanguageDialog(
         list.paddingTop + list.paddingBottom
 
     init {
-        (content.background?.mutate() as? GradientDrawable)?.setColor(Color.BLACK)
+        val opaqueColors = intArrayOf(
+            ColorUtils.setAlphaComponent(MaterialColors.getColor(content, R.attr.mpvOverlayStart), OPAQUE_ALPHA),
+            ColorUtils.setAlphaComponent(MaterialColors.getColor(content, R.attr.mpvOverlayEnd), OPAQUE_ALPHA),
+        )
+        (content.background?.mutate() as? GradientDrawable)?.colors = opaqueColors
         list.layoutParams = list.layoutParams.apply { height = ViewGroup.LayoutParams.MATCH_PARENT }
         list.setPadding(list.paddingLeft, list.paddingTop,
             Utils.convertDp(activity, LANGUAGE_SCROLLBAR_GUTTER_DP), list.paddingBottom)
-        UiFont.applyToViewTree(content)
         picker.onCancelClick = { close() }
         picker.onItemPicked = { item -> onSelected(item.id); close() }
     }
@@ -75,7 +79,6 @@ internal class OpenSubtitlesLanguageDialog(
         val row = activity.layoutInflater.inflate(R.layout.dialog_setting_option_item, list, false)
         row.findViewById<android.widget.TextView>(R.id.optionTitleText).text = "M"
         row.findViewById<android.widget.TextView>(R.id.optionDetailText).text = "en"
-        UiFont.applyToViewTree(row)
         val width = Utils.convertDp(activity, LANGUAGE_MEASURE_WIDTH_DP)
         row.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED))
@@ -84,6 +87,7 @@ internal class OpenSubtitlesLanguageDialog(
     }
 
     private companion object {
+        const val OPAQUE_ALPHA = 255
         const val VISIBLE_CHOICES = 5
         const val LANGUAGE_MEASURE_WIDTH_DP = 400f
         const val LANGUAGE_SCROLLBAR_GUTTER_DP = 20f

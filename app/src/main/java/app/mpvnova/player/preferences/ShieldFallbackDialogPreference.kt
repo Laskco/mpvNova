@@ -14,7 +14,6 @@ import app.mpvnova.player.shieldFallbackOption
 import app.mpvnova.player.databinding.DialogPlayerShieldFallbackBinding
 import app.mpvnova.player.databinding.DialogShieldFallbackItemBinding
 import app.mpvnova.player.toShieldDecoderFallback
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
  * Picker for the Hi10P fallback tunings. A plain ListPreference can't
@@ -42,14 +41,11 @@ class ShieldFallbackDialogPreference(
             )
         }
         binding.cancelBtn.setOnClickListener { dialog.cancel() }
-        dialog = MaterialAlertDialogBuilder(context)
+        dialog = AlertDialog.Builder(context)
             .setView(binding.root)
             .create()
         dialog.show()
-        dialog.window?.apply {
-            setBackgroundDrawableResource(android.R.color.transparent)
-            decorView.setPadding(0, 0, 0, 0)
-        }
+        dialog.styleAsTvPanel()
         val selectedIndex = SHIELD_FALLBACK_OPTIONS.indexOfFirst { it.value == selected }.coerceAtLeast(0)
         binding.fallbackOptions.getChildAt(selectedIndex)?.requestFocus()
     }

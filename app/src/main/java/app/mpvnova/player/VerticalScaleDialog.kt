@@ -41,10 +41,10 @@ private fun currentVerticalScale(): Double = mpvGetPropertyDouble(VERTICAL_SCALE
     ?.takeIf { it.isFinite() }
     ?.toFloat()?.toString()?.toDouble() ?: 1.0
 
-private fun SharedPreferences.saveVerticalScaleChoice(remember: Boolean) {
+private fun SharedPreferences.saveVerticalScaleChoice(remember: Boolean, value: Double = currentVerticalScale()) {
     edit().apply {
         putBoolean(PREF_REMEMBER_VERTICAL_SCALE, remember)
-        if (remember) putString(PREF_VERTICAL_SCALE, currentVerticalScale().toString())
+        if (remember) putString(PREF_VERTICAL_SCALE, value.toString())
         else remove(PREF_VERTICAL_SCALE)
     }.apply()
 }
@@ -62,13 +62,12 @@ internal fun MPVActivity.showVerticalScaleDialog() {
     controls.rememberCheck.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     controls.cancelBtn.setText(R.string.dialog_reset)
     controls.okBtn.setText(R.string.dialog_done)
-    fun refresh() {
-        val value = currentVerticalScale()
-        controls.adjustmentStepValue.text = getString(R.string.vertical_scale_value, value)
+    fun refresh(value: Double = currentVerticalScale()) {
+        controls.adjustmentStepValue.setTextIfChanged(getString(R.string.vertical_scale_value, value))
     }
     fun refreshRememberState() {
         controls.rememberRow.isActivated = remembered
-        controls.rememberCheck.visibility = if (remembered) View.VISIBLE else View.INVISIBLE
+        controls.rememberCheck.setVisibilityIfChanged(if (remembered) View.VISIBLE else View.INVISIBLE)
         ViewCompat.setStateDescription(
             controls.rememberRow,
             getString(if (remembered) R.string.status_on else R.string.status_off),
@@ -76,8 +75,8 @@ internal fun MPVActivity.showVerticalScaleDialog() {
     }
     fun apply(value: Double) {
         applyVerticalScale(value)
-        prefs.saveVerticalScaleChoice(remembered)
-        refresh()
+        prefs.saveVerticalScaleChoice(remembered, value)
+        refresh(value)
     }
     fun adjust(direction: Int) {
         val current = currentVerticalScale()
@@ -97,7 +96,10 @@ internal fun MPVActivity.showVerticalScaleDialog() {
     }
     val dialog = AlertDialog.Builder(this)
         .setView(controls.root)
-        .setOnDismissListener { restore() }
+        .setOnDismissListener {
+            restore()
+            reopenDrawerIfPending()
+        }
         .create()
     controls.okBtn.setOnClickListener { dialog.dismiss() }
     refresh()

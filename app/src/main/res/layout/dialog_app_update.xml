@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="560dp"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_app_update_dialog"
     android:orientation="vertical"
@@ -14,7 +14,8 @@
         style="@style/MpvTv.TextSmallCaps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/tv_brand" />
+        android:text="@string/tv_brand"
+        android:textColor="?attr/mpvAccentHot" />
 
     <TextView
         android:id="@+id/updateTitle"
@@ -55,30 +56,41 @@
         android:layout_marginTop="14dp"
         android:text="@string/update_notes_heading" />
 
-    <ScrollView
+    <app.mpvnova.player.TvSmoothScrollView
         android:id="@+id/updateNotesScroll"
         android:layout_width="match_parent"
         android:layout_height="210dp"
         android:layout_marginTop="8dp"
         android:background="@drawable/bg_app_update_notes"
+        android:clipToOutline="true"
         android:fadingEdge="vertical"
         android:fadingEdgeLength="18dp"
         android:overScrollMode="never"
         android:paddingStart="16dp"
         android:paddingTop="14dp"
-        android:paddingEnd="16dp"
+        android:paddingEnd="10dp"
         android:paddingBottom="14dp"
-        android:requiresFadingEdge="vertical">
+        android:requiresFadingEdge="vertical"
+        android:scrollbarDefaultDelayBeforeFade="1200"
+        android:scrollbarFadeDuration="240"
+        android:scrollbarSize="3dp"
+        android:scrollbarStyle="insideInset"
+        android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+        android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+        android:scrollbars="vertical"
+        tools:targetApi="s">
 
         <TextView
             android:id="@+id/updateNotes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:paddingEnd="8dp"
+            android:paddingStart="0dp"
             android:lineSpacingExtra="4dp"
             android:textColor="@color/tv_text_dim"
             android:textSize="15sp"
             tools:text="- Fixed a thing\n- Polished another thing" />
-    </ScrollView>
+    </app.mpvnova.player.TvSmoothScrollView>
 
     <ProgressBar
         android:id="@+id/updateProgress"

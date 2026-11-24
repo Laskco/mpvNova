@@ -54,7 +54,23 @@ private fun MPVActivity.applyLivePlayerAppearance() {
     refreshPlayerUiTheme()
     applyPlayerTitleStyle(force = true)
     refreshAllFilterTints()
+    invalidateCachedDialogs()
+    window.decorView.invalidate()
+}
+
+internal fun MPVActivity.invalidateCachedDialogs() {
     drawerBinding = null
     drawerHandlersBound = false
-    window.decorView.invalidate()
+    playerPickerBinding = null
+    speedPickerDialog = null
+    subDelayDialog = null
+    audioDelayDialog = null
+    audioPickerDialog = null
+    subtitlePickerDialog = null
+    decoderPickerDialog = null
+    preferredDecoderPickerDialog = null
+    subtitleStyleDialog = null
+    playlistDialog = null
+    videoAdjustmentDialogs.clear()
+    playerBrightnessDialog = null
 }

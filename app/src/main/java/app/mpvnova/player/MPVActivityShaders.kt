@@ -6,13 +6,17 @@ import app.mpvnova.player.preferences.SettingsChoiceItem
 import app.mpvnova.player.preferences.showSettingsChoiceDialog
 
 internal fun MPVActivity.openShaderManagerPanel() {
+    val restore = keepPlaybackForDialog()
     ShaderManagerDialog(
         activity = this,
         requestImport = { callback ->
             showShaderImportChoices(callback)
         },
         onChanged = { player.reconcileManagedShaders() },
-        onDismiss = { reopenDrawerIfPending() },
+        onDismiss = {
+            restore()
+            reopenDrawerIfPending()
+        },
     ).show()
 }
 

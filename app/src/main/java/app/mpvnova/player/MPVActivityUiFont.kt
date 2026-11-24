@@ -17,9 +17,11 @@ internal fun MPVActivity.pickUiFont() {
         summaryRes = R.string.appearance_ui_font_summary,
         choices = choices,
         selectedValue = UiFont.currentValue(this),
+        refreshFontOnChange = true,
     ) { value ->
         prefs.edit().putString(UiFont.PREF_KEY, value).apply()
         UiFont.applyToViewTree(window.decorView)
         applyPlayerTitleStyle(force = true)
+        invalidateCachedDialogs()
     }
 }

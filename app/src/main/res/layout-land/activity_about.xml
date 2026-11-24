@@ -5,7 +5,6 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_tv_launcher"
     tools:context=".preferences.AboutActivity">
 
     <LinearLayout
@@ -72,30 +71,62 @@
             </LinearLayout>
         </LinearLayout>
 
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingTop="8dp"
+            android:text="@string/tmdb_attribution"
+            android:textColor="@color/tv_text_dim"
+            android:textSize="12sp" />
+
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
+            android:layout_margin="16dp"
+            android:background="@drawable/bg_surface_host"
             android:paddingStart="16dp"
-            android:paddingTop="16dp"
-            android:paddingEnd="16dp"
-            android:paddingBottom="16dp">
+            android:paddingTop="18dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="18dp">
 
-            <androidx.core.widget.NestedScrollView
+            <app.mpvnova.player.TvSmoothScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@drawable/bg_surface_host"
-                android:clipToPadding="false"
-                android:padding="16dp">
+                android:clipToPadding="true"
+                android:overScrollMode="never"
+                android:scrollbarDefaultDelayBeforeFade="1200"
+                android:scrollbarFadeDuration="240"
+                android:scrollbarSize="3dp"
+                android:scrollbarStyle="insideInset"
+                android:scrollbarThumbVertical="@drawable/bg_tv_scrollbar_thumb"
+                android:scrollbarTrackVertical="@drawable/bg_tv_scrollbar_track"
+                android:scrollbars="vertical">
 
                 <HorizontalScrollView
                     android:id="@+id/aboutHorizontalScroll"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
                     android:background="@drawable/bg_list_row"
+                    android:clipToPadding="true"
                     android:descendantFocusability="blocksDescendants"
                     android:focusable="true"
-                    android:requiresFadingEdge="horizontal">
+                    android:overScrollMode="never"
+                    android:paddingStart="16dp"
+                    android:paddingTop="14dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="8dp"
+                    android:requiresFadingEdge="horizontal"
+                    android:scrollbarDefaultDelayBeforeFade="1200"
+                    android:scrollbarFadeDuration="240"
+                    android:scrollbarSize="3dp"
+                    android:scrollbarStyle="insideInset"
+                    android:scrollbarThumbHorizontal="@drawable/bg_tv_scrollbar_thumb"
+                    android:scrollbarTrackHorizontal="@drawable/bg_tv_scrollbar_track"
+                    android:scrollbars="horizontal">
 
                     <TextView
                         android:id="@+id/logs"
@@ -104,13 +135,13 @@
                         android:duplicateParentState="true"
                         android:focusable="false"
                         android:fontFamily="sans-serif"
-                        android:padding="16dp"
+                        android:paddingBottom="8dp"
                         android:textColor="@color/tv_text"
                         android:textSize="13sp"
                         tools:text="mpvNova 2026-03-22-release / 45 (debug)" />
 
                 </HorizontalScrollView>
-            </androidx.core.widget.NestedScrollView>
+            </app.mpvnova.player.TvSmoothScrollView>
         </FrameLayout>
     </LinearLayout>
 </FrameLayout>

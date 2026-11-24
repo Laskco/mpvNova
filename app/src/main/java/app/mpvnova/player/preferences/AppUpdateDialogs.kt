@@ -1,7 +1,5 @@
 package app.mpvnova.player.preferences
 
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Handler
 import android.os.Looper
 import android.view.View
@@ -119,7 +117,7 @@ internal fun AppUpdateManager.showGlassDialog(options: GlassDialogOptions): Aler
         .setView(binding.root)
         .create()
     dialog.setOnShowListener {
-        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.styleAsTvPanel()
         binding.dialogFocusTarget()?.requestFocus()
     }
     dialog.show()

@@ -75,14 +75,15 @@ internal class VideoAdjustmentDialog(
 
         bindRememberState()
         setValue(value, notify = false)
-        binding.adjustmentSeekBar.requestFocus()
+        binding.adjustmentSeekBar.post { binding.adjustmentSeekBar.requestFocus() }
         return binding.root
     }
 
     private fun setValue(newValue: Int, notify: Boolean) {
         value = newValue.coerceIn(config.minValue, config.maxValue)
-        binding.adjustmentValue.text =
-            binding.root.context.getString(config.valueFormatRes, value.toDouble())
+        binding.adjustmentValue.setTextIfChanged(
+            binding.root.context.getString(config.valueFormatRes, value.toDouble()),
+        )
         val progress = value - config.minValue
         if (binding.adjustmentSeekBar.progress != progress) {
             binding.adjustmentSeekBar.progress = progress
@@ -93,7 +94,7 @@ internal class VideoAdjustmentDialog(
     }
 
     private fun bindRememberState() {
-        binding.rememberCheck.visibility = if (rememberValue) View.VISIBLE else View.INVISIBLE
+        binding.rememberCheck.setVisibilityIfChanged(if (rememberValue) View.VISIBLE else View.INVISIBLE)
         binding.rememberRow.isActivated = rememberValue
     }
 }

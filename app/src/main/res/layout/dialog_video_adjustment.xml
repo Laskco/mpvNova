@@ -5,7 +5,6 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/bg_tv_dialog_shell"
-    android:elevation="24dp"
     android:orientation="vertical"
     android:paddingStart="28dp"
     android:paddingTop="26dp"
@@ -16,7 +15,8 @@
         style="@style/MpvTv.TextSmallCaps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/video_adjustment" />
+        android:text="@string/video_adjustment"
+        android:textColor="?attr/mpvAccentHot" />
 
     <TextView
         android:id="@+id/adjustmentTitle"
