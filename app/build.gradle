@@ -196,7 +196,10 @@ dependencies {
 detekt {
     buildUponDefaultConfig = true
     allRules = false
+    parallel = true
     ignoreFailures = false
+    config.setFrom(rootProject.file("config/detekt/detekt.yml"))
+    basePath = rootProject.layout.projectDirectory
     source = files("src/main/java")
 }
 

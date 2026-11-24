@@ -2,9 +2,11 @@ package app.mpvnova.player
 
 import android.content.res.ColorStateList
 import android.text.TextUtils
-import androidx.core.content.ContextCompat
+import android.view.View
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 
 internal fun TextView.setTextIfChanged(newText: CharSequence?) {
     val resolvedText = newText ?: ""
@@ -12,7 +14,12 @@ internal fun TextView.setTextIfChanged(newText: CharSequence?) {
         text = resolvedText
 }
 
-internal fun ImageButton.setImageTintColorIfChanged(color: Int) {
+internal fun View.setVisibilityIfChanged(newVisibility: Int) {
+    if (visibility != newVisibility)
+        visibility = newVisibility
+}
+
+internal fun ImageView.setImageTintColorIfChanged(color: Int) {
     if (imageTintList?.defaultColor != color)
         imageTintList = ColorStateList.valueOf(color)
 }

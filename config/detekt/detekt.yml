@@ -1,0 +1,120 @@
+# Detekt 2.0.0-alpha.6 configuration (built upon default-detekt-config.yml).
+# Keeps real bug, exception, performance, and maintainability checks strict while
+# allowing idiomatic Kotlin early-return guard clauses and Android UI controllers.
+
+config:
+  validation: true
+  warningsAsErrors: true
+
+complexity:
+  ComplexCondition:
+    active: true
+    allowedConditions: 4
+  CyclomaticComplexMethod:
+    active: true
+    allowedComplexity: 15
+    # Do not penalize exhaustive enum or sealed-class dispatch tables.
+    ignoreSingleWhenExpression: true
+    ignoreSimpleWhenEntries: true
+  LargeClass:
+    active: true
+    allowedLines: 600
+  LongMethod:
+    active: true
+    allowedLines: 60
+  LongParameterList:
+    active: true
+    allowedFunctionParameters: 6
+    allowedConstructorParameters: 8
+    ignoreDefaultParameters: true
+    ignoreDataClasses: true
+  NestedBlockDepth:
+    active: true
+    allowedDepth: 4
+  TooManyFunctions:
+    active: true
+    # Do not penalize Android lifecycle overrides or extracting small private helpers.
+    allowedFunctionsPerFile: 16
+    allowedFunctionsPerClass: 16
+    allowedFunctionsPerInterface: 12
+    allowedFunctionsPerObject: 16
+    allowedFunctionsPerEnum: 12
+    ignorePrivate: true
+    ignoreOverridden: true
+
+exceptions:
+  SwallowedException:
+    active: true
+  TooGenericExceptionCaught:
+    active: true
+
+naming:
+  MatchingDeclarationName:
+    active: true
+    mustBeFirst: true
+
+performance:
+  active: true
+  ArrayPrimitive:
+    active: true
+  ForEachOnRange:
+    active: true
+  SpreadOperator:
+    active: true
+  UnnecessaryInitOnArray:
+    active: true
+  UnnecessaryPartOfBinaryExpression:
+    active: false
+  UnnecessaryTemporaryInstantiation:
+    active: true
+
+potential-bugs:
+  active: true
+  UnconditionalJumpStatementInLoop:
+    active: true
+  MissingSuperCall:
+    active: true
+  MissingUseCall:
+    active: true
+  ElseCaseInsteadOfExhaustiveWhen:
+    active: true
+
+style:
+  CollapsibleIfStatements:
+    active: false
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+    ignoreHashCodeFunction: true
+    ignorePropertyDeclaration: true
+    ignoreLocalVariableDeclaration: true
+    ignoreConstantDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreNamedArgument: true
+    ignoreEnums: true
+    ignoreRanges: true
+    ignoreExtensionFunctions: true
+  MaxLineLength:
+    active: true
+    maxLineLength: 120
+    excludePackageStatements: true
+    excludeImportStatements: true
+    excludeCommentStatements: false
+    excludeRawStrings: true
+  NoTabs:
+    active: true
+  RedundantVisibilityModifier:
+    active: true
+  ReturnCount:
+    active: true
+    max: 3
+    excludedFunctions:
+      - 'equals'
+    excludeReturnFromLambda: true
+    excludeGuardClauses: true
+  UnusedImport:
+    active: true

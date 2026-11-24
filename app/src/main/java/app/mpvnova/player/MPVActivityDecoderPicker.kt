@@ -6,7 +6,6 @@ import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import android.os.Build
 import android.view.LayoutInflater
-import android.view.View
 import java.util.Locale
 
 internal fun MPVActivity.pickDecoder() {
@@ -166,9 +165,4 @@ internal fun MPVActivity.decoderMenuLabel(mode: String, isCurrentMode: Boolean):
             highlightDecoderLabel(getString(R.string.decoder_mode_mpv_conf), "mpv.conf", isCurrentMode)
         else -> mode
     }
-}
-
-internal fun View.setVisibilityIfChanged(newVisibility: Int) {
-    if (visibility != newVisibility)
-        visibility = newVisibility
 }

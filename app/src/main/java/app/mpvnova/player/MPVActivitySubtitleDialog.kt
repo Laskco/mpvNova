@@ -39,7 +39,7 @@ private fun MPVActivity.handleSubPickerItemClick(
     selectTrackForFile("sub", trackId)
     saveUserTrackPick("sub", trackId)
     dismissDialog()
-    trackSwitchNotification { TrackData(trackId, SubTrackDialog.TRACK_TYPE) }
+    trackSwitchNotification { TrackData(trackId, "sub") }
 }
 
 private fun MPVActivity.handleSecondarySubAdjust(

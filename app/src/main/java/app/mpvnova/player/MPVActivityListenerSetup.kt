@@ -5,7 +5,6 @@ import androidx.activity.addCallback
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.updateLayoutParams
 
 internal fun MPVActivity.bindClickListeners() = with(binding) {
     prevBtn.setOnClickListener { playlistPrev() }
