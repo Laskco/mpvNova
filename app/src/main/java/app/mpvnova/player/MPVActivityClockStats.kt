@@ -59,18 +59,23 @@ internal class ClockLabels(val locale: Locale, val timeZone: TimeZone) {
     private inner class MinuteLabel {
         private var formatter: SimpleDateFormat? = null
         private var minute = Long.MIN_VALUE
-        private var template: String? = null
+        private var endsAtPrefix: String? = null
         private var text = ""
 
         fun format(format: SimpleDateFormat, millis: Long, resources: Resources? = null): String {
             val minuteKey = localBucket(millis, CLOCK_MINUTE_MS)
-            val labelTemplate = resources?.getString(R.string.player_ends_at)
-            if (formatter !== format || minute != minuteKey || template != labelTemplate) {
+            if (formatter !== format || minute != minuteKey || (resources != null && endsAtPrefix == null)) {
                 val time = format.format(Date(millis))
-                text = resources?.getString(R.string.player_ends_at, time) ?: time
+                text = if (resources != null) {
+                    val template = endsAtPrefix ?: resources.getString(R.string.player_ends_at).also {
+                        endsAtPrefix = it
+                    }
+                    String.format(locale, template, time)
+                } else {
+                    time
+                }
                 formatter = format
                 minute = minuteKey
-                template = labelTemplate
             }
             return text
         }
@@ -85,13 +90,14 @@ internal class ClockLabels(val locale: Locale, val timeZone: TimeZone) {
  * if it gets invoked more than once per second.
  */
 
-internal fun MPVActivity.updateStats() {
+internal fun MPVActivity.updateStats(force: Boolean = false) {
     if (!statsFPS)
+        return
+    if (!force && binding.statsTextView.visibility != View.VISIBLE)
         return
     val fps = player.estimatedVfFps ?: return
     val statsText = getString(R.string.ui_fps, fps)
-    if (binding.statsTextView.text.toString() != statsText)
-        binding.statsTextView.text = statsText
+    binding.statsTextView.setTextIfChanged(statsText)
 }
 
 internal fun MPVActivity.updateClockInfo(force: Boolean = false) {
@@ -115,29 +121,41 @@ internal fun MPVActivity.updateClockInfo(force: Boolean = false) {
             clockFormatterIs24 = is24Hour
         }
     updateClockDate(labels, now)
-    binding.clockTextView.setTextIfChanged(labels.now(formatter, now))
-
-    val remainingSeconds = (psc.durationSec - psc.positionSec).coerceAtLeast(0)
-    if (psc.durationSec > 0 && remainingSeconds > 0) {
-        val playbackSpeed = psc.speed.takeIf { it > 0f } ?: 1f
-        val wallClockRemainingMs = (remainingSeconds * MILLIS_PER_SECOND_LONG / playbackSpeed).toLong()
-        val endTimeMillis = now + wallClockRemainingMs
-        val endsAtText = labels.end(formatter, endTimeMillis, resources)
-        binding.endsAtTextView.visibility = View.VISIBLE
-        binding.endsAtTextView.setTextIfChanged(endsAtText)
-    } else {
-        binding.endsAtTextView.visibility = View.GONE
+    val clockText = labels.now(formatter, now)
+    binding.clockTextView.setTextIfChanged(clockText)
+    binding.clockTextView.setVisibilityIfChanged(
+        if (playerTitleStyle.clock.visible && clockText.isNotBlank()) View.VISIBLE else View.GONE,
+    )
+    updateEndsAtText(labels, formatter, now)
+    if (appliedPlayerTitleStyle != playerTitleStyle) {
+        applyPlayerTitleStyle()
     }
-    applyPlayerTitleStyle()
+}
+
+private fun MPVActivity.updateEndsAtText(labels: ClockLabels, formatter: SimpleDateFormat, now: Long) {
+    val remainingSeconds = (psc.durationSec - psc.positionSec).coerceAtLeast(0)
+    if (psc.durationSec <= 0 || remainingSeconds <= 0) {
+        binding.endsAtTextView.setVisibilityIfChanged(View.GONE)
+        return
+    }
+    val playbackSpeed = psc.speed.takeIf { it > 0f } ?: 1f
+    val wallClockRemainingMs = (remainingSeconds * MILLIS_PER_SECOND_LONG / playbackSpeed).toLong()
+    val endsAtText = labels.end(formatter, now + wallClockRemainingMs, resources)
+    binding.endsAtTextView.setTextIfChanged(endsAtText)
+    binding.endsAtTextView.setVisibilityIfChanged(
+        if (playerTitleStyle.endsAt.visible && endsAtText.isNotBlank()) View.VISIBLE else View.GONE,
+    )
 }
 
 private fun MPVActivity.updateClockDate(labels: ClockLabels, now: Long) {
-    if (!showClockDate) {
+    val showDate = playerTitleStyle.date.visible && (playerTextStylePreviewActive || showClockDate)
+    if (!showDate) {
         binding.dateTextView.setVisibilityIfChanged(View.GONE)
         return
     }
-    binding.dateTextView.setVisibilityIfChanged(View.VISIBLE)
-    binding.dateTextView.setTextIfChanged(labels.date(now))
+    val dateText = labels.date(now)
+    binding.dateTextView.setTextIfChanged(dateText)
+    binding.dateTextView.setVisibilityIfChanged(if (dateText.isNotBlank()) View.VISIBLE else View.GONE)
 }
 
 private fun ordinalSuffix(day: Int): String {

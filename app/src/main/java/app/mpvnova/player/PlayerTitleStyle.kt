@@ -649,9 +649,9 @@ private fun MPVActivity.applyPlayerTitleVisibility() {
         val separatorVisible = seasonVisible && episodeVisible &&
             playerTitleStyle.separator != PlayerTitleSeparator.NONE &&
             playerTitleStyle.metadataFormat == PlayerTitleMetadataFormat.WORDS
-        visibility = separatorVisible.toVisibility()
+        setVisibilityIfChanged(separatorVisible.toVisibility())
     }
-    binding.playerTitleContextRow.visibility = (seasonVisible || episodeVisible).toVisibility()
+    binding.playerTitleContextRow.setVisibilityIfChanged((seasonVisible || episodeVisible).toVisibility())
     binding.playerTitlePrimary.applyTitleVisibility(playerTitleStyle.title.visible)
     binding.playerTitleSecondary.applyTitleVisibility(playerTitleStyle.episodeTitle.visible)
     binding.dateTextView.applyTitleVisibility(
@@ -664,7 +664,7 @@ private fun MPVActivity.applyPlayerTitleVisibility() {
 
 private fun TextView.applyTitleVisibility(enabled: Boolean): Boolean {
     val shouldShow = enabled && text.isNotBlank()
-    visibility = shouldShow.toVisibility()
+    setVisibilityIfChanged(shouldShow.toVisibility())
     return shouldShow
 }
 

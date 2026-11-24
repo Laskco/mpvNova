@@ -28,6 +28,7 @@ private val DVD_TINTS = intArrayOf(
     0xFFFF4136.toInt(), 0xFFFF851B.toInt(), 0xFFFFDC00.toInt(), 0xFF2ECC40.toInt(),
     0xFF0074D9.toInt(), 0xFF7FDBFF.toInt(), 0xFFB10DC9.toInt(), 0xFFFFFFFF.toInt(),
 )
+private val DVD_TINT_LISTS = Array(DVD_TINTS.size) { ColorStateList.valueOf(DVD_TINTS[it]) }
 
 internal fun MPVActivity.onScreensaverPauseChanged(paused: Boolean) {
     if (paused) scheduleScreensaver() else cancelScreensaver()
@@ -160,7 +161,7 @@ private fun MPVActivity.tintScreensaverLogo() {
     var next = Random.nextInt(DVD_TINTS.size)
     if (next == screensaverTintIndex) next = (next + 1) % DVD_TINTS.size
     screensaverTintIndex = next
-    binding.screensaverLogo.imageTintList = ColorStateList.valueOf(DVD_TINTS[next])
+    binding.screensaverLogo.imageTintList = DVD_TINT_LISTS[next]
 }
 
 internal fun MPVActivity.wakeFromScreensaver() {

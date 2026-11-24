@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.os.SystemClock
 import android.view.KeyEvent
+import android.view.View
 
 internal fun MPVActivity.seekbarProgressFromMillis(positionMs: Long): Int {
     val scaled = positionMs.coerceAtLeast(0L) * SEEK_BAR_PRECISION / MILLIS_PER_SECOND_LONG
@@ -108,12 +109,18 @@ internal fun MPVActivity.updatePlaybackTimeline(positionMs: Long, forceTextUpdat
 }
 
 internal fun MPVActivity.updatePlaybackBuffer() {
-    binding.playbackSeekbar.secondaryProgress = bufferedSeekbarProgress(
-        psc.bufferedPosition, psc.duration, binding.playbackSeekbar.max,
-    )
-    binding.seekOverlayBar.secondaryProgress = bufferedSeekbarProgress(
-        psc.bufferedPosition, psc.duration, binding.seekOverlayBar.max,
-    )
+    if (binding.controls.visibility == View.VISIBLE) {
+        val next = bufferedSeekbarProgress(psc.bufferedPosition, psc.duration, binding.playbackSeekbar.max)
+        if (binding.playbackSeekbar.secondaryProgress != next) {
+            binding.playbackSeekbar.secondaryProgress = next
+        }
+    }
+    if (binding.seekOverlay.visibility == View.VISIBLE) {
+        val next = bufferedSeekbarProgress(psc.bufferedPosition, psc.duration, binding.seekOverlayBar.max)
+        if (binding.seekOverlayBar.secondaryProgress != next) {
+            binding.seekOverlayBar.secondaryProgress = next
+        }
+    }
 }
 
 internal fun MPVActivity.updatePlaybackText(position: Int, force: Boolean = false) {

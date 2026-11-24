@@ -27,8 +27,9 @@ internal fun MPVActivity.showControls() {
     resetControlsAlphaIfNeeded(overlayNeedsRestore)
     if (overlayNeedsRestore) {
         performFirstShowSetup()
+    } else {
+        updateClockInfo(force = false)
     }
-    updateClockInfo(force = overlayNeedsRestore)
     // Defer the dpad selection refresh only when layout visibility changed.
     // Posting for every key event would starve SW Hi10p decode during fast navigation.
     if (overlayNeedsRestore && btnSelected != -1) {
@@ -84,7 +85,7 @@ private fun MPVActivity.performFirstShowSetup() {
     refreshTimeInfoPanelVisibility()
     updatePlayerTitleOverlay()
     if (statsFPS) {
-        updateStats()
+        updateStats(force = true)
         binding.statsTextView.setVisibilityIfChanged(View.VISIBLE)
     }
     // TV has no system bars — the call is semantically a no-op but still
@@ -106,6 +107,7 @@ internal fun MPVActivity.refreshVisibleControlsTimeout() {
 }
 
 internal fun MPVActivity.keepVisibleControlsFresh() {
+    if (playerDialogStack.any { it.isShowing }) return
     val controlsAreOpaque =
         binding.controls.alpha >= 1f &&
         (topActionsInPlayerBar || binding.topControls.alpha >= 1f) &&
@@ -135,6 +137,7 @@ internal fun MPVActivity.hideControls() {
     updatePlayerTitleOverlay()
     binding.controlsScrim.setVisibilityIfChanged(View.GONE)
     binding.statsTextView.setVisibilityIfChanged(View.GONE)
+    binding.controls.removeCallbacks(subtitleControlsPositionRunnable)
     updateSubtitleControlsPosition()
     refreshTimeInfoPanelVisibility()
     updatePlayerToastPlacement()

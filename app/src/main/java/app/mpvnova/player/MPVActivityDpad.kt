@@ -71,6 +71,13 @@ internal fun MPVActivity.activateOrHideControlsFromVerticalDpad(
 }
 
 internal fun MPVActivity.interceptDpad(ev: KeyEvent): Boolean {
+    if (!isPlayerDpadOrConfirmKey(ev.keyCode)) {
+        if (btnSelected == SKIP_BUTTON_SELECTION_INDEX && binding.controls.visibility != View.VISIBLE) {
+            btnSelected = -1
+            syncSkipButtonHighlight()
+        }
+        return false
+    }
     val controls = dpadButtons()
     if (controls.isEmpty() && btnSelected == SKIP_BUTTON_SELECTION_INDEX) {
         btnSelected = -1
@@ -84,10 +91,20 @@ internal fun MPVActivity.interceptDpad(ev: KeyEvent): Boolean {
     }
 }
 
-internal fun MPVActivity.updateSelectedDpadButton() {
+private fun isPlayerDpadOrConfirmKey(keyCode: Int): Boolean = when (keyCode) {
+    KeyEvent.KEYCODE_DPAD_UP,
+    KeyEvent.KEYCODE_DPAD_DOWN,
+    KeyEvent.KEYCODE_DPAD_LEFT,
+    KeyEvent.KEYCODE_DPAD_RIGHT,
+    KeyEvent.KEYCODE_DPAD_CENTER,
+    KeyEvent.KEYCODE_ENTER,
+    KeyEvent.KEYCODE_NUMPAD_ENTER -> true
+    else -> false
+}
+
+internal fun MPVActivity.updateSelectedDpadButton(controls: List<View> = dpadButtons()) {
     // The accessible player bar uses activation only for its cosmetic D-pad highlight.
     // Separate top actions retain their shared selected-state backgrounds.
-    val controls = dpadButtons()
     syncSkipButtonHighlight()
     controls.forEachIndexed { i, child ->
         val selected = i == btnSelected

@@ -41,6 +41,8 @@ internal class PlayerTitleCombinedPanel(
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
     }
     private var enabled = false
+    private val scratchClip = Rect()
+    private val currentClip = Rect()
 
     init {
         root.addView(surface, minOf(root.indexOfChild(title), root.indexOfChild(clock)),
@@ -92,7 +94,10 @@ internal class PlayerTitleCombinedPanel(
         val visibleTitle = title.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
         val visibleClock = clock.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
         val first = visibleTitle ?: visibleClock
-        surface.visibility = if (first == null) View.GONE else View.VISIBLE
+        val targetVis = if (first == null) View.GONE else View.VISIBLE
+        if (surface.visibility != targetVis) {
+            surface.visibility = targetVis
+        }
         return first == null || layoutPanels(first, if (visibleTitle != null) visibleClock else null)
     }
 
@@ -112,7 +117,10 @@ internal class PlayerTitleCombinedPanel(
             .coerceIn(0, (root.height - height).coerceAtLeast(0))
         val clampedLeft = left.coerceIn(0, (root.width - width).coerceAtLeast(0))
         if (updateSurfaceLayout(clampedLeft, top, width, height)) return false
-        surface.alpha = maxOf(first.alpha, second?.alpha ?: first.alpha)
+        val targetAlpha = maxOf(first.alpha, second?.alpha ?: first.alpha)
+        if (surface.alpha != targetAlpha) {
+            surface.alpha = targetAlpha
+        }
         layoutPanel(first, style.contentAlignment, clampedLeft, top, width, top + height)
         if (second != null) {
             layoutPanel(second, style.contentAlignment, clampedLeft, top + first.height, width, top + height)
@@ -133,11 +141,17 @@ internal class PlayerTitleCombinedPanel(
             PlayerTitlePanelAlignment.CENTER -> (width - panel.width) / 2
             PlayerTitlePanelAlignment.END -> width - panel.width
         }
-        panel.translationX = (x - panel.left).toFloat()
-        panel.translationY = (top - panel.top).toFloat()
-        panel.clipBounds = Rect(
+        val targetTx = (x - panel.left).toFloat()
+        val targetTy = (top - panel.top).toFloat()
+        if (panel.translationX != targetTx) panel.translationX = targetTx
+        if (panel.translationY != targetTy) panel.translationY = targetTy
+        scratchClip.set(
             0, 0, panel.width.coerceAtMost(width), (bottom - top).coerceIn(0, panel.height),
         )
+        val hasClip = panel.getClipBounds(currentClip)
+        if (!hasClip || currentClip != scratchClip) {
+            panel.clipBounds = scratchClip
+        }
     }
 
     private fun updateSurfaceLayout(left: Int, top: Int, width: Int, height: Int): Boolean {

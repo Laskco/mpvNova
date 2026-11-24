@@ -75,12 +75,6 @@ internal fun MPVActivity.showPlayerDialog(
     // truly stops moving; navigating a menu keeps the screensaver away.
     dialog.setOnKeyListener { _, _, _ -> noteScreensaverActivity(); false }
     dialog.show()
-    if (animateChrome) {
-        dialog.window?.decorView?.apply {
-            alpha = 0f
-            animate().alpha(1f).setDuration(PLAYER_DIALOG_FADE_DURATION_MS).start()
-        }
-    }
     if (dialog !in playerDialogStack) {
         playerDialogStack += dialog
     }
@@ -97,8 +91,6 @@ internal fun MPVActivity.showPlayerDialog(
     )
     rehostActivePlayerToast()
 }
-
-private const val PLAYER_DIALOG_FADE_DURATION_MS = 140L
 
 internal fun MPVActivity.pickAudio(
     returnFocus: TrackPanelReturnFocus = TrackPanelReturnFocus.TRACK,

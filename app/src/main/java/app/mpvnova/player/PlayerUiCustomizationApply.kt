@@ -1,5 +1,3 @@
-@file:Suppress("TooManyFunctions")
-
 package app.mpvnova.player
 
 import android.graphics.Color
@@ -29,7 +27,7 @@ internal fun MPVActivity.applyPlayerUiCustomization(force: Boolean = false) {
     }
     applyPlayerPanelSurface(style)
     applyPlayerPanelLayout(style)
-    applyPlayerControlOrderAndVisibility(style)
+    applyPlayerControlOrderAndVisibility(style, forceThemeRefresh = force)
     applyPlayerControlLayout(style)
     applyPlayerTimeLayout(style)
     applyPlayerControlDecoration(style.iconTextOutlineEnabled)
@@ -244,22 +242,14 @@ private fun View.applyTextSizeRecursively(sizeSp: Float) {
 
 internal fun MPVActivity.applyPlayerControlOrderAndVisibility(
     style: PlayerUiCustomization = playerUiCustomization,
+    forceThemeRefresh: Boolean = false,
 ) {
-    updateTopActionPlacement()
+    updateTopActionPlacement(forceThemeRefresh)
     val group = binding.controlsButtonGroup
-    val currentChildren = (0 until group.childCount).map(group::getChildAt)
-    val childrenById = currentChildren.associateBy(View::getId)
-    val orderedChildren = buildList {
-        style.controlOrder.forEach { control -> childrenById[control.viewId]?.let(::add) }
-        currentChildren.filterTo(this) { child -> child !in this }
-    }
-    if (currentChildren != orderedChildren) {
-        group.removeAllViews()
-        orderedChildren.forEach(group::addView)
-    }
+    reorderPlayerBarGroupIfNeeded(group, style.controlOrder)
 
     PlayerBarControl.entries.forEach { control ->
-        val view = binding.root.findViewById<View>(control.viewId) ?: return@forEach
+        val view = playerBarControlView(control)
         val baseVisible = isControlAvailableForCurrentMedia(control)
         val obeysPlayerbarVisibility = topActionsInPlayerBar ||
             (control != PlayerBarControl.SETTINGS && control != PlayerBarControl.PICTURE_IN_PICTURE)
@@ -274,38 +264,101 @@ internal fun MPVActivity.applyPlayerControlOrderAndVisibility(
     val controls = dpadButtons()
     if (btnSelected >= controls.size) {
         btnSelected = controls.lastIndex
-        updateSelectedDpadButton()
+        updateSelectedDpadButton(controls)
     }
 }
 
-private fun MPVActivity.updateTopActionPlacement() {
+private fun MPVActivity.reorderPlayerBarGroupIfNeeded(
+    group: ViewGroup,
+    controlOrder: List<PlayerBarControl>,
+) {
+    if (isPlayerBarGroupOrdered(group, controlOrder)) return
+
+    val childCount = group.childCount
+    val currentChildren = ArrayList<View>(childCount)
+    for (i in 0 until childCount) currentChildren.add(group.getChildAt(i))
+    val orderedChildren = ArrayList<View>(childCount)
+    for (control in controlOrder) {
+        val view = playerBarControlView(control)
+        if (view.parent === group) orderedChildren.add(view)
+    }
+    for (child in currentChildren) {
+        if (child !in orderedChildren) orderedChildren.add(child)
+    }
+    group.removeAllViews()
+    orderedChildren.forEach(group::addView)
+}
+
+private fun MPVActivity.isPlayerBarGroupOrdered(
+    group: ViewGroup,
+    controlOrder: List<PlayerBarControl>,
+): Boolean {
+    val childCount = group.childCount
+    var expectedIndex = 0
+    for (control in controlOrder) {
+        val view = playerBarControlView(control)
+        if (view.parent === group) {
+            if (expectedIndex >= childCount || group.getChildAt(expectedIndex) !== view) {
+                return false
+            }
+            expectedIndex++
+        }
+    }
+    return true
+}
+
+private fun MPVActivity.playerBarControlView(control: PlayerBarControl): View = when (control) {
+    PlayerBarControl.PLAY -> binding.playBtn
+    PlayerBarControl.CHAPTERS -> binding.nextChapterBtn
+    PlayerBarControl.SUBTITLES -> binding.cycleSubsBtn
+    PlayerBarControl.AUDIO -> binding.cycleAudioBtn
+    PlayerBarControl.SETTINGS -> binding.topMenuBtn
+    PlayerBarControl.PREVIOUS -> binding.prevBtn
+    PlayerBarControl.NEXT -> binding.nextBtn
+    PlayerBarControl.SPEED -> binding.cycleSpeedBtn
+    PlayerBarControl.DECODER -> binding.cycleDecoderBtn
+    PlayerBarControl.FILTERS -> binding.videoFiltersBtn
+    PlayerBarControl.VERTICAL_SCALE -> binding.verticalScaleBtn
+    PlayerBarControl.SUBTITLE_ADJUST -> binding.subAdjustBtn
+    PlayerBarControl.STATS -> binding.statsToggleBtn
+    PlayerBarControl.VOICE_BOOST -> binding.voiceBoostBtn
+    PlayerBarControl.VOLUME_BOOST -> binding.volumeBoostBtn
+    PlayerBarControl.NIGHT_MODE -> binding.nightModeBtn
+    PlayerBarControl.AUDIO_NORMALIZATION -> binding.audioNormBtn
+    PlayerBarControl.PICTURE_IN_PICTURE -> binding.topPiPBtn
+}
+
+private fun MPVActivity.updateTopActionPlacement(forceThemeRefresh: Boolean) {
     val target = if (topActionsInPlayerBar) binding.controlsButtonGroup else binding.topControls
-    val actions = if (topActionsInPlayerBar) {
-        listOf(binding.topMenuBtn, binding.topPiPBtn)
-    } else {
-        listOf(binding.topPiPBtn, binding.topMenuBtn)
-    }
-    actions.forEach { action ->
-        if (action.parent !== target) {
-            (action.parent as? ViewGroup)?.removeView(action)
-            action.layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            )
-            target.addView(action)
-        }
-        if (!topActionsInPlayerBar) {
-            val padding = (TOP_ACTION_PADDING_DP * resources.displayMetrics.density).toInt()
-            action.minimumWidth = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
-            action.minimumHeight = (TOP_ACTION_SIZE_DP * resources.displayMetrics.density).toInt()
-            action.setPadding(padding, padding, padding, padding)
-            action.background = themedPlayerDrawable(R.drawable.bg_tv_player_icon_button)
-            (action as? android.widget.ImageView)?.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
-        }
-    }
+    val firstAction = if (topActionsInPlayerBar) binding.topMenuBtn else binding.topPiPBtn
+    val secondAction = if (topActionsInPlayerBar) binding.topPiPBtn else binding.topMenuBtn
+    placeTopAction(firstAction, target, forceThemeRefresh)
+    placeTopAction(secondAction, target, forceThemeRefresh)
     binding.topControls.setVisibilityIfChanged(
         if (!topActionsInPlayerBar && binding.controls.visibility == View.VISIBLE) View.VISIBLE else View.GONE,
     )
+}
+
+private fun MPVActivity.placeTopAction(action: View, target: ViewGroup, forceThemeRefresh: Boolean) {
+    val moved = action.parent !== target
+    if (moved) {
+        action.detachFromParent()
+        action.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        )
+        target.addView(action)
+    }
+    if (!topActionsInPlayerBar && (moved || forceThemeRefresh || action.background == null)) {
+        val density = resources.displayMetrics.density
+        val padding = (TOP_ACTION_PADDING_DP * density).toInt()
+        val sizePx = (TOP_ACTION_SIZE_DP * density).toInt()
+        action.minimumWidth = sizePx
+        action.minimumHeight = sizePx
+        action.setPadding(padding, padding, padding, padding)
+        action.background = themedPlayerDrawable(R.drawable.bg_tv_player_icon_button)
+        (action as? android.widget.ImageView)?.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+    }
 }
 
 private fun MPVActivity.isControlAvailableForCurrentMedia(control: PlayerBarControl): Boolean {

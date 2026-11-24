@@ -64,7 +64,7 @@ internal fun MPVActivity.interceptDpadActivation(ev: KeyEvent, controls: List<Vi
         activatesSeekbar -> {
             if (ev.action == KeyEvent.ACTION_DOWN) {
                 btnSelected = 0
-                updateSelectedDpadButton()
+                updateSelectedDpadButton(controls)
                 seekPlaybackFromDpad(
                     seekDeltaFromDpadEvent(ev),
                     baseOnVisibleSeekbar = true,
@@ -101,8 +101,8 @@ internal fun MPVActivity.handleVerticalDpad(
         if (seekbarSelected)
             commitPendingSeekbarSeek()
         btnSelected = nextSelectionForVerticalDpad(ev, seekbarSelected, controls)
-        updateSelectedDpadButton()
-        if (btnSelected == -1) hideControlsFade() else showControls()
+        updateSelectedDpadButton(controls)
+        if (btnSelected == -1) hideControlsFade() else keepVisibleControlsFresh()
     }
     return true
 }
@@ -149,7 +149,7 @@ internal fun MPVActivity.handleHorizontalDpad(
                 val direction = if (ev.keyCode == KeyEvent.KEYCODE_DPAD_RIGHT) 1 else -1
                 val count = controls.size
                 btnSelected = (count + btnSelected + direction) % count
-                updateSelectedDpadButton()
+                updateSelectedDpadButton(controls)
                 // Skip showControls() — already visible. Just bump the timer:
                 // at ~10 presses/sec the alpha/clock/post work would starve
                 // the SW Hi10p decoder.
@@ -181,7 +181,7 @@ internal fun MPVActivity.handleCenterDpad(
         KeyEvent.ACTION_DOWN -> {
             if (ev.repeatCount == 0)
                 scheduleDpadLongClick(selectedDpadView(controls))
-            showControls()
+            keepVisibleControlsFresh()
             true
         }
         KeyEvent.ACTION_UP -> {
@@ -190,7 +190,7 @@ internal fun MPVActivity.handleCenterDpad(
             if (!dpadLongClickPerformed)
                 view?.performClick()
             dpadLongClickPerformed = false
-            showControls()
+            keepVisibleControlsFresh()
             true
         }
         else -> true

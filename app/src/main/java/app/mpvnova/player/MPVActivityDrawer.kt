@@ -1,11 +1,9 @@
-@file:Suppress("MatchingDeclarationName")
 package app.mpvnova.player
 
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
 import android.widget.Button
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -17,6 +15,7 @@ import app.mpvnova.player.databinding.DialogPlayerDrawerBinding
  */
 
 private const val FIRST_FOCUSABLE_DRAWER_ROW_POSITION = 0
+private const val DRAWER_LIST_VIEW_CACHE_SIZE = 10
 
 internal fun MPVActivity.openPlayerDrawer() {
     val restoreState = keepPlaybackForDialog()
@@ -24,12 +23,15 @@ internal fun MPVActivity.openPlayerDrawer() {
     // cost once per session.
     val binding = drawerBinding ?: DialogPlayerDrawerBinding.inflate(LayoutInflater.from(this)).also {
         handleInsetsAsPadding(it.root)
+        it.drawerContentList.itemAnimator = null
+        it.drawerContentList.setHasFixedSize(true)
+        it.drawerContentList.setItemViewCacheSize(DRAWER_LIST_VIEW_CACHE_SIZE)
         it.drawerContentList.adapter = PlayerDrawerAdapter(this) { currentDrawerDialog?.dismiss() }
         TvScrollbars.bind(it.drawerContentList, it.drawerContentScrollbarThumb)
         drawerBinding = it
     }
     // Detach from prior dialog's window tree if needed before setView.
-    (binding.root.parent as? ViewGroup)?.removeView(binding.root)
+    binding.root.detachFromParent()
 
     if (!drawerHandlersBound) {
         bindDrawerTabSwitching(binding)

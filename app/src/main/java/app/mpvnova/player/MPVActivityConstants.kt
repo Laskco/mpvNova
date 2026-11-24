@@ -9,12 +9,12 @@ internal const val RESULT_CANCELED = android.app.Activity.RESULT_CANCELED
 internal const val DEFAULT_CONTROLS_DISPLAY_TIMEOUT = 5_000L
 // Paused-inactivity screensaver: default 10 minutes.
 internal const val SCREENSAVER_DEFAULT_TIMEOUT_MS = 10L * 60L * 1000L
-// Controls-overlay fade-out. Snappy 280ms paired with a Material
-// accelerate curve so the overlay clears in one motion.
-internal const val CONTROLS_FADE_DURATION = 280L
-internal const val PLAYER_TOAST_FADE_IN_MS = 140L
-internal const val PLAYER_TOAST_FADE_OUT_MS = 180L
-internal const val LOADING_OVERLAY_FADE_MS = 180L
+// Controls-overlay fade-out. Snappy 180ms paired with a Material
+// accelerate curve so the overlay clears in one crisp motion.
+internal const val CONTROLS_FADE_DURATION = 180L
+internal const val PLAYER_TOAST_FADE_IN_MS = 100L
+internal const val PLAYER_TOAST_FADE_OUT_MS = 120L
+internal const val LOADING_OVERLAY_FADE_MS = 120L
 internal const val TOAST_UNTITLED_BASE_MS = 1_800L
 internal const val TOAST_UNTITLED_MAX_CHARS = 120
 internal const val TOAST_UNTITLED_PER_CHAR_MS = 8L

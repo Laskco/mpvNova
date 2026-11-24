@@ -458,7 +458,9 @@ private fun MPVActivity.addPlaybackRows(rows: MutableList<PlayerDrawerRow>) {
     }
     rows.addButton(PlayerDrawerAction.PLAYLIST, R.string.action_playlist)
     rows.addButton(PlayerDrawerAction.PLAYBACK_SPEED, R.string.btn_play_speed)
-    if ((mpvGetPropertyInt("chapter-list/count") ?: 0) > 0) {
+    val hasChapters = cachedChapters.isNotEmpty() ||
+        (chapterCache.chapters == null && (mpvGetPropertyInt("chapter-list/count") ?: 0) > 0)
+    if (hasChapters) {
         rows.addButton(PlayerDrawerAction.CHAPTER_PICKER, R.string.chapter_button)
         rows.addPair(
             PlayerDrawerAction.CHAPTER_PREV to R.string.btn_chapter_prev,

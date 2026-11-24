@@ -96,4 +96,4 @@ internal fun MPVActivity.reopenDrawerIfNoParentDialog(dialog: AlertDialog) {
     if (playerDialogStack.any { it !== dialog && it.isShowing }) return
     reopenDrawerIfPending()
 }
-private const val PLAYER_CHROME_FADE_DURATION_MS = 140L
+private const val PLAYER_CHROME_FADE_DURATION_MS = 90L

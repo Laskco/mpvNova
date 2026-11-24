@@ -7,7 +7,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
-import androidx.core.view.isVisible
 
 internal fun currentToastUptimeMs(): Long = SystemClock.uptimeMillis()
 
@@ -59,11 +58,13 @@ private fun MPVActivity.showToastInActivity(state: PlayerToastState, cancel: Boo
         binding.playerToast.alpha = 1f
     }
 
-    binding.playerToastTitle.isVisible = !state.title.isNullOrBlank()
-    binding.playerToastTitle.text = state.title
-    binding.playerToastMessage.text = state.detail
+    binding.playerToastTitle.setVisibilityIfChanged(
+        if (!state.title.isNullOrBlank()) View.VISIBLE else View.GONE,
+    )
+    binding.playerToastTitle.setTextIfChanged(state.title ?: "")
+    binding.playerToastMessage.setTextIfChanged(state.detail)
     updatePlayerToastPlacement()
-    binding.playerToast.visibility = View.VISIBLE
+    binding.playerToast.setVisibilityIfChanged(View.VISIBLE)
 
     if (animate && binding.playerToast.alpha < 1f) {
         binding.playerToast.alpha = 0f
@@ -80,23 +81,33 @@ private fun MPVActivity.showToastInDialog(
 ) {
     fadeHandler.removeCallbacks(playerToastHideRunnable)
     binding.playerToast.animate().cancel()
-    binding.playerToast.visibility = View.GONE
-    removeOverlayToast()
+    binding.playerToast.setVisibilityIfChanged(View.GONE)
+    overlayToastHideRunnable?.let(fadeHandler::removeCallbacks)
+    overlayToastHideRunnable = null
     val overlayHost = host.findViewById<ViewGroup>(android.R.id.content) ?: host
-    val view = LayoutInflater.from(this).inflate(R.layout.view_overlay_toast, overlayHost, false)
+    val existing = overlayToastView
+    val reused = existing != null && existing.parent === overlayHost
+    val view = if (existing != null && existing.parent === overlayHost) {
+        existing.animate().cancel()
+        existing
+    } else {
+        removeOverlayToast()
+        LayoutInflater.from(this).inflate(R.layout.view_overlay_toast, overlayHost, false).also { inflated ->
+            val params = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP or Gravity.CENTER_HORIZONTAL,
+            ).apply { topMargin = Utils.convertDp(activityContext, TOAST_OVERLAY_TOP_DP) }
+            overlayHost.addView(inflated, params)
+            overlayToastView = inflated
+        }
+    }
     val titleView = view.findViewById<TextView>(R.id.overlayToastTitle)
-    titleView.isVisible = !state.title.isNullOrBlank()
-    titleView.text = state.title
-    view.findViewById<TextView>(R.id.overlayToastMessage).text = state.detail
-    val params = FrameLayout.LayoutParams(
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        FrameLayout.LayoutParams.WRAP_CONTENT,
-        Gravity.TOP or Gravity.CENTER_HORIZONTAL,
-    ).apply { topMargin = Utils.convertDp(activityContext, TOAST_OVERLAY_TOP_DP) }
-    overlayHost.addView(view, params)
-    overlayToastView = view
-    view.bringToFront()
-    if (animate) {
+    titleView.setVisibilityIfChanged(if (!state.title.isNullOrBlank()) View.VISIBLE else View.GONE)
+    titleView.setTextIfChanged(state.title ?: "")
+    view.findViewById<TextView>(R.id.overlayToastMessage).setTextIfChanged(state.detail)
+    if (!reused) view.bringToFront()
+    if (animate && (!reused || view.alpha < 1f)) {
         view.alpha = 0f
         view.animate().alpha(1f).setDuration(PLAYER_TOAST_FADE_IN_MS).withLayer()
     } else {

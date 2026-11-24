@@ -29,8 +29,11 @@ internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
     }
     binding.timeInfoPanel.setVisibilityIfChanged(if (shouldShow) View.VISIBLE else View.GONE)
     clockHandler.removeCallbacks(clockRunnable)
-    if (shouldShow)
-        clockHandler.post(clockRunnable)
+    if (shouldShow) {
+        val now = System.currentTimeMillis()
+        val delay = CLOCK_TICK_INTERVAL_MS - (now % CLOCK_TICK_INTERVAL_MS)
+        clockHandler.postDelayed(clockRunnable, delay)
+    }
 }
 
 private fun MPVActivity.shouldShowTimeInfoPanel(): Boolean {

@@ -188,7 +188,6 @@ internal class PlayerTitleStylePanelController(
 
     private fun refreshPreview() {
         history.record(activity.playerTitleStyle.normalized())
-        activity.applyPlayerTitleStyle()
         activity.showPlayerTitleStylePreview()
         select(selectedPart)
         onPreviewChanged()

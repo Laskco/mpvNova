@@ -97,6 +97,10 @@ private class PlayerBarIconBackground(
     private val enlargementPercent: Int,
 ) : LayerDrawable(arrayOf(background)) {
     private val matrix = Matrix()
+    private var lastIcon: Drawable? = null
+    private var lastWidth = -1
+    private var lastHeight = -1
+    private var lastFocused = false
 
     override fun draw(canvas: Canvas) {
         updateIconMatrix()
@@ -105,15 +109,24 @@ private class PlayerBarIconBackground(
 
     private fun updateIconMatrix() {
         val icon = image.drawable ?: return
-        if (icon.intrinsicWidth > 0 && icon.intrinsicHeight > 0) updateIconMatrix(icon)
+        if (icon.intrinsicWidth > 0 && icon.intrinsicHeight > 0) {
+            val focused = image.isEnabled &&
+                (image.isFocused || image.isActivated || image.isSelected || image.isPressed)
+            val sameBounds = image.width == lastWidth && image.height == lastHeight
+            if (icon !== lastIcon || !sameBounds || focused != lastFocused) {
+                updateIconMatrix(icon, focused)
+            }
+        }
     }
 
-    private fun updateIconMatrix(icon: Drawable) {
+    private fun updateIconMatrix(icon: Drawable, focused: Boolean) {
         val contentWidth = (image.width - image.paddingLeft - image.paddingRight).toFloat()
         val contentHeight = (image.height - image.paddingTop - image.paddingBottom).toFloat()
         if (contentWidth <= 0f || contentHeight <= 0f) return
-        val focused = image.isEnabled &&
-            (image.isFocused || image.isActivated || image.isSelected || image.isPressed)
+        lastIcon = icon
+        lastWidth = image.width
+        lastHeight = image.height
+        lastFocused = focused
         val emphasis = if (focused) enlargementPercent / MAX_PERCENT.toFloat() else 1f
         val density = image.resources.displayMetrics.density
         val maxScale = minOf(
