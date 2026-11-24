@@ -52,12 +52,21 @@ internal fun MPVActivity.resumeKey(identity: ResumeIdentity): String {
 
 internal fun MPVActivity.legacyResumeKey(identity: ResumeIdentity) = "resume:${identity.hash}"
 
+internal fun MPVActivity.cachedResumeIdentity(): ResumeIdentity? {
+    val source = currentResumeSource
+    if (source != cachedResumeIdentitySource) {
+        cachedResumeIdentitySource = source
+        cachedResumeIdentity = resumeIdentityFromSource(source)
+    }
+    return cachedResumeIdentity
+}
+
 internal fun MPVActivity.saveResumePosition(
     positionMs: Long = psc.position,
     durationMs: Long = psc.duration,
 ) = synchronized(fileReplacementLock) {
     val identity = if (shouldSavePosition && !suppressEndFileFinishForReplace)
-        resumeIdentityFromSource(currentResumeSource)
+        cachedResumeIdentity()
     else
         null
     if (identity == null) return@synchronized
@@ -86,7 +95,7 @@ internal fun MPVActivity.saveResumePosition(
 
 internal fun MPVActivity.loadResumePosition(): Long? {
     val identity = if (shouldSavePosition)
-        resumeIdentityFromSource(currentResumeSource)
+        cachedResumeIdentity()
     else
         null
     return identity?.let {
@@ -102,7 +111,7 @@ internal fun MPVActivity.loadResumePosition(): Long? {
 
 internal fun MPVActivity.clearFinishedPositions() {
     // 1) Custom resume table
-    val identity = resumeIdentityFromSource(currentResumeSource)
+    val identity = cachedResumeIdentity()
     if (identity != null) {
         val prefs = getDefaultSharedPreferences(applicationContext)
         prefs.edit()
@@ -114,8 +123,26 @@ internal fun MPVActivity.clearFinishedPositions() {
     mpvCommand(arrayOf("delete-watch-later-config"))
 }
 
+private val resumeTablePrunedThisProcess = java.util.concurrent.atomic.AtomicBoolean(false)
+
+internal fun MPVActivity.pruneResumeTableAsync() {
+    if (!resumeTablePrunedThisProcess.compareAndSet(false, true)) return
+    val appCtx = applicationContext
+    Thread(
+        { pruneResumeTable(appCtx) },
+        "mpvNova-resume-prune",
+    ).apply {
+        isDaemon = true
+        start()
+    }
+}
+
 internal fun MPVActivity.pruneResumeTable() {
-    val prefs = getDefaultSharedPreferences(applicationContext)
+    pruneResumeTable(applicationContext)
+}
+
+private fun pruneResumeTable(appContext: android.content.Context) {
+    val prefs = getDefaultSharedPreferences(appContext)
     val now = System.currentTimeMillis()
     val toDelete = mutableListOf<String>()
     val recent = mutableListOf<Pair<String, Long>>()

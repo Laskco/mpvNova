@@ -88,6 +88,7 @@ private fun MPVActivity.handleMpvStartFile() {
         path, sessionDecoderMode, automaticHi10pFallbackPath,
     )
     playbackEnded = false
+    lastPeriodicSavedPositionSec = Int.MIN_VALUE
     currentTrackSeriesKey = null
     currentAspectSeriesKey = null
     resetPlaybackResultState()

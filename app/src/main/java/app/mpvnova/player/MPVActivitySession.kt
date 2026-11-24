@@ -112,11 +112,9 @@ internal fun MPVActivity.clampAudioFilterState() {
 }
 
 internal fun MPVActivity.savePosition() {
+    if (!shouldSavePosition || cachedResumeIdentity() != null) return
     val eofReached = mpvGetPropertyBoolean("eof-reached")
-    val shouldWrite = shouldSavePosition &&
-        resumeIdentityFromSource(currentResumeSource) == null &&
-        eofReached != true
-    if (shouldWrite) {
+    if (eofReached != true) {
         // Never persist the temporary player-bar subtitle lift into mpv's watch-later config.
         val liftedForControls = subtitleControlsOffsetPercent != 0
         if (liftedForControls) {
@@ -128,7 +126,7 @@ internal fun MPVActivity.savePosition() {
         if (liftedForControls && !isFinishing) {
             applySubPosProperty()
         }
-    } else if (eofReached ?: true) {
+    } else {
         Log.d(MPV_ACTIVITY_TAG, "player indicates EOF, not saving watch-later config")
     }
 }

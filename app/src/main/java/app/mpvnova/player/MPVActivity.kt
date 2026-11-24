@@ -19,13 +19,10 @@ import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
-import android.view.ViewGroup.MarginLayoutParams
 import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.IntentCompat
-import androidx.core.view.updateLayoutParams
 import java.text.SimpleDateFormat
 
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
@@ -44,12 +41,19 @@ open class MPVActivity : AppCompatActivity() {
     internal val periodicSaveHandler = Handler(Looper.getMainLooper())
     internal val periodicSaveRunnable = object : Runnable {
         override fun run() {
-            // Both writes no-op when there's nothing to save.
-            savePosition()
-            saveResumePosition()
+            val currentSec = psc.positionSec
+            if (!psc.pause || currentSec != lastPeriodicSavedPositionSec) {
+                // Both writes no-op when there's nothing to save.
+                savePosition()
+                saveResumePosition()
+                lastPeriodicSavedPositionSec = currentSec
+            }
             periodicSaveHandler.postDelayed(this, PERIODIC_SAVE_INTERVAL_MS)
         }
     }
+    internal var lastPeriodicSavedPositionSec = Int.MIN_VALUE
+    internal var cachedResumeIdentitySource: String? = null
+    internal var cachedResumeIdentity: ResumeIdentity? = null
     // 0 = no restore happened. Drives the "Resumed from X:XX" toast.
     internal var pendingResumeToastMs = 0L
     // Start position from intent/resume table — rechecked at FILE_LOADED
@@ -534,8 +538,6 @@ open class MPVActivity : AppCompatActivity() {
         suppressPlayerActivityTransition()
         lifecycle.addObserver(lifecycleObserver)
 
-        // Launched directly from a file browser → re-run MainActivity's one-time setup.
-        Utils.copyAssets(this)
         createBackgroundPlaybackNotificationChannel(this)
 
         setupRootView()
@@ -543,11 +545,10 @@ open class MPVActivity : AppCompatActivity() {
         readSettings()
         applyPlayerUiCustomization()
         applyPlayerScreenBrightnessPreference()
-        onConfigurationChanged(resources.configuration)
         setupImmersiveWindow()
 
-        // Drop stale resume entries before adding ours.
-        pruneResumeTable()
+        // Drop stale resume entries asynchronously once per process.
+        pruneResumeTableAsync()
         // Both saves no-op when there's nothing to persist — safe to arm immediately.
         periodicSaveHandler.postDelayed(periodicSaveRunnable, PERIODIC_SAVE_INTERVAL_MS)
 
@@ -557,7 +558,6 @@ open class MPVActivity : AppCompatActivity() {
         if (intent.action == Intent.ACTION_VIEW) {
             parseIntentExtras(intent.extras)
         }
-        addAutomaticSubtitleOptions(filepath)
 
         if (filepath == null) {
             Log.e(MPV_ACTIVITY_TAG, "No file given, exiting")
@@ -608,45 +608,7 @@ open class MPVActivity : AppCompatActivity() {
         Log.v(MPV_ACTIVITY_TAG, "onNewIntent($intent)")
         super.onNewIntent(intent)
         setIntent(intent)
-        pendingResumeToastMs = 0L
-
-        val filepath = parsePathFromIntent(intent)
-        if (filepath == null) {
-            return
-        }
-        resetPlaybackResultState()
-        val nextResumeSource = resumeSourceFromIntent(intent, filepath)
-        val willReplaceCurrentFile = activityIsForeground || !didResumeBackgroundPlayback || this.newIntentReplace
-        if (willReplaceCurrentFile) {
-            applyNewIntentReplacement(intent, filepath, nextResumeSource)
-        } else {
-            onloadCommands.clear()
-        }
-        addAutomaticSubtitleOptions(filepath)
-
-        if (!activityIsForeground && didResumeBackgroundPlayback) {
-            applySavedAudioFilterDefaults()
-            applySavedSubFilterDefaults()
-            applySavedDelayDefaults()
-            prepareStreamLoading(filepath)
-            if (this.newIntentReplace) {
-                prepareDecoderForFileLoad(filepath)
-                loadReplacementFile(filepath)
-                showToast(getString(R.string.notice_file_play))
-            } else {
-                prepareLocalAutoNext(filepath, appending = true)
-                mpvCommand(arrayOf("loadfile", filepath, "append"))
-                showToast(getString(R.string.notice_file_appended))
-            }
-            moveTaskToBack(true)
-        } else {
-            applySavedAudioFilterDefaults()
-            applySavedSubFilterDefaults()
-            applySavedDelayDefaults()
-            prepareStreamLoading(filepath)
-            prepareDecoderForFileLoad(filepath)
-            loadReplacementFile(filepath)
-        }
+        handleNewIntent(intent)
     }
 
     override fun onPause() {
@@ -787,26 +749,7 @@ open class MPVActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-
-        binding.controls.updateLayoutParams<MarginLayoutParams> {
-            bottomMargin = if (!controlsAtBottom) {
-                Utils.convertDp(this@MPVActivity, FLOATING_CONTROLS_BOTTOM_MARGIN_DP)
-            } else {
-                0
-            }
-            leftMargin = if (!controlsAtBottom) {
-                Utils.convertDp(
-                    this@MPVActivity,
-                    FLOATING_CONTROLS_SIDE_MARGIN_LANDSCAPE_DP
-                )
-            } else {
-                0
-            }
-            rightMargin = leftMargin
-        }
-        applyPlayerPanelLayout()
-        scheduleSubtitleControlsPositionUpdate()
-        updateSkipButtonPlacement()
+        handleConfigurationChanged()
     }
 
     // Audio filter levels. DRC is mutually exclusive with audio-norm so the
@@ -845,32 +788,4 @@ open class MPVActivity : AppCompatActivity() {
         }
     // Register SAF launchers eagerly, before the Activity reaches STARTED.
     internal val presetTransfer = PlayerAppearancePresetTransfer(this)
-
-    internal val mediaSessionCallback = object : MediaSession.Callback() {
-        override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
-            val event = IntentCompat.getParcelableExtra(
-                mediaButtonIntent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java,
-            )
-            if (mediaButtonIntent.action != Intent.ACTION_MEDIA_BUTTON ||
-                event?.keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
-                return super.onMediaButtonEvent(mediaButtonIntent)
-            // Android's default handler waits for a double tap. A remote's play/pause
-            // button should act immediately, once per press, without waiting for release.
-            if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
-                player.cyclePause()
-            }
-            return true
-        }
-        override fun onPause() {
-            player.paused = true
-        }
-        override fun onPlay() {
-            player.paused = false
-        }
-        override fun onSeekTo(pos: Long) {
-            player.timePos = (pos / MPV_MILLIS_PER_SECOND_DOUBLE)
-        }
-        override fun onSkipToNext() = playlistNext()
-        override fun onSkipToPrevious() = playlistPrev()
-    }
 }

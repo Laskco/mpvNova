@@ -1,14 +1,45 @@
 package app.mpvnova.player
 
-import android.os.SystemClock
+import android.content.Intent
 import android.media.session.MediaSession
+import android.os.SystemClock
+import android.view.KeyEvent
+import androidx.core.content.IntentCompat
 import java.util.Locale
 
 internal fun MPVActivity.initMediaSession(): MediaSession {
     val session = MediaSession(this, MPV_ACTIVITY_TAG)
     session.setFlags(0)
-    session.setCallback(mediaSessionCallback)
+    session.setCallback(createMediaSessionCallback())
     return session
+}
+
+private fun MPVActivity.createMediaSessionCallback(): MediaSession.Callback = object : MediaSession.Callback() {
+    override fun onMediaButtonEvent(mediaButtonIntent: Intent): Boolean {
+        val event = IntentCompat.getParcelableExtra(
+            mediaButtonIntent, Intent.EXTRA_KEY_EVENT, KeyEvent::class.java,
+        )
+        if (mediaButtonIntent.action != Intent.ACTION_MEDIA_BUTTON ||
+            event?.keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE)
+            return super.onMediaButtonEvent(mediaButtonIntent)
+        // Android's default handler waits for a double tap. A remote's play/pause
+        // button should act immediately, once per press, without waiting for release.
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            player.cyclePause()
+        }
+        return true
+    }
+    override fun onPause() {
+        player.paused = true
+    }
+    override fun onPlay() {
+        player.paused = false
+    }
+    override fun onSeekTo(pos: Long) {
+        player.timePos = (pos / MPV_MILLIS_PER_SECOND_DOUBLE)
+    }
+    override fun onSkipToNext() = playlistNext()
+    override fun onSkipToPrevious() = playlistPrev()
 }
 
 internal fun MPVActivity.updateMediaSession() {
@@ -20,9 +51,7 @@ internal fun MPVActivity.updateMediaSession() {
 }
 
 internal fun MPVActivity.updateMediaSessionNow() {
-    synchronized (psc) {
-        mediaSession?.let { psc.write(it) }
-    }
+    mediaSession?.let { psc.write(it) }
 }
 
 // Property → UI handler tables. Observed properties without an entry are

@@ -1,6 +1,7 @@
 package app.mpvnova.player
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.media.AudioFocusRequest
 import android.os.Build
@@ -8,8 +9,10 @@ import androidx.annotation.RequiresApi
 import android.media.AudioManager
 import android.util.Log
 import android.view.View
+import android.view.ViewGroup.MarginLayoutParams
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.view.updateLayoutParams
 
 /** Lifecycle-stage helpers for [MPVActivity] — keeps the override bodies short. */
 
@@ -39,6 +42,8 @@ internal fun MPVActivity.setupImmersiveWindow() {
 }
 
 internal fun MPVActivity.startPlayerForFile(filepath: String) {
+    // Wait for background asset prefetch if still running before libmpv reads fonts/cacert/scripts.
+    Utils.copyAssets(this)
     val initialized = player.initialize(filesDir.path, cacheDir.path) {
         player.addObserver(mpvEventObserver)
         addMpvLogObserver(mpvLogObserver)
@@ -57,7 +62,6 @@ internal fun MPVActivity.startPlayerForFile(filepath: String) {
     prepareDecoderForFileLoad(filepath)
     player.playFile(filepath)
     mediaSession = initMediaSession()
-    updateMediaSessionNow()
     with(BackgroundPlaybackService) {
         mediaToken = mediaSession?.sessionToken
         thumbnailChanged = { updateMediaSessionNow() }
@@ -134,4 +138,63 @@ private fun abandonAudioFocusModern(manager: AudioManager, request: AudioFocusRe
 @Suppress("DEPRECATION")
 private fun MPVActivity.abandonAudioFocusLegacy(manager: AudioManager) {
     manager.abandonAudioFocus(audioFocusChangeListener)
+}
+
+internal fun MPVActivity.handleNewIntent(intent: Intent) {
+    pendingResumeToastMs = 0L
+    val filepath = parsePathFromIntent(intent) ?: return
+    resetPlaybackResultState()
+    val nextResumeSource = resumeSourceFromIntent(intent, filepath)
+    val willReplaceCurrentFile = activityIsForeground || !didResumeBackgroundPlayback || newIntentReplace
+    if (willReplaceCurrentFile) {
+        applyNewIntentReplacement(intent, filepath, nextResumeSource)
+    } else {
+        onloadCommands.clear()
+    }
+
+    if (!activityIsForeground && didResumeBackgroundPlayback) {
+        applySavedAudioFilterDefaults()
+        applySavedSubFilterDefaults()
+        applySavedDelayDefaults()
+        prepareStreamLoading(filepath)
+        if (newIntentReplace) {
+            prepareDecoderForFileLoad(filepath)
+            loadReplacementFile(filepath)
+            showToast(getString(R.string.notice_file_play))
+        } else {
+            prepareLocalAutoNext(filepath, appending = true)
+            mpvCommand(arrayOf("loadfile", filepath, "append"))
+            showToast(getString(R.string.notice_file_appended))
+        }
+        moveTaskToBack(true)
+    } else {
+        applySavedAudioFilterDefaults()
+        applySavedSubFilterDefaults()
+        applySavedDelayDefaults()
+        prepareStreamLoading(filepath)
+        prepareDecoderForFileLoad(filepath)
+        loadReplacementFile(filepath)
+    }
+}
+
+internal fun MPVActivity.handleConfigurationChanged() {
+    binding.controls.updateLayoutParams<MarginLayoutParams> {
+        bottomMargin = if (!controlsAtBottom) {
+            Utils.convertDp(this@handleConfigurationChanged, FLOATING_CONTROLS_BOTTOM_MARGIN_DP)
+        } else {
+            0
+        }
+        leftMargin = if (!controlsAtBottom) {
+            Utils.convertDp(
+                this@handleConfigurationChanged,
+                FLOATING_CONTROLS_SIDE_MARGIN_LANDSCAPE_DP,
+            )
+        } else {
+            0
+        }
+        rightMargin = leftMargin
+    }
+    applyPlayerPanelLayout()
+    scheduleSubtitleControlsPositionUpdate()
+    updateSkipButtonPlacement()
 }
