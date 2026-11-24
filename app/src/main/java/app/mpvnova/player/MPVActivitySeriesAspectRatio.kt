@@ -18,7 +18,7 @@ internal fun MPVActivity.saveSeriesAspectRatio(ratio: String) {
 internal fun MPVActivity.applySeriesAspectRatio() {
     val enabled = getDefaultSharedPreferences(applicationContext).getBoolean(PREF_SERIES_ASPECT_RATIO, false)
     if (!enabled) return
-    currentAspectSeriesKey = resolveTrackSeriesKey()
+    currentAspectSeriesKey = currentTrackSeriesKey ?: resolveTrackSeriesKey()
     val stored = currentAspectSeriesKey?.let {
         getSharedPreferences(SERIES_ASPECT_RATIO_STORE, Context.MODE_PRIVATE).getStringIfTyped(it)
     }

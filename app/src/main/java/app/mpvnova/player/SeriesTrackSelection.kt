@@ -79,8 +79,10 @@ internal fun savedSeriesTrack(tracks: List<TrackMeta>, id: Int): SavedSeriesTrac
 internal fun trackSeriesKey(presentation: PlayerTitlePresentation?): String? = presentation
     ?.takeIf { it.episode != null }
     ?.title?.let { Normalizer.normalize(it, Normalizer.Form.NFKC) }
-    ?.lowercase(Locale.ROOT)?.replace(Regex("\\s+"), " ")?.trim()
+    ?.lowercase(Locale.ROOT)?.replace(SERIES_WHITESPACE_REGEX, " ")?.trim()
     ?.takeIf { it.isNotEmpty() && it.length <= SERIES_TRACK_TEXT_LIMIT }
+
+private val SERIES_WHITESPACE_REGEX = Regex("\\s+")
 
 // In insertion order, newest last. The cache is bounded and independent of global filter settings.
 internal class SeriesTrackSelectionCache(serialized: String?) {

@@ -130,6 +130,9 @@ private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boo
 }
 
 internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
+    if (!autoDecoderFallback || gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()) {
+        return
+    }
     val currentMode = player.currentDecoderMode
     if (!shouldApplyShieldHi10pFallback(currentMode)) return
 

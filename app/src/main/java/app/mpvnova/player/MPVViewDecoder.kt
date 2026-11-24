@@ -152,6 +152,7 @@ private fun String.primaryVideoOutput(): String {
 }
 
 private fun selectedVideoTrackString(name: String): String {
+    mpvGetPropertyString("current-tracks/video/$name")?.takeIf { it.isNotBlank() }?.let { return it }
     val count = mpvGetPropertyInt("track-list/count") ?: 0
     val selectedTrack = (0 until count).firstOrNull { index ->
         mpvGetPropertyString("track-list/$index/type") == "video" &&

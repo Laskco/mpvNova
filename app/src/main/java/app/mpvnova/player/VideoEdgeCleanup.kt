@@ -38,6 +38,7 @@ internal class VideoEdgeCropSession {
 
     @Synchronized
     fun update(desired: String?, read: () -> String?, write: (String) -> Unit) {
+        if (desired == null && applied == null) return
         val current = read() ?: return
         if (applied != null && current != applied) applied = null
         if (desired == null) {

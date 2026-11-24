@@ -82,22 +82,19 @@ internal fun MPVActivity.applyRememberedTrack(type: String) {
         return
     }
 
-    val savedTitle = prefs.getString(titleKey, null)
+    val savedTitle = prefs.getString(titleKey, null) ?: return
     val savedLang = prefs.getString(langKey, "") ?: ""
     val savedForced = type == "sub" && prefs.getBoolean(TRACK_MEMORY_SUB_FORCED_KEY, false)
-    val sameSeries = type == "sub" && resolveTrackSeriesKey()?.let {
-        it == prefs.getString(TRACK_MEMORY_SUB_SERIES_KEY, null)
-    } == true
+    val savedSeriesKey = if (type == "sub") prefs.getString(TRACK_MEMORY_SUB_SERIES_KEY, null) else null
+    val sameSeries = savedSeriesKey != null && resolveTrackSeriesKey() == savedSeriesKey
 
-    if (savedTitle != null) {
-        val (match, score) = rememberedTrackMatch(
-            listTrackMeta(type), savedTitle, savedLang, type, savedForced,
-            duplicateIndex = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY, -1) else -1,
-            duplicateCount = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY, 0) else 0,
-        )
-        if (match != null) {
-            setTrackForMemory(type, match.mpvId, match.title, score, exact = match.title.equals(savedTitle, true))
-        }
+    val (match, score) = rememberedTrackMatch(
+        listTrackMeta(type), savedTitle, savedLang, type, savedForced,
+        duplicateIndex = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_INDEX_KEY, -1) else -1,
+        duplicateCount = if (sameSeries) prefs.getInt(TRACK_MEMORY_SUB_DUPLICATE_COUNT_KEY, 0) else 0,
+    )
+    if (match != null) {
+        setTrackForMemory(type, match.mpvId, match.title, score, exact = match.title.equals(savedTitle, true))
     }
 }
 
