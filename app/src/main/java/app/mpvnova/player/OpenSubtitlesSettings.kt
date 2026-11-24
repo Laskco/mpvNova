@@ -113,16 +113,8 @@ internal object OpenSubtitlesSettings {
     }
 
     private fun validCachedAuth(file: AtomicFile): CachedAuth? {
-        val cached = cachedAuth?.takeIf { it.path == file.baseFile.absolutePath } ?: return null
-        return if (cached.encrypted.isEmpty()) cached.takeUnless { file.baseFile.exists() }
-        else try {
-            // Metadata alone cannot detect an in-place edit with a preserved timestamp.
-            verifyWritten(file, cached.encrypted)
-            cached
-        } catch (_: IOException) {
-            cachedAuth = null
-            null
-        }
+        // The file lives in app-private noBackupFilesDir and all mutations go through write()/clear().
+        return cachedAuth?.takeIf { it.path == file.baseFile.absolutePath }
     }
 
     private fun readUncached(file: AtomicFile): DecodedAuth? = try {

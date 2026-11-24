@@ -66,6 +66,11 @@ internal class OpenSubtitlesSearchDialog(
         private set
     private var shown = false
     private var busy = false
+    private var resizePending = false
+    private val resizeRunnable = Runnable {
+        resizePending = false
+        performResizeContent()
+    }
     private var lastQuery: OpenSubtitlesQuery? = null
     private var page = 0
     private var totalPages = 0
@@ -149,6 +154,8 @@ internal class OpenSubtitlesSearchDialog(
         if (closed) return
         closed = true
         closing = true
+        resizePending = false
+        handler.removeCallbacks(resizeRunnable)
         gate.close()
         service.cancel()
         task?.cancel(true)
@@ -453,6 +460,12 @@ internal class OpenSubtitlesSearchDialog(
     }
 
     private fun resizeContent() {
+        if (!shown || closed || panelMaxHeight <= 0 || resizePending) return
+        resizePending = true
+        handler.post(resizeRunnable)
+    }
+
+    private fun performResizeContent() {
         if (!shown || closed || panelMaxHeight <= 0) return
         val rowHeight = if (adapter.count > 0) adapter.measureRowHeight(list) else 0
         val extent = rowHeight + list.dividerHeight
