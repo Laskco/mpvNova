@@ -1,6 +1,7 @@
 package app.mpvnova.player
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Typeface
 import android.os.Build
 import android.view.View
@@ -9,10 +10,30 @@ import android.widget.TextView
 import androidx.annotation.FontRes
 import androidx.core.content.res.ResourcesCompat
 import androidx.preference.PreferenceManager
+import java.util.concurrent.ConcurrentHashMap
 
 internal object UiFont {
     const val PREF_KEY = "ui_font_family"
     const val DEFAULT_VALUE = "system"
+
+    private data class TypefaceKey(
+        val value: String,
+        val weight: Int,
+        val italic: Boolean,
+    )
+
+    private val baseFontCache = ConcurrentHashMap<Int, Typeface>()
+    private val styledTypefaceCache = ConcurrentHashMap<TypefaceKey, Typeface>()
+    private val systemStyleCache = ConcurrentHashMap<Int, Typeface>()
+    @Volatile
+    private var observedPrefs: SharedPreferences? = null
+    @Volatile
+    private var cachedPrefValue: String? = null
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+        if (key == null || key == PREF_KEY) {
+            cachedPrefValue = resolveValue(prefs.getString(PREF_KEY, DEFAULT_VALUE))
+        }
+    }
 
     internal data class Choice(
         val value: String,
@@ -159,18 +180,31 @@ internal object UiFont {
         ),
     )
 
+    private val choicesByValue: Map<String, Choice> = choices.associateBy(Choice::value)
+    private val defaultChoice: Choice = choicesByValue.getValue(DEFAULT_VALUE)
+
     fun currentValue(context: Context): String {
-        val saved = PreferenceManager.getDefaultSharedPreferences(context)
-            .getString(PREF_KEY, DEFAULT_VALUE)
-        return choices.firstOrNull { it.value == saved }?.value ?: DEFAULT_VALUE
+        val appContext = context.applicationContext ?: context
+        val prefs = observedPrefs ?: PreferenceManager.getDefaultSharedPreferences(appContext).also {
+            synchronized(this) {
+                if (observedPrefs == null) {
+                    it.registerOnSharedPreferenceChangeListener(prefListener)
+                    cachedPrefValue = resolveValue(it.getString(PREF_KEY, DEFAULT_VALUE))
+                    observedPrefs = it
+                }
+            }
+        }
+        return cachedPrefValue ?: resolveValue(prefs.getString(PREF_KEY, DEFAULT_VALUE)).also {
+            cachedPrefValue = it
+        }
     }
 
     fun currentLabel(context: Context): String {
-        val selected = currentValue(context)
-        return context.getString(choices.first { it.value == selected }.titleRes)
+        val choice = choicesByValue[currentValue(context)] ?: defaultChoice
+        return context.getString(choice.titleRes)
     }
 
-    fun hasChoice(value: String): Boolean = choices.any { it.value == value }
+    fun hasChoice(value: String): Boolean = choicesByValue.containsKey(value)
 
     fun typeface(
         context: Context,
@@ -179,19 +213,21 @@ internal object UiFont {
         italic: Boolean,
         fallback: Typeface = Typeface.DEFAULT,
     ): Typeface {
-        val choice = choices.firstOrNull { it.value == value }
-            ?: choices.first { it.value == DEFAULT_VALUE }
-        val fontRes = if (weight >= FONT_WEIGHT_SEMIBOLD) {
-            choice.boldFontRes
-        } else {
-            choice.regularFontRes
+        val choice = choicesByValue[value] ?: defaultChoice
+        val key = TypefaceKey(choice.value, weight, italic)
+        return styledTypefaceCache[key] ?: run {
+            val fontRes = if (weight >= FONT_WEIGHT_SEMIBOLD) choice.boldFontRes else choice.regularFontRes
+            val base = when {
+                choice.value == DEFAULT_VALUE -> Typeface.create("sans-serif", Typeface.NORMAL)
+                fontRes != null -> loadBaseFont(context, fontRes)
+                else -> null
+            }
+            if (base != null) {
+                weightedTypeface(base, weight, italic).also { styledTypefaceCache[key] = it }
+            } else {
+                weightedTypeface(fallback, weight, italic)
+            }
         }
-        val base = when {
-            choice.value == DEFAULT_VALUE -> Typeface.create("sans-serif", Typeface.NORMAL)
-            fontRes != null -> ResourcesCompat.getFont(context, fontRes) ?: fallback
-            else -> fallback
-        }
-        return weightedTypeface(base, weight, italic)
     }
 
     fun applyToViewTree(root: View) {
@@ -204,34 +240,60 @@ internal object UiFont {
     }
 
     fun applyToTextView(view: TextView) {
-        val original = originalTypeface(view)
-        val choice = choices.first { it.value == currentValue(view.context) }
-        val bold = original.isBold
-        val fontRes = if (bold) choice.boldFontRes else choice.regularFontRes
-        if (fontRes == null) {
-            view.typeface = original
-            return
+        val choice = choicesByValue[currentValue(view.context)] ?: defaultChoice
+        val target = if (choice.regularFontRes == null && choice.boldFontRes == null) {
+            view.getTag(R.id.ui_font_original_typeface) as? Typeface
+        } else {
+            val original = originalTypeface(view)
+            resolveStyledChoiceTypeface(view.context, choice, original.isBold, original.isItalic)
         }
-
-        val base = ResourcesCompat.getFont(view.context, fontRes) ?: return
-        val italic = original.isItalic
-        view.typeface = styledTypeface(base, bold, italic)
+        if (target != null && view.typeface !== target) {
+            view.typeface = target
+        }
     }
 
     fun applyWeight(view: TextView, bold: Boolean) {
-        val original = originalTypeface(view)
-        val choice = choices.first { it.value == currentValue(view.context) }
-        val fontRes = if (bold) choice.boldFontRes else choice.regularFontRes
-        if (fontRes == null) {
-            view.typeface = Typeface.create(
-                original,
-                if (bold) Typeface.BOLD else Typeface.NORMAL,
-            )
-            return
+        val choice = choicesByValue[currentValue(view.context)] ?: defaultChoice
+        val target = if (choice.regularFontRes == null && choice.boldFontRes == null) {
+            val original = originalTypeface(view)
+            val style = if (bold) Typeface.BOLD else Typeface.NORMAL
+            if (original === Typeface.DEFAULT || original === Typeface.SANS_SERIF) {
+                systemStyleCache.getOrPut(style) { Typeface.create(Typeface.SANS_SERIF, style) }
+            } else {
+                Typeface.create(original, style)
+            }
+        } else {
+            originalTypeface(view)
+            resolveStyledChoiceTypeface(view.context, choice, bold, italic = false)
         }
+        if (target != null && view.typeface !== target) {
+            view.typeface = target
+        }
+    }
 
-        val base = ResourcesCompat.getFont(view.context, fontRes) ?: return
-        view.typeface = styledTypeface(base, bold, italic = false)
+    private fun resolveValue(saved: String?): String =
+        if (saved != null && choicesByValue.containsKey(saved)) saved else DEFAULT_VALUE
+
+    private fun loadBaseFont(context: Context, @FontRes fontRes: Int): Typeface? {
+        return baseFontCache[fontRes] ?: ResourcesCompat.getFont(
+            context.applicationContext ?: context,
+            fontRes,
+        )?.also { baseFontCache[fontRes] = it }
+    }
+
+    private fun resolveStyledChoiceTypeface(
+        context: Context,
+        choice: Choice,
+        bold: Boolean,
+        italic: Boolean,
+    ): Typeface? {
+        val weight = if (bold) FONT_WEIGHT_SEMIBOLD else FONT_WEIGHT_MEDIUM
+        val key = TypefaceKey(choice.value, weight, italic)
+        return styledTypefaceCache[key] ?: run {
+            val fontRes = if (bold) choice.boldFontRes else choice.regularFontRes
+            val base = fontRes?.let { loadBaseFont(context, it) }
+            base?.let { weightedTypeface(it, weight, italic) }?.also { styledTypefaceCache[key] = it }
+        }
     }
 
     private fun originalTypeface(view: TextView): Typeface {
@@ -243,26 +305,20 @@ internal object UiFont {
         return original
     }
 
-    private fun styledTypeface(base: Typeface, bold: Boolean, italic: Boolean): Typeface {
-        return weightedTypeface(
-            base,
-            if (bold) FONT_WEIGHT_SEMIBOLD else FONT_WEIGHT_MEDIUM,
-            italic,
-        )
-    }
-
-    private fun weightedTypeface(base: Typeface, weight: Int, italic: Boolean): Typeface {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
-            return Typeface.create(base, weight, italic)
-        val style = when {
-            weight >= FONT_WEIGHT_SEMIBOLD && italic -> Typeface.BOLD_ITALIC
-            weight >= FONT_WEIGHT_SEMIBOLD -> Typeface.BOLD
-            italic -> Typeface.ITALIC
-            else -> Typeface.NORMAL
-        }
-        return Typeface.create(base, style)
-    }
-
     private const val FONT_WEIGHT_MEDIUM = 500
     private const val FONT_WEIGHT_SEMIBOLD = 600
 }
+
+private fun weightedTypeface(base: Typeface, weight: Int, italic: Boolean): Typeface {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P)
+        return Typeface.create(base, weight, italic)
+    val style = when {
+        weight >= UI_FONT_WEIGHT_SEMIBOLD && italic -> Typeface.BOLD_ITALIC
+        weight >= UI_FONT_WEIGHT_SEMIBOLD -> Typeface.BOLD
+        italic -> Typeface.ITALIC
+        else -> Typeface.NORMAL
+    }
+    return Typeface.create(base, style)
+}
+
+private const val UI_FONT_WEIGHT_SEMIBOLD = 600

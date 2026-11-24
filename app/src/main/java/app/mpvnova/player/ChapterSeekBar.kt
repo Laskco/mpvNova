@@ -24,7 +24,6 @@ import kotlin.math.roundToInt
  * Call [setChapters] whenever the chapter list or media duration changes. Chapter times at t=0 are
  * skipped (no marker at the very start of the track).
  */
-@Suppress("TooManyFunctions")
 class ChapterSeekBar @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -88,7 +87,7 @@ class ChapterSeekBar @JvmOverloads constructor(
         style = Paint.Style.FILL
     }
 
-    private val density: Float get() = resources.displayMetrics.density
+    private val density: Float = resources.displayMetrics.density
     private var trackHeightPx = TRACK_HEIGHT_DP * density
     private val selectionStrokePx = SELECTION_STROKE_DP * density
     private val selectionInsetPx = SELECTION_INSET_DP * density
@@ -96,6 +95,10 @@ class ChapterSeekBar @JvmOverloads constructor(
     private val markerWidthPx = MARKER_WIDTH_DP * density
     private val markerHeightPx = MARKER_HEIGHT_DP * density
     private val gapWidthPx = GAP_WIDTH_DP * density
+
+    init {
+        selectionPaint.strokeWidth = selectionStrokePx
+    }
 
     /**
      * Update the chapter markers drawn on the track.
@@ -302,7 +305,6 @@ class ChapterSeekBar @JvmOverloads constructor(
             height / 2f
         }
         val centerY = trackCenterY + SELECTION_OPTICAL_CENTER_OFFSET_PX
-        selectionPaint.strokeWidth = selectionStrokePx
         val strokeInset = selectionStrokePx / 2f
         val outlineLeft = (paddingLeft - selectionInsetPx).coerceAtLeast(strokeInset)
         val outlineRight = (width - paddingRight + selectionInsetPx).coerceAtMost(width - strokeInset)
@@ -339,18 +341,25 @@ class ChapterSeekBar @JvmOverloads constructor(
     }
 
     private fun drawChapterTicks(canvas: Canvas, trackLeft: Float, trackSpan: Float, centerY: Float) {
-        val progressFraction = if (max > 0) progress.toFloat() / max else 0f
-        // The opening boundary is intentionally omitted, so emphasize its ending marker instead.
-        val currentMarker = chapterFractions.indexOfLast { it <= progressFraction }.coerceAtLeast(0)
-        for ((index, fraction) in chapterFractions.withIndex()) {
-            val emphasis = if (emphasizeCurrentChapter && index == currentMarker) CURRENT_CHAPTER_EMPHASIS_SCALE else 1f
-            val scale = markerSizePercent / MAX_PERCENT.toFloat() * emphasis
-            val halfW = markerWidthPx * scale / 2f
-            val halfH = (markerHeightPx * scale / 2f).coerceAtMost(height / 2f)
+        val currentMarker = if (emphasizeCurrentChapter) {
+            val progressFraction = if (max > 0) progress.toFloat() / max else 0f
+            // The opening boundary is intentionally omitted, so emphasize its ending marker instead.
+            chapterFractions.indexOfLast { it <= progressFraction }.coerceAtLeast(0)
+        } else {
+            -1
+        }
+        val baseScale = markerSizePercent / MAX_PERCENT.toFloat()
+        val maxHalfHeight = height / 2f
+        for (index in chapterFractions.indices) {
+            val fraction = chapterFractions[index]
+            val emphasis = if (index == currentMarker) CURRENT_CHAPTER_EMPHASIS_SCALE else 1f
+            val scale = baseScale * emphasis
             val cx = trackLeft + fraction * trackSpan
             if (markerShape == PlayerChapterMarkerShape.DOTS) {
-                canvas.drawCircle(cx, centerY, (markerWidthPx * scale).coerceAtMost(height / 2f), markerPaint)
+                canvas.drawCircle(cx, centerY, (markerWidthPx * scale).coerceAtMost(maxHalfHeight), markerPaint)
             } else {
+                val halfW = markerWidthPx * scale / 2f
+                val halfH = (markerHeightPx * scale / 2f).coerceAtMost(maxHalfHeight)
                 canvas.drawRect(cx - halfW, centerY - halfH, cx + halfW, centerY + halfH, markerPaint)
             }
         }
@@ -405,9 +414,20 @@ class ChapterSeekBar @JvmOverloads constructor(
     }
 
     private fun updateChapterFractions(fractions: FloatArray) {
-        if (chapterFractions.contentEquals(fractions))
-            return
-        chapterFractions = fractions.sortedArray().distinct().toFloatArray()
+        val normalized = if (fractions.size <= 1) {
+            fractions
+        } else {
+            val sorted = fractions.sortedArray()
+            var uniqueCount = 1
+            for (i in 1 until sorted.size) {
+                if (sorted[i] != sorted[uniqueCount - 1]) {
+                    sorted[uniqueCount++] = sorted[i]
+                }
+            }
+            if (uniqueCount == sorted.size) sorted else sorted.copyOf(uniqueCount)
+        }
+        if (chapterFractions.contentEquals(normalized)) return
+        chapterFractions = normalized
         invalidate()
     }
 

@@ -18,8 +18,10 @@ class SkipButtonCountdownView @JvmOverloads constructor(
     private val trackPaint = Paint(Paint.ANTI_ALIAS_FLAG)
     private var deadlineMs = 0L
     private var durationMs = 0L
+    private val tickRunnable = Runnable { invalidate() }
 
     fun startCountdown(hideAtMs: Long, delayMs: Long) {
+        removeCallbacks(tickRunnable)
         val accent = AppearanceTheme.resolveColor(
             context, R.attr.mpvAccentHot, ContextCompat.getColor(context, R.color.tv_purple_hot),
         )
@@ -27,14 +29,16 @@ class SkipButtonCountdownView @JvmOverloads constructor(
         trackPaint.color = ColorUtils.setAlphaComponent(accent, COUNTDOWN_TRACK_ALPHA)
         deadlineMs = hideAtMs
         durationMs = delayMs
-        visibility = VISIBLE
+        if (visibility != VISIBLE) visibility = VISIBLE
         invalidate()
     }
 
     fun clearCountdown() {
+        if (deadlineMs == 0L && durationMs == 0L && visibility == INVISIBLE) return
+        removeCallbacks(tickRunnable)
         deadlineMs = 0L
         durationMs = 0L
-        visibility = INVISIBLE
+        if (visibility != INVISIBLE) visibility = INVISIBLE
     }
 
     override fun onDraw(canvas: Canvas) {
@@ -48,7 +52,22 @@ class SkipButtonCountdownView @JvmOverloads constructor(
         val left = if (layoutDirection == LAYOUT_DIRECTION_RTL) width - fillWidth else 0f
         canvas.drawRoundRect(left, 0f, left + fillWidth, height.toFloat(), radius, radius, fillPaint)
         // Redraw only this small strip; no layout or per-frame player-state updates.
-        if (remainingMs > 0L && isShown) postInvalidateDelayed(COUNTDOWN_REFRESH_MS)
+        removeCallbacks(tickRunnable)
+        if (remainingMs > 0L && isShown) {
+            postDelayed(tickRunnable, COUNTDOWN_REFRESH_MS)
+        }
+    }
+
+    override fun onVisibilityChanged(changedView: View, visibility: Int) {
+        super.onVisibilityChanged(changedView, visibility)
+        if (visibility != VISIBLE) {
+            removeCallbacks(tickRunnable)
+        }
+    }
+
+    override fun onDetachedFromWindow() {
+        removeCallbacks(tickRunnable)
+        super.onDetachedFromWindow()
     }
 }
 

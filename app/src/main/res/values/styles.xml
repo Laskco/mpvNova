@@ -660,11 +660,17 @@
         <item name="android:windowTranslucentNavigation">true</item>
     </style>
 
+    <style name="MpvTv.DialogWindowAnimation">
+        <item name="android:windowEnterAnimation">@anim/dialog_tv_enter</item>
+        <item name="android:windowExitAnimation">@anim/dialog_tv_exit</item>
+    </style>
+
     <style name="FilePickerTheme.AlertDialog" parent="Theme.AppCompat.Dialog.Alert">
         <item name="colorPrimary">?attr/mpvAccent</item>
         <item name="colorPrimaryDark">?attr/mpvAccentDeep</item>
         <item name="colorAccent">?attr/mpvAccentHot</item>
         <item name="android:windowBackground">@drawable/bg_tv_dialog</item>
+        <item name="android:windowAnimationStyle">@style/MpvTv.DialogWindowAnimation</item>
         <item name="android:textColorPrimary">@color/tv_text</item>
         <item name="android:textColorSecondary">@color/tv_text_dim</item>
         <item name="android:colorBackground">@color/tv_charcoal</item>
@@ -1340,6 +1346,7 @@
         <item name="colorPrimary">?attr/mpvAccent</item>
         <item name="colorAccent">?attr/mpvAccentHot</item>
         <item name="android:windowBackground">@drawable/bg_tv_dialog</item>
+        <item name="android:windowAnimationStyle">@style/MpvTv.DialogWindowAnimation</item>
         <item name="android:textColorPrimary">@color/tv_text</item>
         <item name="android:textColorSecondary">@color/tv_text_dim</item>
         <item name="android:colorBackground">?attr/mpvWindowEnd</item>
@@ -1955,6 +1962,7 @@
         <item name="colorOnContainer">@color/tv_text</item>
         <item name="colorOnSurface">@color/tv_text</item>
         <item name="android:colorBackground">?attr/mpvSurfaceStrongEnd</item>
+        <item name="android:windowAnimationStyle">@style/MpvTv.DialogWindowAnimation</item>
     </style>
 
     <style name="MpvPlayer.ButtonBar" parent="Widget.AppCompat.ButtonBar">

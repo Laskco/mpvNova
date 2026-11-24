@@ -1,6 +1,7 @@
 package app.mpvnova.player
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -20,7 +21,12 @@ private object OutlinedTextPainter {
     private const val SHADOW_OFFSET_Y_DP = 0.75f
     private const val SHADOW_COLOR = 0xB3000000.toInt()
 
-    fun draw(view: TextView, effects: OutlinedTextEffects, drawText: () -> Unit) {
+    fun draw(
+        view: TextView,
+        effects: OutlinedTextEffects,
+        outlineColors: ColorStateList,
+        drawText: () -> Unit,
+    ) {
         val paint = view.paint
         paint.isAntiAlias = true
         paint.isSubpixelText = true
@@ -32,7 +38,7 @@ private object OutlinedTextPainter {
         val density = view.resources.displayMetrics.density
 
         if (effects.outlineWidthDp > 0f && Color.alpha(effects.outlineColor) > 0) {
-            view.setTextColor(effects.outlineColor)
+            view.setTextColor(outlineColors)
             view.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = (density * effects.outlineWidthDp).coerceAtLeast(1f)
@@ -58,12 +64,12 @@ private object OutlinedTextPainter {
 
     fun applyShadow(view: TextView) {
         val density = view.resources.displayMetrics.density
-        view.setShadowLayer(
-            density * SHADOW_RADIUS_DP,
-            0f,
-            density * SHADOW_OFFSET_Y_DP,
-            SHADOW_COLOR,
-        )
+        val radius = density * SHADOW_RADIUS_DP
+        val dy = density * SHADOW_OFFSET_Y_DP
+        val sameOffset = view.shadowDx == 0f && view.shadowDy == dy
+        val sameStyle = view.shadowRadius == radius && view.shadowColor == SHADOW_COLOR
+        if (sameOffset && sameStyle) return
+        view.setShadowLayer(radius, 0f, dy, SHADOW_COLOR)
     }
 }
 
@@ -81,6 +87,7 @@ class OutlinedTextView @JvmOverloads constructor(
     defStyleAttr: Int = android.R.attr.textViewStyle,
 ) : AppCompatTextView(context, attrs, defStyleAttr) {
     private var suppressInvalidation = false
+    private var outlineColorStateList: ColorStateList = ColorStateList.valueOf(Color.TRANSPARENT)
     internal var textEffects: OutlinedTextEffects? = null
         private set
 
@@ -103,6 +110,9 @@ class OutlinedTextView @JvmOverloads constructor(
             shadowColor = shadowColor,
         )
         if (textEffects == effects) return
+        if (outlineColorStateList.defaultColor != outlineColor) {
+            outlineColorStateList = ColorStateList.valueOf(outlineColor)
+        }
         textEffects = effects
         invalidate()
     }
@@ -115,7 +125,7 @@ class OutlinedTextView @JvmOverloads constructor(
         }
         suppressInvalidation = true
         try {
-            OutlinedTextPainter.draw(this, effects) { super.onDraw(canvas) }
+            OutlinedTextPainter.draw(this, effects, outlineColorStateList) { super.onDraw(canvas) }
         } finally {
             suppressInvalidation = false
         }

@@ -27,14 +27,21 @@ private class OutlinedIconPainter(private val view: ImageView) {
         if (icon == null || icon.alpha <= 0) return
         val decoration = silhouetteFor(icon) ?: return
 
-        decoration.bounds = icon.bounds
-        decoration.level = icon.level
-        decoration.state = icon.state
-        drawAt(canvas, decoration, -outlineOffsetPx, 0f, icon.alpha, OUTLINE_ALPHA)
-        drawAt(canvas, decoration, outlineOffsetPx, 0f, icon.alpha, OUTLINE_ALPHA)
-        drawAt(canvas, decoration, 0f, -outlineOffsetPx, icon.alpha, OUTLINE_ALPHA)
-        drawAt(canvas, decoration, 0f, outlineOffsetPx, icon.alpha, OUTLINE_ALPHA)
-        drawAt(canvas, decoration, 0f, shadowOffsetPx, icon.alpha, SHADOW_ALPHA)
+        val iconBounds = icon.bounds
+        if (decoration.bounds != iconBounds) decoration.bounds = iconBounds
+        if (decoration.level != icon.level) decoration.level = icon.level
+        val iconState = icon.state
+        if (!decoration.state.contentEquals(iconState)) decoration.state = iconState
+
+        val sourceAlpha = icon.alpha
+        decoration.alpha = (sourceAlpha * OUTLINE_ALPHA).toInt()
+        drawAt(canvas, decoration, -outlineOffsetPx, 0f)
+        drawAt(canvas, decoration, outlineOffsetPx, 0f)
+        drawAt(canvas, decoration, 0f, -outlineOffsetPx)
+        drawAt(canvas, decoration, 0f, outlineOffsetPx)
+
+        decoration.alpha = (sourceAlpha * SHADOW_ALPHA).toInt()
+        drawAt(canvas, decoration, 0f, shadowOffsetPx)
     }
 
     private fun drawAt(
@@ -42,10 +49,7 @@ private class OutlinedIconPainter(private val view: ImageView) {
         decoration: Drawable,
         offsetX: Float,
         offsetY: Float,
-        sourceAlpha: Int,
-        alpha: Float,
     ) {
-        decoration.alpha = (sourceAlpha * alpha).toInt()
         val saveCount = canvas.save()
         if (view.cropToPadding) {
             canvas.clipRect(

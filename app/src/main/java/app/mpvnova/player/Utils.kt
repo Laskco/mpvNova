@@ -276,51 +276,80 @@ internal object Utils {
     fun copyAssets(context: Context) {
         if (bundledAssetsReady) return
         synchronized(this) {
-            if (bundledAssetsReady) return
-            val assetManager = context.assets
-            val files = arrayOf("cacert.pem")
-            val configDir = context.filesDir.path
-            val marker = File(configDir, ".bundled-assets-version")
-            val sourceModified = File(context.applicationInfo.sourceDir).lastModified()
-            val assetVersion = "${BuildConfig.VERSION_CODE}:$sourceModified"
-            val recordedAssetVersion = runCatching { marker.readText() }.getOrNull()
-            val refreshBundledAssets = recordedAssetVersion != assetVersion
-            var copiedSuccessfully = true
-
-            for (name in files) {
-                copiedSuccessfully = AssetCopier.copyFile(
-                    assetManager,
-                    name,
-                    File("$configDir/$name"),
-                    force = refreshBundledAssets,
-                ) && copiedSuccessfully
+            if (!bundledAssetsReady) {
+                bundledAssetsReady = syncBundledAssets(context)
             }
-
-            File("$configDir/subfont.ttf").delete()
-            File("$configDir/scripts/auto_subs.lua").delete()
-            val scriptsDir = File("$configDir/scripts").apply { mkdirs() }
-            copiedSuccessfully = AssetCopier.copyFile(
-                assetManager,
-                "scripts/shield_mpeg2_fallback.lua",
-                File(scriptsDir, "shield_mpeg2_fallback.lua"),
-                force = refreshBundledAssets,
-            ) && copiedSuccessfully
-
-            copiedSuccessfully = copyBundledFonts(
-                assetManager,
-                configDir,
-                force = refreshBundledAssets,
-            ) && copiedSuccessfully
-            val fontsConf = File("$configDir/fonts.conf")
-            if (refreshBundledAssets || !fontsConf.isFile)
-                copiedSuccessfully = writeFontsConf(context, fontsConf) && copiedSuccessfully
-
-            if (copiedSuccessfully && refreshBundledAssets) {
-                runCatching { marker.writeText(assetVersion) }
-                    .onFailure { Log.w(TAG, "Failed to record bundled asset version", it) }
-            }
-            bundledAssetsReady = copiedSuccessfully
         }
+    }
+
+    private fun syncBundledAssets(context: Context): Boolean {
+        val configDir = context.filesDir.path
+        val marker = File(configDir, ".bundled-assets-version")
+        val sourceModified = File(context.applicationInfo.sourceDir).lastModified()
+        val assetVersion = "${BuildConfig.VERSION_CODE}:$sourceModified"
+        val refreshBundledAssets = runCatching { marker.readText() }.getOrNull() != assetVersion
+        val scriptsDir = File("$configDir/scripts")
+        val fontsConf = File("$configDir/fonts.conf")
+        if (!refreshBundledAssets && hasCachedBundledAssets(configDir, scriptsDir, fontsConf)) {
+            return true
+        }
+        return copyAllBundledAssets(
+            context = context,
+            configDir = configDir,
+            scriptsDir = scriptsDir,
+            fontsConf = fontsConf,
+            marker = marker,
+            assetVersion = assetVersion,
+            refreshBundledAssets = refreshBundledAssets,
+        )
+    }
+
+    private fun hasCachedBundledAssets(configDir: String, scriptsDir: File, fontsConf: File): Boolean {
+        val fontsDir = File("$configDir/fonts")
+        val coreReady = File("$configDir/cacert.pem").isFile &&
+            File(scriptsDir, "shield_mpeg2_fallback.lua").isFile &&
+            fontsConf.isFile
+        return coreReady && fontsDir.isDirectory && fontsDir.list()?.isNotEmpty() == true
+    }
+
+    private fun copyAllBundledAssets(
+        context: Context,
+        configDir: String,
+        scriptsDir: File,
+        fontsConf: File,
+        marker: File,
+        assetVersion: String,
+        refreshBundledAssets: Boolean,
+    ): Boolean {
+        val assetManager = context.assets
+        var copiedSuccessfully = AssetCopier.copyFile(
+            assetManager,
+            "cacert.pem",
+            File("$configDir/cacert.pem"),
+            force = refreshBundledAssets,
+        )
+        File("$configDir/subfont.ttf").delete()
+        File("$configDir/scripts/auto_subs.lua").delete()
+        scriptsDir.mkdirs()
+        copiedSuccessfully = AssetCopier.copyFile(
+            assetManager,
+            "scripts/shield_mpeg2_fallback.lua",
+            File(scriptsDir, "shield_mpeg2_fallback.lua"),
+            force = refreshBundledAssets,
+        ) && copiedSuccessfully
+        copiedSuccessfully = copyBundledFonts(
+            assetManager,
+            configDir,
+            force = refreshBundledAssets,
+        ) && copiedSuccessfully
+        if (refreshBundledAssets || !fontsConf.isFile) {
+            copiedSuccessfully = writeFontsConf(context, fontsConf) && copiedSuccessfully
+        }
+        if (copiedSuccessfully && refreshBundledAssets) {
+            runCatching { marker.writeText(assetVersion) }
+                .onFailure { Log.w(TAG, "Failed to record bundled asset version", it) }
+        }
+        return copiedSuccessfully
     }
 
     private fun copyBundledFonts(

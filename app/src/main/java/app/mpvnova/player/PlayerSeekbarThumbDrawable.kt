@@ -7,7 +7,7 @@ import android.graphics.ColorFilter
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PixelFormat
-import android.graphics.RectF
+import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import androidx.core.content.ContextCompat
 import kotlin.math.min
@@ -54,6 +54,22 @@ internal class PlayerSeekbarThumbDrawable(
         strokeWidth = strokePx
     }
     private var drawableAlpha = MAX_ALPHA
+    private val diamondPath = Path()
+
+    override fun onBoundsChange(bounds: Rect) {
+        super.onBoundsChange(bounds)
+        if (shape == PlayerSeekbarThumbShape.DIAMOND) {
+            val centerX = bounds.exactCenterX()
+            val centerY = bounds.exactCenterY()
+            val radius = min(bounds.width(), bounds.height()) * DIAMOND_RADIUS_FRACTION
+            diamondPath.rewind()
+            diamondPath.moveTo(centerX, centerY - radius)
+            diamondPath.lineTo(centerX + radius, centerY)
+            diamondPath.lineTo(centerX, centerY + radius)
+            diamondPath.lineTo(centerX - radius, centerY)
+            diamondPath.close()
+        }
+    }
 
     override fun draw(canvas: Canvas) {
         val centerX = bounds.exactCenterX()
@@ -89,46 +105,51 @@ internal class PlayerSeekbarThumbDrawable(
     }
 
     private fun drawDiamond(canvas: Canvas, centerX: Float, centerY: Float, diameter: Float) {
-        val radius = diameter * DIAMOND_RADIUS_FRACTION
-        val path = diamondPath(centerX, centerY, radius)
-        if (glowEnabled) {
-            canvas.drawPath(
-                diamondPath(centerX, centerY + diameter * SHADOW_OFFSET_FRACTION, radius),
-                shadowPaint,
-            )
+        if (diamondPath.isEmpty) {
+            val radius = diameter * DIAMOND_RADIUS_FRACTION
+            diamondPath.moveTo(centerX, centerY - radius)
+            diamondPath.lineTo(centerX + radius, centerY)
+            diamondPath.lineTo(centerX, centerY + radius)
+            diamondPath.lineTo(centerX - radius, centerY)
+            diamondPath.close()
         }
-        canvas.drawPath(path, centerPaint)
-        canvas.drawPath(path, strokePaint)
+        if (glowEnabled) {
+            val save = canvas.save()
+            canvas.translate(0f, diameter * SHADOW_OFFSET_FRACTION)
+            canvas.drawPath(diamondPath, shadowPaint)
+            canvas.restoreToCount(save)
+        }
+        canvas.drawPath(diamondPath, centerPaint)
+        canvas.drawPath(diamondPath, strokePaint)
     }
 
     private fun drawPill(canvas: Canvas, centerX: Float, centerY: Float, diameter: Float) {
         val halfWidth = diameter * PILL_HALF_WIDTH_FRACTION
         val halfHeight = diameter * PILL_HALF_HEIGHT_FRACTION
-        val rect = RectF(centerX - halfWidth, centerY - halfHeight, centerX + halfWidth, centerY + halfHeight)
-        canvas.drawRoundRect(rect, halfWidth, halfWidth, centerPaint)
-        canvas.drawRoundRect(rect, halfWidth, halfWidth, strokePaint)
-    }
-
-    private fun diamondPath(centerX: Float, centerY: Float, radius: Float) = Path().apply {
-        moveTo(centerX, centerY - radius)
-        lineTo(centerX + radius, centerY)
-        lineTo(centerX, centerY + radius)
-        lineTo(centerX - radius, centerY)
-        close()
+        val left = centerX - halfWidth
+        val top = centerY - halfHeight
+        val right = centerX + halfWidth
+        val bottom = centerY + halfHeight
+        canvas.drawRoundRect(left, top, right, bottom, halfWidth, halfWidth, centerPaint)
+        canvas.drawRoundRect(left, top, right, bottom, halfWidth, halfWidth, strokePaint)
     }
 
     override fun setAlpha(alpha: Int) {
         drawableAlpha = alpha.coerceIn(0, MAX_ALPHA)
         haloPaint.alpha = HALO_ALPHA * drawableAlpha / MAX_ALPHA
         shadowPaint.alpha = SHADOW_ALPHA * drawableAlpha / MAX_ALPHA
-        listOf(accentPaint, centerPaint, strokePaint).forEach { paint -> paint.alpha = drawableAlpha }
+        accentPaint.alpha = drawableAlpha
+        centerPaint.alpha = drawableAlpha
+        strokePaint.alpha = drawableAlpha
         invalidateSelf()
     }
 
     override fun setColorFilter(colorFilter: ColorFilter?) {
-        listOf(haloPaint, shadowPaint, accentPaint, centerPaint, strokePaint).forEach { paint ->
-            paint.colorFilter = colorFilter
-        }
+        haloPaint.colorFilter = colorFilter
+        shadowPaint.colorFilter = colorFilter
+        accentPaint.colorFilter = colorFilter
+        centerPaint.colorFilter = colorFilter
+        strokePaint.colorFilter = colorFilter
         invalidateSelf()
     }
 

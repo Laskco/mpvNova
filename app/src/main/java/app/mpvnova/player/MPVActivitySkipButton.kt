@@ -27,15 +27,19 @@ internal fun MPVActivity.syncSkipButtonHighlight() {
 /** Show the Skip button for [seg]; idempotent while already shown for the same segment. */
 internal fun MPVActivity.showSkipButton(seg: SkipSegment) {
     val previousKey = currentSkipButtonSegment?.key()
+    val segKey = seg.key()
     currentSkipButtonSegment = seg
-    if (previousKey != seg.key()) {
+    if (previousKey != segKey) {
         cancelSkipButtonAutoHide()
-        dismissedSkipSegmentKeys.remove(seg.key())
-        autoHiddenSkipSegmentKeys.remove(seg.key())
+        dismissedSkipSegmentKeys.remove(segKey)
+        autoHiddenSkipSegmentKeys.remove(segKey)
+        val label = skipSegmentLabel(seg.type)
+        binding.skipSegmentBtnText.setTextIfChanged(label)
+        val desc = getString(R.string.skip_button_label, label)
+        if (binding.skipSegmentBtn.contentDescription != desc) {
+            binding.skipSegmentBtn.contentDescription = desc
+        }
     }
-    val label = skipSegmentLabel(seg.type)
-    binding.skipSegmentBtnText.setTextIfChanged(label)
-    binding.skipSegmentBtn.contentDescription = getString(R.string.skip_button_label, label)
     refreshSkipButtonVisibility()
 }
 
@@ -146,8 +150,11 @@ internal fun MPVActivity.updateSkipButtonPlacement() {
         baseMargin
     }
 
-    binding.skipSegmentBtn.updateLayoutParams<RelativeLayout.LayoutParams> {
-        this.bottomMargin = bottomMargin
+    val lp = binding.skipSegmentBtn.layoutParams as? RelativeLayout.LayoutParams
+    if (lp != null && lp.bottomMargin != bottomMargin) {
+        binding.skipSegmentBtn.updateLayoutParams<RelativeLayout.LayoutParams> {
+            this.bottomMargin = bottomMargin
+        }
     }
 
     if (controlsVisible && controlsHeight == 0) {
