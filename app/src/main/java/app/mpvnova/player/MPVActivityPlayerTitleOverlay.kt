@@ -16,8 +16,11 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
     val presentation = resolvePlayerTitlePresentation(title)
     val wasHidden = !binding.playerTitleOverlay.isVisible
     val contentChanged = bindPlayerTitlePresentation(presentation)
+    val styleChanged = appliedPlayerTitleStyle != playerTitleStyle
     applyPlayerTitleStyle()
-    updatePlayerTitleWidth()
+    if (wasHidden || contentChanged || styleChanged) {
+        updatePlayerTitleWidth()
+    }
     binding.playerTitleOverlay.alpha = 1f
     binding.playerTitleOverlay.setVisibilityIfChanged(View.VISIBLE)
     if (wasHidden)

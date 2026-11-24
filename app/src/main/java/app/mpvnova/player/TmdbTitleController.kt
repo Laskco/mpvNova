@@ -32,6 +32,8 @@ internal class TmdbTitleController(
     private var activeToken = ""
     private var closed = false
     private var lastSkippedInput: Pair<PlayerTitlePresentation, String?>? = null
+    private var lastParsedQueryInput: Pair<PlayerTitlePresentation, String?>? = null
+    private var lastParsedQuery: TmdbTitleQuery? = null
     private val cache = LinkedHashMap<TmdbTitleQuery, CachedMatch>()
 
     @Suppress("ReturnCount") // Fast paths return the cached or fallback presentation without blocking UI.
@@ -48,7 +50,7 @@ internal class TmdbTitleController(
             schedulePrepare(inputs, titleCache, enabled)
             return parsed ?: PlayerTitlePresentation(inputs.display)
         }
-        val resolved = resolve(parsed, inputs.filename)
+        val resolved = resolve(parsed, inputs.filename, enabledOverride = enabled, tokenOverride = cachedToken)
         return if (prefetchOnly) parsed else resolved
     }
 
@@ -80,11 +82,16 @@ internal class TmdbTitleController(
     }
 
     @Suppress("ReturnCount") // Disabled, ineligible, and cached misses all retain the local presentation.
-    fun resolve(local: PlayerTitlePresentation, filename: String? = null): PlayerTitlePresentation {
+    fun resolve(
+        local: PlayerTitlePresentation,
+        filename: String? = null,
+        enabledOverride: Boolean? = null,
+        tokenOverride: String? = null,
+    ): PlayerTitlePresentation {
         if (closed) return local
-        val enabled = preferences.getBoolean(TmdbSettings.ENABLED, false)
-        val token = if (enabled) TmdbSettings.peekToken() ?: return local else ""
-        val query = if (token.isNotBlank()) TmdbTitleQuery.from(local, filename) else null
+        val enabled = enabledOverride ?: preferences.getBoolean(TmdbSettings.ENABLED, false)
+        val token = tokenOverride ?: if (enabled) TmdbSettings.peekToken() ?: return local else ""
+        val query = if (token.isNotBlank()) cachedQuery(local, filename) else null
         logSkippedIdentity(local, filename, token.isNotBlank() && query == null)
         if (query != activeQuery || token != activeToken) {
             cancelPending()
@@ -100,6 +107,15 @@ internal class TmdbTitleController(
         }
         if (pending == null) schedule(query, token)
         return local
+    }
+
+    private fun cachedQuery(local: PlayerTitlePresentation, filename: String?): TmdbTitleQuery? {
+        val key = local to filename
+        if (lastParsedQueryInput == key) return lastParsedQuery
+        return TmdbTitleQuery.from(local, filename).also {
+            lastParsedQueryInput = key
+            lastParsedQuery = it
+        }
     }
 
     private fun applyMatch(

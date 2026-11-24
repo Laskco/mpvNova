@@ -91,6 +91,10 @@ internal class PlayerTitleCombinedPanel(
 
     override fun onPreDraw(): Boolean {
         if (!enabled || root.width <= 0 || root.height <= 0) return true
+        if (title.visibility != View.VISIBLE && clock.visibility != View.VISIBLE) {
+            if (surface.visibility != View.GONE) surface.visibility = View.GONE
+            return true
+        }
         val visibleTitle = title.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
         val visibleClock = clock.takeIf { it.visibility == View.VISIBLE && it.hasVisibleText() }
         val first = visibleTitle ?: visibleClock
@@ -173,7 +177,12 @@ internal class PlayerTitleCombinedPanel(
 
 private const val SHARED_PANEL_EDGE_MARGIN_DP = 20
 
-private fun ViewGroup.hasVisibleText(): Boolean = (0 until childCount).any { index ->
-    val child = getChildAt(index)
-    child.visibility == View.VISIBLE && (child !is ViewGroup || child.hasVisibleText())
+private fun ViewGroup.hasVisibleText(): Boolean {
+    for (index in 0 until childCount) {
+        val child = getChildAt(index)
+        if (child.visibility == View.VISIBLE && (child !is ViewGroup || child.hasVisibleText())) {
+            return true
+        }
+    }
+    return false
 }

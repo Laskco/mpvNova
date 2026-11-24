@@ -114,12 +114,19 @@ class OutlinedTextView @JvmOverloads constructor(
             outlineColorStateList = ColorStateList.valueOf(outlineColor)
         }
         textEffects = effects
+        val density = resources.displayMetrics.density
+        setShadowLayer(
+            density * shadowRadiusDp,
+            0f,
+            density * shadowOffsetYDp,
+            shadowColor,
+        )
         invalidate()
     }
 
     override fun onDraw(canvas: Canvas) {
         val effects = textEffects
-        if (effects == null) {
+        if (effects == null || effects.outlineWidthDp <= 0f || Color.alpha(effects.outlineColor) == 0) {
             super.onDraw(canvas)
             return
         }
