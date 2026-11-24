@@ -93,18 +93,19 @@ internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
     } else {
         val videoBase = canonicalVideo.nameWithoutExtension
         val searchDirs = automaticSubtitleSearchDirs(parent)
-        val exactCandidates = searchDirs
-            .asSequence()
-            .flatMap { directory ->
-                AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence().map { extension ->
-                    directory.resolveConfinedChild("$videoBase.$extension")
-                }
+        val candidates = searchDirs.asSequence().flatMap { directory ->
+            val rawChildren = directory.listFiles()
+            if (rawChildren != null) {
+                rawChildren.asSequence()
+                    .filter { it.isMatchingSubtitleFor(videoBase, parent) }
+                    .mapNotNull { it.canonicalFileOrNull()?.takeIf { canon -> canon.isUnder(parent) } }
+            } else {
+                // Fallback when directory listing is restricted: probe exact sidecar filenames directly.
+                AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence()
+                    .mapNotNull { ext -> directory.resolveConfinedChild("$videoBase.$ext") }
             }
-            .filterNotNull()
-        val listedCandidates = searchDirs
-            .asSequence()
-            .flatMap { directory -> directory.listConfinedChildren(parent) }
-        (exactCandidates + listedCandidates)
+        }
+        candidates
             .filter { candidate ->
                 candidate.isMatchingSubtitleFor(videoBase, parent) &&
                     candidate.isFile && candidate.canRead()

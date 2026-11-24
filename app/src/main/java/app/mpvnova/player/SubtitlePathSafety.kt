@@ -35,7 +35,7 @@ internal fun File.listConfinedChildren(root: File): Sequence<File> {
 internal fun File.canonicalFileOrNull(): File? =
     runCatching { canonicalFile }.getOrNull()
 
-private fun File.isUnder(parent: File): Boolean {
+internal fun File.isUnder(parent: File): Boolean {
     val childPath = path
     val parentPath = parent.path
     val parentPrefix = parentPath.trimEnd(File.separatorChar) + File.separator
