@@ -184,10 +184,12 @@ internal fun MPVActivity.renderPlayerTitleStyleControls(
 ) {
     val style = playerTitleStyle.forPart(part)
     controls.forEach { controlView ->
-        controlView.binding.titleStyleControlValue.text = playerTitleControlValue(
-            controlView.control,
-            style,
-            part,
+        controlView.binding.titleStyleControlValue.setTextIfChanged(
+            playerTitleControlValue(
+                controlView.control,
+                style,
+                part,
+            )
         )
     }
 }
@@ -197,16 +199,18 @@ internal fun MPVActivity.renderPlayerTitleFooterActions(
     part: PlayerTitlePart,
 ) {
     val style = playerTitleStyle.forPart(part)
-    panel.titleStyleVisibilityBtn.text = getString(
-        R.string.player_title_style_visibility_value,
-        playerTitlePartLabel(part),
+    panel.titleStyleVisibilityBtn.setTextIfChanged(
         getString(
-            if (style.visible) {
-                R.string.player_title_style_value_shown
-            } else {
-                R.string.player_title_style_value_hidden
-            },
-        ),
+            R.string.player_title_style_visibility_value,
+            playerTitlePartLabel(part),
+            getString(
+                if (style.visible) {
+                    R.string.player_title_style_value_shown
+                } else {
+                    R.string.player_title_style_value_hidden
+                },
+            ),
+        )
     )
     panel.titleStyleVisibilityBtn.isActivated = !style.visible
 

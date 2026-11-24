@@ -63,6 +63,7 @@ internal class PlayerDrawerAdapter(
     private val scrollbarHeightCaches = LinkedHashMap<DrawerScrollbarCacheKey, DrawerScrollbarHeightCache>()
     private val measureScratchViews = DrawerMeasureScratchViews()
     private var boundRecyclerView: RecyclerView? = null
+    private var cachedNetworkOverrides: Map<NetworkSetting, String>? = null
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         boundRecyclerView = recyclerView
@@ -73,6 +74,7 @@ internal class PlayerDrawerAdapter(
     }
 
     fun submitRows(newRows: List<PlayerDrawerRow>) {
+        cachedNetworkOverrides = null
         val oldSize = rows.size
         rows.clear()
         if (oldSize > 0) {
@@ -136,14 +138,19 @@ internal class PlayerDrawerAdapter(
     }
 
     private fun refreshNetworkRows() {
+        cachedNetworkOverrides = null
         scrollbarHeightCaches.clear()
+        val overrides = currentNetworkOverrides()
         rows.forEachIndexed { index, row ->
             if (row is PlayerDrawerRow.Network) {
                 val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
-                if (holder is OptionHolder) holder.bindNetwork(row.setting) else notifyItemChanged(index)
+                if (holder is OptionHolder) holder.bindNetwork(row.setting, overrides) else notifyItemChanged(index)
             }
         }
     }
+
+    private fun currentNetworkOverrides(): Map<NetworkSetting, String> =
+        cachedNetworkOverrides ?: activity.networkOverrides().also { cachedNetworkOverrides = it }
 
     override fun stableScrollbarMetrics(recyclerView: RecyclerView): StableScrollbarMetrics? =
         measureDrawerScrollbarMetrics(recyclerView, rows, cachedRowsHash, scrollbarHeightCaches, measureScratchViews)
@@ -234,10 +241,13 @@ internal class PlayerDrawerAdapter(
     private inner class OptionHolder(
         private val binding: DrawerPrefRowBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bindNetwork(setting: NetworkSetting) = with(binding) {
+        fun bindNetwork(
+            setting: NetworkSetting,
+            overrides: Map<NetworkSetting, String> = currentNetworkOverrides(),
+        ) = with(binding) {
             prefRowTitle.setText(setting.titleRes)
             prefRowSummary.setText(setting.summaryRes)
-            prefRowValue.text = activity.networkValueLabel(setting)
+            prefRowValue.setTextIfChanged(activity.networkValueLabel(setting, overrides))
             activity.applyOptionValueLayout(prefRowValue)
             prefRowValue.alpha = 1f
             prefRowValue.isSelected = root.hasFocus()
@@ -249,7 +259,7 @@ internal class PlayerDrawerAdapter(
         fun bind(option: PlayerDrawerOption) = with(binding) {
             prefRowTitle.setText(option.titleRes)
             prefRowSummary.setText(option.summaryRes)
-            prefRowValue.text = activity.drawerOptionValue(option)
+            prefRowValue.setTextIfChanged(activity.drawerOptionValue(option))
             activity.applyOptionValueLayout(prefRowValue)
             prefRowValue.alpha = 1f
             prefRowValue.isSelected = root.hasFocus()
@@ -266,8 +276,11 @@ internal class PlayerDrawerAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(row: PlayerDrawerRow.Spacer) {
             val density = binding.root.resources.displayMetrics.density
-            binding.root.layoutParams = binding.root.layoutParams.apply {
-                height = (row.heightDp * density).toInt()
+            val targetHeight = (row.heightDp * density).toInt()
+            if (binding.root.layoutParams.height != targetHeight) {
+                binding.root.layoutParams = binding.root.layoutParams.apply {
+                    height = targetHeight
+                }
             }
         }
     }
@@ -312,10 +325,17 @@ private fun measureDrawerRowHeights(
     val inflater = LayoutInflater.from(parent.context)
     val widthSpec = View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY)
     val heightSpec = View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+    val networkOverrides = if (rows.any { it is PlayerDrawerRow.Network }) {
+        parent.context.networkOverrides()
+    } else {
+        emptyMap()
+    }
     val cumulativeHeights = IntArray(rows.size + 1)
     var totalHeight = 0
     for (index in rows.indices) {
-        totalHeight += rows[index].measureDrawerRowHeight(parent, inflater, widthSpec, heightSpec, scratchViews)
+        totalHeight += rows[index].measureDrawerRowHeight(
+            parent, inflater, widthSpec, heightSpec, scratchViews, networkOverrides,
+        )
         cumulativeHeights[index + 1] = totalHeight
     }
     return DrawerScrollbarHeightCache(
@@ -331,8 +351,9 @@ private fun PlayerDrawerRow.measureDrawerRowHeight(
     widthSpec: Int,
     heightSpec: Int,
     scratchViews: DrawerMeasureScratchViews,
+    networkOverrides: Map<NetworkSetting, String>,
 ): Int {
-    val view = bindMeasureRow(parent, inflater, scratchViews)
+    val view = bindMeasureRow(parent, inflater, scratchViews, networkOverrides)
     view.measure(widthSpec, heightSpec)
     val margins = view.layoutParams as? ViewGroup.MarginLayoutParams
     return view.measuredHeight + (margins?.topMargin ?: 0) + (margins?.bottomMargin ?: 0)
@@ -342,6 +363,7 @@ private fun PlayerDrawerRow.bindMeasureRow(
     parent: RecyclerView,
     inflater: LayoutInflater,
     scratchViews: DrawerMeasureScratchViews,
+    networkOverrides: Map<NetworkSetting, String>,
 ): View {
     return when (this) {
         is PlayerDrawerRow.Button -> {
@@ -383,7 +405,7 @@ private fun PlayerDrawerRow.bindMeasureRow(
                 .also { scratchViews.prefRow = it }
             binding.prefRowTitle.setText(setting.titleRes)
             binding.prefRowSummary.setText(setting.summaryRes)
-            binding.prefRowValue.text = parent.context.networkValueLabel(setting)
+            binding.prefRowValue.setTextIfChanged(parent.context.networkValueLabel(setting, networkOverrides))
             binding.root
         }
         is PlayerDrawerRow.Spacer -> {

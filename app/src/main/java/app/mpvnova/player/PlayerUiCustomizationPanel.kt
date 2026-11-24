@@ -843,7 +843,7 @@ private class PlayerUiCustomizationPanelController(
         activity.applyPlayerUiCustomization()
         if (focusTag?.startsWith(EDITOR_FOCUS_TAG_PREFIX) == true) {
             editorControlViews.forEach { controlView ->
-                controlView.binding.titleStyleControlValue.text = controlView.control.value()
+                controlView.binding.titleStyleControlValue.setTextIfChanged(controlView.control.value())
             }
             renderPresetFooter()
         } else {

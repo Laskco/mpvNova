@@ -231,16 +231,25 @@ internal object UiFont {
     }
 
     fun applyToViewTree(root: View) {
+        val choice = choicesByValue[currentValue(root.context)] ?: defaultChoice
+        applyToViewTree(root, choice)
+    }
+
+    private fun applyToViewTree(root: View, choice: Choice) {
         when (root) {
-            is TextView -> applyToTextView(root)
+            is TextView -> applyToTextView(root, choice)
             is ViewGroup -> for (index in 0 until root.childCount) {
-                applyToViewTree(root.getChildAt(index))
+                applyToViewTree(root.getChildAt(index), choice)
             }
         }
     }
 
     fun applyToTextView(view: TextView) {
         val choice = choicesByValue[currentValue(view.context)] ?: defaultChoice
+        applyToTextView(view, choice)
+    }
+
+    private fun applyToTextView(view: TextView, choice: Choice) {
         val target = if (choice.regularFontRes == null && choice.boldFontRes == null) {
             view.getTag(R.id.ui_font_original_typeface) as? Typeface
         } else {
