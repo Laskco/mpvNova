@@ -56,8 +56,8 @@ object AppearanceTheme {
             .apply()
     }
 
-    fun applyPlayer(activity: Activity) {
-        applyTheme(activity, Target.Player)
+    fun applyPlayer(activity: Activity, resetExisting: Boolean = false) {
+        applyTheme(activity, Target.Player, resetExisting)
     }
 
     fun applyPreferences(activity: Activity) {
@@ -89,27 +89,35 @@ object AppearanceTheme {
         return PreferenceManager.getDefaultSharedPreferences(context)
     }
 
-    private fun applyTheme(activity: Activity, target: Target) {
-        migrateLegacyOled(activity)
-        val baseStyle = styleFor(activity, target)
-        activity.setTheme(baseStyle)
-        val replacement = activity.resources.newTheme().apply {
-            applyStyle(baseStyle, true)
-            applySurfaceOverlays(this, preferences(activity))
+    private fun applyTheme(activity: Activity, target: Target, resetExisting: Boolean = false) {
+        val prefs = preferences(activity)
+        if (prefs.getString(PREF_KEY, DEFAULT_VALUE) == LEGACY_OLED_VALUE) {
+            migrateLegacyOled(activity)
         }
-        activity.theme.setTo(replacement)
+        val baseStyle = styleFor(prefs, target)
+        val amoled = prefs.getBoolean(PREF_AMOLED_MODE, false)
+        val pureBlack = prefs.getBoolean(PREF_PURE_BLACK_SURFACES, false)
+        activity.setTheme(baseStyle)
+        if (resetExisting) {
+            val replacement = activity.resources.newTheme().apply {
+                applyStyle(baseStyle, true)
+                applySurfaceOverlays(this, amoled, pureBlack)
+            }
+            activity.theme.setTo(replacement)
+        } else if (amoled || pureBlack) {
+            applySurfaceOverlays(activity.theme, amoled, pureBlack)
+        }
     }
 
-    private fun applySurfaceOverlays(theme: Resources.Theme, prefs: SharedPreferences) {
-        if (prefs.getBoolean(PREF_AMOLED_MODE, false))
-            theme.applyStyle(R.style.MpvThemeOverlay_Amoled, true)
-        if (prefs.getBoolean(PREF_PURE_BLACK_SURFACES, false))
-            theme.applyStyle(R.style.MpvThemeOverlay_PureBlackSurfaces, true)
+    private fun applySurfaceOverlays(theme: Resources.Theme, amoled: Boolean, pureBlack: Boolean) {
+        if (amoled) theme.applyStyle(R.style.MpvThemeOverlay_Amoled, true)
+        if (pureBlack) theme.applyStyle(R.style.MpvThemeOverlay_PureBlackSurfaces, true)
     }
 
     @StyleRes
-    private fun styleFor(context: Context, target: Target): Int {
-        return (STYLE_SETS[currentValue(context)] ?: DEFAULT_STYLE_SET).styleFor(target)
+    private fun styleFor(prefs: SharedPreferences, target: Target): Int {
+        val value = prefs.getString(PREF_KEY, DEFAULT_VALUE) ?: DEFAULT_VALUE
+        return (STYLE_SETS[value] ?: DEFAULT_STYLE_SET).styleFor(target)
     }
 
     private val DEFAULT_STYLE_SET = StyleSet(

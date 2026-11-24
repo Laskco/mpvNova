@@ -47,7 +47,7 @@ internal fun MPVActivity.pickPlayerAppearanceColor() {
 }
 
 private fun MPVActivity.applyLivePlayerAppearance() {
-    AppearanceTheme.applyPlayer(this)
+    AppearanceTheme.applyPlayer(this, resetExisting = true)
     applyTranslucentPlayerWindowTheme()
     cachedActiveFilterColor = null
     appliedPlayerTitleStyle = null
