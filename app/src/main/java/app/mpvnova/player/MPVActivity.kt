@@ -17,7 +17,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
-import android.widget.SeekBar
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
@@ -52,6 +51,8 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastPeriodicSavedPositionSec = Int.MIN_VALUE
     internal var cachedResumeIdentitySource: String? = null
     internal var cachedResumeIdentity: ResumeIdentity? = null
+    internal var systemIs24HourFormat: Boolean? = null
+    internal var screensaverCallbackScheduled = false
     @Volatile internal var isTimelineOverlayVisible = false
     @Volatile internal var hasActiveSkipSegments = false
     // 0 = no restore happened. Drives the "Resumed from X:XX" toast.
@@ -187,26 +188,7 @@ open class MPVActivity : AppCompatActivity() {
 
     internal val player get() = binding.player
 
-    internal val seekBarChangeListener = object : SeekBar.OnSeekBarChangeListener {
-        override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
-            if (!fromUser)
-                return
-            val positionMs = millisFromSeekbarProgress(progress)
-            scheduleSeekbarSeek(positionMs)
-            updatePlaybackTimeline(positionMs, forceTextUpdate = true)
-        }
-
-        override fun onStartTrackingTouch(seekBar: SeekBar) {
-            userIsOperatingSeekbar = true
-            lastAppliedSeekMs = Long.MIN_VALUE
-        }
-
-        override fun onStopTrackingTouch(seekBar: SeekBar) {
-            userIsOperatingSeekbar = false
-            commitPendingSeekbarSeek()
-            showControls() // re-trigger display timeout
-        }
-    }
+    internal val seekBarChangeListener = createSeekBarChangeListener()
 
     internal val commitSeekbarSeekRunnable = Runnable {
         commitPendingSeekbarSeek()
@@ -648,6 +630,7 @@ open class MPVActivity : AppCompatActivity() {
         applyPlayerScreenBrightnessPreference()
 
         activityIsForeground = true
+        systemIs24HourFormat = null
         if (playbackHasStarted) refreshCompanionSubtitleStyle()
         if (playbackHasStarted) applyFireTvVideoEdgeCropIfNeeded()
         scheduleScreensaver()

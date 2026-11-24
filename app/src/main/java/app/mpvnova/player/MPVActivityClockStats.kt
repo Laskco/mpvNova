@@ -114,7 +114,11 @@ internal fun MPVActivity.updateClockInfo(force: Boolean = false) {
             clockLabels = it
             clockFormatter = null
         }
-    val is24Hour = force24HourClock || android.text.format.DateFormat.is24HourFormat(this)
+    val is24Hour = force24HourClock || (
+        systemIs24HourFormat ?: android.text.format.DateFormat.is24HourFormat(this).also {
+            systemIs24HourFormat = it
+        }
+    )
     val formatter = clockFormatter?.takeIf { clockFormatterIs24 == is24Hour }
         ?: labels.timeFormatter(is24Hour).also {
             clockFormatter = it

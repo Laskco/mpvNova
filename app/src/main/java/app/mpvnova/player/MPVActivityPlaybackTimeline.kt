@@ -3,6 +3,29 @@ package app.mpvnova.player
 import android.os.SystemClock
 import android.view.KeyEvent
 import android.view.View
+import android.widget.SeekBar
+
+internal fun MPVActivity.createSeekBarChangeListener(): SeekBar.OnSeekBarChangeListener =
+    object : SeekBar.OnSeekBarChangeListener {
+        override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+            if (!fromUser)
+                return
+            val positionMs = millisFromSeekbarProgress(progress)
+            scheduleSeekbarSeek(positionMs)
+            updatePlaybackTimeline(positionMs, forceTextUpdate = true)
+        }
+
+        override fun onStartTrackingTouch(seekBar: SeekBar) {
+            userIsOperatingSeekbar = true
+            lastAppliedSeekMs = Long.MIN_VALUE
+        }
+
+        override fun onStopTrackingTouch(seekBar: SeekBar) {
+            userIsOperatingSeekbar = false
+            commitPendingSeekbarSeek()
+            showControls() // re-trigger display timeout
+        }
+    }
 
 internal fun MPVActivity.seekbarProgressFromMillis(positionMs: Long): Int {
     val scaled = positionMs.coerceAtLeast(0L) * SEEK_BAR_PRECISION / MILLIS_PER_SECOND_LONG
@@ -37,8 +60,10 @@ internal fun MPVActivity.seekPlaybackFromDpad(deltaMs: Long, baseOnVisibleSeekba
     pendingSeekbarSeekMs = newPositionMs
     eventUiHandler.removeCallbacks(commitSeekbarSeekRunnable)
     eventUiHandler.postDelayed(commitSeekbarSeekRunnable, DPAD_SEEK_DEBOUNCE_MS)
-    setPlaybackSeekbarProgress(seekbarProgressFromMillis(newPositionMs))
-    updatePlaybackTimeline(newPositionMs, forceTextUpdate = true)
+    if (binding.controls.visibility == View.VISIBLE) {
+        setPlaybackSeekbarProgress(seekbarProgressFromMillis(newPositionMs))
+        updatePlaybackTimeline(newPositionMs, forceTextUpdate = true)
+    }
 
     val now = SystemClock.uptimeMillis()
     val playbackHasSettled = firstPlaybackRestartMs > 0L &&

@@ -97,6 +97,7 @@ internal fun MPVActivity.cancelAllScheduledWork() {
     bufferUiPending = false
     metadataUiPending = false
     mediaSessionUpdatePending = false
+    screensaverCallbackScheduled = false
 }
 
 /** Clear service state while this player still owns the native runtime. */

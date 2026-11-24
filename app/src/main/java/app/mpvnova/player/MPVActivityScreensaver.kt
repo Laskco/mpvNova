@@ -35,16 +35,25 @@ internal fun MPVActivity.onScreensaverPauseChanged(paused: Boolean) {
 }
 
 internal fun MPVActivity.scheduleScreensaver() {
-    eventUiHandler.removeCallbacks(screensaverStartRunnable)
+    if (screensaverCallbackScheduled) {
+        eventUiHandler.removeCallbacks(screensaverStartRunnable)
+        screensaverCallbackScheduled = false
+    }
     if (screensaverActive || screensaverMode == ScreensaverMode.OFF || !psc.pause) return
     if (inPictureInPicture()) return
     eventUiHandler.postDelayed(screensaverStartRunnable, screensaverTimeoutMs)
+    screensaverCallbackScheduled = true
 }
 
 // Reset the idle timer on user input (only matters while paused and not yet active).
 internal fun MPVActivity.noteScreensaverActivity() {
     if (screensaverActive) return
-    if (psc.pause) scheduleScreensaver() else eventUiHandler.removeCallbacks(screensaverStartRunnable)
+    if (psc.pause) {
+        scheduleScreensaver()
+    } else if (screensaverCallbackScheduled) {
+        eventUiHandler.removeCallbacks(screensaverStartRunnable)
+        screensaverCallbackScheduled = false
+    }
 }
 
 // Consumes the key that wakes the screensaver so it only dismisses (like a real screensaver).
@@ -58,6 +67,7 @@ internal fun MPVActivity.consumeScreensaverKey(ev: KeyEvent): Boolean {
 }
 
 internal fun MPVActivity.startScreensaver() {
+    screensaverCallbackScheduled = false
     if (screensaverActive || !psc.pause || screensaverMode == ScreensaverMode.OFF) return
     if (inPictureInPicture()) return
     screensaverActive = true
@@ -176,7 +186,10 @@ internal fun MPVActivity.wakeFromScreensaver() {
 }
 
 internal fun MPVActivity.cancelScreensaver() {
-    eventUiHandler.removeCallbacks(screensaverStartRunnable)
+    if (screensaverCallbackScheduled) {
+        eventUiHandler.removeCallbacks(screensaverStartRunnable)
+        screensaverCallbackScheduled = false
+    }
     screensaverWaking = false
     if (!screensaverActive) return
     screensaverActive = false
