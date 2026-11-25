@@ -66,11 +66,16 @@ internal fun videoEdgeCleanupCrop(mode: String, model: String, track: VideoTrack
 
 private fun selectedVideoTrackEdgeInfo(): VideoTrackEdgeInfo {
     val prefix = selectedVideoTrackPrefix()
+    val doviFallback = if (prefix == CURRENT_VIDEO_TRACK_PREFIX) {
+        null
+    } else {
+        "$CURRENT_VIDEO_TRACK_PREFIX/dolby-vision-profile"
+    }
     return VideoTrackEdgeInfo(
         codec = firstStringProperty(prefix?.let { "$it/codec" }, "video-codec"),
         dolbyVisionProfile = firstIntProperty(
             prefix?.let { "$it/dolby-vision-profile" },
-            "current-tracks/video/dolby-vision-profile",
+            doviFallback,
         ),
         gamma = firstStringProperty("video-params/gamma", "video-dec-params/gamma"),
         width = firstIntProperty("video-dec-params/w", prefix?.let { "$it/demux-w" }) ?: 0,
@@ -78,7 +83,12 @@ private fun selectedVideoTrackEdgeInfo(): VideoTrackEdgeInfo {
     )
 }
 
+private const val CURRENT_VIDEO_TRACK_PREFIX = "current-tracks/video"
+
 private fun selectedVideoTrackPrefix(): String? {
+    if (mpvGetPropertyInt("$CURRENT_VIDEO_TRACK_PREFIX/id") != null) {
+        return CURRENT_VIDEO_TRACK_PREFIX
+    }
     val count = mpvGetPropertyInt("track-list/count") ?: 0
     val selectedTrack = (0 until count).firstOrNull { index ->
         mpvGetPropertyString("track-list/$index/type") == "video" &&

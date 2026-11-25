@@ -697,18 +697,20 @@ internal object Utils {
         }
 
         /** callback for properties of type <code>MPV_FORMAT_DOUBLE</code> */
-        @Synchronized
         fun update(property: String, value: Double): Boolean {
             return when (property) {
                 "time-pos/full" -> {
                     position = value.times(MILLIS_PER_SECOND_DOUBLE).coerceAtLeast(0.0).toLong()
                     false
                 }
-                "duration/full" -> {
+                "duration/full" -> synchronized(this) {
                     val next = ceil(value * MILLIS_PER_SECOND_DOUBLE).coerceAtLeast(0.0).toLong()
-                    if (duration == next) return false
-                    duration = next
-                    true
+                    if (duration == next) {
+                        false
+                    } else {
+                        duration = next
+                        true
+                    }
                 }
                 "demuxer-cache-time" -> {
                     bufferedPosition = if (value.isFinite())

@@ -55,6 +55,12 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     private val appliedManagedShaderPaths = linkedSetOf<String>()
     internal val heldMpvKeys = MpvHeldKeyTracker()
     internal val networkOptionSession = NetworkOptionSession()
+    @Volatile
+    internal var cachedHi10pH264Video: Boolean? = null
+
+    internal fun invalidateHi10pH264Cache() {
+        cachedHi10pH264Video = null
+    }
 
     override fun initOptions() {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
@@ -221,9 +227,6 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
             Property("current-tracks/video/image"),
             Property("media-title", MPV_FORMAT_STRING),
             Property("metadata"),
-            Property("loop-playlist"),
-            Property("loop-file"),
-            Property("shuffle", MPV_FORMAT_FLAG),
             Property("hwdec-current"),
             Property("current-vo", MPV_FORMAT_STRING),
             Property("mute", MPV_FORMAT_FLAG),

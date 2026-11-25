@@ -8,23 +8,67 @@ import java.util.Locale
 
 internal val FONT_EXTENSIONS = setOf("ttf", "otf", "ttc")
 private val GENERIC_FONT_FAMILIES = SUBTITLE_GENERIC_FONTS.mapTo(hashSetOf()) { it.family }
+
+internal data class SubtitleFontEntry(
+    val file: File,
+    val family: String?,
+    val style: SubtitleFontTable.Style?,
+)
+
+private data class FontFileSnapshot(val name: String, val size: Long, val modified: Long)
+private data class FontDirSnapshot(
+    val dirPath: String,
+    val files: List<FontFileSnapshot>,
+    val entries: List<SubtitleFontEntry>,
+)
+
 @Volatile private var cachedBundledFontAssetNames: Set<String>? = null
 @Volatile private var cachedSubtitleFontChoices: List<SubtitleFontChoice>? = null
+@Volatile private var cachedFontDirSnapshot: FontDirSnapshot? = null
+private val fontSnapshotLock = Any()
 
 internal fun invalidateSubtitleFontChoicesCache() {
     cachedSubtitleFontChoices = null
+    synchronized(fontSnapshotLock) {
+        cachedFontDirSnapshot = null
+    }
 }
 
 internal fun MPVActivity.subtitleFontsDir(): File = File(filesDir, "fonts").apply {
     if (!isDirectory) mkdirs()
 }
 
+internal fun MPVActivity.subtitleFontEntries(): List<SubtitleFontEntry> {
+    val dir = subtitleFontsDir()
+    val dirPath = dir.absolutePath
+    val files = dir.listFiles { file ->
+        file.isFile && file.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS
+    }?.sortedBy { it.name }.orEmpty()
+    val signature = files.map { FontFileSnapshot(it.name, it.length(), it.lastModified()) }
+    synchronized(fontSnapshotLock) {
+        val cached = cachedFontDirSnapshot
+        if (cached != null && cached.dirPath == dirPath && cached.files == signature) {
+            return cached.entries
+        }
+    }
+    val entries = files.map { file ->
+        SubtitleFontEntry(
+            file = file,
+            family = SubtitleFontTable.familyName(file),
+            style = SubtitleFontTable.style(file),
+        )
+    }
+    synchronized(fontSnapshotLock) {
+        cachedFontDirSnapshot = FontDirSnapshot(dirPath, signature, entries)
+    }
+    return entries
+}
+
 internal fun MPVActivity.subtitleFontChoices(): List<SubtitleFontChoice> {
     cachedSubtitleFontChoices?.let { return it }
-    val discovered = subtitleFontsDir()
-        .listFiles { file -> file.isFile && file.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
-        ?.mapNotNullTo(linkedSetOf()) { SubtitleFontTable.familyName(it)?.takeUnless(GENERIC_FONT_FAMILIES::contains) }
-        .orEmpty().sortedFontFamilies()
+    val discovered = subtitleFontEntries()
+        .mapNotNullTo(linkedSetOf()) { it.family?.takeUnless(GENERIC_FONT_FAMILIES::contains) }
+        .sortedFontFamilies()
         .map { SubtitleFontChoice(it, it) }
     return (SUBTITLE_GENERIC_FONTS + discovered).also { cachedSubtitleFontChoices = it }
 }
@@ -45,29 +89,22 @@ internal fun MPVActivity.importSubtitleFont(result: Int, data: Intent?): String?
     }
 }
 
-private fun MPVActivity.userFontFiles(): List<File> {
+private fun MPVActivity.userFontEntries(): List<SubtitleFontEntry> {
     val bundled = cachedBundledFontAssetNames
         ?: assets.list("fonts")?.toSet().orEmpty().also { cachedBundledFontAssetNames = it }
-    return subtitleFontsDir()
-        .listFiles { file ->
-            file.isFile &&
-                file.name !in bundled &&
-                file.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS
-        }
-        ?.toList()
-        .orEmpty()
+    return subtitleFontEntries().filter { it.file.name !in bundled }
 }
 
 internal fun MPVActivity.removableFontFamilies(): List<String> =
-    userFontFiles()
-        .mapNotNullTo(linkedSetOf(), SubtitleFontTable::familyName)
+    userFontEntries()
+        .mapNotNullTo(linkedSetOf()) { it.family }
         .sortedFontFamilies()
 
 // Bundled fonts are never touched.
 internal fun MPVActivity.removeSubtitleFontFamily(family: String) {
-    userFontFiles()
-        .filter { SubtitleFontTable.familyName(it) == family }
-        .forEach { it.delete() }
+    userFontEntries()
+        .filter { it.family == family }
+        .forEach { it.file.delete() }
     invalidateSubtitleTypefaceCache()
     invalidateSubtitleFontChoicesCache()
     if (subStyleFontFamily == family) {

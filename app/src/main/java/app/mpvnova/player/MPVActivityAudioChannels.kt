@@ -21,6 +21,9 @@ internal fun MPVActivity.channelCountFromLayout(layout: String): Int {
 }
 
 internal fun MPVActivity.selectedAudioTrackChannelCount(): Int? {
+    if (mpvGetPropertyInt("current-tracks/audio/id") != null) {
+        return audioTrackChannelCount("current-tracks/audio")
+    }
     val trackCount = mpvGetPropertyInt("track-list/count") ?: return null
     return (0 until trackCount)
         .firstOrNull { index ->
@@ -30,12 +33,15 @@ internal fun MPVActivity.selectedAudioTrackChannelCount(): Int? {
         ?.let(::audioTrackChannelCount)
 }
 
-internal fun MPVActivity.audioTrackChannelCount(index: Int): Int? {
-    mpvGetPropertyInt("track-list/$index/demux-channel-count")?.let { count ->
+internal fun MPVActivity.audioTrackChannelCount(index: Int): Int? =
+    audioTrackChannelCount("track-list/$index")
+
+private fun MPVActivity.audioTrackChannelCount(prefix: String): Int? {
+    mpvGetPropertyInt("$prefix/demux-channel-count")?.let { count ->
         if (count > 0) return count
     }
-    return mpvGetPropertyString("track-list/$index/demux-channels")?.let(::channelCountFromLayout)
-        ?: mpvGetPropertyString("track-list/$index/audio-channels")?.let(::channelCountFromLayout)
+    return mpvGetPropertyString("$prefix/demux-channels")?.let(::channelCountFromLayout)
+        ?: mpvGetPropertyString("$prefix/audio-channels")?.let(::channelCountFromLayout)
 }
 
 internal fun MPVActivity.currentAudioChannelCount(): Int {

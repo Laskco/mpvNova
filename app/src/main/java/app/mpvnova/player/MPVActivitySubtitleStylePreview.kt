@@ -3,7 +3,6 @@ package app.mpvnova.player
 import android.graphics.Color
 import android.graphics.Typeface
 import java.io.File
-import java.util.Locale
 
 private const val SUB_PREVIEW_SHADOW_BLUR_DP = 1.5f
 private const val SUB_PREVIEW_SPACING_EM_FACTOR = 0.04f
@@ -84,21 +83,18 @@ internal fun MPVActivity.subtitleTypefaceFor(
     val resolved = if (generic != null) {
         styledTypeface(generic, bold, italic)
     } else {
-        val faces = subtitleFontsDir()
-            .listFiles { f -> f.isFile && f.extension.lowercase(Locale.ROOT) in FONT_EXTENSIONS }
-            ?.filter { SubtitleFontTable.familyName(it) == family }
-            .orEmpty()
+        val faces = subtitleFontEntries().filter { it.family == family }
 
         // Prefer the real face whose own flags match the request (the face libass uses), so the
         // preview shows true italic/bold letterforms. Otherwise fall back to the regular file and let
         // Android synthesize, mirroring libass's own oblique/bold fallback.
         val preferredStyle = SubtitleFontTable.Style(bold, italic)
-        val exactFace = faces.firstOrNull { SubtitleFontTable.style(it) == preferredStyle }
-            ?.let { typefaceFromFile(it) }
+        val exactFace = faces.firstOrNull { it.style == preferredStyle }
+            ?.let { typefaceFromFile(it.file) }
         exactFace ?: run {
             val regularStyle = SubtitleFontTable.Style(bold = false, italic = false)
-            val regularFile = faces.firstOrNull { SubtitleFontTable.style(it) == regularStyle } ?: faces.firstOrNull()
-            styledTypeface(regularFile?.let { typefaceFromFile(it) } ?: Typeface.DEFAULT, bold, italic)
+            val regularFace = faces.firstOrNull { it.style == regularStyle } ?: faces.firstOrNull()
+            styledTypeface(regularFace?.let { typefaceFromFile(it.file) } ?: Typeface.DEFAULT, bold, italic)
         }
     }
     SubtitleTypefaceCache.putResolved(family, bold, italic, resolved)

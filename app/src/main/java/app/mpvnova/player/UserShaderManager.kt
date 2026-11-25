@@ -209,12 +209,12 @@ internal object UserShaderManager {
 
     fun enabledPaths(context: Context): List<String> = synchronized(lock) {
         if (!isEnabled(context)) return@synchronized emptyList()
+        val enabled = load(context).filter { it.enabled }
+        if (enabled.isEmpty()) return@synchronized emptyList()
         val root = directory(context)
-        load(context)
-            .filter { it.enabled }
-            .mapNotNull { shader ->
-                File(root, shader.fileName).takeIf { it.isFile }?.absolutePath
-            }
+        enabled.mapNotNull { shader ->
+            File(root, shader.fileName).takeIf { it.isFile }?.absolutePath
+        }
     }
 
     fun setShaderEnabled(context: Context, id: String, enabled: Boolean) = synchronized(lock) {
@@ -311,7 +311,9 @@ internal object UserShaderManager {
             runCatching { validateText(file.readBytes(), file.name) }.isSuccess
     }
 
-    fun directory(context: Context): File = File(context.filesDir, DIRECTORY).apply { mkdirs() }
+    fun directory(context: Context): File = File(context.filesDir, DIRECTORY).apply {
+        if (!isDirectory) mkdirs()
+    }
 
     private fun update(context: Context, transform: (List<UserShader>) -> List<UserShader>) {
         save(context, transform(load(context)))

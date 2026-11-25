@@ -81,23 +81,25 @@ internal fun MPVActivity.setVideoScaler(setting: VideoScalerSetting, value: Stri
         }
     }.apply()
 
+    val confOptions by lazy(LazyThreadSafetyMode.NONE) { applicationContext.mpvConfOptions() }
     val runtimeValue = value.ifBlank {
-        applicationContext.mpvConfOption(setting.mpvProperty) ?: setting.profileDefault
+        confOptions[setting.mpvProperty.lowercase()] ?: setting.profileDefault
     }
     setRuntimeOption(setting.mpvProperty, runtimeValue)
-    applyScalerParameters(setting, prefs)
+    applyScalerParameters(setting, prefs, confOptions)
     refreshDrawerRowsIfVisible(DrawerTab.PROCESSING)
 }
 
 private fun MPVActivity.applyScalerParameters(
     setting: VideoScalerSetting,
     prefs: SharedPreferences,
+    confOptions: Map<String, String>,
 ) {
     for (index in 1..SCALER_PARAMETER_COUNT) {
         val preferenceValue = prefs.getString("${setting.preferenceKey}_param$index", "").orEmpty()
         val property = "${setting.mpvProperty}-param$index"
         val runtimeValue = preferenceValue.ifBlank {
-            applicationContext.mpvConfOption(property) ?: "default"
+            confOptions[property.lowercase()] ?: "default"
         }
         setRuntimeOption(property, runtimeValue)
     }

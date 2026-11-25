@@ -275,14 +275,19 @@ class ExternalPlayerActivity : Activity() {
         private const val TAG = "ExternalPlayerActivity"
         private const val REQUEST_PLAYBACK = 1
         private const val SUBTITLE_COPY_TIMEOUT_MS = 15_000L
+        private const val SUBTITLE_IO_KEEP_ALIVE_SEC = 60L
         private const val STATE_SUBTITLE_COPY_PENDING = "external_subtitle_copy_pending"
         private const val STATE_SUBTITLE_CACHE_PATHS = "external_subtitle_cache_paths"
         private val MAIN_HANDLER = Handler(Looper.getMainLooper())
         // No pending queue: two uncooperative providers cannot accumulate later launch requests.
         private val SUBTITLE_IO_EXECUTOR = ThreadPoolExecutor(
-            2, 2, 0L, TimeUnit.MILLISECONDS, SynchronousQueue(),
-            { runnable -> Thread(runnable, "external-subtitle-io") },
-        )
+            2,
+            2,
+            SUBTITLE_IO_KEEP_ALIVE_SEC,
+            TimeUnit.SECONDS,
+            SynchronousQueue(),
+            { runnable -> Thread(runnable, "external-subtitle-io").apply { isDaemon = true } },
+        ).apply { allowCoreThreadTimeOut(true) }
 
         private val ALLOWED_RESULT_EXTRA_KEYS = setOf(
             "duration",

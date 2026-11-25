@@ -102,7 +102,7 @@ internal fun matchingLocalSubtitleFiles(videoFile: File): List<File> {
             } else {
                 // Fallback when directory listing is restricted: probe exact sidecar filenames directly.
                 AUTOMATIC_SUBTITLE_EXTENSIONS.asSequence()
-                    .mapNotNull { ext -> directory.resolveConfinedChild("$videoBase.$ext") }
+                    .mapNotNull { ext -> directory.resolveConfinedChildFromCanonical("$videoBase.$ext") }
             }
         }
         candidates
@@ -133,18 +133,19 @@ private val AUTOMATIC_SUBTITLE_EXTENSIONS = setOf(
     "vtt",
 )
 
-private fun automaticSubtitleSearchDirs(parent: File): List<File> {
-    val canonicalParent = parent.canonicalFileOrNull() ?: return emptyList()
-    return buildList {
-        add(canonicalParent)
-        AUTOMATIC_SUBTITLE_DIRS.forEach { name ->
-            val directory = canonicalParent.resolveConfinedChild(name) ?: return@forEach
-            if (directory.isDirectory) {
-                add(directory)
-                directory.listConfinedChildren(canonicalParent)
-                    .filter { it.isDirectory }
-                    .forEach(::add)
-            }
+private fun automaticSubtitleSearchDirs(canonicalParent: File): List<File> = buildList {
+    add(canonicalParent)
+    AUTOMATIC_SUBTITLE_DIRS.forEach { name ->
+        val directory = canonicalParent.resolveConfinedChildFromCanonical(name) ?: return@forEach
+        if (directory.isDirectory) {
+            add(directory)
+            directory.listFiles()
+                ?.asSequence()
+                ?.filter { it.isDirectory }
+                ?.mapNotNull { child ->
+                    child.canonicalFileOrNull()?.takeIf { it.isUnder(canonicalParent) }
+                }
+                ?.forEach(::add)
         }
     }
 }

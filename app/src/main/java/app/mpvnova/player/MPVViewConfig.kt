@@ -7,6 +7,20 @@ import java.io.File
 
 private const val MPV_CONF_FILENAME = "mpv.conf"
 
+private data class MpvConfCacheKey(
+    val path: String,
+    val lastModified: Long,
+    val length: Long,
+)
+
+private data class MpvConfCacheEntry(
+    val key: MpvConfCacheKey,
+    val options: Map<String, String>,
+)
+
+private val mpvConfCacheLock = Any()
+private var cachedMpvConf: MpvConfCacheEntry? = null
+
 internal fun startupPreferredDecoderMode(sharedPreferences: SharedPreferences): String? {
     if (sharedPreferences.getBoolean("decoder_auto_fallback", true))
         return null
@@ -67,18 +81,33 @@ internal fun MPVView.applyNativeDecoderFallbackPolicy(mode: String?) {
 
 internal fun Context.mpvConfOption(optionName: String): String? {
     val normalizedOption = optionName.trim().lowercase()
-    val file = File(filesDir, MPV_CONF_FILENAME)
-    return if (normalizedOption.isBlank() || !file.isFile) {
-        null
-    } else {
-        file.findMpvConfOption(normalizedOption)
-    }
+    if (normalizedOption.isBlank()) return null
+    return mpvConfOptions()[normalizedOption]
 }
 
-private fun File.findMpvConfOption(normalizedOption: String): String? {
+internal fun Context.mpvConfOptions(): Map<String, String> {
+    val file = File(filesDir, MPV_CONF_FILENAME)
+    if (!file.isFile) {
+        synchronized(mpvConfCacheLock) {
+            cachedMpvConf = null
+        }
+        return emptyMap()
+    }
+    val key = MpvConfCacheKey(file.absolutePath, file.lastModified(), file.length())
+    synchronized(mpvConfCacheLock) {
+        cachedMpvConf?.takeIf { it.key == key }?.let { return it.options }
+    }
+    val parsed = parseMpvConfOptions(file)
+    synchronized(mpvConfCacheLock) {
+        cachedMpvConf = MpvConfCacheEntry(key, parsed)
+    }
+    return parsed
+}
+
+private fun parseMpvConfOptions(file: File): Map<String, String> {
     var inProfile = false
-    var value: String? = null
-    forEachLine { rawLine ->
+    val options = HashMap<String, String>()
+    file.forEachLine { rawLine ->
         val line = rawLine.stripMpvConfComment().trim()
         if (line.isBlank())
             return@forEachLine
@@ -95,10 +124,12 @@ private fun File.findMpvConfOption(normalizedOption: String): String? {
             " " in cleaned -> cleaned.substringBefore(" ") to cleaned.substringAfter(" ")
             else -> return@forEachLine
         }
-        if (key.trim().lowercase() == normalizedOption)
-            value = parsedValue.trim().takeIf { it.isNotBlank() }
+        val normalizedKey = key.trim().lowercase()
+        val trimmedValue = parsedValue.trim()
+        if (normalizedKey.isNotEmpty() && trimmedValue.isNotEmpty())
+            options[normalizedKey] = trimmedValue
     }
-    return value
+    return options
 }
 
 private fun String.stripMpvConfComment(): String {

@@ -12,7 +12,19 @@ internal fun shouldPreserveCompanionSubtitleStyle(enabled: Boolean, track: Track
 
 internal fun MPVActivity.shouldPreserveSelectedSubtitleStyle(): Boolean {
     if (!preserveCompanionSubtitleStyle) return false
-    return shouldPreserveCompanionSubtitleStyle(true, findTrackMeta("sub", player.sid))
+    val sid = player.sid
+    if (sid == -1) return false
+    val track = selectedSubtitleTrackMeta(sid) ?: findTrackMeta("sub", sid)
+    return shouldPreserveCompanionSubtitleStyle(true, track)
+}
+
+private fun selectedSubtitleTrackMeta(sid: Int): TrackMeta? {
+    val currentId = mpvGetPropertyInt("current-tracks/sub/id") ?: return null
+    if (currentId != sid) return null
+    val title = mpvGetPropertyString("current-tracks/sub/title") ?: ""
+    val lang = mpvGetPropertyString("current-tracks/sub/lang") ?: ""
+    val forced = mpvGetPropertyBoolean("current-tracks/sub/forced") == true
+    return TrackMeta(currentId, title, lang, forced)
 }
 
 internal fun MPVActivity.refreshCompanionSubtitleStyle() {

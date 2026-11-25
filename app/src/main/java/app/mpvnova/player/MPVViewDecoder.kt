@@ -43,22 +43,33 @@ internal val MPVView.currentDecoderMode: String
     }
 
 internal fun MPVView.isHi10pH264Video(): Boolean {
+    cachedHi10pH264Video?.let { return it }
     val codec = selectedVideoTrackString("codec").ifBlank {
         mpvGetPropertyString("video-codec") ?: ""
     }.trim().lowercase()
+    val resolved: Boolean? = when {
+        codec.isEmpty() -> null
+        codec != "h264" -> false
+        else -> resolveH264Hi10pState()
+    }
+    if (resolved != null) cachedHi10pH264Video = resolved
+    return resolved == true
+}
+
+private fun resolveH264Hi10pState(): Boolean? {
     val profile = selectedVideoTrackString("codec-profile").trim().lowercase()
     val pixelFormat = (mpvGetPropertyString("video-params/pixelformat") ?: "")
         .trim()
         .lowercase()
-    return codec == "h264" && (
-            profile.contains("10") ||
-            profile.contains("hi10") ||
-            pixelFormat.contains("p10") ||
-            pixelFormat.contains("10le")
-    )
+    if (profile.isEmpty() && pixelFormat.isEmpty()) return null
+    return profile.contains("10") ||
+        profile.contains("hi10") ||
+        pixelFormat.contains("p10") ||
+        pixelFormat.contains("10le")
 }
 
 internal fun MPVView.applyDecoderMode(mode: String) {
+    invalidateHi10pH264Cache()
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     if (mode == MPVView.DECODER_MODE_SW || mode == MPVView.DECODER_MODE_SHIELD_H10P)
         applyNativeDecoderFallbackPolicy(mode)
@@ -102,12 +113,14 @@ internal fun MPVView.applyDecoderMode(mode: String) {
 internal fun MPVView.fallbackGpuNextToGpu() {
     if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
+    invalidateHi10pH264Cache()
     setRuntimeVo(MPV_VIEW_VO_GPU)
 }
 
 internal fun MPVView.fallbackGpuNextToCopyHwdec() {
     if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
+    invalidateHi10pH264Cache()
     setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
 }
 
@@ -128,6 +141,7 @@ internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPrefere
 }
 
 internal fun MPVView.setRuntimeVo(vo: String) {
+    invalidateHi10pH264Cache()
     setVo(vo)
     mpvSetPropertyString("vo", vo)
 }
@@ -138,6 +152,7 @@ internal fun setRuntimeOption(name: String, value: String) {
 }
 
 internal fun MPVView.applyMpvConfDecoderOptions() {
+    invalidateHi10pH264Cache()
     applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_MPV_CONF)
     setVo(null)
     context.mpvConfOption("vo")?.let(::setRuntimeVo)
@@ -153,6 +168,7 @@ private fun String.primaryVideoOutput(): String {
 
 private fun selectedVideoTrackString(name: String): String {
     mpvGetPropertyString("current-tracks/video/$name")?.takeIf { it.isNotBlank() }?.let { return it }
+    if (mpvGetPropertyInt("current-tracks/video/id") != null) return ""
     val count = mpvGetPropertyInt("track-list/count") ?: 0
     val selectedTrack = (0 until count).firstOrNull { index ->
         mpvGetPropertyString("track-list/$index/type") == "video" &&

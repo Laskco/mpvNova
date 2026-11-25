@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AlertDialog
@@ -36,8 +37,17 @@ internal fun MPVActivity.showConfiguredStatsPage() {
     val statsPage = statsLuaMode.takeIf { it in STATS_PAGE_FIRST..STATS_PAGE_LAST } ?: return
     mpvCommand(arrayOf("script-binding", "stats/display-page-$statsPage-toggle"))
     activeStatsPage = statsPage
-    refreshTimeInfoPanelVisibility()
-    updatePlayerTitleOverlay()
+    if (Looper.myLooper() == Looper.getMainLooper()) {
+        refreshTimeInfoPanelVisibility()
+        updatePlayerTitleOverlay()
+    } else {
+        eventUiHandler.post {
+            if (!activityIsDestroying) {
+                refreshTimeInfoPanelVisibility()
+                updatePlayerTitleOverlay()
+            }
+        }
+    }
 }
 
 internal fun MPVActivity.showStatsPickerDialog() {

@@ -2,7 +2,17 @@ package app.mpvnova.player
 
 import java.util.Locale
 
+private val AUDIO_CODEC_FIELDS = arrayOf(
+    "codec",
+    "demux-codec",
+    "codec-name",
+    "decoder-desc",
+)
+
 internal fun MPVActivity.selectedAudioTrackCodec(): String? {
+    if (mpvGetPropertyInt("current-tracks/audio/id") != null) {
+        return audioTrackCodec("current-tracks/audio")
+    }
     val trackCount = mpvGetPropertyInt("track-list/count") ?: return null
     return (0 until trackCount)
         .firstOrNull { index ->
@@ -12,16 +22,13 @@ internal fun MPVActivity.selectedAudioTrackCodec(): String? {
         ?.let(::audioTrackCodec)
 }
 
-internal fun MPVActivity.audioTrackCodec(index: Int): String? {
-    return listOf(
-        "codec",
-        "demux-codec",
-        "codec-name",
-        "decoder-desc"
-    ).firstNotNullOfOrNull { field ->
-        mpvGetPropertyString("track-list/$index/$field")?.takeIf { it.isNotBlank() }
+internal fun MPVActivity.audioTrackCodec(index: Int): String? =
+    audioTrackCodec("track-list/$index")
+
+private fun MPVActivity.audioTrackCodec(prefix: String): String? =
+    AUDIO_CODEC_FIELDS.firstNotNullOfOrNull { field ->
+        mpvGetPropertyString("$prefix/$field")?.takeIf { it.isNotBlank() }
     }
-}
 
 internal fun MPVActivity.currentAudioCodecName(): String? {
     return selectedAudioTrackCodec()

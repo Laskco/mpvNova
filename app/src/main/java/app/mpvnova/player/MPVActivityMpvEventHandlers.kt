@@ -72,6 +72,7 @@ private fun MPVActivity.handleMpvEndFile() {
 }
 
 private fun MPVActivity.handleMpvStartFile() {
+    player.invalidateHi10pH264Cache()
     resetChapterCache()
     skipSegmentPlaybackReady = false
     psc.update("demuxer-cache-time")
