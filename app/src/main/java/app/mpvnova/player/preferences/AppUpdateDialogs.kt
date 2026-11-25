@@ -22,12 +22,7 @@ internal fun AppUpdateManager.showAvailableUpdateDialog(release: ReleaseInfo) {
             primaryText = activity.getString(R.string.update_download),
             ignoreText = activity.getString(R.string.update_ignore),
             onPrimary = { downloadUpdate(release) },
-            onIgnore = {
-                androidx.preference.PreferenceManager.getDefaultSharedPreferences(activity)
-                    .edit()
-                    .putString(IGNORED_UPDATE_TAG_KEY, release.tagName)
-                    .apply()
-            }
+            onIgnore = { AppUpdateAvailability.ignoreRelease(activity, release) }
         )
     )
 }
@@ -48,7 +43,7 @@ internal fun AppUpdateManager.showDownloadedUpdateDialog(release: ReleaseInfo, a
             compactContent = true,
             onPrimary = { installDownloadedApk(release.tagName, apkFile) }
         )
-    ).setOnDismissListener {
+    ) {
         Handler(Looper.getMainLooper()).post {
             if (pendingInstallApk != apkFile)
                 releaseDownloadedApk(apkFile)
@@ -84,7 +79,10 @@ internal fun AppUpdateManager.showError(message: String) {
     )
 }
 
-internal fun AppUpdateManager.showGlassDialog(options: GlassDialogOptions): AlertDialog {
+internal fun AppUpdateManager.showGlassDialog(
+    options: GlassDialogOptions,
+    onDismiss: (() -> Unit)? = null,
+): AlertDialog {
     lateinit var dialog: AlertDialog
     val binding = DialogAppUpdateBinding.inflate(activity.layoutInflater)
     binding.updateTitle.text = options.title
@@ -120,8 +118,43 @@ internal fun AppUpdateManager.showGlassDialog(options: GlassDialogOptions): Aler
         dialog.styleAsTvPanel()
         binding.dialogFocusTarget()?.requestFocus()
     }
-    dialog.show()
+    showHostedDialog(dialog, binding.root, onDismiss)
     return dialog
+}
+
+private fun AppUpdateManager.showHostedDialog(
+    dialog: AlertDialog,
+    root: View,
+    onDismiss: (() -> Unit)?,
+) {
+    dialog.setOnKeyListener { _, _, _ ->
+        onDialogKeyEvent?.invoke()
+        false
+    }
+    dialog.setOnDismissListener {
+        onHostedDialogDismissed(dialog)
+        onDismiss?.invoke()
+    }
+    root.addOnAttachStateChangeListener(
+        object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+
+            override fun onViewDetachedFromWindow(view: View) {
+                view.removeOnAttachStateChangeListener(this)
+                onHostedDialogDetached()
+            }
+        }
+    )
+    onHostedDialogShowing(dialog)
+    var shown = false
+    try {
+        dialog.show()
+        shown = true
+    } finally {
+        if (!shown) {
+            onHostedDialogFailedToShow(dialog)
+        }
+    }
 }
 
 private fun configurePrimaryButton(binding: DialogAppUpdateBinding, options: GlassDialogOptions, dismiss: () -> Unit) {

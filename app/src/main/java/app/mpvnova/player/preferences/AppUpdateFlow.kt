@@ -130,7 +130,7 @@ private fun AppUpdateManager.showInstallPermissionDialog(tagName: String?, apkFi
     )
     var shown = false
     try {
-        showGlassDialog(options).setOnDismissListener {
+        showGlassDialog(options) {
             Handler(Looper.getMainLooper()).post {
                 if (!permissionSettingsOpened && pendingInstallApk == apkFile)
                     cancelPendingInstall()

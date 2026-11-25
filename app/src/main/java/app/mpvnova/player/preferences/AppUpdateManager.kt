@@ -3,6 +3,8 @@ package app.mpvnova.player.preferences
 import android.app.Activity
 import android.content.Intent
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -15,12 +17,18 @@ import java.io.File
 import java.util.concurrent.atomic.AtomicBoolean
 
 class AppUpdateManager(internal val activity: Activity) {
+    var onDialogHostStateChanged: ((showing: Boolean) -> Unit)? = null
+    var onDialogKeyEvent: (() -> Unit)? = null
+
     internal var busyDialog: AlertDialog? = null
     internal var installProgressDialog: AlertDialog? = null
     internal var pendingInstallApk: File? = null
     internal var pendingInstallTag: String? = null
     internal var permissionSettingsOpened = false
     private val installLaunchers = mutableMapOf<File, ActivityResultLauncher<Intent>>()
+    private val activeDialogs = mutableSetOf<AlertDialog>()
+    private var dialogHostShowing = false
+    private val dialogHandler = Handler(Looper.getMainLooper())
 
     init {
         (activity as? LifecycleOwner)?.lifecycle?.addObserver(LifecycleEventObserver { _, event ->
@@ -33,16 +41,17 @@ class AppUpdateManager(internal val activity: Activity) {
                 releaseActivityUpdateApks(activity)
                 installLaunchers.values.forEach { it.unregister() }
                 installLaunchers.clear()
+                clearHostedDialogs()
             }
         })
-        if (updateInProgress.compareAndSet(false, true)) {
+        if (cleanupInProgress.compareAndSet(false, true)) {
             Thread(
                 {
                     try {
                         cleanupInstalledUpdateIfNeeded()
                         cleanupUpdateCache()
                     } finally {
-                        updateInProgress.set(false)
+                        cleanupInProgress.set(false)
                     }
                 },
                 "mpvNova-update-cache-clean",
@@ -51,6 +60,10 @@ class AppUpdateManager(internal val activity: Activity) {
                 start()
             }
         }
+    }
+
+    internal fun showInPlayerUpdateDialog(release: ReleaseInfo) {
+        showAvailableUpdateDialog(release)
     }
 
     fun checkForUpdates(
@@ -234,7 +247,63 @@ class AppUpdateManager(internal val activity: Activity) {
         )
     }
 
+    internal fun onHostedDialogShowing(dialog: AlertDialog) {
+        if (!dialogHostShowing) {
+            dialogHostShowing = true
+            onDialogHostStateChanged?.invoke(true)
+        }
+        activeDialogs.add(dialog)
+    }
+
+    internal fun onHostedDialogFailedToShow(dialog: AlertDialog) {
+        activeDialogs.remove(dialog)
+        scheduleDialogHostIdleCheck()
+    }
+
+    internal fun onHostedDialogDismissed(dialog: AlertDialog) {
+        activeDialogs.remove(dialog)
+        scheduleDialogHostIdleCheck()
+    }
+
+    internal fun onHostedDialogDetached() {
+        scheduleDialogHostIdleCheck()
+    }
+
+    private fun scheduleDialogHostIdleCheck() {
+        dialogHandler.post {
+            pruneInactiveDialogs()
+            if (activeDialogs.isEmpty() && dialogHostShowing) {
+                dialogHostShowing = false
+                onDialogHostStateChanged?.invoke(false)
+            }
+        }
+    }
+
+    private fun pruneInactiveDialogs() {
+        val iterator = activeDialogs.iterator()
+        while (iterator.hasNext()) {
+            if (!iterator.next().isShowing) {
+                iterator.remove()
+            }
+        }
+    }
+
+    internal fun clearHostedDialogs() {
+        dialogHandler.removeCallbacksAndMessages(null)
+        activeDialogs.toList().forEach { dialog ->
+            if (dialog.isShowing) {
+                dialog.dismiss()
+            }
+        }
+        activeDialogs.clear()
+        if (dialogHostShowing) {
+            dialogHostShowing = false
+            onDialogHostStateChanged?.invoke(false)
+        }
+    }
+
     private companion object {
         val updateInProgress = AtomicBoolean(false)
+        val cleanupInProgress = AtomicBoolean(false)
     }
 }

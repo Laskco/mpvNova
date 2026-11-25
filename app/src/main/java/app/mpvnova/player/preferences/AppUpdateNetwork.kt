@@ -1,6 +1,9 @@
 package app.mpvnova.player.preferences
 
+import android.content.Context
+import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -11,8 +14,10 @@ import java.net.URL
 private const val MAX_RELEASE_METADATA_BYTES = 4 * 1024 * 1024
 private const val MAX_UPDATE_APK_BYTES = 512L * 1024 * 1024
 private const val APK_SIZE_LIMIT_ERROR = "The APK exceeds the maximum download size"
+private val releaseHistoryLock = Any()
 
-internal fun AppUpdateManager.fetchLatestRelease(): ReleaseInfo {
+internal fun fetchLatestReleaseForContext(context: Context): ReleaseInfo {
+    val appContext = context.applicationContext
     val json = readReleaseMetadata(LATEST_RELEASE_URL)
     val releaseJson = JSONObject(json)
     val tagName = releaseJson.requireReleaseTag()
@@ -37,7 +42,51 @@ internal fun AppUpdateManager.fetchLatestRelease(): ReleaseInfo {
         notes = releaseJson.optString("body").trim(),
         assetName = selectedAsset.optString("name").trim(),
         downloadUrl = downloadUrl
-    ).also { recordReleaseHistory(it) }
+    ).also { recordReleaseHistoryForContext(appContext, it) }
+}
+
+internal fun AppUpdateManager.fetchLatestRelease(): ReleaseInfo {
+    return fetchLatestReleaseForContext(activity.applicationContext).also { release ->
+        AppUpdateAvailability.recordRelease(release)
+    }
+}
+
+internal fun recordReleaseHistoryForContext(context: Context, release: ReleaseInfo) {
+    synchronized(releaseHistoryLock) {
+        val preferences = PreferenceManager.getDefaultSharedPreferences(context.applicationContext)
+        val raw = preferences.getString(RELEASE_HISTORY_KEY, null)
+        val existing = if (raw == null) JSONArray() else runCatching { JSONArray(raw) }.getOrDefault(JSONArray())
+        val newest = existing.optJSONObject(0)
+        if (newest != null &&
+            newest.optString("tag") == release.tagName &&
+            newest.optString("name") == release.name &&
+            newest.optString("notes") == release.notes
+        ) {
+            return
+        }
+        val result = JSONArray()
+        result.put(
+            JSONObject()
+                .put("tag", release.tagName)
+                .put("name", release.name)
+                .put("notes", release.notes)
+                .put("time", System.currentTimeMillis())
+        )
+
+        val historyLimit = RELEASE_HISTORY_LIMIT - 1
+        val existingItems = (0 until existing.length()).asSequence()
+            .mapNotNull { existing.optJSONObject(it) }
+            .filter { it.optString("tag") != release.tagName }
+            .take(historyLimit)
+
+        for (item in existingItems) {
+            result.put(item)
+        }
+
+        preferences.edit()
+            .putString(RELEASE_HISTORY_KEY, result.toString())
+            .apply()
+    }
 }
 
 internal fun AppUpdateManager.downloadApk(release: ReleaseInfo): File {

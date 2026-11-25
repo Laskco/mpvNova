@@ -5,7 +5,6 @@ import android.content.Context
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.BuildConfig
 import org.json.JSONArray
-import org.json.JSONObject
 import java.io.File
 import java.lang.ref.WeakReference
 
@@ -135,32 +134,6 @@ internal fun AppUpdateManager.cleanupInstalledUpdateIfNeeded() {
     preferences.edit()
         .remove(PENDING_UPDATE_TAG_KEY)
         .remove(PENDING_UPDATE_APK_PATH_KEY)
-        .apply()
-}
-
-internal fun AppUpdateManager.recordReleaseHistory(release: ReleaseInfo) {
-    val existing = releaseHistory()
-    val result = JSONArray()
-    result.put(
-        JSONObject()
-            .put("tag", release.tagName)
-            .put("name", release.name)
-            .put("notes", release.notes)
-            .put("time", System.currentTimeMillis())
-    )
-
-    val historyLimit = RELEASE_HISTORY_LIMIT - 1
-    val existingItems = (0 until existing.length()).asSequence()
-        .mapNotNull { existing.optJSONObject(it) }
-        .filter { it.optString("tag") != release.tagName }
-        .take(historyLimit)
-
-    for (item in existingItems) {
-        result.put(item)
-    }
-
-    PreferenceManager.getDefaultSharedPreferences(activity).edit()
-        .putString(RELEASE_HISTORY_KEY, result.toString())
         .apply()
 }
 
