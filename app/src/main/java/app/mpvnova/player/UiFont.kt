@@ -41,7 +41,9 @@ internal object UiFont {
         val detailRes: Int,
         @param:FontRes val regularFontRes: Int?,
         @param:FontRes val boldFontRes: Int?,
-    )
+    ) {
+        val styledTypefaces: Array<Typeface?> = arrayOfNulls(STYLED_TYPEFACE_SLOTS)
+    }
 
     val choices = listOf(
         Choice(DEFAULT_VALUE, R.string.ui_font_system_title, R.string.ui_font_system_detail, null, null),
@@ -296,13 +298,12 @@ internal object UiFont {
         bold: Boolean,
         italic: Boolean,
     ): Typeface? {
+        val slot = (if (bold) 1 else 0) or (if (italic) 2 else 0)
+        choice.styledTypefaces[slot]?.let { return it }
         val weight = if (bold) FONT_WEIGHT_SEMIBOLD else FONT_WEIGHT_MEDIUM
-        val key = TypefaceKey(choice.value, weight, italic)
-        return styledTypefaceCache[key] ?: run {
-            val fontRes = if (bold) choice.boldFontRes else choice.regularFontRes
-            val base = fontRes?.let { loadBaseFont(context, it) }
-            base?.let { weightedTypeface(it, weight, italic) }?.also { styledTypefaceCache[key] = it }
-        }
+        val fontRes = if (bold) choice.boldFontRes else choice.regularFontRes
+        val base = fontRes?.let { loadBaseFont(context, it) } ?: return null
+        return weightedTypeface(base, weight, italic).also { choice.styledTypefaces[slot] = it }
     }
 
     private fun originalTypeface(view: TextView): Typeface {
@@ -314,6 +315,7 @@ internal object UiFont {
         return original
     }
 
+    private const val STYLED_TYPEFACE_SLOTS = 4
     private const val FONT_WEIGHT_MEDIUM = 500
     private const val FONT_WEIGHT_SEMIBOLD = 600
 }

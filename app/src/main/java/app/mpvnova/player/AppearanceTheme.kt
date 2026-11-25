@@ -7,6 +7,7 @@ import android.content.res.Resources
 import android.util.TypedValue
 import androidx.annotation.AttrRes
 import androidx.annotation.ColorInt
+import androidx.annotation.ColorRes
 import androidx.annotation.StyleRes
 import androidx.core.content.ContextCompat
 import androidx.preference.PreferenceManager
@@ -17,6 +18,20 @@ object AppearanceTheme {
     const val PREF_PURE_BLACK_SURFACES = "ui_pure_black_surfaces"
     const val DEFAULT_VALUE = "nova"
     private const val LEGACY_OLED_VALUE = "oled"
+
+    private val scratchTypedValue = ThreadLocal<TypedValue>()
+
+    @Volatile
+    private var observedPrefs: SharedPreferences? = null
+
+    @Volatile
+    private var cachedPrefValue: String? = null
+
+    private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { prefs, key ->
+        if (key == null || key == PREF_KEY) {
+            cachedPrefValue = prefs.getString(PREF_KEY, DEFAULT_VALUE) ?: DEFAULT_VALUE
+        }
+    }
 
     private enum class Target {
         Player,
@@ -43,7 +58,19 @@ object AppearanceTheme {
     }
 
     fun currentValue(context: Context): String {
-        return preferences(context).getString(PREF_KEY, DEFAULT_VALUE) ?: DEFAULT_VALUE
+        val appContext = context.applicationContext ?: context
+        val prefs = observedPrefs ?: preferences(appContext).also {
+            synchronized(this) {
+                if (observedPrefs == null) {
+                    it.registerOnSharedPreferenceChangeListener(prefListener)
+                    cachedPrefValue = it.getString(PREF_KEY, DEFAULT_VALUE) ?: DEFAULT_VALUE
+                    observedPrefs = it
+                }
+            }
+        }
+        return cachedPrefValue ?: (prefs.getString(PREF_KEY, DEFAULT_VALUE) ?: DEFAULT_VALUE).also {
+            cachedPrefValue = it
+        }
     }
 
     fun migrateLegacyOled(context: Context) {
@@ -73,15 +100,23 @@ object AppearanceTheme {
     }
 
     @ColorInt
-    fun resolveColor(context: Context, @AttrRes attr: Int, @ColorInt fallback: Int): Int {
-        val value = TypedValue()
+    fun resolveColor(context: Context, @AttrRes attr: Int, @ColorInt fallback: Int): Int =
+        resolveThemedColor(context, attr) { fallback }
+
+    @ColorInt
+    fun resolveColorRes(context: Context, @AttrRes attr: Int, @ColorRes fallbackRes: Int): Int =
+        resolveThemedColor(context, attr) { ContextCompat.getColor(context, fallbackRes) }
+
+    private inline fun resolveThemedColor(
+        context: Context,
+        @AttrRes attr: Int,
+        fallback: () -> Int,
+    ): Int {
+        val value = scratchTypedValue.get() ?: TypedValue().also(scratchTypedValue::set)
         return if (context.theme.resolveAttribute(attr, value, true)) {
-            if (value.resourceId != 0)
-                ContextCompat.getColor(context, value.resourceId)
-            else
-                value.data
+            if (value.resourceId != 0) ContextCompat.getColor(context, value.resourceId) else value.data
         } else {
-            fallback
+            fallback()
         }
     }
 

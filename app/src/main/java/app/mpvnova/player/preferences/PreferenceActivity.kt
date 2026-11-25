@@ -1,10 +1,12 @@
 package app.mpvnova.player.preferences
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Bundle
@@ -50,6 +52,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import com.google.android.material.color.DynamicColors
 import app.mpvnova.player.AppearanceTheme
 import app.mpvnova.player.FilePickerActivity
+import app.mpvnova.player.OutlinedButton
 import app.mpvnova.player.OutlinedTextView
 import app.mpvnova.player.PREF_SCREENSAVER_LOGO_URI
 import app.mpvnova.player.PREF_SCREENSAVER_TINT
@@ -91,6 +94,7 @@ import java.io.File
 
 private fun View.applyPreferenceTextTreatment() {
     when (this) {
+        is OutlinedTextView, is OutlinedButton -> Unit
         is TextView -> {
             applyUiTextShadow()
             UiFont.applyToTextView(this)
@@ -370,6 +374,7 @@ class PreferenceActivity : AppCompatActivity(),
                 private var cachedFirstSelectable = RecyclerView.NO_POSITION
                 private var firstSelectableDirty = true
                 private val scrollbarMetrics = PreferenceScrollbarMetricsTracker()
+                private var selectableRowBgState: Drawable.ConstantState? = null
 
                 init {
                     registerAdapterDataObserver(object : RecyclerView.AdapterDataObserver() {
@@ -411,10 +416,9 @@ class PreferenceActivity : AppCompatActivity(),
                     val itemView = holder.itemView
                     val preference = getItem(position)
                     val isSelectable = preference?.isSelectable == true
-                    itemView.background = if (isSelectable) {
-                        AppCompatResources.getDrawable(itemView.context, R.drawable.bg_list_row)
-                    } else {
-                        null
+                    if (itemView.getTag(R.id.pref_row_bg_selectable) as? Boolean != isSelectable) {
+                        itemView.setTag(R.id.pref_row_bg_selectable, isSelectable)
+                        itemView.background = if (isSelectable) selectableRowBackground(itemView.context) else null
                     }
                     val isFirstSelectable = position == firstSelectablePosition()
                     val nextUpId = if (isFirstSelectable) R.id.settings_back_focus_target else View.NO_ID
@@ -422,6 +426,14 @@ class PreferenceActivity : AppCompatActivity(),
                         itemView.nextFocusUpId = nextUpId
                     }
                     itemView.setOnKeyListener(if (isFirstSelectable) firstRowUpKeyListener else null)
+                }
+
+                private fun selectableRowBackground(context: Context): Drawable? {
+                    val state = selectableRowBgState
+                    if (state != null) return state.newDrawable(context.resources, context.theme)
+                    val loaded = AppCompatResources.getDrawable(context, R.drawable.bg_list_row)
+                    selectableRowBgState = loaded?.constantState
+                    return loaded
                 }
 
                 private fun firstSelectablePosition(): Int {
@@ -483,6 +495,7 @@ class PreferenceActivity : AppCompatActivity(),
             val horizontalPadding = dp(LIST_HORIZONTAL_PADDING_DP)
             listView.apply {
                 itemAnimator = null
+                setHasFixedSize(true)
                 setItemViewCacheSize(SETTINGS_LIST_VIEW_CACHE_SIZE)
                 clipToPadding = true
                 overScrollMode = View.OVER_SCROLL_NEVER

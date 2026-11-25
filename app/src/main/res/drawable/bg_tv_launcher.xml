@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
-    <item>
-        <shape android:shape="rectangle">
-            <gradient
-                android:type="linear"
-                android:angle="270"
-                android:startColor="?attr/mpvWindowStart"
-                android:centerColor="?attr/mpvWindowCenter"
-                android:endColor="?attr/mpvWindowEnd" />
-        </shape>
-    </item>
-</layer-list>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:type="linear"
+        android:angle="270"
+        android:startColor="?attr/mpvWindowStart"
+        android:centerColor="?attr/mpvWindowCenter"
+        android:endColor="?attr/mpvWindowEnd" />
+</shape>
