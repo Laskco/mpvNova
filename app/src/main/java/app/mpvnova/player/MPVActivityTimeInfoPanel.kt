@@ -7,6 +7,7 @@ internal fun MPVActivity.markPlaybackEnded() {
     eventUiHandler.post {
         binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
         binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+        syncPlayerTitleCombinedPanel()
         clockHandler.removeCallbacks(clockRunnable)
     }
 }
@@ -18,6 +19,7 @@ internal fun MPVActivity.shouldShowClockWhileControlsHidden(): Boolean {
 internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
     if (playerDialogStack.any { it.isShowing } && !playerTextStylePreviewActive) {
         binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
+        syncPlayerTitleCombinedPanel()
         clockHandler.removeCallbacks(clockRunnable)
         return
     }
@@ -28,6 +30,7 @@ internal fun MPVActivity.refreshTimeInfoPanelVisibility() {
         updateClockInfo(force = true)
     }
     binding.timeInfoPanel.setVisibilityIfChanged(if (shouldShow) View.VISIBLE else View.GONE)
+    syncPlayerTitleCombinedPanel()
     clockHandler.removeCallbacks(clockRunnable)
     if (shouldShow) {
         val now = System.currentTimeMillis()

@@ -39,7 +39,9 @@ private object OutlinedTextPainter {
 
         if (effects.outlineWidthDp > 0f && Color.alpha(effects.outlineColor) > 0) {
             view.setTextColor(outlineColors)
-            view.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+            if (view.shadowRadius != 0f || view.shadowColor != Color.TRANSPARENT) {
+                view.setShadowLayer(0f, 0f, 0f, Color.TRANSPARENT)
+            }
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = (density * effects.outlineWidthDp).coerceAtLeast(1f)
             paint.strokeJoin = Paint.Join.ROUND
@@ -47,12 +49,16 @@ private object OutlinedTextPainter {
         }
 
         view.setTextColor(fillColors)
-        view.setShadowLayer(
-            density * effects.shadowRadiusDp,
-            0f,
-            density * effects.shadowOffsetYDp,
-            effects.shadowColor,
-        )
+        val shadowRadius = density * effects.shadowRadiusDp
+        val shadowDy = density * effects.shadowOffsetYDp
+        if (
+            view.shadowRadius != shadowRadius ||
+            view.shadowDx != 0f ||
+            view.shadowDy != shadowDy ||
+            view.shadowColor != effects.shadowColor
+        ) {
+            view.setShadowLayer(shadowRadius, 0f, shadowDy, effects.shadowColor)
+        }
         paint.style = Paint.Style.FILL
         drawText()
 
@@ -115,12 +121,16 @@ class OutlinedTextView @JvmOverloads constructor(
         }
         textEffects = effects
         val density = resources.displayMetrics.density
-        setShadowLayer(
-            density * shadowRadiusDp,
-            0f,
-            density * shadowOffsetYDp,
-            shadowColor,
-        )
+        val targetRadius = density * shadowRadiusDp
+        val targetDy = density * shadowOffsetYDp
+        if (
+            this.shadowRadius != targetRadius ||
+            this.shadowDx != 0f ||
+            this.shadowDy != targetDy ||
+            this.shadowColor != shadowColor
+        ) {
+            setShadowLayer(targetRadius, 0f, targetDy, shadowColor)
+        }
         invalidate()
     }
 

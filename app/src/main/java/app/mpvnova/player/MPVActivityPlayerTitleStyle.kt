@@ -197,10 +197,15 @@ internal fun MPVActivity.showPlayerTitleStylePreview() {
     binding.endsAtTextView.ensurePlayerTextPreview(R.string.player_title_style_sample_ends_at, true)
     binding.timeInfoPanel.alpha = 1f
     binding.timeInfoPanel.visibility = View.VISIBLE
-    applyPlayerTitleStyle()
-    updatePlayerTitleWidth()
+    if (appliedPlayerTitleStyle != playerTitleStyle) {
+        applyPlayerTitleStyle()
+    } else {
+        applyPlayerTitleStyle()
+        updatePlayerTitleWidth()
+    }
     binding.playerTitleOverlay.alpha = 1f
     binding.playerTitleOverlay.visibility = View.VISIBLE
+    syncPlayerTitleCombinedPanel()
 }
 
 private fun TextView.ensurePlayerTextPreview(@StringRes sampleRes: Int, makeVisible: Boolean = false) {

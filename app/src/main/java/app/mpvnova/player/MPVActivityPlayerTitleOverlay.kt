@@ -23,6 +23,7 @@ internal fun MPVActivity.updatePlayerTitleOverlay() {
     }
     binding.playerTitleOverlay.alpha = 1f
     binding.playerTitleOverlay.setVisibilityIfChanged(View.VISIBLE)
+    syncPlayerTitleCombinedPanel()
     if (wasHidden)
         updatePlayerToastPlacement()
     if (wasHidden || contentChanged)
@@ -55,6 +56,7 @@ internal fun MPVActivity.shouldShowTitleWhileControlsHidden(): Boolean {
 private fun MPVActivity.hidePlayerTitleOverlay() {
     val wasVisible = binding.playerTitleOverlay.isVisible
     binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+    syncPlayerTitleCombinedPanel()
     if (wasVisible)
         updatePlayerToastPlacement()
 }

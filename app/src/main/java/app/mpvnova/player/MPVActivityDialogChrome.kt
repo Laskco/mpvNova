@@ -31,19 +31,25 @@ internal fun MPVActivity.applyPlayerDialogChrome(
         if (chrome != PlayerDialogChrome.TITLE_AND_CLOCK_PREVIEW) {
             add(binding.playerTitleOverlay)
             add(binding.timeInfoPanel)
+            playerTitleCombinedSurface()?.let(::add)
         }
     }
     hiddenViews.forEach { view ->
         view.animate().setListener(null).cancel()
-        if (animate && view.visibility == View.VISIBLE) {
+        if (animate && view !== binding.controlsScrim && view.visibility == View.VISIBLE) {
             view.animate()
                 .alpha(0f)
                 .setDuration(PLAYER_CHROME_FADE_DURATION_MS)
                 .withEndAction {
                     view.visibility = View.GONE
                     view.alpha = 1f
-                    if (view === binding.controls) syncTimelineOverlayVisible()
-                    updateSubtitleControlsPosition()
+                    if (view === binding.controls) {
+                        syncTimelineOverlayVisible()
+                        updateSubtitleControlsPosition()
+                    }
+                    if (view === binding.playerTitleOverlay || view === binding.timeInfoPanel) {
+                        syncPlayerTitleCombinedPanel()
+                    }
                 }
                 .start()
         } else {
@@ -52,6 +58,7 @@ internal fun MPVActivity.applyPlayerDialogChrome(
             if (view === binding.controls) syncTimelineOverlayVisible()
         }
     }
+    syncPlayerTitleCombinedPanel()
     updateSubtitleControlsPosition()
 }
 
@@ -61,6 +68,10 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     topPlayerDialog = playerDialogStack.lastOrNull { it.isShowing }
     if (playerDialogStack.isNotEmpty() || drawerReopenPending || trackPanelChildTransition) return
 
+    restorePlayerChromeSnapshotIfIdle()
+}
+
+internal fun MPVActivity.restorePlayerChromeSnapshotIfIdle() {
     val snapshot = playerChromeSnapshot ?: return
     playerChromeSnapshot = null
     binding.controls.visibility = snapshot.controlsVisibility
@@ -77,6 +88,7 @@ internal fun MPVActivity.onPlayerDialogDetached(dialog: AlertDialog) {
     binding.playerTitleOverlay.alpha = 1f
     binding.timeInfoPanel.alpha = 1f
     binding.statsTextView.alpha = 1f
+    syncPlayerTitleCombinedPanel()
     applyPlayerControlOrderAndVisibility()
     parkPlayerFrameworkFocus()
     updateSubtitleControlsPosition()

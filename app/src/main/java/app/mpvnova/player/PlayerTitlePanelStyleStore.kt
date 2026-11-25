@@ -213,38 +213,66 @@ internal fun View.applyThemedPanelStyle(style: PlayerTitlePanelStyle, themedCont
     )
 }
 
-private fun View.applyPanelPosition(style: PlayerTitlePanelStyle) {
-    val params = layoutParams as? RelativeLayout.LayoutParams ?: return
-    params.removeRule(RelativeLayout.ALIGN_PARENT_START)
-    params.removeRule(RelativeLayout.ALIGN_PARENT_END)
-    params.removeRule(RelativeLayout.CENTER_HORIZONTAL)
-    if (style.manualPosition) {
-        params.addRule(RelativeLayout.ALIGN_PARENT_START)
-    } else {
-        when (style.alignment) {
-            PlayerTitlePanelAlignment.START -> params.addRule(RelativeLayout.ALIGN_PARENT_START)
-            PlayerTitlePanelAlignment.CENTER -> params.addRule(RelativeLayout.CENTER_HORIZONTAL)
-            PlayerTitlePanelAlignment.END -> params.addRule(RelativeLayout.ALIGN_PARENT_END)
-        }
-    }
-    params.marginStart = if (style.manualPosition) {
-        dp(style.horizontalOffsetDp)
-    } else if (style.alignment == PlayerTitlePanelAlignment.START) {
+private data class PanelPositionSpec(
+    val alignStart: Boolean,
+    val alignCenter: Boolean,
+    val alignEnd: Boolean,
+    val marginStart: Int,
+    val marginEnd: Int,
+    val topMargin: Int,
+    val width: Int,
+)
+
+private fun View.resolvePanelPositionSpec(style: PlayerTitlePanelStyle): PanelPositionSpec = PanelPositionSpec(
+    alignStart = style.manualPosition || style.alignment == PlayerTitlePanelAlignment.START,
+    alignCenter = !style.manualPosition && style.alignment == PlayerTitlePanelAlignment.CENTER,
+    alignEnd = !style.manualPosition && style.alignment == PlayerTitlePanelAlignment.END,
+    marginStart = when {
+        style.manualPosition -> dp(style.horizontalOffsetDp)
+        style.alignment == PlayerTitlePanelAlignment.START -> dp(PANEL_EDGE_MARGIN_DP)
+        else -> 0
+    },
+    marginEnd = if (!style.manualPosition && style.alignment == PlayerTitlePanelAlignment.END) {
         dp(PANEL_EDGE_MARGIN_DP)
     } else {
         0
-    }
-    params.marginEnd = if (!style.manualPosition && style.alignment == PlayerTitlePanelAlignment.END) {
-        dp(PANEL_EDGE_MARGIN_DP)
-    } else {
-        0
-    }
-    params.topMargin = dp(style.verticalOffsetDp)
-    params.width = if (style.widthPercent == PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT) {
+    },
+    topMargin = dp(style.verticalOffsetDp),
+    width = if (style.widthPercent == PLAYER_TITLE_PANEL_AUTO_WIDTH_PERCENT) {
         ViewGroup.LayoutParams.WRAP_CONTENT
     } else {
         resources.displayMetrics.widthPixels * style.widthPercent / MAX_PERCENT
-    }
+    },
+)
+
+private fun RelativeLayout.LayoutParams.matchesPanelSpec(spec: PanelPositionSpec): Boolean {
+    val rules = rules
+    val rulesMatch =
+        (rules[RelativeLayout.ALIGN_PARENT_START] != 0) == spec.alignStart &&
+            (rules[RelativeLayout.CENTER_HORIZONTAL] != 0) == spec.alignCenter &&
+            (rules[RelativeLayout.ALIGN_PARENT_END] != 0) == spec.alignEnd
+    return rulesMatch &&
+        marginStart == spec.marginStart &&
+        marginEnd == spec.marginEnd &&
+        topMargin == spec.topMargin &&
+        width == spec.width
+}
+
+private fun View.applyPanelPosition(style: PlayerTitlePanelStyle) {
+    val params = layoutParams as? RelativeLayout.LayoutParams ?: return
+    val spec = resolvePanelPositionSpec(style)
+    if (params.matchesPanelSpec(spec)) return
+
+    params.removeRule(RelativeLayout.ALIGN_PARENT_START)
+    params.removeRule(RelativeLayout.ALIGN_PARENT_END)
+    params.removeRule(RelativeLayout.CENTER_HORIZONTAL)
+    if (spec.alignStart) params.addRule(RelativeLayout.ALIGN_PARENT_START)
+    if (spec.alignCenter) params.addRule(RelativeLayout.CENTER_HORIZONTAL)
+    if (spec.alignEnd) params.addRule(RelativeLayout.ALIGN_PARENT_END)
+    params.marginStart = spec.marginStart
+    params.marginEnd = spec.marginEnd
+    params.topMargin = spec.topMargin
+    params.width = spec.width
     layoutParams = params
     if (style.manualPosition) clampManualPositionToViewport()
 }
@@ -285,9 +313,14 @@ private fun ViewGroup.applyContentLayout(
         for (index in 0 until group.childCount) {
             when (val child = group.getChildAt(index)) {
                 is TextView -> {
-                    child.gravity =
+                    val targetGravity =
                         (child.gravity and Gravity.VERTICAL_GRAVITY_MASK) or horizontalGravity
-                    child.textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+                    if (child.gravity != targetGravity) {
+                        child.gravity = targetGravity
+                    }
+                    if (child.textAlignment != View.TEXT_ALIGNMENT_GRAVITY) {
+                        child.textAlignment = View.TEXT_ALIGNMENT_GRAVITY
+                    }
                 }
                 is ViewGroup -> groups.add(child)
             }
@@ -298,9 +331,12 @@ private fun ViewGroup.applyContentLayout(
     for (index in 0 until childCount) {
         val child = getChildAt(index)
         val params = child.layoutParams as? LinearLayout.LayoutParams ?: continue
-        params.topMargin = if (child.visibility == View.GONE || !hasVisibleChild) 0 else spacing
-        params.bottomMargin = 0
-        child.layoutParams = params
+        val targetTopMargin = if (child.visibility == View.GONE || !hasVisibleChild) 0 else spacing
+        if (params.topMargin != targetTopMargin || params.bottomMargin != 0) {
+            params.topMargin = targetTopMargin
+            params.bottomMargin = 0
+            child.layoutParams = params
+        }
         if (child.visibility != View.GONE) hasVisibleChild = true
     }
 }

@@ -660,6 +660,7 @@ private fun MPVActivity.applyPlayerTitleVisibility() {
     binding.clockTextView.applyTitleVisibility(playerTitleStyle.clock.visible)
     val endsAtAvailable = playerTextStylePreviewActive || binding.endsAtTextView.visibility == View.VISIBLE
     binding.endsAtTextView.applyTitleVisibility(playerTitleStyle.endsAt.visible && endsAtAvailable)
+    syncPlayerTitleCombinedPanel()
 }
 
 private fun TextView.applyTitleVisibility(enabled: Boolean): Boolean {
