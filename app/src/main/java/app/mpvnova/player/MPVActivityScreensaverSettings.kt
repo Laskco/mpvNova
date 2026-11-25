@@ -2,13 +2,19 @@ package app.mpvnova.player
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.widget.ImageView
 import androidx.preference.PreferenceManager
 import app.mpvnova.player.databinding.DialogScreensaverTimeInputBinding
+import kotlin.math.max
 
 private const val SECONDS_PER_MINUTE = 60
 private const val SECONDS_PER_HOUR = 3600
+private const val SCREENSAVER_LOGO_MAX_DECODE_PX = 512
+private const val SCREENSAVER_LOGO_VIEWPORT_DIVISOR = 4
+private const val SCREENSAVER_LOGO_HALF = 2
 internal const val SCREENSAVER_CUSTOM_ID = "custom"
 internal const val SCREENSAVER_MIN_SEC = 5
 internal const val SCREENSAVER_MAX_SEC = 7200
@@ -79,14 +85,54 @@ internal fun MPVActivity.applyScreensaverLogo(logo: ImageView) {
     val customUri = prefs.getString(PREF_SCREENSAVER_LOGO_URI, null)?.takeIf { it.isNotBlank() }
     screensaverTintEnabled = prefs.getBoolean(PREF_SCREENSAVER_TINT, customUri == null)
 
-    if (customUri != null) {
-        runCatching { logo.setImageURI(Uri.parse(customUri)) }
-        if (logo.drawable == null) logo.setImageResource(R.drawable.dvd_logo)
-    } else {
-        logo.setImageResource(R.drawable.dvd_logo)
-    }
+    logo.setImageResource(R.drawable.dvd_logo)
+    logo.tag = customUri
     if (!screensaverTintEnabled) logo.imageTintList = null
+    if (customUri == null) return
+
+    val appContext = applicationContext
+    val targetMaxPx = (resources.displayMetrics.widthPixels / SCREENSAVER_LOGO_VIEWPORT_DIVISOR)
+        .coerceIn(SCREENSAVER_LOGO_MAX_DECODE_PX / SCREENSAVER_LOGO_HALF, SCREENSAVER_LOGO_MAX_DECODE_PX)
+    Thread(
+        {
+            val decoded = decodeSampledScreensaverBitmap(appContext, customUri, targetMaxPx) ?: return@Thread
+            logo.post {
+                if (activityIsDestroying || isDestroyed || !screensaverActive || logo.tag != customUri) {
+                    decoded.recycle()
+                    return@post
+                }
+                logo.setImageBitmap(decoded)
+                fitScreensaverLogoBounds(logo)
+            }
+        },
+        "mpvNova-screensaver-logo",
+    ).apply {
+        isDaemon = true
+        start()
+    }
 }
+
+private fun decodeSampledScreensaverBitmap(
+    context: Context,
+    uriString: String,
+    maxDimensionPx: Int,
+): Bitmap? = runCatching {
+    val uri = Uri.parse(uriString)
+    val resolver = context.contentResolver
+    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+    resolver.openInputStream(uri)?.use { stream ->
+        BitmapFactory.decodeStream(stream, null, bounds)
+    }
+    val rawMax = max(bounds.outWidth, bounds.outHeight)
+    var sampleSize = 1
+    while (rawMax > 0 && rawMax / (sampleSize * SCREENSAVER_LOGO_HALF) >= maxDimensionPx) {
+        sampleSize *= SCREENSAVER_LOGO_HALF
+    }
+    val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sampleSize }
+    resolver.openInputStream(uri)?.use { stream ->
+        BitmapFactory.decodeStream(stream, null, decodeOpts)
+    }
+}.getOrNull()
 
 internal fun MPVActivity.setScreensaverTintPref(enabled: Boolean) {
     PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()

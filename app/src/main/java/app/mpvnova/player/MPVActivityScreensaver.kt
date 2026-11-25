@@ -77,6 +77,9 @@ internal fun MPVActivity.startScreensaver() {
     drawerReopenScheduled = false
     playerDialogStack.toList().forEach { it.dismiss() }
     playerDialogStack.clear()
+    if (updateManagerDelegate.isInitialized()) {
+        inPlayerUpdateManager.clearHostedDialogs()
+    }
     hideControls()
     if (screensaverMode == ScreensaverMode.DIM) startDimScreensaver() else startLogoScreensaver()
 }
@@ -84,22 +87,15 @@ internal fun MPVActivity.startScreensaver() {
 private fun MPVActivity.startLogoScreensaver() {
     val overlay = binding.screensaverOverlay
     val logo = binding.screensaverLogo
+    logo.setLayerType(View.LAYER_TYPE_HARDWARE, null)
+    binding.screensaverScanlines.setLayerType(View.LAYER_TYPE_HARDWARE, null)
     applyScreensaverLogo(logo)
     val screenW = overlay.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
     val screenH = overlay.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
 
-    val logoW = (screenW * DVD_LOGO_WIDTH_FRACTION).toInt().coerceAtLeast(1)
-    val drawable = logo.drawable
-    val ratio = if (drawable != null && drawable.intrinsicWidth > 0) {
-        drawable.intrinsicHeight.toFloat() / drawable.intrinsicWidth
-    } else {
-        0.5f
-    }
-    val logoH = (logoW * ratio).toInt().coerceAtLeast(1)
-    logo.updateLayoutParams<FrameLayout.LayoutParams> {
-        width = logoW
-        height = logoH
-    }
+    fitScreensaverLogoBounds(logo, screenW)
+    val logoW = logo.layoutParams.width.coerceAtLeast(1)
+    val logoH = logo.layoutParams.height.coerceAtLeast(1)
 
     dvdX = Random.nextInt(0, (screenW - logoW).coerceAtLeast(1)).toFloat()
     dvdY = Random.nextInt(0, (screenH - logoH).coerceAtLeast(1)).toFloat()
@@ -174,14 +170,29 @@ private fun MPVActivity.tintScreensaverLogo() {
     binding.screensaverLogo.imageTintList = DVD_TINT_LISTS[next]
 }
 
+internal fun MPVActivity.fitScreensaverLogoBounds(logo: android.widget.ImageView, containerWidthPx: Int = 0) {
+    val screenW = containerWidthPx.takeIf { it > 0 }
+        ?: binding.screensaverOverlay.width.takeIf { it > 0 }
+        ?: resources.displayMetrics.widthPixels
+    val logoW = (screenW * DVD_LOGO_WIDTH_FRACTION).toInt().coerceAtLeast(1)
+    val drawable = logo.drawable
+    val ratio = if (drawable != null && drawable.intrinsicWidth > 0) {
+        drawable.intrinsicHeight.toFloat() / drawable.intrinsicWidth
+    } else {
+        0.5f
+    }
+    val logoH = (logoW * ratio).toInt().coerceAtLeast(1)
+    if (logo.layoutParams.width != logoW || logo.layoutParams.height != logoH) {
+        logo.updateLayoutParams<FrameLayout.LayoutParams> {
+            width = logoW
+            height = logoH
+        }
+    }
+}
+
 internal fun MPVActivity.wakeFromScreensaver() {
     if (!screensaverActive) return
-    screensaverActive = false
-    Choreographer.getInstance().removeFrameCallback(screensaverFrameCallback)
-    val overlay = binding.screensaverOverlay
-    overlay.animate().cancel()
-    overlay.setVisibilityIfChanged(View.GONE)
-    teardownDimScreensaver()
+    stopScreensaverOverlay()
     scheduleScreensaver()
 }
 
@@ -192,10 +203,16 @@ internal fun MPVActivity.cancelScreensaver() {
     }
     screensaverWaking = false
     if (!screensaverActive) return
+    stopScreensaverOverlay()
+}
+
+private fun MPVActivity.stopScreensaverOverlay() {
     screensaverActive = false
     Choreographer.getInstance().removeFrameCallback(screensaverFrameCallback)
     val overlay = binding.screensaverOverlay
     overlay.animate().cancel()
     overlay.setVisibilityIfChanged(View.GONE)
+    binding.screensaverLogo.setLayerType(View.LAYER_TYPE_NONE, null)
+    binding.screensaverScanlines.setLayerType(View.LAYER_TYPE_NONE, null)
     teardownDimScreensaver()
 }

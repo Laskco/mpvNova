@@ -3,6 +3,7 @@ package app.mpvnova.player
 import android.graphics.Color
 import android.view.View
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.sin
 
 // A translucent grey scrim so the paused frame stays faintly visible underneath.
@@ -13,12 +14,17 @@ private const val SCREENSAVER_CLOCK_Z_DP = 8f
 private const val CRT_FLICKER_BASE_ALPHA = 0.85f
 private const val CRT_FLICKER_AMPLITUDE = 0.06f
 private const val CRT_FLICKER_HZ = 1.6f
+private const val CRT_FLICKER_ALPHA_EPSILON = 0.004f
 
 // Gentle sine flicker on the scanline layer so the CRT look "breathes" a little.
 internal fun MPVActivity.flickerScreensaverCrt(frameTimeNanos: Long) {
     val t = frameTimeNanos / 1_000_000_000.0
     val wobble = sin(t * 2.0 * PI * CRT_FLICKER_HZ).toFloat() * CRT_FLICKER_AMPLITUDE
-    binding.screensaverScanlines.alpha = (CRT_FLICKER_BASE_ALPHA + wobble).coerceIn(0f, 1f)
+    val newAlpha = (CRT_FLICKER_BASE_ALPHA + wobble).coerceIn(0f, 1f)
+    val scanlines = binding.screensaverScanlines
+    if (abs(scanlines.alpha - newAlpha) >= CRT_FLICKER_ALPHA_EPSILON) {
+        scanlines.alpha = newAlpha
+    }
 }
 
 internal fun MPVActivity.startDimScreensaver() {
