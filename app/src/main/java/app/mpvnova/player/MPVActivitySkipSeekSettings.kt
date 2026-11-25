@@ -81,6 +81,7 @@ internal fun MPVActivity.pickSkipButtonDisplay(onDismiss: () -> Unit) {
 
 internal fun MPVActivity.setSkipMode(kind: SkipSegmentKind, mode: SkipSegmentsMode) {
     segmentSkipModes = segmentSkipModes + (kind to mode)
+    syncHasActiveSkipSegments()
     hideSkipButton()
     PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
         .putString(kind.preferenceKey, mode.prefValue).apply()

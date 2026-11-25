@@ -5,7 +5,9 @@ import android.media.session.MediaSession
 import android.os.SystemClock
 import android.view.KeyEvent
 import androidx.core.content.IntentCompat
+import java.lang.ref.WeakReference
 import java.util.Locale
+import java.util.WeakHashMap
 
 internal fun MPVActivity.initMediaSession(): MediaSession {
     val session = MediaSession(this, MPV_ACTIVITY_TAG)
@@ -57,16 +59,61 @@ internal fun MPVActivity.updateMediaSessionNow() {
 // Property → UI handler tables. Observed properties without an entry are
 // not posted to the UI unless they also changed displayed metadata.
 
+private const val TRACK_LIST_PENDING_STALE_MS = 500L
+
+private class TrackListUiCoalescer(activity: MPVActivity) {
+    private val activityRef = WeakReference(activity)
+    @Volatile var pending = false
+    @Volatile var scheduledAtUptimeMs = 0L
+
+    val runnable = Runnable {
+        pending = false
+        val target = activityRef.get() ?: return@Runnable
+        if (!target.activityIsForeground || target.activityIsDestroying) return@Runnable
+        target.runTrackListUiUpdate()
+    }
+}
+
+private val trackListUiCoalescers = WeakHashMap<MPVActivity, TrackListUiCoalescer>()
+
+private fun MPVActivity.trackListUiCoalescer(): TrackListUiCoalescer =
+    synchronized(trackListUiCoalescers) {
+        trackListUiCoalescers.getOrPut(this) { TrackListUiCoalescer(this) }
+    }
+
+private fun MPVActivity.runTrackListUiUpdate() {
+    player.invalidateHi10pH264Cache()
+    player.loadTracks()
+    refreshSubPickerAfterTrackChange(tracksChanged = true)
+    refreshCompanionSubtitleStyle()
+    refreshSubWidthAssOverrides()
+    applyFireTvVideoEdgeCropIfNeeded()
+    maybeApplyShieldHi10pFallback()
+}
+
+private fun MPVActivity.scheduleTrackListUiRefresh() {
+    val coalescer = trackListUiCoalescer()
+    val now = SystemClock.uptimeMillis()
+    synchronized(coalescer) {
+        if (coalescer.pending && now - coalescer.scheduledAtUptimeMs < TRACK_LIST_PENDING_STALE_MS) {
+            return
+        }
+        coalescer.pending = true
+        coalescer.scheduledAtUptimeMs = now
+    }
+    eventUiHandler.post(coalescer.runnable)
+}
+
+internal fun MPVActivity.cancelTrackListUiRefresh() {
+    val coalescer = synchronized(trackListUiCoalescers) { trackListUiCoalescers[this] } ?: return
+    synchronized(coalescer) {
+        coalescer.pending = false
+    }
+    eventUiHandler.removeCallbacks(coalescer.runnable)
+}
+
 private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "demuxer-cache-time" to { updatePlaybackBuffer() },
-    "track-list" to {
-        player.loadTracks()
-        refreshSubPickerAfterTrackChange(tracksChanged = true)
-        refreshCompanionSubtitleStyle()
-        refreshSubWidthAssOverrides()
-        applyFireTvVideoEdgeCropIfNeeded()
-        maybeApplyShieldHi10pFallback()
-    },
     "current-tracks/audio/selected" to {
         updateAudioUI()
         maybeApplyShieldHi10pFallback()
@@ -81,6 +128,7 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
         maybeApplyShieldHi10pFallback()
     },
     "hwdec-current" to {
+        player.invalidateHi10pH264Cache()
         if (!mpvGetPropertyString("hwdec-current").isNullOrBlank())
             gpuNextFallbackState.clearHardwareDecoderRejected()
         updateDecoderButton()
@@ -106,6 +154,7 @@ private val STRING_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
     "speed" to { updateSpeedButton() },
     "video-params/gamma" to { applyFireTvVideoEdgeCropIfNeeded() },
     "current-vo" to {
+        player.invalidateHi10pH264Cache()
         updateDecoderButton()
     },
 )
@@ -120,8 +169,15 @@ private val BOOLEAN_UI_HANDLERS: Map<String, MPVActivity.(Boolean) -> Unit> = ma
     "mute" to { _ -> updateAudioUI() },
 )
 
-internal fun MPVActivity.postMetadataPropertyUi(property: String, metaUpdated: Boolean) =
+internal fun MPVActivity.postMetadataPropertyUi(property: String, metaUpdated: Boolean) {
+    if (property == "track-list") {
+        player.invalidateHi10pH264Cache()
+        scheduleTrackListUiRefresh()
+        if (metaUpdated) scheduleMetadataUiRefresh()
+        return
+    }
     postPropertyUi(METADATA_UI_HANDLERS[property], metaUpdated)
+}
 
 internal fun MPVActivity.postBooleanPropertyUi(property: String, value: Boolean) {
     val handler = BOOLEAN_UI_HANDLERS[property] ?: return

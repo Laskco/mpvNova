@@ -83,6 +83,7 @@ private fun MPVActivity.setupAudioSessionId() {
 
 /** onDestroy: drop scheduled callbacks + clear coalescing flags. */
 internal fun MPVActivity.cancelAllScheduledWork() {
+    cancelTrackListUiRefresh()
     cancelSkipButtonAutoHide()
     cancelPendingDpadLongClick()
     binding.controls.removeCallbacks(subtitleControlsPositionRunnable)

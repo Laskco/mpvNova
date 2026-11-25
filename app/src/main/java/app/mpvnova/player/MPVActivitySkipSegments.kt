@@ -39,9 +39,13 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
         emptyList()
     }
 
-    hasActiveSkipSegments = skipSegments.isNotEmpty()
+    syncHasActiveSkipSegments()
     if (skipSegments.isNotEmpty())
         Log.d(MPV_ACTIVITY_TAG, "Loaded ${skipSegments.size} skip segment(s)")
+}
+
+internal fun MPVActivity.syncHasActiveSkipSegments() {
+    hasActiveSkipSegments = skipSegments.any { it.mode(segmentSkipModes) != SkipSegmentsMode.OFF }
 }
 
 /**
@@ -51,6 +55,10 @@ internal fun MPVActivity.parseSkipSegments(extras: Bundle?) {
  *  - BUTTON: show the Skip button for a new or rewind-rearmed segment.
  */
 internal fun MPVActivity.maybeAutoSkipSegments(posSec: Double) {
+    if (!hasActiveSkipSegments) {
+        hideSkipButton()
+        return
+    }
     if (!skipSegmentPlaybackReady || !posSec.isFinite() || posSec < 0.0) return
     rearmSkippedSegmentsAfterRewind(posSec)
     val seg = skipSegments.firstOrNull { segment ->

@@ -19,6 +19,7 @@ internal fun MPVActivity.readPlaybackSettings(
     noUIPauseMode = getString("no_ui_pause", R.string.pref_no_ui_pause_default)
     shouldSavePosition = prefs.getBoolean("save_position", true)
     segmentSkipModes = readSegmentSkipModes(values)
+    syncHasActiveSkipSegments()
     skipButtonDisplayMode = SkipButtonDisplayMode.fromPref(prefs.getString("skip_button_display", "segment"))
     seekStepMs = readSeekStepSeconds(prefs) * MILLIS_PER_SECOND_LONG
     seekKeysUseInputConf = prefs.getBoolean("seek_keys_use_inputconf", false)
