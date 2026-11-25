@@ -4,7 +4,6 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.StringRes
-import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import app.mpvnova.player.databinding.DialogOptionPickerBinding
 import app.mpvnova.player.databinding.DialogSettingOptionItemBinding
@@ -84,11 +83,12 @@ internal class OptionPickerDialog(
             }
 
             fun bind(item: Item) = with(binding) {
-                root.isActivated = item.selected
-                optionTitleText.text = item.title
-                optionDetailText.text = item.detail
-                optionDetailText.isVisible = item.detail.isNotBlank()
-                optionCheck.isVisible = item.selected
+                if (root.isActivated != item.selected) root.isActivated = item.selected
+                optionTitleText.setTextIfChanged(item.title)
+                val hasDetail = item.detail.isNotBlank()
+                optionDetailText.setVisibilityIfChanged(if (hasDetail) View.VISIBLE else View.GONE)
+                if (hasDetail) optionDetailText.setTextIfChanged(item.detail)
+                optionCheck.setVisibilityIfChanged(if (item.selected) View.VISIBLE else View.GONE)
                 UiFont.applyWeight(optionTitleText, bold = item.selected)
             }
         }

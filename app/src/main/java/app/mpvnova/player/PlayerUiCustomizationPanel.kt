@@ -38,7 +38,6 @@ internal fun MPVActivity.openPlayerUiCustomizationPanel() {
         reopenDrawerIfPending()
     }
     controller.bind()
-    UiFont.applyToViewTree(panel.root)
     showWidePlayerDialog(
         dialog,
         PlayerDialogLayout(
@@ -64,7 +63,19 @@ private class PlayerUiCustomizationPanelController(
 ) {
     private var tab = PlayerUiEditorTab.PRESETS
     private val history = PlayerAppearanceEditHistory(activity.playerUiCustomization.normalized())
+    private val tabContainers = mutableMapOf<PlayerUiEditorTab, LinearLayout>()
+    private val tabButtons = mapOf(
+        PlayerUiEditorTab.PRESETS to panel.playerUiPresetTab,
+        PlayerUiEditorTab.SURFACE to panel.playerUiSurfaceTab,
+        PlayerUiEditorTab.LAYOUT to panel.playerUiLayoutTab,
+        PlayerUiEditorTab.CONTROLS to panel.playerUiControlsTab,
+    )
     private val editorControlViews = mutableListOf<EditorControlView>()
+    private val builtInPresetButtons = mutableListOf<Pair<PlayerUiPreset, Button>>()
+    private val customPresetButtons = mutableListOf<Pair<PlayerUiCustomPreset, Button>>()
+    private var customPresetsSection: LinearLayout? = null
+    private var controlsContainer: LinearLayout? = null
+    private val controlRows = mutableMapOf<PlayerBarControl, DialogPlayerUiControlRowBinding>()
     private var customPresets = PlayerUiCustomPresetStore.read(preferences)
     private var activeCustomPresetName = customPresets
         .firstOrNull { it.style == activity.playerUiCustomization.normalized() }
@@ -116,6 +127,7 @@ private class PlayerUiCustomizationPanelController(
                 activity.presetTransfer.importPlayerBar { preset, savedPresets ->
                     customPresets = savedPresets
                     activeCustomPresetName = preset.name
+                    rebuildCustomPresetsSection()
                     applyStyle(preset.style)
                 }
             },
@@ -124,45 +136,71 @@ private class PlayerUiCustomizationPanelController(
 
     private fun select(selected: PlayerUiEditorTab) {
         tab = selected
-        mapOf(
-            PlayerUiEditorTab.PRESETS to panel.playerUiPresetTab,
-            PlayerUiEditorTab.SURFACE to panel.playerUiSurfaceTab,
-            PlayerUiEditorTab.LAYOUT to panel.playerUiLayoutTab,
-            PlayerUiEditorTab.CONTROLS to panel.playerUiControlsTab,
-        ).forEach { (candidate, button) ->
-            button.isSelected = candidate == selected
-            button.isActivated = candidate == selected
+        tabButtons.forEach { (candidate, button) ->
+            val isActive = candidate == selected
+            if (button.isSelected != isActive) button.isSelected = isActive
+            if (button.isActivated != isActive) button.isActivated = isActive
         }
-        render()
+        if (selected !in tabContainers) {
+            tabContainers[selected] = buildTabContainer(selected)
+        }
+        tabContainers.forEach { (candidate, container) ->
+            container.setVisibilityIfChanged(if (candidate == selected) View.VISIBLE else View.GONE)
+        }
+        updateTabInPlace(selected)
+        renderPresetFooter()
         panel.playerUiScroll.scrollTo(0, 0)
     }
 
-    private fun render(focusTag: String? = null) {
-        editorControlViews.clear()
-        panel.playerUiContent.removeAllViews()
-        when (tab) {
-            PlayerUiEditorTab.PRESETS -> renderPresets()
-            PlayerUiEditorTab.SURFACE -> renderSurface()
-            PlayerUiEditorTab.LAYOUT -> renderLayout()
-            PlayerUiEditorTab.CONTROLS -> renderControls()
+    private fun buildTabContainer(targetTab: PlayerUiEditorTab): LinearLayout {
+        val container = LinearLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            orientation = LinearLayout.VERTICAL
         }
-        renderPresetFooter()
-        UiFont.applyToViewTree(panel.playerUiContent)
-        if (focusTag != null) {
-            panel.playerUiContent.findViewWithTag<View>(focusTag)?.requestFocus()
+        panel.playerUiContent.addView(container)
+        when (targetTab) {
+            PlayerUiEditorTab.PRESETS -> buildPresetsTab(container)
+            PlayerUiEditorTab.SURFACE -> buildSurfaceTab(container)
+            PlayerUiEditorTab.LAYOUT -> buildLayoutTab(container)
+            PlayerUiEditorTab.CONTROLS -> buildControlsTab(container)
+        }
+        return container
+    }
+
+    private fun updateBuiltTabsInPlace() {
+        tabContainers.keys.forEach(::updateTabInPlace)
+    }
+
+    private fun updateTabInPlace(targetTab: PlayerUiEditorTab) {
+        when (targetTab) {
+            PlayerUiEditorTab.PRESETS -> updatePresetsInPlace()
+            PlayerUiEditorTab.SURFACE, PlayerUiEditorTab.LAYOUT -> editorControlViews.forEach { controlView ->
+                controlView.binding.titleStyleControlValue.setTextIfChanged(controlView.control.value())
+            }
+            PlayerUiEditorTab.CONTROLS -> updateControlsInPlace()
         }
     }
 
-    private fun renderPresets() {
-        addSectionHeading(R.string.player_ui_section_built_in_presets, false)
-        renderBuiltInPresets()
-        if (customPresets.isNotEmpty()) {
-            addSectionHeading(R.string.player_ui_section_saved_presets, true)
-            renderCustomPresets()
+    private fun buildPresetsTab(container: LinearLayout) {
+        addSectionHeading(container, R.string.player_ui_section_built_in_presets, false)
+        buildBuiltInPresets(container)
+        val savedSection = LinearLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            orientation = LinearLayout.VERTICAL
         }
+        container.addView(savedSection)
+        customPresetsSection = savedSection
+        rebuildCustomPresetsSection()
+        updatePresetsInPlace()
     }
 
-    private fun renderBuiltInPresets() {
+    private fun buildBuiltInPresets(container: LinearLayout) {
         val presets = listOf(
             PlayerUiPreset.DEFAULT,
             PlayerUiPreset.MINIMAL,
@@ -172,68 +210,81 @@ private class PlayerUiCustomizationPanelController(
             PlayerUiPreset.EDGE_TO_EDGE,
         )
         presets.chunked(PRESETS_PER_ROW).forEach { presetRow ->
-            val row = newRow()
+            val row = newRow(container)
             presetRow.forEach { preset ->
-                val button = Button(activity).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, PRESET_BUTTON_HEIGHT_DP.dp(), 1f).apply {
-                        marginStart = 5.dp()
-                        marginEnd = 5.dp()
-                    }
-                    background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
-                    isAllCaps = false
-                    setTextColor(activity.getColor(R.color.tv_text))
-                    text = activity.getString(
-                        R.string.player_ui_preset_text_format,
-                        activity.getString(preset.labelRes()),
-                        activity.getString(preset.summaryRes()),
-                    )
-                    textSize = 11f
-                    gravity = Gravity.CENTER
-                    isSelected = playerUiPresetFor(activity.playerUiCustomization) == preset
-                    isActivated = isSelected
-                    tag = "preset:${preset.name}"
-                    setOnClickListener { view ->
-                        activeCustomPresetName = null
-                        applyStyle(playerUiPresetStyle(preset), view.tag as String)
-                    }
+                val text = activity.getString(
+                    R.string.player_ui_preset_text_format,
+                    activity.getString(preset.labelRes()),
+                    activity.getString(preset.summaryRes()),
+                )
+                val button = createPresetButton(text, "preset:${preset.name}") { view ->
+                    activeCustomPresetName = null
+                    applyStyle(playerUiPresetStyle(preset), view.tag as String)
                 }
                 row.addView(button)
+                builtInPresetButtons += preset to button
             }
         }
     }
 
-    private fun renderCustomPresets() {
+    private fun rebuildCustomPresetsSection() {
+        val section = customPresetsSection ?: return
+        customPresetButtons.clear()
+        section.removeAllViews()
+        if (customPresets.isEmpty()) {
+            section.setVisibilityIfChanged(View.GONE)
+            return
+        }
+        section.setVisibilityIfChanged(View.VISIBLE)
+        addSectionHeading(section, R.string.player_ui_section_saved_presets, true)
         customPresets.chunked(PRESETS_PER_ROW).forEach { presetRow ->
-            val row = newRow()
+            val row = newRow(section)
             presetRow.forEach { preset ->
-                val button = Button(activity).apply {
-                    layoutParams = LinearLayout.LayoutParams(0, PRESET_BUTTON_HEIGHT_DP.dp(), 1f).apply {
-                        marginStart = 5.dp()
-                        marginEnd = 5.dp()
-                    }
-                    background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
-                    isAllCaps = false
-                    setTextColor(activity.getColor(R.color.tv_text))
-                    text = activity.getString(
-                        R.string.player_ui_preset_text_format,
-                        preset.name,
-                        activity.getString(R.string.custom_preset_saved_summary),
-                    )
-                    textSize = 11f
-                    gravity = Gravity.CENTER
-                    isSelected = activeCustomPresetName.equals(preset.name, ignoreCase = true)
-                    isActivated = isSelected
-                    tag = "custom-preset:${preset.name}"
-                    setOnClickListener { view ->
-                        activeCustomPresetName = preset.name
-                        applyStyle(preset.style, view.tag as String)
-                    }
+                val text = activity.getString(
+                    R.string.player_ui_preset_text_format,
+                    preset.name,
+                    activity.getString(R.string.custom_preset_saved_summary),
+                )
+                val button = createPresetButton(text, "custom-preset:${preset.name}") { view ->
+                    activeCustomPresetName = preset.name
+                    applyStyle(preset.style, view.tag as String)
                 }
                 row.addView(button)
+                customPresetButtons += preset to button
             }
             repeat(PRESETS_PER_ROW - presetRow.size) {
                 row.addView(View(activity), LinearLayout.LayoutParams(0, 1, 1f))
             }
+        }
+    }
+
+    private fun createPresetButton(label: String, viewTag: String, onClick: (View) -> Unit) = Button(activity).apply {
+        layoutParams = LinearLayout.LayoutParams(0, PRESET_BUTTON_HEIGHT_DP.dp(), 1f).apply {
+            marginStart = 5.dp()
+            marginEnd = 5.dp()
+        }
+        background = AppCompatResources.getDrawable(activity, R.drawable.bg_player_title_style_tab)
+        isAllCaps = false
+        setTextColor(activity.getColor(R.color.tv_text))
+        text = label
+        textSize = SECTION_TEXT_SIZE_SP
+        gravity = Gravity.CENTER
+        tag = viewTag
+        UiFont.applyToTextView(this)
+        setOnClickListener(onClick)
+    }
+
+    private fun updatePresetsInPlace() {
+        val activeBuiltIn = playerUiPresetFor(activity.playerUiCustomization)
+        builtInPresetButtons.forEach { (preset, button) ->
+            val selected = activeBuiltIn == preset
+            if (button.isSelected != selected) button.isSelected = selected
+            if (button.isActivated != selected) button.isActivated = selected
+        }
+        customPresetButtons.forEach { (preset, button) ->
+            val selected = activeCustomPresetName.equals(preset.name, ignoreCase = true)
+            if (button.isSelected != selected) button.isSelected = selected
+            if (button.isActivated != selected) button.isActivated = selected
         }
     }
 
@@ -248,9 +299,15 @@ private class PlayerUiCustomizationPanelController(
             }?.let { activity.getString(it.labelRes()) }
                 ?: activity.getString(R.string.custom_preset_unsaved)
         }
-        panel.playerUiPresetValue.text = label
-        panel.playerUiPresetDeleteBtn.isEnabled = saved != null
-        panel.playerUiPresetDeleteBtn.alpha = if (saved != null) 1f else DISABLED_ACTION_ALPHA
+        panel.playerUiPresetValue.setTextIfChanged(label)
+        val hasSaved = saved != null
+        if (panel.playerUiPresetDeleteBtn.isEnabled != hasSaved) {
+            panel.playerUiPresetDeleteBtn.isEnabled = hasSaved
+        }
+        val targetAlpha = if (hasSaved) 1f else DISABLED_ACTION_ALPHA
+        if (panel.playerUiPresetDeleteBtn.alpha != targetAlpha) {
+            panel.playerUiPresetDeleteBtn.alpha = targetAlpha
+        }
     }
 
     private fun cyclePreset(delta: Int) {
@@ -295,7 +352,9 @@ private class PlayerUiCustomizationPanelController(
             customPresets = savedPresets
             activeCustomPresetName = name
             activity.showToast(activity.getString(R.string.custom_preset_saved), name)
-            render()
+            rebuildCustomPresetsSection()
+            updatePresetsInPlace()
+            renderPresetFooter()
         }
     }
 
@@ -306,10 +365,13 @@ private class PlayerUiCustomizationPanelController(
         PlayerUiCustomPresetStore.write(preferences, customPresets)
         activeCustomPresetName = null
         activity.showToast(activity.getString(R.string.custom_preset_deleted), name)
-        render()
+        rebuildCustomPresetsSection()
+        updatePresetsInPlace()
+        renderPresetFooter()
     }
 
-    private fun renderSurface() = renderEditorSections(
+    private fun buildSurfaceTab(container: LinearLayout) = renderEditorSections(
+        container,
         listOf(
             EditorSection(R.string.player_ui_section_background, surfaceColorControls()),
             EditorSection(R.string.player_ui_section_shape, surfaceShapeControls()),
@@ -402,7 +464,8 @@ private class PlayerUiCustomizationPanelController(
             },
     )
 
-    private fun renderLayout() = renderEditorSections(
+    private fun buildLayoutTab(container: LinearLayout) = renderEditorSections(
+        container,
         listOf(
             EditorSection(R.string.player_ui_section_panel_layout, layoutGeometryControls()),
             EditorSection(R.string.player_ui_section_panel_spacing, layoutSpacingControls()),
@@ -739,16 +802,16 @@ private class PlayerUiCustomizationPanelController(
 
     private fun scalePercent(value: Int) = activity.getString(R.string.player_ui_value_percent, value)
 
-    private fun renderEditorSections(sections: List<EditorSection>) {
+    private fun renderEditorSections(container: LinearLayout, sections: List<EditorSection>) {
         sections.forEachIndexed { index, section ->
-            addSectionHeading(section.labelRes, index > 0)
-            renderEditorControls(section.controls)
+            addSectionHeading(container, section.labelRes, index > 0)
+            renderEditorControls(container, section.controls)
         }
     }
 
-    private fun renderEditorControls(controls: List<EditorControl>) {
+    private fun renderEditorControls(container: LinearLayout, controls: List<EditorControl>) {
         controls.chunked(CONTROLS_PER_ROW).forEach { chunk ->
-            val row = newRow()
+            val row = newRow(container)
             chunk.forEach { control ->
                 val binding = DialogPlayerTitleStyleControlBinding.inflate(
                     LayoutInflater.from(activity), row, false,
@@ -772,57 +835,83 @@ private class PlayerUiCustomizationPanelController(
         }
     }
 
-    private fun renderControls() {
-        addSectionHeading(R.string.player_ui_section_button_order, false)
+    private fun buildControlsTab(container: LinearLayout) {
+        addSectionHeading(container, R.string.player_ui_section_button_order, false)
+        val rowsHost = LinearLayout(activity).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            orientation = LinearLayout.VERTICAL
+        }
+        container.addView(rowsHost)
+        controlsContainer = rowsHost
+        controlRows.clear()
+        val inflater = LayoutInflater.from(activity)
         activity.playerUiCustomization.controlOrder.forEach { control ->
-            val row = DialogPlayerUiControlRowBinding.inflate(
-                LayoutInflater.from(activity), panel.playerUiContent, false,
-            )
-            row.playerUiControlLabel.setText(control.labelRes)
-            row.playerUiControlVisibility.text = activity.getString(
-                when {
-                    !control.canHide -> R.string.player_ui_control_protected
-                    activity.playerUiCustomization.isControlVisible(control) -> R.string.player_ui_control_shown
-                    else -> R.string.player_ui_control_hidden
-                },
-            )
-            row.playerUiControlVisibility.isEnabled = true
-            row.playerUiControlVisibility.isClickable = control.canHide
-            row.playerUiControlVisibility.isFocusable = true
-            row.playerUiControlVisibility.isChecked =
-                activity.playerUiCustomization.isControlVisible(control)
-            row.playerUiControlVisibility.alpha = if (control.canHide) {
-                1f
-            } else {
-                PROTECTED_CONTROL_ALPHA
+            val row = inflateControlRow(inflater, rowsHost, control)
+            controlRows[control] = row
+            rowsHost.addView(row.root)
+        }
+        updateControlsInPlace()
+    }
+
+    private fun inflateControlRow(
+        inflater: LayoutInflater,
+        parent: LinearLayout,
+        control: PlayerBarControl,
+    ): DialogPlayerUiControlRowBinding {
+        val row = DialogPlayerUiControlRowBinding.inflate(inflater, parent, false)
+        row.playerUiControlLabel.setText(control.labelRes)
+        row.playerUiControlVisibility.isEnabled = true
+        row.playerUiControlVisibility.isClickable = control.canHide
+        row.playerUiControlVisibility.isFocusable = true
+        row.playerUiControlVisibility.alpha = if (control.canHide) 1f else PROTECTED_CONTROL_ALPHA
+        row.playerUiControlVisibility.tag = "control:${control.prefValue}:visibility"
+        row.playerUiControlLeft.tag = "control:${control.prefValue}:up"
+        row.playerUiControlRight.tag = "control:${control.prefValue}:down"
+        if (control.canHide) {
+            row.playerUiControlVisibility.setOnClickListener { view ->
+                val hidden = activity.playerUiCustomization.hiddenControls.toMutableSet()
+                if (!hidden.add(control)) hidden.remove(control)
+                applyStyle(
+                    activity.playerUiCustomization.copy(hiddenControls = hidden),
+                    view.tag as String,
+                )
             }
-            row.playerUiControlVisibility.tag = "control:${control.prefValue}:visibility"
-            row.playerUiControlLeft.tag = "control:${control.prefValue}:up"
-            row.playerUiControlRight.tag = "control:${control.prefValue}:down"
-            row.playerUiControlVisibility.setOnClickListener(
-                if (control.canHide) {
-                    View.OnClickListener { view ->
-                        val hidden = activity.playerUiCustomization.hiddenControls.toMutableSet()
-                        if (!hidden.add(control)) hidden.remove(control)
-                        applyStyle(
-                            activity.playerUiCustomization.copy(hiddenControls = hidden),
-                            view.tag as String,
-                        )
-                    }
-                } else {
-                    null
-                },
-            )
-            val position = activity.playerUiCustomization.controlOrder.indexOf(control)
-            row.playerUiControlLeft.isEnabled = position > 0
-            row.playerUiControlRight.isEnabled = position < activity.playerUiCustomization.controlOrder.lastIndex
-            row.playerUiControlLeft.setOnClickListener { view ->
-                moveControl(control, -1, view.tag as String)
+        }
+        row.playerUiControlLeft.setOnClickListener { view -> moveControl(control, -1, view.tag as String) }
+        row.playerUiControlRight.setOnClickListener { view -> moveControl(control, 1, view.tag as String) }
+        return row
+    }
+
+    private fun updateControlsInPlace() {
+        val host = controlsContainer ?: return
+        val order = activity.playerUiCustomization.controlOrder
+        order.forEachIndexed { index, control ->
+            val row = controlRows[control] ?: return@forEachIndexed
+            if (host.getChildAt(index) !== row.root) {
+                if (row.root.parent === host) host.removeView(row.root)
+                host.addView(row.root, index)
             }
-            row.playerUiControlRight.setOnClickListener { view ->
-                moveControl(control, 1, view.tag as String)
+            val visible = activity.playerUiCustomization.isControlVisible(control)
+            val statusRes = when {
+                !control.canHide -> R.string.player_ui_control_protected
+                visible -> R.string.player_ui_control_shown
+                else -> R.string.player_ui_control_hidden
             }
-            panel.playerUiContent.addView(row.root)
+            row.playerUiControlVisibility.setTextIfChanged(activity.getString(statusRes))
+            if (row.playerUiControlVisibility.isChecked != visible) {
+                row.playerUiControlVisibility.isChecked = visible
+            }
+            val canMoveUp = index > 0
+            if (row.playerUiControlLeft.isEnabled != canMoveUp) {
+                row.playerUiControlLeft.isEnabled = canMoveUp
+            }
+            val canMoveDown = index < order.lastIndex
+            if (row.playerUiControlRight.isEnabled != canMoveDown) {
+                row.playerUiControlRight.isEnabled = canMoveDown
+            }
         }
     }
 
@@ -841,28 +930,25 @@ private class PlayerUiCustomizationPanelController(
         history.record(activity.playerUiCustomization)
         PlayerUiCustomizationStore.write(preferences, activity.playerUiCustomization)
         activity.applyPlayerUiCustomization()
-        if (focusTag?.startsWith(EDITOR_FOCUS_TAG_PREFIX) == true) {
-            editorControlViews.forEach { controlView ->
-                controlView.binding.titleStyleControlValue.setTextIfChanged(controlView.control.value())
-            }
-            renderPresetFooter()
-        } else {
-            render(focusTag)
+        updateBuiltTabsInPlace()
+        renderPresetFooter()
+        if (focusTag != null && !focusTag.startsWith(EDITOR_FOCUS_TAG_PREFIX)) {
+            tabContainers[tab]?.findViewWithTag<View>(focusTag)?.requestFocus()
         }
     }
 
-    private fun newRow() = LinearLayout(activity).apply {
+    private fun newRow(parent: LinearLayout) = LinearLayout(activity).apply {
         layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT,
         )
         orientation = LinearLayout.HORIZONTAL
         setPadding(0, ROW_PADDING_DP.dp(), 0, ROW_PADDING_DP.dp())
-        panel.playerUiContent.addView(this)
+        parent.addView(this)
     }
 
-    private fun addSectionHeading(@StringRes labelRes: Int, hasTopGap: Boolean) {
-        panel.playerUiContent.addView(TextView(activity).apply {
+    private fun addSectionHeading(parent: LinearLayout, @StringRes labelRes: Int, hasTopGap: Boolean) {
+        parent.addView(TextView(activity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -874,6 +960,7 @@ private class PlayerUiCustomizationPanelController(
             setTextColor(activity.themedColor(R.attr.mpvAccentHot, R.color.tv_purple_hot))
             setTypeface(typeface, Typeface.BOLD)
             textSize = SECTION_TEXT_SIZE_SP
+            UiFont.applyToTextView(this)
         })
     }
 

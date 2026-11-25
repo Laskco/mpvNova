@@ -214,18 +214,12 @@
             android:scrollbars="vertical">
 
             <LinearLayout
+                android:id="@+id/titleStyleControlsContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingStart="0dp"
-                android:paddingEnd="8dp">
-
-                <LinearLayout
-                    android:id="@+id/titleStyleControlsContainer"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical" />
-            </LinearLayout>
+                android:paddingEnd="8dp" />
         </app.mpvnova.player.TvSmoothScrollView>
     </FrameLayout>
 

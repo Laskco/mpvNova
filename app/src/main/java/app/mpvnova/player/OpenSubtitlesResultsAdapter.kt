@@ -22,13 +22,18 @@ internal class OpenSubtitlesResultsAdapter(
     private var downloadedIds: Set<Int> = emptySet()
     private var cachedRowHeight = 0
     private var cachedFontKey: String? = null
+    private var unnamedLabel: String? = null
+    private var downloadedLabel: String? = null
+    private var hearingImpairedLabel: String? = null
+    private var hashMatchLabel: String? = null
 
     fun setDownloadedIds(ids: Set<Int>) {
         downloadedIds = ids.toSet()
         notifyDataSetChanged()
     }
 
-    fun replace(items: List<OpenSubtitlesResult>) {
+    fun replace(items: List<OpenSubtitlesResult>, ids: Set<Int>? = null) {
+        if (ids != null) downloadedIds = ids.toSet()
         results.clear()
         results.addAll(items)
         notifyDataSetChanged()
@@ -65,13 +70,14 @@ internal class OpenSubtitlesResultsAdapter(
 
         val item = getItem(position)
         val context = parent.context
+        ensureLabels(context)
         holder.name.setTextIfChanged(
-            cleanText(item.fileName).ifBlank { context.getString(R.string.os_search_unnamed) },
+            cleanText(item.fileName).ifBlank { unnamedLabel.orEmpty() },
         )
         val releaseText = cleanText(item.release)
         holder.release.setTextIfChanged(releaseText)
         holder.release.setVisibilityIfChanged(if (releaseText.isEmpty()) View.INVISIBLE else View.VISIBLE)
-        holder.meta.setTextIfChanged(formatMeta(context, item))
+        holder.meta.setTextIfChanged(formatMeta(item))
 
         val fontKey = UiFont.currentValue(context)
         if (cachedRowHeight <= 0 || cachedFontKey != fontKey) {
@@ -94,17 +100,25 @@ internal class OpenSubtitlesResultsAdapter(
         meta = row.findViewById(R.id.osResultMeta),
     )
 
-    private fun formatMeta(context: Context, item: OpenSubtitlesResult): String {
+    private fun ensureLabels(context: Context) {
+        if (unnamedLabel != null) return
+        unnamedLabel = context.getString(R.string.os_search_unnamed)
+        downloadedLabel = context.getString(R.string.os_search_downloaded)
+        hearingImpairedLabel = context.getString(R.string.os_search_hearing_impaired)
+        hashMatchLabel = context.getString(R.string.os_search_hash_match)
+    }
+
+    private fun formatMeta(item: OpenSubtitlesResult): String {
         val sb = StringBuilder()
-        fun appendPart(part: String) {
-            if (part.isBlank()) return
+        fun appendPart(part: String?) {
+            if (part.isNullOrBlank()) return
             if (sb.isNotEmpty()) sb.append(" / ")
             sb.append(part)
         }
         appendPart(cleanText(item.language))
-        if (item.fileId in downloadedIds) appendPart(context.getString(R.string.os_search_downloaded))
-        if (item.hearingImpaired) appendPart(context.getString(R.string.os_search_hearing_impaired))
-        if (item.hashMatched) appendPart(context.getString(R.string.os_search_hash_match))
+        if (item.fileId in downloadedIds) appendPart(downloadedLabel)
+        if (item.hearingImpaired) appendPart(hearingImpairedLabel)
+        if (item.hashMatched) appendPart(hashMatchLabel)
         return sb.toString()
     }
 

@@ -70,21 +70,12 @@
             android:paddingBottom="14dp"
             tools:ignore="NestedWeights">
 
-            <LinearLayout
-                android:id="@+id/listHeaderRow"
+            <TextView
+                android:id="@+id/listSectionTitle"
+                style="@style/MpvTv.TextSmallCaps"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:id="@+id/listSectionTitle"
-                    style="@style/MpvTv.TextSmallCaps"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/dialog_section_tracks" />
-            </LinearLayout>
+                android:text="@string/dialog_section_tracks" />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/list"

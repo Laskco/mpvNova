@@ -22,8 +22,16 @@ internal class ShaderManagerDialog(
     private val onChanged: () -> Unit,
     private val onDismiss: () -> Unit = {},
 ) {
+    private class ShaderRowHolder(
+        val binding: DialogShaderItemBinding,
+        var shader: UserShader,
+        var suppressCheck: Boolean = false,
+    )
+
     private val binding = DialogShaderManagerBinding.inflate(activity.layoutInflater)
     private val dialog = AlertDialog.Builder(activity).setView(binding.root).create()
+    private val rowHolders = mutableMapOf<String, ShaderRowHolder>()
+    private var emptyStateView: View? = null
 
     fun show() {
         bindActions()
@@ -62,55 +70,101 @@ internal class ShaderManagerDialog(
 
     private fun render(focusShaderId: String? = null) {
         val shaders = UserShaderManager.shaders(activity)
-        binding.shaderManagerRows.removeAllViews()
-        var focusView: View? = null
         if (shaders.isEmpty()) {
-            binding.shaderManagerRows.addView(emptyState())
+            renderEmptyRows()
         } else {
-            shaders.forEachIndexed { index, shader ->
-                val row = shaderRow(shader, index, shaders.lastIndex)
-                binding.shaderManagerRows.addView(row)
-                if (shader.id == focusShaderId) {
-                    focusView = row.findViewById(R.id.shaderEnabled)
-                }
-            }
+            renderShaderRows(shaders)
         }
         binding.shaderManagerDisableAll.isEnabled = shaders.any { it.enabled }
         binding.shaderManagerRefresh.isEnabled = UserShaderManager.hasRememberedFolders(activity)
         updateActionFocusOrder()
         renderStatus(shaders)
-        focusView?.let { target -> target.post { target.requestFocus() } }
+        if (focusShaderId != null) {
+            rowHolders[focusShaderId]?.binding?.shaderEnabled?.let { target ->
+                target.post { target.requestFocus() }
+            }
+        }
     }
 
-    private fun shaderRow(shader: UserShader, index: Int, lastIndex: Int): View {
+    private fun renderEmptyRows() {
+        rowHolders.clear()
+        val emptyView = emptyStateView ?: emptyState().also { emptyStateView = it }
+        if (binding.shaderManagerRows.childCount != 1 || binding.shaderManagerRows.getChildAt(0) !== emptyView) {
+            binding.shaderManagerRows.removeAllViews()
+            binding.shaderManagerRows.addView(emptyView)
+        }
+    }
+
+    private fun renderShaderRows(shaders: List<UserShader>) {
+        emptyStateView?.let { view ->
+            if (view.parent === binding.shaderManagerRows) binding.shaderManagerRows.removeView(view)
+        }
+        val activeIds = shaders.mapTo(HashSet(shaders.size)) { it.id }
+        val iterator = rowHolders.entries.iterator()
+        while (iterator.hasNext()) {
+            val entry = iterator.next()
+            if (entry.key !in activeIds) {
+                binding.shaderManagerRows.removeView(entry.value.binding.root)
+                iterator.remove()
+            }
+        }
+        shaders.forEachIndexed { index, shader ->
+            val holder = rowHolders.getOrPut(shader.id) { createRowHolder(shader) }
+            bindRowHolder(holder, shader, index, shaders.lastIndex)
+            val rowRoot = holder.binding.root
+            if (binding.shaderManagerRows.getChildAt(index) !== rowRoot) {
+                if (rowRoot.parent === binding.shaderManagerRows) {
+                    binding.shaderManagerRows.removeView(rowRoot)
+                }
+                binding.shaderManagerRows.addView(rowRoot, index)
+            }
+        }
+    }
+
+    private fun createRowHolder(initial: UserShader): ShaderRowHolder {
         val row = DialogShaderItemBinding.inflate(
             activity.layoutInflater,
             binding.shaderManagerRows,
             false,
         )
-        row.shaderEnabled.text = shader.displayName
-        row.shaderEnabled.isChecked = shader.enabled
+        val holder = ShaderRowHolder(row, initial)
         row.shaderEnabled.setOnCheckedChangeListener { _, checked ->
-            UserShaderManager.setShaderEnabled(activity, shader.id, checked)
+            if (holder.suppressCheck) return@setOnCheckedChangeListener
+            UserShaderManager.setShaderEnabled(activity, holder.shader.id, checked)
             notifyChanged()
             val updated = UserShaderManager.shaders(activity)
             updateActionState(updated)
             renderStatus(updated)
         }
-        bindMoveButton(row.shaderMoveUp, index > 0, shader.id, -1)
-        bindMoveButton(row.shaderMoveDown, index < lastIndex, shader.id, 1)
-        row.shaderRemove.setOnClickListener { confirmRemove(shader) }
-        return row.root
+        row.shaderMoveUp.setOnClickListener { moveShader(holder.shader.id, -1) }
+        row.shaderMoveDown.setOnClickListener { moveShader(holder.shader.id, 1) }
+        row.shaderRemove.setOnClickListener { confirmRemove(holder.shader) }
+        return holder
     }
 
-    private fun bindMoveButton(button: ImageButton, enabled: Boolean, id: String, offset: Int) {
-        button.isEnabled = enabled
-        button.alpha = if (enabled) 1f else DISABLED_ALPHA
-        button.setOnClickListener {
-            UserShaderManager.move(activity, id, offset)
-            notifyChanged()
-            render(id)
+    private fun bindRowHolder(holder: ShaderRowHolder, shader: UserShader, index: Int, lastIndex: Int) {
+        holder.shader = shader
+        val row = holder.binding
+        row.shaderEnabled.setTextIfChanged(shader.displayName)
+        if (row.shaderEnabled.isChecked != shader.enabled) {
+            holder.suppressCheck = true
+            row.shaderEnabled.isChecked = shader.enabled
+            holder.suppressCheck = false
         }
+        updateMoveButton(row.shaderMoveUp, index > 0)
+        updateMoveButton(row.shaderMoveDown, index < lastIndex)
+    }
+
+    private fun moveShader(id: String, offset: Int) {
+        UserShaderManager.move(activity, id, offset)
+        notifyChanged()
+        render(id)
+    }
+
+    private fun updateMoveButton(button: ImageButton, enabled: Boolean) {
+        if (button.isEnabled != enabled) button.isEnabled = enabled
+        val targetAlpha = if (enabled) 1f else DISABLED_ALPHA
+        if (button.alpha != targetAlpha) button.alpha = targetAlpha
     }
 
     private fun emptyState(): View = TextView(activity).apply {

@@ -3,6 +3,7 @@ package app.mpvnova.player
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
 import app.mpvnova.player.databinding.DialogSubtitleStyleBinding
 
 internal class SubtitleStyleDialog {
@@ -63,9 +64,15 @@ internal class SubtitleStyleDialog {
     )
 
 
+    private class CachedTabGrid(
+        val container: LinearLayout,
+        val grid: SubtitleEditorGrid,
+    )
+
     private lateinit var binding: DialogSubtitleStyleBinding
     private var selectedTab = SubtitleEditorTab.TEXT
     private var grid: SubtitleEditorGrid? = null
+    private val tabGrids = mutableMapOf<Pair<SubtitleEditorTab, Int>, CachedTabGrid>()
     private var lastState: State? = null
     private var columns = 3
     private var tabButtons: Map<SubtitleEditorTab, Button> = emptyMap()
@@ -141,19 +148,42 @@ internal class SubtitleStyleDialog {
     private fun select(tab: SubtitleEditorTab) {
         selectedTab = tab
         tabButtons.forEach { (item, button) ->
-            button.isSelected = item == tab
-            button.isActivated = item == tab
+            val selected = item == tab
+            if (button.isSelected != selected) button.isSelected = selected
+            if (button.isActivated != selected) button.isActivated = selected
         }
-        grid = SubtitleEditorGrid(binding.styleContent, columns, ::adjust).also { editor ->
-            editor.build(tab, listOf(
-                R.string.sub_style_add_font to { onAddFont?.invoke() },
-                R.string.sub_style_remove_font to { onRemoveFont?.invoke() },
-                R.string.sub_style_edit_preset to { onEditPreset?.invoke() },
-                R.string.sub_style_delete_preset to { onDeletePreset?.invoke() },
-            ))
-            lastState?.let(editor::render)
+        val key = tab to columns
+        val cached = tabGrids.getOrPut(key) { buildTabGrid(tab) }
+        tabGrids.forEach { (entryKey, entry) ->
+            val targetVis = if (entryKey == key) View.VISIBLE else View.GONE
+            entry.container.setVisibilityIfChanged(targetVis)
         }
+        grid = cached.grid
+        lastState?.let(cached.grid::render)
         binding.styleScroll.scrollTo(0, 0)
+    }
+
+    private fun buildTabGrid(tab: SubtitleEditorTab): CachedTabGrid {
+        val container = LinearLayout(binding.styleContent.context).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+            )
+            orientation = LinearLayout.VERTICAL
+        }
+        binding.styleContent.addView(container)
+        val editor = SubtitleEditorGrid(container, columns, ::adjust).apply {
+            build(
+                tab,
+                listOf(
+                    R.string.sub_style_add_font to { onAddFont?.invoke() },
+                    R.string.sub_style_remove_font to { onRemoveFont?.invoke() },
+                    R.string.sub_style_edit_preset to { onEditPreset?.invoke() },
+                    R.string.sub_style_delete_preset to { onDeletePreset?.invoke() },
+                ),
+            )
+        }
+        return CachedTabGrid(container, editor)
     }
 
     private fun cyclePreset(delta: Int) {
@@ -171,10 +201,10 @@ internal class SubtitleStyleDialog {
 
     private fun render(state: State) {
         lastState = state
-        binding.styleTitle.text = state.title
-        binding.styleMaster.isChecked = state.masterOn
+        binding.styleTitle.setTextIfChanged(state.title)
+        if (binding.styleMaster.isChecked != state.masterOn) binding.styleMaster.isChecked = state.masterOn
         binding.stylePreview.setSpec(state.preview)
-        binding.stylePresetValue.text = state.presetName
+        binding.stylePresetValue.setTextIfChanged(state.presetName)
         grid?.render(state)
     }
 }

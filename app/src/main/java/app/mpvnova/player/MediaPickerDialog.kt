@@ -123,7 +123,7 @@ internal class MediaPickerDialog {
     var displayedDelayValue: CharSequence? = null
         set(value) {
             field = value
-            if (::binding.isInitialized && value != null) binding.delayValue.text = value
+            if (::binding.isInitialized && value != null) binding.delayValue.setTextIfChanged(value)
         }
     var focusDelayRow: () -> Unit = {}
         private set
@@ -293,25 +293,34 @@ internal class MediaPickerDialog {
 
     private fun updateListLayoutParams(options: Options, hasFilters: Boolean) {
         val listMinHeight = Utils.convertDp(binding.root.context, TRACK_LIST_MIN_HEIGHT_DP)
-        binding.list.layoutParams = binding.list.layoutParams.apply {
-            height = if (hasFilters) 0 else listMinHeight
-            if (this is android.widget.LinearLayout.LayoutParams) {
-                weight = if (hasFilters) 1f else 0f
-            }
+        val targetHeight = if (hasFilters) 0 else listMinHeight
+        val targetWeight = if (hasFilters) 1f else 0f
+        val listLp = binding.list.layoutParams as android.widget.LinearLayout.LayoutParams
+        if (listLp.height != targetHeight || listLp.weight != targetWeight) {
+            listLp.height = targetHeight
+            listLp.weight = targetWeight
+            binding.list.layoutParams = listLp
         }
-        binding.list.minimumHeight = if (hasFilters) 0 else listMinHeight
+        val targetMinHeight = if (hasFilters) 0 else listMinHeight
+        if (binding.list.minimumHeight != targetMinHeight) {
+            binding.list.minimumHeight = targetMinHeight
+        }
         if (options.showDelay && !hasFilters) {
-            binding.sidePanel.layoutParams = binding.sidePanel.layoutParams.apply {
-                width = Utils.convertDp(binding.root.context, DELAY_SIDE_PANEL_WIDTH_DP)
+            val sideWidth = Utils.convertDp(binding.root.context, DELAY_SIDE_PANEL_WIDTH_DP)
+            val sideLp = binding.sidePanel.layoutParams
+            if (sideLp.width != sideWidth) {
+                sideLp.width = sideWidth
+                binding.sidePanel.layoutParams = sideLp
             }
         } else if (!hasFilters) {
             // No side panel: let the track list drive the height so the dialog
             // wraps to content instead of stretching on an unbounded parent.
-            binding.trackPanel.layoutParams =
-                (binding.trackPanel.layoutParams as android.widget.LinearLayout.LayoutParams).apply {
-                    height = ViewGroup.LayoutParams.WRAP_CONTENT
-                    weight = 0f
-                }
+            val trackLp = binding.trackPanel.layoutParams as android.widget.LinearLayout.LayoutParams
+            if (trackLp.height != ViewGroup.LayoutParams.WRAP_CONTENT || trackLp.weight != 0f) {
+                trackLp.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                trackLp.weight = 0f
+                binding.trackPanel.layoutParams = trackLp
+            }
         }
     }
 
@@ -523,19 +532,19 @@ internal class MediaPickerDialog {
 }
 
 private fun DialogMediaPickerBinding.bindHeader(options: MediaPickerDialog.Options) {
-    pickerTitle.text = options.title
-    pickerSubtitle.text = when {
-        options.showFilters -> root.context.getString(R.string.dialog_picker_subtitle_audio)
-        options.showDelay || options.showSubFilters -> {
-            root.context.getString(R.string.dialog_picker_subtitle_subs)
-        }
-        else -> root.context.getString(R.string.dialog_picker_subtitle_decoder)
+    pickerTitle.setTextIfChanged(options.title)
+    val subtitleRes = when {
+        options.showFilters -> R.string.dialog_picker_subtitle_audio
+        options.showDelay || options.showSubFilters -> R.string.dialog_picker_subtitle_subs
+        else -> R.string.dialog_picker_subtitle_decoder
     }
-    listSectionTitle.text = if (options.showFilters || options.showDelay || options.showSubFilters) {
-        root.context.getString(R.string.dialog_section_tracks)
+    pickerSubtitle.setTextIfChanged(root.context.getString(subtitleRes))
+    val sectionRes = if (options.showFilters || options.showDelay || options.showSubFilters) {
+        R.string.dialog_section_tracks
     } else {
-        root.context.getString(R.string.dialog_section_modes)
+        R.string.dialog_section_modes
     }
+    listSectionTitle.setTextIfChanged(root.context.getString(sectionRes))
 }
 
 private fun DialogMediaPickerBinding.configurePanelVisibility(

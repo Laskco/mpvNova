@@ -104,7 +104,6 @@ internal class OpenSubtitlesSearchDialog(
         .setOnDismissListener { finish() }.create()
 
     init {
-        UiFont.applyToViewTree(root)
         title.setText(initialQuery.title)
         season.setText(initialQuery.season?.let { String.format(Locale.US, "%d", it) }.orEmpty())
         episode.setText(initialQuery.episode?.let { String.format(Locale.US, "%d", it) }.orEmpty())
@@ -256,8 +255,7 @@ internal class OpenSubtitlesSearchDialog(
                 renderBusy(false)
                 outcome.fold(onSuccess = { selection ->
                     validatedDownloads = selection.downloaded
-                    adapter.setDownloadedIds(validatedDownloads.keys)
-                    publishPage(selection.query, selection.page, requestedPage)
+                    publishPage(selection.query, selection.page, requestedPage, validatedDownloads.keys)
                 }, onFailure = { showFailure(it, false); updateMore() })
             }
         }
@@ -273,13 +271,18 @@ internal class OpenSubtitlesSearchDialog(
         return query.copy(movieHash = hash)
     }
 
-    private fun publishPage(query: OpenSubtitlesQuery, response: OpenSubtitlesSearchPage, requestedPage: Int) {
+    private fun publishPage(
+        query: OpenSubtitlesQuery,
+        response: OpenSubtitlesSearchPage,
+        requestedPage: Int,
+        downloadedIds: Set<Int>? = null,
+    ) {
         lastQuery = query
         page = requestedPage
         totalPages = response.totalPages.coerceAtLeast(requestedPage)
         val incoming = response.results.asSequence()
         val combined = if (requestedPage == 1) incoming else adapter.snapshot().asSequence() + incoming
-        adapter.replace(combined.distinctBy { it.fileId }.take(MAX_RESULTS).toList())
+        adapter.replace(combined.distinctBy { it.fileId }.take(MAX_RESULTS).toList(), downloadedIds)
         if (adapter.count == 0) showStatus(R.string.os_search_empty)
         else if (atLimit()) showStatus(R.string.os_search_limit)
         else status.text = activity.getString(R.string.os_search_result_count, adapter.count)
