@@ -42,6 +42,7 @@ internal fun MPVActivity.updateMinimalSeekOverlay(positionMs: Long) {
     binding.seekOverlayBar.setChapterGapMode(true)
     binding.seekOverlayBar.progress = (displayPositionMs * SEEK_OVERLAY_BAR_MAX / durationMs).toInt()
     updatePlaybackBuffer()
+    updateSeekOverlayReservedWidth(psc.durationSec)
     binding.seekOverlayTime.setTextIfChanged(
         "${Utils.prettyTime((displayPositionMs / MILLIS_PER_SECOND_LONG).toInt())} / " +
             Utils.prettyTime(psc.durationSec)

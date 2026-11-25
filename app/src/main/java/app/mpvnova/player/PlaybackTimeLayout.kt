@@ -12,6 +12,10 @@ internal fun MPVActivity.updatePlaybackTimeReservedWidths(durationSeconds: Int =
     binding.playbackDurationTxt.reservePlaybackTimeWidth(safeDuration, signed = true)
 }
 
+internal fun MPVActivity.updateSeekOverlayReservedWidth(durationSeconds: Int = psc.durationSec) {
+    binding.seekOverlayTime.reserveSeekOverlayTimeWidth(durationSeconds.coerceAtLeast(0))
+}
+
 internal fun MPVActivity.renderPlayerBarTime(positionSeconds: Int, durationSeconds: Int) {
     val mode = playerUiCustomization.timeMode
     val remainingOnly = mode == PlayerTimeMode.REMAINING_ONLY
@@ -39,7 +43,19 @@ internal fun MPVActivity.renderPlayerBarTime(positionSeconds: Int, durationSecon
     updatePlaybackTimeReservedWidths(maxOf(duration, position))
 }
 
+private fun TextView.reserveSeekOverlayTimeWidth(durationSeconds: Int) {
+    reserveFormattedTimeWidth(durationSeconds, signed = false, rangeFormat = true)
+}
+
 private fun TextView.reservePlaybackTimeWidth(durationSeconds: Int, signed: Boolean) {
+    reserveFormattedTimeWidth(durationSeconds, signed = signed, rangeFormat = false)
+}
+
+private fun TextView.reserveFormattedTimeWidth(
+    durationSeconds: Int,
+    signed: Boolean,
+    rangeFormat: Boolean,
+) {
     val hours = durationSeconds / SECONDS_PER_HOUR
     var hourDigits = 0
     var remainingHours = hours
@@ -59,7 +75,12 @@ private fun TextView.reservePlaybackTimeWidth(durationSeconds: Int, signed: Bool
     } else {
         "$digit$digit:$digit$digit"
     }
-    val width = ceil(paint.measureText(if (signed) "-$sample" else sample)).toInt()
+    val formattedSample = when {
+        rangeFormat -> "$sample / $sample"
+        signed -> "-$sample"
+        else -> sample
+    }
+    val width = ceil(paint.measureText(formattedSample)).toInt()
     reservedPlaybackTimeWidths[this] = PlaybackTimeWidthReservation(this, hourDigits, signed, width)
     applyExactReservedWidth(width)
 }

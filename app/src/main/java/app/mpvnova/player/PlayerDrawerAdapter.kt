@@ -6,7 +6,6 @@ import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.updateLayoutParams
@@ -22,9 +21,10 @@ import app.mpvnova.player.databinding.DrawerRowTwoButtonsBinding
 private const val VIEW_TYPE_BUTTON = 0
 private const val VIEW_TYPE_BUTTON_PAIR = 1
 private const val VIEW_TYPE_STATS = 2
-private const val VIEW_TYPE_PREFERENCE = 3
+private const val VIEW_TYPE_PREF_ROW = 3
 private const val VIEW_TYPE_SPACER = 4
-private const val VIEW_TYPE_OPTION = 5
+private const val PREF_ROW_POOL_SIZE = 20
+private const val BUTTON_ROW_POOL_SIZE = 10
 private const val PREF_ROW_OFF_ALPHA = 0.55f
 private const val PREF_ROW_DISABLED_ALPHA = 0.4f
 private const val PREF_ROW_VALUE_WIDTH_DP = 48f
@@ -67,6 +67,8 @@ internal class PlayerDrawerAdapter(
 
     override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
         boundRecyclerView = recyclerView
+        recyclerView.recycledViewPool.setMaxRecycledViews(VIEW_TYPE_PREF_ROW, PREF_ROW_POOL_SIZE)
+        recyclerView.recycledViewPool.setMaxRecycledViews(VIEW_TYPE_BUTTON, BUTTON_ROW_POOL_SIZE)
     }
 
     override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
@@ -75,6 +77,16 @@ internal class PlayerDrawerAdapter(
 
     fun submitRows(newRows: List<PlayerDrawerRow>) {
         cachedNetworkOverrides = null
+        val sameTypes = rows.size == newRows.size && rows.indices.all { index ->
+            viewTypeForRow(rows[index]) == viewTypeForRow(newRows[index])
+        }
+        if (sameTypes && rows.isNotEmpty()) {
+            rows.clear()
+            rows.addAll(newRows)
+            cachedRowsHash = rows.hashCode()
+            notifyItemRangeChanged(0, rows.size)
+            return
+        }
         val oldSize = rows.size
         rows.clear()
         if (oldSize > 0) {
@@ -87,13 +99,16 @@ internal class PlayerDrawerAdapter(
         }
     }
 
-    override fun getItemViewType(position: Int): Int = when (rows[position]) {
+    override fun getItemViewType(position: Int): Int = viewTypeForRow(rows[position])
+
+    private fun viewTypeForRow(row: PlayerDrawerRow): Int = when (row) {
         is PlayerDrawerRow.Button -> VIEW_TYPE_BUTTON
         is PlayerDrawerRow.ButtonPair -> VIEW_TYPE_BUTTON_PAIR
         PlayerDrawerRow.Stats -> VIEW_TYPE_STATS
-        is PlayerDrawerRow.Preference -> VIEW_TYPE_PREFERENCE
-        is PlayerDrawerRow.Option -> VIEW_TYPE_OPTION
-        is PlayerDrawerRow.Network -> VIEW_TYPE_OPTION
+        is PlayerDrawerRow.Preference,
+        is PlayerDrawerRow.Option,
+        is PlayerDrawerRow.Network,
+        -> VIEW_TYPE_PREF_ROW
         is PlayerDrawerRow.Spacer -> VIEW_TYPE_SPACER
     }
 
@@ -103,8 +118,7 @@ internal class PlayerDrawerAdapter(
             VIEW_TYPE_BUTTON -> ButtonHolder(DrawerRowFullButtonBinding.inflate(inflater, parent, false))
             VIEW_TYPE_BUTTON_PAIR -> ButtonPairHolder(DrawerRowTwoButtonsBinding.inflate(inflater, parent, false))
             VIEW_TYPE_STATS -> StatsHolder(DrawerRowStatsBinding.inflate(inflater, parent, false))
-            VIEW_TYPE_PREFERENCE -> PreferenceHolder(DrawerPrefRowBinding.inflate(inflater, parent, false))
-            VIEW_TYPE_OPTION -> OptionHolder(DrawerPrefRowBinding.inflate(inflater, parent, false))
+            VIEW_TYPE_PREF_ROW -> PrefRowHolder(DrawerPrefRowBinding.inflate(inflater, parent, false))
             else -> SpacerHolder(DrawerRowSpacerBinding.inflate(inflater, parent, false))
         }
     }
@@ -113,10 +127,10 @@ internal class PlayerDrawerAdapter(
         when (val row = rows[position]) {
             is PlayerDrawerRow.Button -> (holder as ButtonHolder).bind(row.button)
             is PlayerDrawerRow.ButtonPair -> (holder as ButtonPairHolder).bind(row)
-            PlayerDrawerRow.Stats -> (holder as StatsHolder).bind()
-            is PlayerDrawerRow.Preference -> (holder as PreferenceHolder).bind(row.preference)
-            is PlayerDrawerRow.Option -> (holder as OptionHolder).bind(row.option)
-            is PlayerDrawerRow.Network -> (holder as OptionHolder).bindNetwork(row.setting)
+            PlayerDrawerRow.Stats -> Unit
+            is PlayerDrawerRow.Preference -> (holder as PrefRowHolder).bindPreference(row.preference)
+            is PlayerDrawerRow.Option -> (holder as PrefRowHolder).bindOption(row.option)
+            is PlayerDrawerRow.Network -> (holder as PrefRowHolder).bindNetwork(row.setting)
             is PlayerDrawerRow.Spacer -> (holder as SpacerHolder).bind(row)
         }
     }
@@ -132,7 +146,7 @@ internal class PlayerDrawerAdapter(
             if (row !is PlayerDrawerRow.Preference || row.preference.disabledWhenOnKey != changedKey)
                 return@forEachIndexed
             val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
-            if (holder is PreferenceHolder) holder.refreshValueAndDisabledState()
+            if (holder is PrefRowHolder) holder.refreshValueAndDisabledState()
             else notifyItemChanged(index)
         }
     }
@@ -144,7 +158,7 @@ internal class PlayerDrawerAdapter(
         rows.forEachIndexed { index, row ->
             if (row is PlayerDrawerRow.Network) {
                 val holder = boundRecyclerView?.findViewHolderForAdapterPosition(index)
-                if (holder is OptionHolder) holder.bindNetwork(row.setting, overrides) else notifyItemChanged(index)
+                if (holder is PrefRowHolder) holder.bindNetwork(row.setting, overrides) else notifyItemChanged(index)
             }
         }
     }
@@ -155,69 +169,141 @@ internal class PlayerDrawerAdapter(
     override fun stableScrollbarMetrics(recyclerView: RecyclerView): StableScrollbarMetrics? =
         measureDrawerScrollbarMetrics(recyclerView, rows, cachedRowsHash, scrollbarHeightCaches, measureScratchViews)
 
-    private fun Button.bindAction(button: PlayerDrawerButtonSpec) {
-        setText(button.textRes)
-        setOnClickListener { activity.handleDrawerAction(button.action, dismiss) }
-    }
-
     private inner class ButtonHolder(
         private val binding: DrawerRowFullButtonBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        private var boundAction: PlayerDrawerAction? = null
+
+        init {
+            binding.drawerRowButton.setOnClickListener {
+                boundAction?.let { activity.handleDrawerAction(it, dismiss) }
+            }
+        }
+
         fun bind(button: PlayerDrawerButtonSpec) {
-            binding.drawerRowButton.bindAction(button)
+            boundAction = button.action
+            binding.drawerRowButton.setTextIfChanged(activity.getString(button.textRes))
         }
     }
 
     private inner class ButtonPairHolder(
         private val binding: DrawerRowTwoButtonsBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        private var boundLeft: PlayerDrawerAction? = null
+        private var boundRight: PlayerDrawerAction? = null
+
+        init {
+            binding.drawerRowLeftButton.setOnClickListener {
+                boundLeft?.let { activity.handleDrawerAction(it, dismiss) }
+            }
+            binding.drawerRowRightButton.setOnClickListener {
+                boundRight?.let { activity.handleDrawerAction(it, dismiss) }
+            }
+        }
+
         fun bind(row: PlayerDrawerRow.ButtonPair) = with(binding) {
-            drawerRowLeftButton.bindAction(row.left)
-            drawerRowRightButton.bindAction(row.right)
+            boundLeft = row.left.action
+            boundRight = row.right.action
+            drawerRowLeftButton.setTextIfChanged(activity.getString(row.left.textRes))
+            drawerRowRightButton.setTextIfChanged(activity.getString(row.right.textRes))
         }
     }
 
     private inner class StatsHolder(
-        private val binding: DrawerRowStatsBinding,
+        binding: DrawerRowStatsBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
-        fun bind() = with(binding) {
-            drawerStatsButton.setOnClickListener {
+        init {
+            binding.drawerStatsButton.setOnClickListener {
                 activity.handleDrawerAction(PlayerDrawerAction.STATS_TOGGLE, dismiss)
             }
-            drawerStatsPage1Button.setOnClickListener {
+            binding.drawerStatsPage1Button.setOnClickListener {
                 activity.handleDrawerAction(PlayerDrawerAction.STATS_PAGE_1, dismiss)
             }
-            drawerStatsPage2Button.setOnClickListener {
+            binding.drawerStatsPage2Button.setOnClickListener {
                 activity.handleDrawerAction(PlayerDrawerAction.STATS_PAGE_2, dismiss)
             }
-            drawerStatsPage3Button.setOnClickListener {
+            binding.drawerStatsPage3Button.setOnClickListener {
                 activity.handleDrawerAction(PlayerDrawerAction.STATS_PAGE_3, dismiss)
             }
         }
     }
 
-    private inner class PreferenceHolder(
+    private inner class PrefRowHolder(
         private val binding: DrawerPrefRowBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
+        private var mode = ROW_MODE_PREFERENCE
         private var boundPreference: PlayerDrawerPreference? = null
+        private var boundOption: PlayerDrawerOption? = null
+        private var boundNetwork: NetworkSetting? = null
 
-        fun bind(preference: PlayerDrawerPreference) = with(binding) {
+        init {
+            binding.root.setOnFocusChangeListener { _, focused ->
+                if (mode != ROW_MODE_PREFERENCE) {
+                    binding.prefRowValue.isSelected = focused
+                }
+            }
+            binding.root.setOnClickListener {
+                when (mode) {
+                    ROW_MODE_PREFERENCE -> onPreferenceClicked()
+                    ROW_MODE_OPTION -> boundOption?.let { activity.handleDrawerAction(it.action, dismiss) }
+                    ROW_MODE_NETWORK -> boundNetwork?.let { activity.showNetworkSetting(it, ::refreshNetworkRows) }
+                }
+            }
+        }
+
+        fun bindPreference(preference: PlayerDrawerPreference) = with(binding) {
+            mode = ROW_MODE_PREFERENCE
             boundPreference = preference
-            prefRowTitle.setText(preference.titleRes)
-            prefRowSummary.setText(preference.summaryRes)
+            boundOption = null
+            boundNetwork = null
+            prefRowTitle.setTextIfChanged(activity.getString(preference.titleRes))
+            prefRowSummary.setTextIfChanged(activity.getString(preference.summaryRes))
             activity.applyPreferenceValueLayout(prefRowValue)
+            prefRowValue.isSelected = false
             refreshPrefRowValue(prefRowValue, prefs.rawValue(preference))
             applyDisabledState()
-            root.setOnClickListener {
-                // Re-read live so an in-place disabled update is respected without a rebind.
-                if (isDisabled(preference))
-                    return@setOnClickListener
-                val newValue = !prefs.rawValue(preference)
-                prefs.edit().putBoolean(preference.key, newValue).apply()
-                refreshPrefRowValue(prefRowValue, prefs.rawValue(preference))
-                activity.handleDrawerPreferenceChange(preference, newValue)
-                refreshRowsDisabledBy(preference.key)
-            }
+        }
+
+        fun bindOption(option: PlayerDrawerOption) = with(binding) {
+            mode = ROW_MODE_OPTION
+            boundPreference = null
+            boundOption = option
+            boundNetwork = null
+            prefRowTitle.setTextIfChanged(activity.getString(option.titleRes))
+            prefRowSummary.setTextIfChanged(activity.getString(option.summaryRes))
+            prefRowValue.setTextIfChanged(activity.drawerOptionValue(option))
+            activity.applyOptionValueLayout(prefRowValue)
+            prefRowValue.alpha = 1f
+            prefRowValue.isSelected = root.hasFocus()
+            root.alpha = 1f
+        }
+
+        fun bindNetwork(
+            setting: NetworkSetting,
+            overrides: Map<NetworkSetting, String> = currentNetworkOverrides(),
+        ) = with(binding) {
+            mode = ROW_MODE_NETWORK
+            boundPreference = null
+            boundOption = null
+            boundNetwork = setting
+            prefRowTitle.setTextIfChanged(activity.getString(setting.titleRes))
+            prefRowSummary.setTextIfChanged(activity.getString(setting.summaryRes))
+            prefRowValue.setTextIfChanged(activity.networkValueLabel(setting, overrides))
+            activity.applyOptionValueLayout(prefRowValue)
+            prefRowValue.alpha = 1f
+            prefRowValue.isSelected = root.hasFocus()
+            root.alpha = 1f
+        }
+
+        private fun onPreferenceClicked() {
+            val preference = boundPreference ?: return
+            // Re-read live so an in-place disabled update is respected without a rebind.
+            if (isDisabled(preference)) return
+            val newValue = !prefs.rawValue(preference)
+            prefs.edit().putBoolean(preference.key, newValue).apply()
+            refreshPrefRowValue(binding.prefRowValue, prefs.rawValue(preference))
+            activity.handleDrawerPreferenceChange(preference, newValue)
+            refreshRowsDisabledBy(preference.key)
         }
 
         // Update only the greyed-out state on the live view, leaving focus untouched.
@@ -238,39 +324,6 @@ internal class PlayerDrawerAdapter(
                 preference.disabledWhenOnKey?.let { prefs.getBoolean(it, false) } == true
     }
 
-    private inner class OptionHolder(
-        private val binding: DrawerPrefRowBinding,
-    ) : RecyclerView.ViewHolder(binding.root) {
-        fun bindNetwork(
-            setting: NetworkSetting,
-            overrides: Map<NetworkSetting, String> = currentNetworkOverrides(),
-        ) = with(binding) {
-            prefRowTitle.setText(setting.titleRes)
-            prefRowSummary.setText(setting.summaryRes)
-            prefRowValue.setTextIfChanged(activity.networkValueLabel(setting, overrides))
-            activity.applyOptionValueLayout(prefRowValue)
-            prefRowValue.alpha = 1f
-            prefRowValue.isSelected = root.hasFocus()
-            root.alpha = 1f
-            root.setOnFocusChangeListener { _, focused -> prefRowValue.isSelected = focused }
-            root.setOnClickListener { activity.showNetworkSetting(setting, ::refreshNetworkRows) }
-        }
-
-        fun bind(option: PlayerDrawerOption) = with(binding) {
-            prefRowTitle.setText(option.titleRes)
-            prefRowSummary.setText(option.summaryRes)
-            prefRowValue.setTextIfChanged(activity.drawerOptionValue(option))
-            activity.applyOptionValueLayout(prefRowValue)
-            prefRowValue.alpha = 1f
-            prefRowValue.isSelected = root.hasFocus()
-            root.alpha = 1f
-            root.setOnFocusChangeListener { _, hasFocus ->
-                prefRowValue.isSelected = hasFocus
-            }
-            root.setOnClickListener { activity.handleDrawerAction(option.action, dismiss) }
-        }
-    }
-
     private class SpacerHolder(
         private val binding: DrawerRowSpacerBinding,
     ) : RecyclerView.ViewHolder(binding.root) {
@@ -283,6 +336,12 @@ internal class PlayerDrawerAdapter(
                 }
             }
         }
+    }
+
+    private companion object {
+        const val ROW_MODE_PREFERENCE = 0
+        const val ROW_MODE_OPTION = 1
+        const val ROW_MODE_NETWORK = 2
     }
 }
 
@@ -364,63 +423,79 @@ private fun PlayerDrawerRow.bindMeasureRow(
     inflater: LayoutInflater,
     scratchViews: DrawerMeasureScratchViews,
     networkOverrides: Map<NetworkSetting, String>,
+): View = when (this) {
+    is PlayerDrawerRow.Button -> bindButtonMeasureRow(parent, inflater, scratchViews, button.textRes)
+    is PlayerDrawerRow.ButtonPair -> {
+        val binding = scratchViews.buttonPair ?: DrawerRowTwoButtonsBinding.inflate(inflater, parent, false)
+            .also { scratchViews.buttonPair = it }
+        binding.drawerRowLeftButton.setText(left.textRes)
+        binding.drawerRowRightButton.setText(right.textRes)
+        binding.root
+    }
+    PlayerDrawerRow.Stats -> scratchViews.stats?.root
+        ?: DrawerRowStatsBinding.inflate(inflater, parent, false).also { scratchViews.stats = it }.root
+    is PlayerDrawerRow.Preference,
+    is PlayerDrawerRow.Option,
+    is PlayerDrawerRow.Network,
+    -> bindPrefMeasureRow(parent, inflater, scratchViews, networkOverrides)
+    is PlayerDrawerRow.Spacer -> bindSpacerMeasureRow(parent, inflater, scratchViews, heightDp)
+}
+
+private fun bindButtonMeasureRow(
+    parent: RecyclerView,
+    inflater: LayoutInflater,
+    scratchViews: DrawerMeasureScratchViews,
+    textRes: Int,
 ): View {
-    return when (this) {
-        is PlayerDrawerRow.Button -> {
-            val binding = scratchViews.button ?: DrawerRowFullButtonBinding.inflate(inflater, parent, false)
-                .also { scratchViews.button = it }
-            binding.drawerRowButton.setText(button.textRes)
-            binding.root
-        }
-        is PlayerDrawerRow.ButtonPair -> {
-            val binding = scratchViews.buttonPair ?: DrawerRowTwoButtonsBinding.inflate(inflater, parent, false)
-                .also { scratchViews.buttonPair = it }
-            binding.drawerRowLeftButton.setText(left.textRes)
-            binding.drawerRowRightButton.setText(right.textRes)
-            binding.root
-        }
-        PlayerDrawerRow.Stats -> {
-            val binding = scratchViews.stats ?: DrawerRowStatsBinding.inflate(inflater, parent, false)
-                .also { scratchViews.stats = it }
-            binding.root
-        }
+    val binding = scratchViews.button ?: DrawerRowFullButtonBinding.inflate(inflater, parent, false)
+        .also { scratchViews.button = it }
+    binding.drawerRowButton.setText(textRes)
+    return binding.root
+}
+
+private fun PlayerDrawerRow.bindPrefMeasureRow(
+    parent: RecyclerView,
+    inflater: LayoutInflater,
+    scratchViews: DrawerMeasureScratchViews,
+    networkOverrides: Map<NetworkSetting, String>,
+): View {
+    val binding = scratchViews.prefRow ?: DrawerPrefRowBinding.inflate(inflater, parent, false)
+        .also { scratchViews.prefRow = it }
+    when (this) {
         is PlayerDrawerRow.Preference -> {
-            val binding = scratchViews.prefRow ?: DrawerPrefRowBinding.inflate(inflater, parent, false)
-                .also { scratchViews.prefRow = it }
             binding.prefRowTitle.setText(preference.titleRes)
             binding.prefRowSummary.setText(preference.summaryRes)
             binding.prefRowValue.setText(R.string.status_on)
-            binding.root
         }
         is PlayerDrawerRow.Option -> {
-            val binding = scratchViews.prefRow ?: DrawerPrefRowBinding.inflate(inflater, parent, false)
-                .also { scratchViews.prefRow = it }
             binding.prefRowTitle.setText(option.titleRes)
             binding.prefRowSummary.setText(option.summaryRes)
             binding.prefRowValue.setText(R.string.drawer_measure_decoder_value)
-            binding.root
         }
         is PlayerDrawerRow.Network -> {
-            val binding = scratchViews.prefRow ?: DrawerPrefRowBinding.inflate(inflater, parent, false)
-                .also { scratchViews.prefRow = it }
             binding.prefRowTitle.setText(setting.titleRes)
             binding.prefRowSummary.setText(setting.summaryRes)
             binding.prefRowValue.setTextIfChanged(parent.context.networkValueLabel(setting, networkOverrides))
-            binding.root
         }
-        is PlayerDrawerRow.Spacer -> {
-            val binding = scratchViews.spacer ?: DrawerRowSpacerBinding.inflate(inflater, parent, false)
-                .also { scratchViews.spacer = it }
-            val density = parent.resources.displayMetrics.density
-            val targetHeight = (heightDp * density).toInt()
-            if (binding.root.layoutParams.height != targetHeight) {
-                binding.root.layoutParams = binding.root.layoutParams.apply {
-                    height = targetHeight
-                }
-            }
-            binding.root
-        }
+        else -> Unit
     }
+    return binding.root
+}
+
+private fun bindSpacerMeasureRow(
+    parent: RecyclerView,
+    inflater: LayoutInflater,
+    scratchViews: DrawerMeasureScratchViews,
+    heightDp: Int,
+): View {
+    val binding = scratchViews.spacer ?: DrawerRowSpacerBinding.inflate(inflater, parent, false)
+        .also { scratchViews.spacer = it }
+    val density = parent.resources.displayMetrics.density
+    val targetHeight = (heightDp * density).toInt()
+    if (binding.root.layoutParams.height != targetHeight) {
+        binding.root.layoutParams = binding.root.layoutParams.apply { height = targetHeight }
+    }
+    return binding.root
 }
 
 private fun drawerStableScrollOffset(
@@ -457,7 +532,10 @@ private fun MPVActivity.applyPreferenceValueLayout(valueView: TextView) {
     if (valueView.minWidth != 0) valueView.minWidth = 0
     if (valueView.maxWidth != Int.MAX_VALUE) valueView.maxWidth = Int.MAX_VALUE
     if (valueView.maxLines != 1) valueView.maxLines = 1
+    valueView.setHorizontallyScrolling(false)
     if (valueView.ellipsize != null) valueView.ellipsize = null
+    val targetGravity = Gravity.CENTER_VERTICAL or Gravity.END
+    if (valueView.gravity != targetGravity) valueView.gravity = targetGravity
 }
 
 private fun MPVActivity.applyOptionValueLayout(valueView: TextView) {

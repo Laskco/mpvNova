@@ -575,6 +575,7 @@
                 android:background="@drawable/bg_player_toast"
                 android:elevation="8dp"
                 android:fontFamily="sans-serif"
+                android:gravity="center"
                 android:paddingStart="12dp"
                 android:paddingTop="6dp"
                 android:paddingEnd="12dp"

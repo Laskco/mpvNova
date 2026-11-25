@@ -215,9 +215,28 @@ class ChapterSeekBar @JvmOverloads constructor(
         invalidate()
     }
 
-    internal fun setBarAppearance(style: PlayerUiCustomization, themedContext: Context) {
-        val paletteChanged = playedColor != style.seekbarPlayedColor ||
-            bufferedColor != style.seekbarBufferedColor || unplayedColor != style.seekbarUnplayedColor
+    private var hasAppliedBarAppearance = false
+
+    internal fun setBarAppearance(
+        style: PlayerUiCustomization,
+        themedContext: Context,
+        force: Boolean = false,
+    ) {
+        val clampedMarkerSize = style.chapterMarkerSizePercent.coerceIn(
+            MIN_CHAPTER_MARKER_SIZE_PERCENT, MAX_CHAPTER_MARKER_SIZE_PERCENT,
+        )
+        val paletteChanged = !hasAppliedBarAppearance ||
+            playedColor != style.seekbarPlayedColor ||
+            bufferedColor != style.seekbarBufferedColor ||
+            unplayedColor != style.seekbarUnplayedColor
+        val markersChanged = !hasAppliedBarAppearance ||
+            chapterMarkerColor != style.chapterMarkerColor ||
+            markerShape != style.chapterMarkerShape ||
+            markerSizePercent != clampedMarkerSize ||
+            emphasizeCurrentChapter != style.currentChapterEmphasis
+        if (!force && !paletteChanged && !markersChanged) return
+
+        hasAppliedBarAppearance = true
         playedColor = style.seekbarPlayedColor
         bufferedColor = style.seekbarBufferedColor
         unplayedColor = style.seekbarUnplayedColor
@@ -226,12 +245,10 @@ class ChapterSeekBar @JvmOverloads constructor(
         applySegmentColors(themedContext)
         markerShape = style.chapterMarkerShape
         markerPaint.isAntiAlias = markerShape == PlayerChapterMarkerShape.DOTS
-        markerSizePercent = style.chapterMarkerSizePercent.coerceIn(
-            MIN_CHAPTER_MARKER_SIZE_PERCENT, MAX_CHAPTER_MARKER_SIZE_PERCENT,
-        )
+        markerSizePercent = clampedMarkerSize
         emphasizeCurrentChapter = style.currentChapterEmphasis
         // Tint in place: replacing the drawable lets SeekBar recalculate its carefully tuned bounds.
-        if (paletteChanged) applyTrackColors(themedContext)
+        if (force || paletteChanged) applyTrackColors(themedContext)
         invalidate()
     }
 

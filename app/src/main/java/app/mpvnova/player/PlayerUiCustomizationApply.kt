@@ -17,28 +17,120 @@ internal fun MPVActivity.applyPlayerUiCustomization(force: Boolean = false) {
     val style = playerUiCustomization.normalized()
     playerUiCustomization = style
     enforceMinimalSeekOverlayForHiddenSeekbar(style)
-    val styleChanged = force ||
-        appliedPlayerUiCustomization != style ||
+    val prev = appliedPlayerUiCustomization
+    val layoutOwnerChanged = force ||
         appliedTopActionsInPlayerBar != topActionsInPlayerBar ||
         appliedControlsAtBottom != controlsAtBottom
-    if (!styleChanged) {
+    if (prev == style && !layoutOwnerChanged) {
         applyPlayerControlOrderAndVisibility(style)
         return
     }
+    if (prev == null || force) {
+        applyAllCustomizationSections(style, force)
+    } else {
+        applyDiffedCustomizationSections(prev, style, layoutOwnerChanged)
+    }
+    appliedPlayerUiCustomization = style
+    appliedTopActionsInPlayerBar = topActionsInPlayerBar
+    appliedControlsAtBottom = controlsAtBottom
+}
+
+private fun MPVActivity.applyAllCustomizationSections(
+    style: PlayerUiCustomization,
+    force: Boolean,
+) {
     applyPlayerPanelSurface(style)
     applyPlayerPanelLayout(style)
     applyPlayerControlOrderAndVisibility(style, forceThemeRefresh = force)
     applyPlayerControlLayout(style)
     applyPlayerTimeLayout(style)
     applyPlayerControlDecoration(style.iconTextOutlineEnabled)
-    appliedPlayerUiCustomization = style
-    appliedTopActionsInPlayerBar = topActionsInPlayerBar
-    appliedControlsAtBottom = controlsAtBottom
 }
+
+private fun MPVActivity.applyDiffedCustomizationSections(
+    prev: PlayerUiCustomization,
+    style: PlayerUiCustomization,
+    layoutOwnerChanged: Boolean,
+) {
+    if (prev.hasPanelSurfaceDiff(style)) applyPlayerPanelSurface(style)
+    if (layoutOwnerChanged || prev.hasPanelLayoutDiff(style)) applyPlayerPanelLayout(style)
+    applyPlayerControlOrderAndVisibility(style, forceThemeRefresh = false)
+    if (layoutOwnerChanged || prev.hasControlLayoutDiff(style)) applyPlayerControlLayout(style)
+    if (prev.hasTimeLayoutDiff(style)) applyPlayerTimeLayout(style)
+    if (layoutOwnerChanged || prev.iconTextOutlineEnabled != style.iconTextOutlineEnabled) {
+        applyPlayerControlDecoration(style.iconTextOutlineEnabled)
+    }
+}
+
+private fun PlayerUiCustomization.hasPanelSurfaceDiff(other: PlayerUiCustomization): Boolean =
+    surface != other.surface ||
+        gradientEnabled != other.gradientEnabled ||
+        panelOpacityPercent != other.panelOpacityPercent ||
+        cornerRadiusDp != other.cornerRadiusDp ||
+        panelOutlineEnabled != other.panelOutlineEnabled ||
+        panelOutlineWidthDp != other.panelOutlineWidthDp ||
+        scrimStrengthPercent != other.scrimStrengthPercent
+
+private fun PlayerUiCustomization.hasPanelLayoutDiff(other: PlayerUiCustomization): Boolean =
+    hasPanelGeometryDiff(other) || hasSeekbarGeometryDiff(other) || hasSeekbarAppearanceDiff(other)
+
+private fun PlayerUiCustomization.hasPanelGeometryDiff(other: PlayerUiCustomization): Boolean =
+    density != other.density ||
+        horizontalPaddingDp != other.horizontalPaddingDp ||
+        topPaddingDp != other.topPaddingDp ||
+        bottomPaddingDp != other.bottomPaddingDp ||
+        panelElevationDp != other.panelElevationDp ||
+        widthPercent != other.widthPercent ||
+        verticalOffsetDp != other.verticalOffsetDp ||
+        rowSpacingDp != other.rowSpacingDp ||
+        timeVisible != other.timeVisible ||
+        timeTextSizeSp != other.timeTextSizeSp
+
+private fun PlayerUiCustomization.hasSeekbarGeometryDiff(other: PlayerUiCustomization): Boolean =
+    seekbarPosition != other.seekbarPosition ||
+        seekbarVisible != other.seekbarVisible ||
+        seekbarInsetDp != other.seekbarInsetDp ||
+        seekbarSize != other.seekbarSize ||
+        seekbarThumbSize != other.seekbarThumbSize ||
+        seekbarThumbShape != other.seekbarThumbShape ||
+        seekbarThumbGlowEnabled != other.seekbarThumbGlowEnabled ||
+        seekbarThumbColor != other.seekbarThumbColor
+
+private fun PlayerUiCustomization.hasSeekbarAppearanceDiff(other: PlayerUiCustomization): Boolean =
+    chapterMarkersVisible != other.chapterMarkersVisible ||
+        seekbarPlayedColor != other.seekbarPlayedColor ||
+        seekbarBufferedColor != other.seekbarBufferedColor ||
+        seekbarUnplayedColor != other.seekbarUnplayedColor ||
+        chapterMarkerColor != other.chapterMarkerColor ||
+        chapterMarkerShape != other.chapterMarkerShape ||
+        chapterMarkerSizePercent != other.chapterMarkerSizePercent ||
+        currentChapterEmphasis != other.currentChapterEmphasis
+
+private fun PlayerUiCustomization.hasControlLayoutDiff(other: PlayerUiCustomization): Boolean =
+    controlAlignment != other.controlAlignment ||
+        controlSize != other.controlSize ||
+        controlSpacingDp != other.controlSpacingDp ||
+        buttonTreatment != other.buttonTreatment ||
+        hasControlFocusAppearanceDiff(other)
+
+private fun PlayerUiCustomization.hasControlFocusAppearanceDiff(other: PlayerUiCustomization): Boolean =
+    buttonFocusOutlineWidthDp != other.buttonFocusOutlineWidthDp ||
+        buttonFocusHighlightOpacityPercent != other.buttonFocusHighlightOpacityPercent ||
+        buttonFocusEnlargementPercent != other.buttonFocusEnlargementPercent ||
+        primaryPlayIconSizePercent != other.primaryPlayIconSizePercent ||
+        otherIconSizePercent != other.otherIconSizePercent
+
+private fun PlayerUiCustomization.hasTimeLayoutDiff(other: PlayerUiCustomization): Boolean =
+    timePosition != other.timePosition ||
+        timeControlGapDp != other.timeControlGapDp ||
+        timePresentation != other.timePresentation ||
+        timeMode != other.timeMode
 
 internal fun MPVActivity.refreshPlayerUiTheme() {
     binding.playbackSeekbar.refreshTheme(this)
     binding.seekOverlayBar.refreshTheme(this)
+    binding.playbackSeekbar.setBarAppearance(playerUiCustomization, this, force = true)
+    binding.seekOverlayBar.setBarAppearance(playerUiCustomization, this, force = true)
     binding.seekOverlayTime.background = themedPlayerDrawable(R.drawable.bg_player_toast)
     applyPlayerUiCustomization(force = true)
 }
@@ -153,21 +245,30 @@ private fun MPVActivity.applyPlayerControlLayout(style: PlayerUiCustomization) {
     val metrics = style.controlSize.controlMetrics()
     val density = resources.displayMetrics.density
     val spacing = (style.controlSpacingDp * density).toInt()
+    val targetHeight = (metrics.heightDp * density).toInt()
+    val targetPadding = (metrics.paddingDp * density).toInt()
     for (index in 0 until binding.controlsButtonGroup.childCount) {
         val child = binding.controlsButtonGroup.getChildAt(index)
         val isIcon = child is ShadowImageButton
-        child.minimumWidth = ((if (isIcon) metrics.iconWidthDp else metrics.textWidthDp) * density).toInt()
-        child.minimumHeight = (metrics.heightDp * density).toInt()
-        val padding = (metrics.paddingDp * density).toInt()
-        child.setPadding(padding, padding, padding, padding)
+        val targetWidth = ((if (isIcon) metrics.iconWidthDp else metrics.textWidthDp) * density).toInt()
+        if (child.minimumWidth != targetWidth) child.minimumWidth = targetWidth
+        if (child.minimumHeight != targetHeight) child.minimumHeight = targetHeight
+        if (child.paddingLeft != targetPadding || child.paddingTop != targetPadding) {
+            child.setPadding(targetPadding, targetPadding, targetPadding, targetPadding)
+        }
         child.background = playerBarButtonBackground(
             child, style, themedPlayerDrawable(style.buttonTreatment.backgroundRes(isIcon)),
         )
-        (child.layoutParams as? ViewGroup.MarginLayoutParams)?.let { params ->
-            params.marginStart = spacing
-            params.marginEnd = spacing
-            child.layoutParams = params
-        }
+        child.applyHorizontalControlMargins(spacing)
+    }
+}
+
+private fun View.applyHorizontalControlMargins(spacing: Int) {
+    val params = layoutParams as? ViewGroup.MarginLayoutParams ?: return
+    if (params.marginStart != spacing || params.marginEnd != spacing) {
+        params.marginStart = spacing
+        params.marginEnd = spacing
+        layoutParams = params
     }
 }
 

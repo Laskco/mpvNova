@@ -6,10 +6,16 @@ import kotlin.math.roundToInt
 internal fun MPVActivity.scheduleSubtitleControlsPositionUpdate() {
     updateSubtitleControlsPosition()
     binding.controls.removeCallbacks(subtitleControlsPositionRunnable)
-    binding.controls.postDelayed(
-        subtitleControlsPositionRunnable,
-        SUBTITLE_POSITION_LAYOUT_DELAY_MS,
-    )
+    val playerHeight = binding.outside.height
+    val controls = binding.controls
+    val layoutReady = controls.visibility != View.VISIBLE ||
+        (playerHeight > 0 && controls.height > 0 && controls.top in 1 until playerHeight && !controls.isLayoutRequested)
+    if (!layoutReady) {
+        controls.postDelayed(
+            subtitleControlsPositionRunnable,
+            SUBTITLE_POSITION_LAYOUT_DELAY_MS,
+        )
+    }
 }
 
 internal fun MPVActivity.updateSubtitleControlsPosition() {
