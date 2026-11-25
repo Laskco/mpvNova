@@ -1,13 +1,16 @@
 package app.mpvnova.player
 
+import android.content.res.ColorStateList
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
 import androidx.appcompat.app.AlertDialog
+import androidx.core.widget.TextViewCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import app.mpvnova.player.databinding.DialogPlayerDrawerBinding
+import app.mpvnova.player.preferences.AppUpdateAvailability
 
 /**
  * Player settings drawer: right-edge panel. Tabs swap the
@@ -37,6 +40,8 @@ internal fun MPVActivity.openPlayerDrawer() {
         bindDrawerTabSwitching(binding)
         drawerHandlersBound = true
     }
+    syncUpdateTabVisibility(binding)
+    triggerSilentAppUpdateCheckNow()
     selectDrawerTab(binding, lastDrawerTab, revealScrollbar = false)
 
     var drawerCloseHandled = false
@@ -131,6 +136,19 @@ private fun MPVActivity.bindDrawerTabSwitching(binding: DialogPlayerDrawerBindin
             }
         }
     }
+    binding.tabBtnUpdate.setOnClickListener {
+        val release = AppUpdateAvailability.availableUpdate(this) ?: return@setOnClickListener
+        drawerReopenPending = true
+        currentDrawerDialog?.dismiss()
+        showInPlayerAppUpdatePanel(release)
+    }
+    binding.tabBtnUpdate.setOnKeyListener { _, keyCode, event ->
+        if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT && event.action == KeyEvent.ACTION_DOWN) {
+            focusFirstDrawerContentRow(binding)
+        } else {
+            false
+        }
+    }
 }
 
 internal fun MPVActivity.selectDrawerTab(
@@ -172,6 +190,32 @@ internal fun MPVActivity.refreshDrawerRowsIfVisible(tab: DrawerTab? = null) {
     val binding = drawerBinding ?: return
     if (currentDrawerDialog?.isShowing == true && (tab == null || lastDrawerTab == tab)) {
         selectDrawerTab(binding, lastDrawerTab, revealScrollbar = false)
+    }
+}
+
+internal fun MPVActivity.refreshDrawerUpdateState() {
+    val binding = drawerBinding ?: return
+    if (currentDrawerDialog?.isShowing != true) return
+    val updateFocused = binding.tabBtnUpdate.hasFocus()
+    syncUpdateTabVisibility(binding)
+    if (updateFocused && binding.tabBtnUpdate.visibility != View.VISIBLE) {
+        drawerTabButton(binding, lastDrawerTab).requestFocus()
+    }
+}
+
+private fun MPVActivity.syncUpdateTabVisibility(binding: DialogPlayerDrawerBinding) {
+    val release = AppUpdateAvailability.availableUpdate(this)
+    binding.tabBtnUpdate.setVisibilityIfChanged(if (release != null) View.VISIBLE else View.GONE)
+    if (release != null && !AppUpdateAvailability.isIgnored(this, release)) {
+        binding.tabBtnUpdate.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            0, 0, R.drawable.ic_update_dot_6dp, 0,
+        )
+        TextViewCompat.setCompoundDrawableTintList(
+            binding.tabBtnUpdate,
+            ColorStateList.valueOf(activeFilterColor()),
+        )
+    } else {
+        binding.tabBtnUpdate.setCompoundDrawablesRelativeWithIntrinsicBounds(0, 0, 0, 0)
     }
 }
 

@@ -55,7 +55,18 @@ internal fun MPVActivity.readSettings() {
     player.applyNetworkSettings()
 }
 
+private const val SETTINGS_WRITE_DEBOUNCE_MS = 250L
+
 internal fun MPVActivity.writeSettings() {
+    settingsWriteDirty = true
+    eventUiHandler.removeCallbacks(writeSettingsRunnable)
+    eventUiHandler.postDelayed(writeSettingsRunnable, SETTINGS_WRITE_DEBOUNCE_MS)
+}
+
+internal fun MPVActivity.writeSettingsNow(force: Boolean = false) {
+    eventUiHandler.removeCallbacks(writeSettingsRunnable)
+    if (!force && !settingsWriteDirty) return
+    settingsWriteDirty = false
     val prefs = getDefaultSharedPreferences(applicationContext)
 
     with (prefs.edit()) {
@@ -111,13 +122,19 @@ internal fun MPVActivity.clampAudioFilterState() {
     }
 }
 
-internal fun MPVActivity.savePosition() {
+internal fun MPVActivity.flushPendingSettingsWrites(forceSettings: Boolean = false) {
+    writeSettingsNow(force = forceSettings)
+    writeSubtitleStyleSettingsNow()
+}
+
+internal fun MPVActivity.savePosition(sync: Boolean = true) {
     if (!shouldSavePosition || cachedResumeIdentity() != null) return
     val eofReached = mpvGetPropertyBoolean("eof-reached")
     if (eofReached != true) {
         // Never persist the temporary player-bar subtitle lift into mpv's watch-later config.
         val liftedForControls = subtitleControlsOffsetPercent != 0
         if (liftedForControls) {
+            if (!sync) return
             val basePosition = subPosSteps[subPosLevel]
                 .coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT)
             mpvSetPropertyInt("sub-pos", basePosition)

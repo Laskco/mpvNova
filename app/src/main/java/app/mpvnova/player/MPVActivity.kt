@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.drawable.Drawable
 import android.util.Log
 import android.media.AudioFocusRequest
 import android.media.AudioDeviceCallback
@@ -20,6 +21,8 @@ import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.appcompat.app.AppCompatActivity
+import app.mpvnova.player.preferences.AppUpdateAvailability
+import app.mpvnova.player.preferences.AppUpdateManager
 import java.text.SimpleDateFormat
 
 typealias ActivityResultCallback = (Int, Intent?) -> Unit
@@ -41,7 +44,7 @@ open class MPVActivity : AppCompatActivity() {
             val currentSec = psc.positionSec
             if (!psc.pause || currentSec != lastPeriodicSavedPositionSec) {
                 // Both writes no-op when there's nothing to save.
-                savePosition()
+                savePosition(sync = false)
                 saveResumePosition()
                 lastPeriodicSavedPositionSec = currentSec
             }
@@ -85,6 +88,27 @@ open class MPVActivity : AppCompatActivity() {
     internal var lastDisplayedSpeed = Float.NaN
     @DrawableRes
     internal var lastPlayButtonIconRes = 0
+    internal var cachedPlayDrawable: Drawable? = null
+    internal var cachedPauseDrawable: Drawable? = null
+    internal var appUpdateListenerRegistered = false
+    internal val appUpdateAvailabilityListener: () -> Unit = { refreshInPlayerUpdateUi() }
+    internal val silentUpdateCheckRunnable = Runnable {
+        if (!activityIsDestroying && !isFinishing && !isDestroyed) {
+            AppUpdateAvailability.checkSilentlyIfStale(applicationContext)
+        }
+    }
+    internal var appUpdateDialogRestore: StateRestoreCallback? = null
+    internal val updateManagerDelegate = lazy(LazyThreadSafetyMode.NONE) {
+        AppUpdateManager(this).apply {
+            onDialogHostStateChanged = ::onAppUpdateDialogHostStateChanged
+            onDialogKeyEvent = ::noteScreensaverActivity
+        }
+    }
+    internal val inPlayerUpdateManager: AppUpdateManager get() = updateManagerDelegate.value
+    internal var settingsWriteDirty = false
+    internal var subtitleStyleWriteDirty = false
+    internal val writeSettingsRunnable = Runnable { writeSettingsNow() }
+    internal val writeSubtitleStyleSettingsRunnable = Runnable { writeSubtitleStyleSettingsNow() }
 
     // Intro/outro skip segments passed by the launching app (e.g. Nuvio), plus handled and
     // rewind-rearmed state so replaying a segment offers the button instead of auto-skipping again.
@@ -182,6 +206,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var mediaSession: MediaSession? = null
 
     internal lateinit var binding: PlayerBinding
+    internal val isBindingInitialized: Boolean get() = ::binding.isInitialized
     internal val lifecycleObserver = MpvActivityLifecycleObserver(this)
     internal val mpvEventObserver = MpvActivityEventObserver(this)
     internal val mpvLogObserver = MpvActivityLogObserver(this)
@@ -497,6 +522,7 @@ open class MPVActivity : AppCompatActivity() {
         initListeners()
         readSettings()
         applyPlayerUiCustomization()
+        registerAppUpdateAvailabilityObserver()
         applyPlayerScreenBrightnessPreference()
         setupImmersiveWindow()
 
@@ -504,6 +530,7 @@ open class MPVActivity : AppCompatActivity() {
         pruneResumeTableAsync()
         // Both saves no-op when there's nothing to persist — safe to arm immediately.
         periodicSaveHandler.postDelayed(periodicSaveRunnable, PERIODIC_SAVE_INTERVAL_MS)
+        scheduleSilentAppUpdateCheck()
 
         val filepath = parsePathFromIntent(intent)
         currentResumeSource = resumeSourceFromIntent(intent, filepath)
@@ -528,9 +555,11 @@ open class MPVActivity : AppCompatActivity() {
         activityIsForeground = false
         player.removeObserver(mpvEventObserver)
         removeMpvLogObserver(mpvLogObserver)
+        unregisterAppUpdateAvailabilityObserver()
         tmdbTitleController.close()
         closeOpenSubtitlesSearch(restorePlayback = false)
         player.releaseAllMpvKeys()
+        flushPendingSettingsWrites()
         cancelAllScheduledWork()
         releaseMediaSession()
         stopServiceRunnable.run()
@@ -552,6 +581,7 @@ open class MPVActivity : AppCompatActivity() {
         if (::binding.isInitialized) {
             binding.timeInfoPanel.setVisibilityIfChanged(View.GONE)
             binding.playerTitleOverlay.setVisibilityIfChanged(View.GONE)
+            syncPlayerTitleCombinedPanel()
         }
         super.finish()
         suppressPlayerActivityTransition()
@@ -569,6 +599,7 @@ open class MPVActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (isInPictureInPictureMode) {
                 Log.v(MPV_ACTIVITY_TAG, "Playback continuing in picture-in-picture")
+                flushPendingSettingsWrites()
                 super.onPause()
                 return
             }
@@ -589,6 +620,7 @@ open class MPVActivity : AppCompatActivity() {
         updateMediaSessionNow()
 
         activityIsForeground = false
+        cancelTrackListUiRefresh()
         cancelSkipButtonAutoHide()
         eventUiHandler.removeCallbacksAndMessages(null)
         timePosUiPending = false
@@ -603,7 +635,7 @@ open class MPVActivity : AppCompatActivity() {
         } else if (!shouldBackground) {
             player.paused = true
         }
-        writeSettings()
+        flushPendingSettingsWrites(forceSettings = true)
         super.onPause()
 
         didResumeBackgroundPlayback = shouldBackground
@@ -622,6 +654,10 @@ open class MPVActivity : AppCompatActivity() {
         // Never left foreground → skip reinit.
         if (activityIsForeground) {
             super.onResume()
+            if (updateManagerDelegate.isInitialized()) {
+                inPlayerUpdateManager.resumePendingInstallIfAllowed()
+            }
+            refreshInPlayerUpdateUi()
             return
         }
 
@@ -638,6 +674,10 @@ open class MPVActivity : AppCompatActivity() {
         stopServiceHandler.postDelayed(stopServiceRunnable, BACKGROUND_SERVICE_STOP_DELAY_MS)
 
         refreshUi()
+        refreshInPlayerUpdateUi()
+        if (updateManagerDelegate.isInitialized()) {
+            inPlayerUpdateManager.resumePendingInstallIfAllowed()
+        }
 
         super.onResume()
     }

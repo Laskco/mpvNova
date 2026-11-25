@@ -31,10 +31,12 @@ internal fun MPVActivity.createControlsFadeRunnable(): ControlsFadeRunnable = ob
             binding.playerTitleOverlay.visibility = View.GONE
         binding.controlsScrim.visibility = View.GONE
         if (!shouldShowClockWhileControlsHidden()) binding.timeInfoPanel.visibility = View.GONE
+        syncPlayerTitleCombinedPanel()
         binding.statsTextView.visibility = View.GONE
         binding.controls.animate()
             .alpha(0f)
             .setDuration(CONTROLS_FADE_DURATION)
+            .withLayer()
             .setInterpolator(accelerate)
             .setListener(listener)
     }
@@ -95,12 +97,12 @@ private fun MPVActivity.resetControlsAlphaIfNeeded(overlayNeedsRestore: Boolean)
     binding.controlsScrim.animate().cancel()
     binding.timeInfoPanel.animate().cancel()
     binding.statsTextView.animate().cancel()
-    binding.controls.alpha = 1f
-    binding.topControls.alpha = 1f
-    binding.playerTitleOverlay.alpha = 1f
-    binding.controlsScrim.alpha = 1f
-    binding.timeInfoPanel.alpha = 1f
-    binding.statsTextView.alpha = 1f
+    if (binding.controls.alpha != 1f) binding.controls.alpha = 1f
+    if (binding.topControls.alpha != 1f) binding.topControls.alpha = 1f
+    if (binding.playerTitleOverlay.alpha != 1f) binding.playerTitleOverlay.alpha = 1f
+    if (binding.controlsScrim.alpha != 1f) binding.controlsScrim.alpha = 1f
+    if (binding.timeInfoPanel.alpha != 1f) binding.timeInfoPanel.alpha = 1f
+    if (binding.statsTextView.alpha != 1f) binding.statsTextView.alpha = 1f
     fadeRunnable.hasStarted = false
 }
 
@@ -135,6 +137,7 @@ private fun MPVActivity.performFirstShowSetup() {
     scheduleSubtitleControlsPositionUpdate()
     updatePlayerToastPlacement()
     refreshSkipButtonVisibility()
+    triggerSilentAppUpdateCheckNow()
 }
 
 internal fun MPVActivity.refreshVisibleControlsTimeout() {

@@ -4,6 +4,7 @@ import android.os.Build
 import android.os.Looper
 import android.view.View
 import android.view.WindowManager
+import androidx.core.content.ContextCompat
 import kotlin.math.roundToInt
 
 internal fun MPVActivity.updatePlaybackDuration(durationMs: Long) {
@@ -33,6 +34,7 @@ internal fun MPVActivity.handlePauseUi(paused: Boolean) {
         hideControlsFade()
     }
     onScreensaverPauseChanged(paused)
+    if (paused) triggerSilentAppUpdateCheckNow()
 }
 
 internal fun MPVActivity.togglePauseFromUser() {
@@ -51,7 +53,12 @@ internal fun MPVActivity.togglePauseFromUser() {
 internal fun MPVActivity.updatePlaybackStatus(paused: Boolean) {
     val r = if (paused) R.drawable.ic_play_arrow_black_24dp else R.drawable.ic_pause_black_24dp
     if (lastPlayButtonIconRes != r) {
-        binding.playBtn.setImageResource(r)
+        val drawable = if (paused) {
+            cachedPlayDrawable ?: ContextCompat.getDrawable(this, r).also { cachedPlayDrawable = it }
+        } else {
+            cachedPauseDrawable ?: ContextCompat.getDrawable(this, r).also { cachedPauseDrawable = it }
+        }
+        binding.playBtn.setImageDrawable(drawable)
         lastPlayButtonIconRes = r
     }
 

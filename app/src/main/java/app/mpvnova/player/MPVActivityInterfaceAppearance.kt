@@ -50,10 +50,14 @@ private fun MPVActivity.applyLivePlayerAppearance() {
     AppearanceTheme.applyPlayer(this, resetExisting = true)
     applyTranslucentPlayerWindowTheme()
     cachedActiveFilterColor = null
+    cachedPlayDrawable = null
+    cachedPauseDrawable = null
+    lastPlayButtonIconRes = 0
     appliedPlayerTitleStyle = null
     refreshPlayerUiTheme()
     applyPlayerTitleStyle(force = true)
     refreshAllFilterTints()
+    refreshInPlayerUpdateUi()
     invalidateCachedDialogs()
     window.decorView.invalidate()
 }

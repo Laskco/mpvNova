@@ -182,6 +182,17 @@
             android:layout_marginTop="4dp"
             android:nextFocusLeft="@id/drawerContentList"
             android:text="@string/drawer_tab_interface" />
+
+        <Button
+            android:id="@+id/tabBtnUpdate"
+            style="@style/Mpv.DrawerTabButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:drawablePadding="8dp"
+            android:nextFocusLeft="@id/drawerContentList"
+            android:text="@string/drawer_tab_update"
+            android:visibility="gone" />
         </LinearLayout>
     </app.mpvnova.player.TvSmoothScrollView>
 </LinearLayout>

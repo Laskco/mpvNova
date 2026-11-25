@@ -367,6 +367,7 @@
     <string name="update_history_title">Release notes history</string>
     <string name="update_history_empty">No release notes have been fetched yet. Check for updates once, then they will appear here.</string>
     <string name="update_history_unknown_version">Unknown version</string>
+    <string name="drawer_tab_update">Update</string>
 
     <string name="pref_default_file_manager_path_title">Default file manager path</string>
 

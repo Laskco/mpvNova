@@ -197,7 +197,18 @@ internal fun MPVActivity.normalizeAssOverrideModes() {
     }
 }
 
+private const val SUBTITLE_STYLE_WRITE_DEBOUNCE_MS = 250L
+
 internal fun MPVActivity.writeSubtitleStyleSettings() {
+    subtitleStyleWriteDirty = true
+    eventUiHandler.removeCallbacks(writeSubtitleStyleSettingsRunnable)
+    eventUiHandler.postDelayed(writeSubtitleStyleSettingsRunnable, SUBTITLE_STYLE_WRITE_DEBOUNCE_MS)
+}
+
+internal fun MPVActivity.writeSubtitleStyleSettingsNow() {
+    eventUiHandler.removeCallbacks(writeSubtitleStyleSettingsRunnable)
+    if (!subtitleStyleWriteDirty) return
+    subtitleStyleWriteDirty = false
     val prefs = getDefaultSharedPreferences(applicationContext)
     with(prefs.edit()) {
         putString(SubtitleStyleExtras.PREF_KEY, subStyleExtras.normalized().toJson().toString())
