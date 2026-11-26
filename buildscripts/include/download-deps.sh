@@ -110,7 +110,7 @@ if [ ! -d mpv ]; then
 	git -C mpv checkout "$v_mpv"
 fi
 
-for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url mpv-ass-fade-upload mpv-audiotrack-pcm-resume mpv-mediacodec-drain-stall; do
+for patch_name in mpv-dovi-fel-toggle mpv-external-subtitle-url mpv-ass-fade-upload mpv-sub-atlas-shrink mpv-audiotrack-pcm-resume mpv-mediacodec-drain-stall; do
 	patch="$PWD/../patches/$patch_name.patch"
 	if git -C mpv apply --check "$patch" 2>/dev/null; then
 		git -C mpv apply "$patch"

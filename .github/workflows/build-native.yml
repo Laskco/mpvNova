@@ -108,6 +108,7 @@ jobs:
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-mediacodec-drain-stall.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-dovi-fel-toggle.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-external-subtitle-url.patch
+          git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-sub-atlas-shrink.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-ass-fade-upload.patch
           git -C buildscripts/deps/mpv apply --reverse ../../patches/mpv-audiotrack-pcm-resume.patch
           git -C buildscripts/deps/mpv diff --exit-code

@@ -1,4 +1,6 @@
 #include <jni.h>
+#include <dlfcn.h>
+#include <malloc.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,6 +28,7 @@ extern "C" {
     jni_func(void, create, jobject appctx);
     jni_func(void, init);
     jni_func(void, destroy);
+    jni_func(void, purgeNativeHeap);
 
     jni_func(void, command, jobjectArray jarray);
     jni_func(jint, commandAsync, jlong request_id, jobjectArray jarray);
@@ -67,10 +70,14 @@ jni_func(void, create, jobject appctx) {
     if (!g_mpv)
         die("context init failed");
 
-    // Renderer recovery watches a verbose cplayer frame confirmation. Keep the
-    // client stream verbose, while release logcat and the support ring filter it.
+    // Keep cplayer verbose for AboutActivity feature discovery and renderer
+    // recovery; everything else only needs info/warn/error in release builds.
     mpv_request_log_messages(g_mpv, "v");
+#if !defined(NDEBUG)
     mpv_set_option_string(g_mpv, "msg-level", "all=v");
+#else
+    mpv_set_option_string(g_mpv, "msg-level", "all=info,cplayer=v");
+#endif
 }
 
 jni_func(void, init) {
@@ -86,6 +93,15 @@ jni_func(void, init) {
     pthread_setname_np(event_thread_id, "event_thread");
 }
 
+static void purge_native_heap_pages() {
+#if defined(__ANDROID__) && defined(M_PURGE)
+    using mallopt_fn = int (*)(int, int);
+    static mallopt_fn fn = reinterpret_cast<mallopt_fn>(dlsym(RTLD_DEFAULT, "mallopt"));
+    if (fn)
+        fn(M_PURGE, 0);
+#endif
+}
+
 jni_func(void, destroy) {
     if (!g_mpv) {
         ALOGV("mpv destroy called but it's already destroyed");
@@ -99,6 +115,11 @@ jni_func(void, destroy) {
 
     mpv_terminate_destroy(g_mpv);
     g_mpv = NULL;
+    purge_native_heap_pages();
+}
+
+jni_func(void, purgeNativeHeap) {
+    purge_native_heap_pages();
 }
 
 static int run_command(JNIEnv *env, jobjectArray jarray, uint64_t request_id) {

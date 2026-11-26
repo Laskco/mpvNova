@@ -1,0 +1,177 @@
+diff --git a/sub/packer.c b/sub/packer.c
+index 19009ae..0732c07 100644
+--- a/sub/packer.c
++++ b/sub/packer.c
+@@ -45,6 +45,8 @@ struct mp_sub_packer {
+     struct sub_bitmaps cached_subs;
+     bool cached_subs_valid;
+     int last_mismatch_part;
++    int shrink_uploads;
++    bool shrink_pending;
+     struct sub_bitmap rgba_imgs[MP_SUB_BB_LIST_MAX];
+     struct bitmap_packer *packer;
+ };
+@@ -67,26 +69,50 @@ static bool pack(struct mp_sub_packer *p, struct sub_bitmaps *res, int imgfmt)
+     for (int n = 0; n < res->num_parts; n++)
+         p->packer->in[n] = (struct pos){res->parts[n].w, res->parts[n].h};
+ 
+-    if (p->packer->count == 0 || packer_pack(p->packer) < 0)
++    if (p->packer->count == 0)
+         return false;
+ 
++    if (p->shrink_pending) {
++        p->packer->w = 0;
++        p->packer->h = 0;
++    }
++
++    if (packer_pack(p->packer) < 0) {
++        p->shrink_pending = false;
++        return false;
++    }
++
+     struct pos bb[2];
+     packer_get_bb(p->packer, bb);
+ 
+     res->packed_w = bb[1].x;
+     res->packed_h = bb[1].y;
+ 
++    bool shrink = p->shrink_pending;
++    p->shrink_pending = false;
++
+     if (!p->cached_img || p->cached_img->w < res->packed_w ||
+                           p->cached_img->h < res->packed_h ||
+-                          p->cached_img->imgfmt != imgfmt)
++                          p->cached_img->imgfmt != imgfmt || shrink)
+     {
++        p->shrink_uploads = 0;
+         talloc_free(p->cached_img);
+         p->cached_img = mp_image_alloc(imgfmt, p->packer->w, p->packer->h);
+         if (!p->cached_img) {
+             packer_reset(p->packer);
++            p->packer->padding = 1;
+             return false;
+         }
+         talloc_steal(p, p->cached_img);
++    } else {
++        int64_t cur_area = (int64_t)p->cached_img->w * p->cached_img->h;
++        int64_t need_area = (int64_t)res->packed_w * res->packed_h;
++        if (cur_area > 512 * 512 && need_area * 4 <= cur_area) {
++            if (++p->shrink_uploads >= 16)
++                p->shrink_pending = true;
++        } else {
++            p->shrink_uploads = 0;
++        }
+     }
+ 
+     if (!mp_image_make_writeable(p->cached_img)) {
+diff --git a/video/out/gpu/osd.c b/video/out/gpu/osd.c
+index f36b63c..64becd7 100644
+--- a/video/out/gpu/osd.c
++++ b/video/out/gpu/osd.c
+@@ -53,6 +53,7 @@ struct mpgl_osd_part {
+     uint64_t packed_id;
+     struct ra_tex *texture;
+     int w, h;
++    int shrink_uploads;
+     int num_subparts;
+     struct sub_bitmap *subparts;
+     int num_vertices;
+@@ -130,9 +131,26 @@ static bool upload_osd(struct mpgl_osd *ctx, struct mpgl_osd_part *osd,
+     const struct ra_format *fmt = ctx->fmt_table[imgs->format];
+     mp_assert(fmt);
+ 
++    bool shrink = false;
++    if (osd->texture && osd->format == imgs->format &&
++        req_w <= osd->w && req_h <= osd->h)
++    {
++        int64_t cur_area = (int64_t)osd->w * osd->h;
++        int64_t req_area = (int64_t)MPMAX(32, req_w) * MPMAX(32, req_h);
++        if (cur_area > 512 * 512 && req_area * 4 <= cur_area) {
++            if (++osd->shrink_uploads >= 16)
++                shrink = true;
++        } else {
++            osd->shrink_uploads = 0;
++        }
++    } else {
++        osd->shrink_uploads = 0;
++    }
++
+     if (!osd->texture || req_w > osd->w || req_h > osd->h ||
+-        osd->format != imgs->format)
++        osd->format != imgs->format || shrink)
+     {
++        osd->shrink_uploads = 0;
+         ra_tex_free(ra, &osd->texture);
+ 
+         osd->format = imgs->format;
+diff --git a/video/out/gpu_next/video.c b/video/out/gpu_next/video.c
+index 1b9c5d4..3f46687 100644
+--- a/video/out/gpu_next/video.c
++++ b/video/out/gpu_next/video.c
+@@ -70,6 +70,7 @@ struct osd_entry {
+     int num_parts;
+     int change_id;
+     uint64_t packed_id;
++    int shrink_uploads;
+ };
+ 
+ struct overlay_state {
+@@ -352,18 +353,41 @@ static bool upload_overlay_tex(struct mppl_video *p, struct osd_entry *entry,
+     if (!entry->tex)
+         MP_TARRAY_POP(p->sub_tex, p->num_sub_tex, &entry->tex);
+     // pl_tex_recreate() invalidates the texture even when it keeps it, so
+-    // only call it when the size or format has to change. Textures only
+-    // ever grow, so a size mismatch means the texture is too small.
++    // only call it when the size or format has to change.
+     pl_tex tex = entry->tex;
+-    if (!tex || tex->params.w < item->packed_w ||
+-        tex->params.h < item->packed_h || tex->params.format != tex_fmt)
+-    {
++    bool need_recreate = !tex || tex->params.w < item->packed_w ||
++                         tex->params.h < item->packed_h ||
++                         tex->params.format != tex_fmt;
++    bool same_pixels = !need_recreate &&
++        (item->packed_id ? entry->packed_id == item->packed_id
++                         : !entry->packed_id && entry->change_id == item->change_id);
++    if (same_pixels)
++        return true;
++
++    bool shrink = false;
++    if (!need_recreate) {
++        int64_t cur_area = (int64_t)tex->params.w * tex->params.h;
++        int64_t req_area = (int64_t)MPMAX(item->packed_w, 32) * MPMAX(item->packed_h, 32);
++        if (cur_area > 512 * 512 && req_area * 4 <= cur_area) {
++            if (++entry->shrink_uploads >= 16)
++                shrink = true;
++        } else {
++            entry->shrink_uploads = 0;
++        }
++    } else {
++        entry->shrink_uploads = 0;
++    }
++
++    if (need_recreate || shrink) {
++        entry->shrink_uploads = 0;
+         entry->change_id = 0;
+         entry->packed_id = 0;
+         bool ok = pl_tex_recreate(p->gpu, &entry->tex, &(struct pl_tex_params) {
+             .format = tex_fmt,
+-            .w = MPMAX(item->packed_w, tex ? tex->params.w : 0),
+-            .h = MPMAX(item->packed_h, tex ? tex->params.h : 0),
++            .w = shrink ? MPMAX(item->packed_w, 32)
++                        : MPMAX(item->packed_w, tex ? tex->params.w : 0),
++            .h = shrink ? MPMAX(item->packed_h, 32)
++                        : MPMAX(item->packed_h, tex ? tex->params.h : 0),
+             .host_writable = true,
+             .sampleable = true,
+         });
+@@ -372,9 +396,6 @@ static bool upload_overlay_tex(struct mppl_video *p, struct osd_entry *entry,
+             return false;
+         }
+     }
+-    if (item->packed_id ? entry->packed_id == item->packed_id
+-                        : !entry->packed_id && entry->change_id == item->change_id)
+-        return true;
+     struct pl_tex_transfer_params upload_params = {
+         .tex        = entry->tex,
+         .rc         = { .x1 = item->packed_w, .y1 = item->packed_h, },

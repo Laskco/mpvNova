@@ -746,6 +746,11 @@ open class MPVActivity : AppCompatActivity() {
         handleConfigurationChanged()
     }
 
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        handleTrimMemory(level, ::binding.isInitialized)
+    }
+
     // Audio filter levels. DRC is mutually exclusive with audio-norm so the
     // UI matches the active chain. Preset arrays live in AudioFilterPresets.kt.
     internal var voiceBoostLevel = 0

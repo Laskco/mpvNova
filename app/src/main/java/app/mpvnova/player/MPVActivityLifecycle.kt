@@ -1,5 +1,6 @@
 package app.mpvnova.player
 
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -69,6 +70,20 @@ internal fun MPVActivity.startPlayerForFile(filepath: String) {
     setupAudioSessionId()
     registerBluetoothAudioDelayWatcher()
     volumeControlStream = STREAM_TYPE
+}
+
+@Suppress("DEPRECATION")
+internal fun MPVActivity.handleTrimMemory(level: Int, bindingReady: Boolean) {
+    if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
+        mpvPurgeNativeHeapIfLoaded()
+    }
+    val criticalPressure = level == ComponentCallbacks2.TRIM_MEMORY_RUNNING_CRITICAL ||
+        level >= ComponentCallbacks2.TRIM_MEMORY_BACKGROUND
+    if (criticalPressure && bindingReady && MpvRuntimeOwnership.isOwnedBy(player)) {
+        Log.i(MPV_ACTIVITY_TAG, "Critical memory trim (level=$level); shedding backward demuxer cache")
+        mpvSetPropertyString("demuxer-max-back-bytes", "0")
+        mpvPurgeNativeHeapIfLoaded()
+    }
 }
 
 private fun MPVActivity.setupAudioSessionId() {

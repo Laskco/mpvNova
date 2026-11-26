@@ -22,6 +22,7 @@ public final class MPVLib {
     public static native void create(Context appctx);
     public static native void init();
     public static native void destroy();
+    public static native void purgeNativeHeap();
     public static native void attachSurface(Surface surface);
     public static native void detachSurface();
 

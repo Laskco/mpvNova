@@ -1,4 +1,5 @@
 #include <jni.h>
+#include <string.h>
 #include <string>
 
 #include <mpv/client.h>
@@ -46,6 +47,15 @@ static void sendEventToJava(JNIEnv *env, int event)
     env->CallStaticVoidMethod(mpv_MPVLib, mpv_MPVLib_event, event);
 }
 
+static bool shouldForwardLogMessageToJava(const mpv_event_log_message *msg)
+{
+    if (!msg || !msg->prefix)
+        return false;
+    if (msg->log_level <= MPV_LOG_LEVEL_INFO)
+        return true;
+    return msg->log_level <= MPV_LOG_LEVEL_V && strcmp(msg->prefix, "cplayer") == 0;
+}
+
 static void sendLogMessageToJava(JNIEnv *env, mpv_event_log_message *msg)
 {
     jstring jprefix = new_utf8_string(env, msg->prefix);
@@ -84,7 +94,8 @@ void *event_thread(void *arg)
         case MPV_EVENT_LOG_MESSAGE:
             msg = (mpv_event_log_message*)mp_event->data;
             ALOGV("[%s:%s] %s", msg->prefix, msg->level, msg->text);
-            sendLogMessageToJava(env, msg);
+            if (shouldForwardLogMessageToJava(msg))
+                sendLogMessageToJava(env, msg);
             break;
         case MPV_EVENT_PROPERTY_CHANGE:
             mp_property = (mpv_event_property*)mp_event->data;
