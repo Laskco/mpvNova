@@ -92,12 +92,10 @@ internal fun MPVView.applyDecoderMode(mode: String) {
         }
         MPVView.DECODER_MODE_GNEXT -> {
             applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
-            setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
             setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
         }
         MPVView.DECODER_MODE_GNEXT_DIRECT -> {
             applyStandardDecoderTuning(sharedPreferences, MPV_VIEW_VO_GPU_NEXT)
-            setRuntimeVo(MPV_VIEW_VO_GPU_NEXT)
             setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC)
         }
         MPVView.DECODER_MODE_SHIELD_H10P -> {
@@ -142,11 +140,21 @@ internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPrefere
 
 internal fun MPVView.setRuntimeVo(vo: String) {
     invalidateHi10pH264Cache()
+    val requestedVo = requestedVideoOutput.trim()
+    val activeVo = mpvGetPropertyString("current-vo").orEmpty().trim()
+    if (requestedVo.equals(vo, ignoreCase = true) &&
+        (activeVo.isEmpty() || activeVo.equals(vo, ignoreCase = true))
+    ) {
+        rememberVo(vo)
+        return
+    }
     setVo(vo)
     mpvSetPropertyString("vo", vo)
 }
 
 internal fun setRuntimeOption(name: String, value: String) {
+    val current = mpvGetPropertyString("options/$name") ?: mpvGetPropertyString(name)
+    if (current == value) return
     mpvSetOptionString(name, value)
     mpvSetPropertyString(name, value)
 }
