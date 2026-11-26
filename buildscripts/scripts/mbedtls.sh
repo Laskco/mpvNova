@@ -18,7 +18,8 @@ else
 	./scripts/config.py set MBEDTLS_AESNI_C
 fi
 
-# since 3.6.6 mbedTLS defaults to /dev/random, which is known to block unnecessarily
+# Fallback to /dev/urandom only if getrandom() returns ENOSYS (mbedTLS 3.6.8+ uses
+# syscall(SYS_getrandom) on Android Bionic when available).
 ./scripts/config.py set MBEDTLS_PLATFORM_DEV_RANDOM '"/dev/urandom"'
 
 make -j$cores no_test

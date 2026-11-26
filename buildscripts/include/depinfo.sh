@@ -10,20 +10,20 @@ v_sdk_platform=37.2
 v_sdk_build_tools=37.0.0
 
 v_lua=5.2.4
-v_unibreak=8.0
-v_harfbuzz=15.1.0
+v_unibreak=8.0.1
+v_harfbuzz=15.2.0
 v_fribidi=1.0.18
 v_freetype=2.15.0
-v_mbedtls=3.6.7
-v_dav1d=1.5.4
+v_mbedtls=3.6.8
+v_dav1d=1.5.5
 v_libxml2=2.15.4
-v_fontconfig=2.18.3
+v_fontconfig=2.18.4
 v_libass=6a7c6c98d713cdd07a8b5efdfc08c67b1c7d2841
 libass_repository=https://github.com/Laskco/mpvNova-libass.git
-v_libplacebo=7.396.0
+v_libplacebo=7.402.0
 v_curl=8.23.0
 # Pin upstream mpv; download-deps.sh applies the player patches.
-v_mpv=543a8c2c59b9ea2f80e4992225b80a2b14b91346
+v_mpv=1eab28e7b5adab874dbe3dc5bb3883ec34be3d94
 
 
 ## Dependency tree
@@ -48,8 +48,8 @@ dep_mpvnova=(mpv)
 ## for CI workflow
 
 # pinned ffmpeg revision
-v_ci_ffmpeg=n9.0.2
-v_ci_libplacebo=e608e5b799b6515af2689fddbbed66ffae7b724c
+v_ci_ffmpeg=n9.1
+v_ci_libplacebo=1618bccccdec31bcf9ef87064f2d1b5af32505e5
 v_ci_arches=armv7l-arm64-x86-x86_64
 v_ci_prefix_mode=full-mpv
 

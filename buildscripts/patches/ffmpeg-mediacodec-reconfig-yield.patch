@@ -3,7 +3,7 @@ index bc176d8..0c913c2 100644
 --- a/libavcodec/mediacodecdec.c
 +++ b/libavcodec/mediacodecdec.c
 @@ -491,6 +491,7 @@ static int mediacodec_receive_frame(AVCodecContext *avctx, AVFrame *frame)
-     MediaCodecH264DecContext *s = avctx->priv_data;
+     MediaCodecContext *s = avctx->priv_data;
      int ret;
      ssize_t index;
 +    int try_again_count = 0;
