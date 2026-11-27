@@ -148,7 +148,7 @@ private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boo
 }
 
 internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
-    if (!autoDecoderFallback || sessionDecoderMode != null ||
+    if (!autoDecoderFallback ||
         gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()
     ) {
         return
@@ -169,6 +169,7 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
         mpvSetPropertyBoolean("pause", true)
     }
     player.applyShieldHi10pFallback(shieldDecoderFallback)
+    sessionDecoderMode = null
     automaticHi10pFallbackPath = currentMpvPath() ?: ""
     updateDecoderButton()
     // Wait for playback-restart — fixed delay can't cover Shield's 3+s
