@@ -1,7 +1,8 @@
 package app.mpvnova.player
 
-internal fun MPVActivity.applyNightModeDecoderDrcScale() {
+internal fun MPVActivity.applyNightModeDecoderDrcScale(preInit: Boolean = false) {
     val decoderScale = if (
+        !preInit &&
         nightModeLevel == NIGHT_MODE_DRC_PLUS_LEVEL &&
         currentAudioCodecName().isEac3CodecName()
     ) {
@@ -10,6 +11,10 @@ internal fun MPVActivity.applyNightModeDecoderDrcScale() {
         drcDecoderScaleOff
     }
     if (decoderScale == lastAppliedDecoderDrcScale) return
-    setRuntimeOption("ad-lavc-ac3drc", decoderScale)
+    if (preInit) {
+        mpvSetOptionString("ad-lavc-ac3drc", decoderScale)
+    } else {
+        setRuntimeOption("ad-lavc-ac3drc", decoderScale)
+    }
     lastAppliedDecoderDrcScale = decoderScale
 }
