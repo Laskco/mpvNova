@@ -1,7 +1,6 @@
 package app.mpvnova.player
 
 import android.app.Application
-import android.content.ComponentCallbacks2
 import androidx.preference.PreferenceManager.getDefaultSharedPreferences
 
 /**
@@ -38,18 +37,5 @@ internal class MpvNovaApplication : Application() {
             isDaemon = true
             start()
         }
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onTrimMemory(level: Int) {
-        super.onTrimMemory(level)
-        if (level >= ComponentCallbacks2.TRIM_MEMORY_RUNNING_LOW) {
-            mpvPurgeNativeHeapIfLoaded()
-        }
-    }
-
-    override fun onLowMemory() {
-        super.onLowMemory()
-        mpvPurgeNativeHeapIfLoaded()
     }
 }

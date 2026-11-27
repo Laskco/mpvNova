@@ -28,7 +28,6 @@ extern "C" {
     jni_func(void, create, jobject appctx);
     jni_func(void, init);
     jni_func(void, destroy);
-    jni_func(void, purgeNativeHeap);
 
     jni_func(void, command, jobjectArray jarray);
     jni_func(jint, commandAsync, jlong request_id, jobjectArray jarray);
@@ -70,14 +69,10 @@ jni_func(void, create, jobject appctx) {
     if (!g_mpv)
         die("context init failed");
 
-    // Keep cplayer verbose for AboutActivity feature discovery and renderer
-    // recovery; everything else only needs info/warn/error in release builds.
-    mpv_request_log_messages(g_mpv, "v");
-#if !defined(NDEBUG)
-    mpv_set_option_string(g_mpv, "msg-level", "all=v");
-#else
+    // Keep cplayer verbose for AboutActivity feature discovery; everything else
+    // only needs info/warn/error (user mpv.conf can still override msg-level).
+    mpv_request_log_messages(g_mpv, "terminal-default");
     mpv_set_option_string(g_mpv, "msg-level", "all=info,cplayer=v");
-#endif
 }
 
 jni_func(void, init) {
@@ -115,10 +110,6 @@ jni_func(void, destroy) {
 
     mpv_terminate_destroy(g_mpv);
     g_mpv = NULL;
-    purge_native_heap_pages();
-}
-
-jni_func(void, purgeNativeHeap) {
     purge_native_heap_pages();
 }
 

@@ -4,17 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.view.Surface
 
-@Volatile
-private var nativeLibrariesLoaded = false
-
 internal fun ensureNativeLibrariesLoaded() {
     MPVLib.ensureLoaded()
-    nativeLibrariesLoaded = true
-}
-
-internal fun mpvPurgeNativeHeapIfLoaded() {
-    if (!nativeLibrariesLoaded) return
-    runCatching { MPVLib.purgeNativeHeap() }
 }
 
 fun mpvCreate(appctx: Context) {
