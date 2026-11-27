@@ -148,10 +148,12 @@ private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boo
 }
 
 internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
-    if (!autoDecoderFallback || gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()) {
+    if (!autoDecoderFallback || sessionDecoderMode != null ||
+        gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()
+    ) {
         return
     }
-    if (player.isShieldH10pFallbackModeActive()) {
+    if (player.isHi10pFallbackModeActive()) {
         updateDecoderButton()
         return
     }
