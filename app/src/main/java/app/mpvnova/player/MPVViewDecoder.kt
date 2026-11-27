@@ -134,7 +134,10 @@ internal fun MPVView.applyStandardDecoderTuning(sharedPreferences: SharedPrefere
     }
     setRuntimeOption("vd-lavc-threads", "0")
     setRuntimeOption("framedrop", "vo")
-    setRuntimeOption("gpu-api", "auto")
+    val currentGpuApi = (mpvGetPropertyString("options/gpu-api") ?: mpvGetPropertyString("gpu-api")).orEmpty().trim()
+    if (currentGpuApi.isNotEmpty() && !currentGpuApi.equals("auto", ignoreCase = true)) {
+        setRuntimeOption("gpu-api", "auto")
+    }
     applyNetworkSettings()
 }
 
