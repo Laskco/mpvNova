@@ -25,8 +25,8 @@ internal fun MPVActivity.centerBoostMixLevelLabel(): String {
     return String.format(Locale.US, "%.1f", centerBoostMixLevels[centerBoostLevel])
 }
 
-private fun MPVActivity.buildAudioAresampleFilter(owner: String): String {
-    val sourceChannels = currentAudioChannelCount()
+private fun MPVActivity.buildAudioAresampleFilter(owner: String, preInit: Boolean = false): String {
+    val sourceChannels = if (preInit) STEREO_CHANNEL_COUNT else currentAudioChannelCount()
     val controlledDownmixActive = isDownmixOn() && sourceChannels >= MIN_SURROUND_CHANNELS
     val centerBoostMixLevel = if (isCenterBoostOn()) centerBoostMixLevelLabel() else null
     val options = stableAudioAresampleOptions(controlledDownmixActive, centerBoostMixLevel)
@@ -40,8 +40,9 @@ private fun MPVActivity.buildAudioAresampleFilter(owner: String): String {
     return "aresample=$options"
 }
 
-internal fun MPVActivity.buildDrcAresampleFilter(): String = buildAudioAresampleFilter("DRC")
+internal fun MPVActivity.buildDrcAresampleFilter(preInit: Boolean = false): String =
+    buildAudioAresampleFilter("DRC", preInit)
 
-internal fun MPVActivity.buildCenterBoostAudioStageFilter(): String {
-    return "$centerBoostFilterLabel:lavfi=[${buildAudioAresampleFilter("Center Boost")}]"
+internal fun MPVActivity.buildCenterBoostAudioStageFilter(preInit: Boolean = false): String {
+    return "$centerBoostFilterLabel:lavfi=[${buildAudioAresampleFilter("Center Boost", preInit)}]"
 }

@@ -10,12 +10,12 @@ internal fun MPVActivity.refreshAllFilterTints() {
     refreshFilterTint(binding.audioNormBtn, isAudioNormOn())
 }
 
-internal fun MPVActivity.buildAudioFilterChain(): String {
+internal fun MPVActivity.buildAudioFilterChain(preInit: Boolean = false): String {
     val filters = mutableListOf<String>()
     if (isNightModeOn()) {
         if (isDownmixOn())
-            surroundDialogueDownmixFilter()?.let { filters += it }
-        filters += buildNightModeAudioStageFilter()
+            surroundDialogueDownmixFilter(preInit)?.let { filters += it }
+        filters += buildNightModeAudioStageFilter(preInit)
         if (isVoiceBoostOn())
             filters += drcVoiceBoostPresets[voiceBoostLevel]
         if (isVoiceBoostOn() &&
@@ -24,9 +24,9 @@ internal fun MPVActivity.buildAudioFilterChain(): String {
             filters += "@drcvoicepeak:lavfi=[$drcVoiceLimiterFilterBody]"
     } else {
         if (isDownmixOn())
-            surroundDialogueDownmixFilter()?.let { filters += it }
+            surroundDialogueDownmixFilter(preInit)?.let { filters += it }
         if (isCenterBoostOn())
-            filters += buildCenterBoostAudioStageFilter()
+            filters += buildCenterBoostAudioStageFilter(preInit)
         if (isAudioNormOn())
             filters += audioNormPresets[audioNormLevel]
         if (isVoiceBoostOn())
@@ -39,7 +39,7 @@ internal fun MPVActivity.buildAudioFilterChain(): String {
 
 internal fun MPVActivity.applyInitialAudioFilterDefaults() {
     applyNightModeDecoderDrcScale(preInit = true)
-    val filterChain = if (persistAudioFilters) buildAudioFilterChain() else ""
+    val filterChain = if (persistAudioFilters) buildAudioFilterChain(preInit = true) else ""
     val result = mpvSetOptionString("af", filterChain)
     if (result < 0) {
         Log.w(MPV_ACTIVITY_TAG, "Failed to configure initial audio filters: $result")

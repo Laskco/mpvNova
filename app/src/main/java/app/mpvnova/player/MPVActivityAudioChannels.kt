@@ -69,7 +69,8 @@ internal fun MPVActivity.surroundDialogueDownmixBody(): String? {
     }
 }
 
-internal fun MPVActivity.surroundDialogueDownmixFilter(): String? {
+internal fun MPVActivity.surroundDialogueDownmixFilter(preInit: Boolean = false): String? {
+    if (preInit) return null
     val body = surroundDialogueDownmixBody() ?: return null
     return "$downmixFilterLabel:lavfi=[pan=stereo|$body]"
 }

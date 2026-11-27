@@ -47,42 +47,42 @@ internal fun MPVActivity.volumeBoostFilter(): String {
         "alimiter=limit=${settings.third}:attack=2:release=20]"
 }
 
-internal fun MPVActivity.buildDrcAudioStageFilter(): String {
+internal fun MPVActivity.buildDrcAudioStageFilter(preInit: Boolean = false): String {
     val stageFilters = mutableListOf<String>()
     if (isVolumeBoostOn())
         stageFilters += "volume=${drcVolumeMultiplier()}"
     stageFilters += drcFilterBody.trimEnd(',')
-    stageFilters += buildDrcAresampleFilter()
+    stageFilters += buildDrcAresampleFilter(preInit)
     return "$drcAudioStageFilterLabel:lavfi=[${stageFilters.joinToString(",")}]"
 }
 
-internal fun MPVActivity.buildDrcPlusAudioStageFilter(): String {
+internal fun MPVActivity.buildDrcPlusAudioStageFilter(preInit: Boolean = false): String {
     val stageFilters = mutableListOf<String>()
     if (isVolumeBoostOn())
         stageFilters += "volume=${drcVolumeMultiplier()}"
-    stageFilters += buildDrcAresampleFilter()
-    if (!currentAudioCodecName().isEac3CodecName())
+    stageFilters += buildDrcAresampleFilter(preInit)
+    if (preInit || !currentAudioCodecName().isEac3CodecName())
         stageFilters += drcPlusCompressorFilterBody
     stageFilters += drcPlusLimiterFilterBody
     stageFilters += "aformat=sample_fmts=$AUDIO_FILTER_OUTPUT_SAMPLE_FORMAT"
     return "$drcAudioStageFilterLabel:lavfi=[${stageFilters.joinToString(",")}]"
 }
 
-internal fun MPVActivity.buildNightModeAudioStageFilter(): String {
+internal fun MPVActivity.buildNightModeAudioStageFilter(preInit: Boolean = false): String {
     return when (nightModeLevel) {
-        NIGHT_MODE_DRC_PLUS_LEVEL -> buildDrcPlusAudioStageFilter()
+        NIGHT_MODE_DRC_PLUS_LEVEL -> buildDrcPlusAudioStageFilter(preInit)
         NIGHT_MODE_DRC_VOICE_LEVEL,
-        NIGHT_MODE_DRC_VOICE_HIGH_LEVEL -> buildDrcVoiceAudioStageFilter()
-        else -> buildDrcAudioStageFilter()
+        NIGHT_MODE_DRC_VOICE_HIGH_LEVEL -> buildDrcVoiceAudioStageFilter(preInit)
+        else -> buildDrcAudioStageFilter(preInit)
     }
 }
 
-internal fun MPVActivity.buildDrcVoiceAudioStageFilter(): String {
+internal fun MPVActivity.buildDrcVoiceAudioStageFilter(preInit: Boolean = false): String {
     val stageFilters = mutableListOf<String>()
     if (isVolumeBoostOn())
         stageFilters += "volume=${drcVolumeMultiplier()}"
     // Apply an explicitly selected center downmix before EQ and the final peak limiter.
-    stageFilters += buildDrcAresampleFilter()
+    stageFilters += buildDrcAresampleFilter(preInit)
     stageFilters += if (nightModeLevel == NIGHT_MODE_DRC_VOICE_HIGH_LEVEL) {
         drcVoiceHighFilterBody
     } else {
