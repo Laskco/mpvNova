@@ -91,14 +91,21 @@ internal fun MPVActivity.updateDecoderButton() {
         MPVView.DECODER_MODE_SW, MPVView.DECODER_MODE_MPV_CONF -> null
         else -> mpvGetPropertyString("hwdec-current")
     }
+    val requestedHwdec = when {
+        mode == MPVView.DECODER_MODE_SW || mode == MPVView.DECODER_MODE_MPV_CONF -> null
+        activeHwdec.isNullOrBlank() -> normalizedHwdecOption()
+        else -> null
+    }
     val hardwareRejected = gpuNextFallbackState.hardwareDecoderRejected
     val decoderText = when (mode) {
-        MPVView.DECODER_MODE_AUTO_SAFE -> currentAutoSafeDecoderBadge(activeHwdec, hardwareRejected)
+        MPVView.DECODER_MODE_AUTO_SAFE ->
+            currentAutoSafeDecoderBadge(activeHwdec, hardwareRejected, requestedHwdec)
         MPVView.DECODER_MODE_HW_PLUS -> hardwareDecoderBadge("HW+", activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_HW -> hardwareDecoderBadge("HW", activeHwdec, hardwareRejected)
         MPVView.DECODER_MODE_GNEXT,
         MPVView.DECODER_MODE_GNEXT_DIRECT,
-        MPVView.DECODER_MODE_SHIELD_H10P -> gpuNextDecoderBadge(activeHwdec, hardwareRejected)
+        MPVView.DECODER_MODE_SHIELD_H10P ->
+            gpuNextDecoderBadge(activeHwdec, hardwareRejected, requestedHwdec)
         MPVView.DECODER_MODE_SW -> "SW"
         MPVView.DECODER_MODE_MPV_CONF -> "CFG"
         else -> "HW"
@@ -106,9 +113,13 @@ internal fun MPVActivity.updateDecoderButton() {
     binding.cycleDecoderBtn.setTextIfChanged(decoderText)
 }
 
-private fun MPVActivity.currentAutoSafeDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean): String {
+private fun MPVActivity.currentAutoSafeDecoderBadge(
+    activeHwdec: String?,
+    hardwareRejected: Boolean,
+    requestedHwdec: String?,
+): String {
     if (player.requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
-        return gpuNextDecoderBadge(activeHwdec, hardwareRejected)
+        return gpuNextDecoderBadge(activeHwdec, hardwareRejected, requestedHwdec)
 
     val badge = when (activeHwdec?.trim()?.lowercase()) {
         MPV_VIEW_HWDEC_MEDIACODEC -> "HW+"
@@ -140,13 +151,12 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
     if (!autoDecoderFallback || gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()) {
         return
     }
-    val currentMode = player.currentDecoderMode
-    if (!shouldApplyShieldHi10pFallback(currentMode)) return
-
     if (player.isShieldH10pFallbackModeActive()) {
         updateDecoderButton()
         return
     }
+    val currentMode = player.currentDecoderMode
+    if (!shouldApplyShieldHi10pFallback(currentMode)) return
 
     val hwdecWillChange = player.hwdecActive.trim().lowercase() != MPV_VIEW_HWDEC_NONE
 

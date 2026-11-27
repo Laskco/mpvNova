@@ -106,12 +106,20 @@ internal fun MPVActivity.currentGpuNextPathLabel(useActivePath: Boolean): String
     )
 }
 
-internal fun gpuNextDecoderBadge(activeHwdec: String?, hardwareRejected: Boolean): String {
+internal fun gpuNextDecoderBadge(
+    activeHwdec: String?,
+    hardwareRejected: Boolean,
+    requestedHwdec: String? = null,
+): String {
     return when (activeHwdec?.trim()?.lowercase(Locale.US)) {
         MPV_VIEW_HWDEC_MEDIACODEC_COPY -> "G+CPY"
         MPV_VIEW_HWDEC_MEDIACODEC -> "G+HW"
         MPV_VIEW_HWDEC_NONE -> "G+SW"
-        else -> if (hardwareRejected) "G+ERR" else "G-NXT"
+        else -> when {
+            hardwareRejected -> "G+ERR"
+            requestedHwdec?.trim()?.lowercase(Locale.US) == MPV_VIEW_HWDEC_NONE -> "G+SW"
+            else -> "G-NXT"
+        }
     }
 }
 

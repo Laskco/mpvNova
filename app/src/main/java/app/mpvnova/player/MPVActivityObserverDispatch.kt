@@ -131,6 +131,7 @@ private val METADATA_UI_HANDLERS: Map<String, MPVActivity.() -> Unit> = mapOf(
         player.invalidateHi10pH264Cache()
         if (!mpvGetPropertyString("hwdec-current").isNullOrBlank())
             gpuNextFallbackState.clearHardwareDecoderRejected()
+        maybeApplyShieldHi10pFallback()
         updateDecoderButton()
     },
 )
