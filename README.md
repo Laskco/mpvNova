@@ -164,7 +164,7 @@ If a separate enhancement track contains the only RPU metadata, playback falls b
 - Android SDK platform `37.2` and build tools `37.0.0`
 - Git for version information in builds
 - Gradle wrapper `9.9.1`
-- Android Gradle Plugin `9.5.1`
+- Android Gradle Plugin `9.5.3`
 - Kotlin `2.4.21`
 
 ### App-only build
