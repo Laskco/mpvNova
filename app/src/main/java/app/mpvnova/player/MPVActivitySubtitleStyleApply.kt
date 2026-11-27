@@ -44,10 +44,7 @@ internal fun MPVActivity.applyCustomSubtitleStyle(
     if (subStylePreservingCompanionTrack)
         mpvSetPropertyString("sub-ass-override", "no")
     applySubMarginX(styleEnabled)
-    val subGray = if (subStyleGrayImageSubs && !subStylePreservingCompanionTrack) "yes" else "no"
-    if (mpvGetPropertyString("sub-gray") != subGray) {
-        mpvSetPropertyString("sub-gray", subGray)
-    }
+    mpvSetPropertyString("sub-gray", if (subStyleGrayImageSubs && !subStylePreservingCompanionTrack) "yes" else "no")
     applyAssStyleOverrides(styleEnabled)
 }
 

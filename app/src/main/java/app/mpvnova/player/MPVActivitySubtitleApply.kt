@@ -7,9 +7,7 @@ internal fun MPVActivity.applySubScaleProperty() {
 internal fun MPVActivity.applySubPosProperty() {
     val position = (subPosSteps[subPosLevel] - subtitleControlsOffsetPercent)
         .coerceIn(SUB_POSITION_MIN_PERCENT, SUB_POSITION_MAX_PERCENT)
-    if (mpvGetPropertyDouble("sub-pos") != position.toDouble()) {
-        mpvSetPropertyInt("sub-pos", position)
-    }
+    mpvSetPropertyInt("sub-pos", position)
 }
 
 internal fun MPVActivity.applySecondaryPosProperty() {

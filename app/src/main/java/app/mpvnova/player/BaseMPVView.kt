@@ -114,11 +114,6 @@ abstract class BaseMPVView(
             mpvSetOptionString("vo", vo)
     }
 
-    internal fun rememberVo(vo: String?) {
-        voInUse = vo
-        detachedVoInUse = null
-    }
-
     // Surface callbacks
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {

@@ -39,12 +39,6 @@ private fun MPVActivity.handleMpvPlaybackRestart() {
         pendingShieldFallbackResync = false
         eventUiHandler.post(shieldFallbackResyncRunnable)
     }
-    eventUiHandler.post {
-        if (activityIsForeground && !activityIsDestroying) {
-            maybeApplyShieldHi10pFallback()
-            updateDecoderButton()
-        }
-    }
 }
 
 private fun MPVActivity.handleMpvEndFile() {

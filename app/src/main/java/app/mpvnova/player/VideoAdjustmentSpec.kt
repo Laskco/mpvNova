@@ -83,9 +83,7 @@ internal fun MPVActivity.applyRememberedVideoAdjustments() {
         } else {
             VIDEO_ADJUSTMENT_DEFAULT_INT
         }
-        if (mpvGetPropertyDouble(spec.property) != value.toDouble()) {
-            mpvSetPropertyInt(spec.property, value)
-        }
+        mpvSetPropertyInt(spec.property, value)
     }
 }
 

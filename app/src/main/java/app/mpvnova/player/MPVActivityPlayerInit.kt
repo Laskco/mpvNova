@@ -95,10 +95,11 @@ internal fun MPVActivity.refreshLoadingOverlay() {
             .setListener(null)
             .withLayer()
     } else if (binding.loadingOverlay.visibility == View.VISIBLE) {
-        // Snap off like streamLoadingCover so hiding the overlay at PLAYBACK_RESTART
-        // does not composite a fading hardware layer over the first rendered frames.
-        binding.loadingOverlay.alpha = 0f
-        binding.loadingOverlay.visibility = View.GONE
+        binding.loadingOverlay.animate()
+            .alpha(0f)
+            .setDuration(LOADING_OVERLAY_FADE_MS)
+            .withLayer()
+            .withEndAction { binding.loadingOverlay.visibility = View.GONE }
     }
 }
 
