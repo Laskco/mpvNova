@@ -55,12 +55,16 @@ private fun MPVActivity.handleMpvEndFile() {
             } else {
                 saveResumePosition(resultPositionMs, resultDurationMs)
             }
+            lastStartedMpvPath = null
         }
         psc.eof()
         replaced
     }
     updateMediaSession()
-    if (!replacedOutgoingFile) markPlaybackEnded()
+    if (!replacedOutgoingFile) {
+        restoreWatchLaterResumeAfterLoad()
+        markPlaybackEnded()
+    }
     if (!replacedOutgoingFile && shouldFinishExternalPlaybackOnEndFile()) {
         Log.v(
             MPV_ACTIVITY_TAG,
@@ -87,9 +91,7 @@ private fun MPVActivity.handleMpvStartFile() {
     recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
     val path = currentMpvPath()
-    if (!path.isNullOrBlank()) {
-        lastStartedMpvPath = path
-    }
+    lastStartedMpvPath = mpvGetPropertyString("path")?.takeIf { it.isNotBlank() } ?: path
     val restoreDecoderAfterFailure = gpuNextFallbackState.shouldRestoreForFile(
         path, sessionDecoderMode, automaticHi10pFallbackPath,
     )
@@ -149,6 +151,7 @@ private fun MPVActivity.runOnloadCommands() {
 
 private fun MPVActivity.handleMpvFileLoaded() {
     chapterCache.fileLoaded = true
+    restoreWatchLaterResumeAfterLoad()
     localAutoNextLaunch = null
     val preserveForwardedSubtitles = preferExternalForwardedSubtitles && onloadCommands.any {
         it.firstOrNull() == "sub-add" && it.getOrNull(2) == "select"

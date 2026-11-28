@@ -458,6 +458,10 @@ open class MPVActivity : AppCompatActivity() {
     internal var automaticHi10pFallbackPath: String? = null
     @Volatile
     internal var lastStartedMpvPath: String? = null
+    @Volatile
+    internal var suppressWatchLaterResumeForNextLoad = false
+    @Volatile
+    internal var savedResumePlaybackOption: Boolean? = null
 
 
     internal var playbackHasStarted = false

@@ -112,8 +112,10 @@ internal fun MPVActivity.parseIntentExtras(extras: Bundle?) {
     onloadCommands.clear()
     val launchExtras = extras ?: Bundle.EMPTY
 
-    if (resumeIdentityFromSource(currentResumeSource) != null)
-        addOnloadOption("resume-playback", "no")
+    // Applied to mpv's global resume-playback property right before loadfile:
+    // file-local-options/resume-playback set during START_FILE is too late
+    // because libmpv reads resume-playback before START_FILE returns.
+    suppressWatchLaterResumeForNextLoad = resumeIdentityFromSource(currentResumeSource) != null
 
     // Note: these only apply to the first file, it's not clear what the semantics for a
     // playlist should be.

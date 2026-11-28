@@ -20,6 +20,7 @@ internal fun MPVActivity.applyNewIntentReplacement(
 
 internal fun MPVActivity.loadReplacementFile(filepath: String) = synchronized(fileReplacementLock) {
     prepareLocalAutoNext(filepath)
+    applyPreLoadResumePlaybackPolicy()
     // Read the command result atomically, before redirects can change the playlist.
     pendingReplacementEntryId = mpvLoadReplacementFile(filepath)
 }

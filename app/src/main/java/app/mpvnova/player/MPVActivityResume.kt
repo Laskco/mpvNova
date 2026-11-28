@@ -109,6 +109,25 @@ internal fun MPVActivity.loadResumePosition(): Long? {
     }
 }
 
+internal fun MPVActivity.applyPreLoadResumePlaybackPolicy() = synchronized(fileReplacementLock) {
+    val suppress = suppressWatchLaterResumeForNextLoad
+    suppressWatchLaterResumeForNextLoad = false
+    if (suppress) {
+        if (savedResumePlaybackOption == null) {
+            savedResumePlaybackOption = mpvGetPropertyBoolean("resume-playback") ?: true
+        }
+        mpvSetPropertyBoolean("resume-playback", false)
+    } else {
+        restoreWatchLaterResumeAfterLoad()
+    }
+}
+
+internal fun MPVActivity.restoreWatchLaterResumeAfterLoad() = synchronized(fileReplacementLock) {
+    val saved = savedResumePlaybackOption ?: return@synchronized
+    savedResumePlaybackOption = null
+    mpvSetPropertyBoolean("resume-playback", saved)
+}
+
 internal fun MPVActivity.clearFinishedPositions() {
     // 1) Custom resume table
     val identity = cachedResumeIdentity()
@@ -119,8 +138,11 @@ internal fun MPVActivity.clearFinishedPositions() {
             .remove(legacyResumeKey(identity))
             .apply()
     }
-    // 2) mpv's native watch-later file (pass the path because END_FILE clears current path)
-    val targetPath = currentMpvPath()?.takeIf { it.isNotBlank() } ?: lastStartedMpvPath
+    // 2) mpv's native watch-later file: prefer the path captured at START_FILE
+    // because on playlist advancement END_FILE may already expose the next item's path,
+    // while on standalone EOF the current path is already cleared.
+    val targetPath = lastStartedMpvPath?.takeIf { it.isNotBlank() }
+        ?: mpvGetPropertyString("path")?.takeIf { it.isNotBlank() }
     if (!targetPath.isNullOrBlank()) {
         mpvCommand(arrayOf("delete-watch-later-config", targetPath))
     } else {
