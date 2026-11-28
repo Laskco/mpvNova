@@ -57,6 +57,8 @@ internal class MPVView(context: Context, attrs: AttributeSet) : BaseMPVView(cont
     internal val networkOptionSession = NetworkOptionSession()
     @Volatile
     internal var cachedHi10pH264Video: Boolean? = null
+    @Volatile
+    internal var implicitHi10pDefaultSoftwareActive = false
 
     internal fun invalidateHi10pH264Cache() {
         cachedHi10pH264Video = null

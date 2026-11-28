@@ -2,6 +2,7 @@ package app.mpvnova.player
 
 import android.os.Build
 import android.os.Looper
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.core.content.ContextCompat
@@ -147,10 +148,55 @@ private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boo
         )
 }
 
+private const val SHIELD_FALLBACK_RESUME_TIMEOUT_MS = 2_500L
+
+internal fun MPVActivity.clearPendingShieldFallbackResync(resumePlayback: Boolean = false) {
+    pendingShieldFallbackResync.set(false)
+    shieldFallbackSkipResyncSeek = false
+    val shouldResume = shieldFallbackResumeAfter
+    shieldFallbackResumeAfter = false
+    eventUiHandler.removeCallbacks(shieldFallbackResyncRunnable)
+    eventUiHandler.removeCallbacks(shieldFallbackResumeTimeoutRunnable)
+    if (resumePlayback && shouldResume) {
+        mpvSetPropertyBoolean("pause", false)
+    }
+}
+
+internal fun MPVActivity.handleShieldFallbackResumeTimeout() {
+    pendingShieldFallbackResync.set(false)
+    shieldFallbackSkipResyncSeek = false
+    val shouldResume = shieldFallbackResumeAfter
+    shieldFallbackResumeAfter = false
+    if (shouldResume && (activityIsForeground || didResumeBackgroundPlayback)) {
+        Log.w(MPV_ACTIVITY_TAG, "shield fallback: timed out waiting for restart; resuming")
+        mpvSetPropertyBoolean("pause", false)
+    }
+}
+
+internal fun MPVActivity.handleShieldFallbackResync() {
+    eventUiHandler.removeCallbacks(shieldFallbackResumeTimeoutRunnable)
+    val skipSeek = shieldFallbackSkipResyncSeek
+    shieldFallbackSkipResyncSeek = false
+    val shouldResume = shieldFallbackResumeAfter
+    shieldFallbackResumeAfter = false
+    if (!activityIsForeground && !didResumeBackgroundPlayback) return
+    if (!skipSeek) {
+        val pos = mpvGetPropertyDouble("time-pos/full")
+        if (pos != null) {
+            Log.v(MPV_ACTIVITY_TAG, "shield fallback: realigning A/V at $pos")
+            mpvCommand(arrayOf("seek", pos.toString(), "absolute+exact"))
+        }
+    }
+    if (shouldResume) {
+        mpvSetPropertyBoolean("pause", false)
+    }
+}
+
 private fun MPVActivity.shieldHi10pFallbackWillReinitVideo(): Boolean {
-    val activeHwdec = mpvGetPropertyString("hwdec-current")?.trim()?.lowercase()
-    return activeHwdec != MPV_VIEW_HWDEC_NONE ||
-        !player.requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT) ||
+    val requestedHwdec = normalizedHwdecOption()
+    val requestedVo = player.requestedVideoOutput.trim().lowercase()
+    return requestedHwdec != MPV_VIEW_HWDEC_NONE ||
+        requestedVo != MPV_VIEW_VO_GPU_NEXT ||
         shieldDecoderFallback.toShieldDecoderFallback() == MPVView.SHIELD_DECODER_FALLBACK_COPY
 }
 
@@ -160,45 +206,81 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
     ) {
         return
     }
+    if (sessionDecoderMode == MPVView.DECODER_MODE_MPV_CONF ||
+        sessionDecoderMode == MPVView.DECODER_MODE_SW
+    ) {
+        return
+    }
     if (player.isHi10pFallbackModeActive()) {
         sessionDecoderMode = null
         updateDecoderButton()
         return
     }
-    val currentMode = player.currentDecoderMode
-    if (!shouldApplyShieldHi10pFallback(currentMode)) return
+    if (!shouldApplyShieldHi10pFallback(player.currentDecoderMode)) return
 
     // If libmpv already fell back to software decode on gpu-next and default
     // tuning is active, writing hwdec=no mid-playback only triggers UPDATE_HWDEC
     // (VDCTRL_REINIT) mid-GOP without seeking when video_pts is still unset.
     if (player.isAlreadyRunningHi10pDefaultSoftwareFallback(shieldDecoderFallback)) {
+        player.implicitHi10pDefaultSoftwareActive = true
         player.applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_SHIELD_H10P)
         sessionDecoderMode = null
         updateDecoderButton()
         return
     }
 
-    val willReinitVideo = shieldHi10pFallbackWillReinitVideo()
+    applyShieldHi10pFallbackWithResync()
+}
 
-    // Pause around the swap so audio can't drain → no underrun → no drift.
-    val wasPlaying = player.paused == false
-    if (willReinitVideo && wasPlaying) {
+private fun MPVActivity.applyShieldHi10pFallbackWithResync() {
+    val willReinitVideo = shieldHi10pFallbackWillReinitVideo()
+    val canSeek = willReinitVideo && mpvGetPropertyBoolean("seekable") != false
+    // seeking == false iff playback_initialized && restart_complete (real frame rendered).
+    val hasRenderedFrame = canSeek && mpvGetPropertyBoolean("seeking") == false
+    val posBeforeFallback = if (canSeek && !hasRenderedFrame) {
+        mpvGetPropertyDouble("time-pos/full")
+    } else {
+        null
+    }
+    clearPendingShieldFallbackResync()
+    // Pause around the swap on seekable streams so audio can't drain → no underrun → no drift.
+    if (canSeek && player.paused == false) {
         shieldFallbackResumeAfter = true
         mpvSetPropertyBoolean("pause", true)
+        eventUiHandler.postDelayed(shieldFallbackResumeTimeoutRunnable, SHIELD_FALLBACK_RESUME_TIMEOUT_MS)
     }
-    // Arm resync before applying options so an immediate playback-restart on
-    // the event thread cannot race past it.
-    if (willReinitVideo)
-        pendingShieldFallbackResync = true
+    val restartsBefore = playbackRestartCount
     player.applyShieldHi10pFallback(shieldDecoderFallback)
     sessionDecoderMode = null
     automaticHi10pFallbackPath = currentMpvPath() ?: ""
     updateDecoderButton()
-    // If UPDATE_HWDEC reinitialized the decoder before frame 0 set video_pts,
-    // libmpv skips its internal queue_seek; rewind to 0 so the recreated decoder
-    // does not wait until the next keyframe.
-    if (willReinitVideo && mpvGetPropertyDouble("time-pos/full") == null) {
-        mpvCommand(arrayOf("seek", "0", "absolute+exact"))
+    if (!canSeek) return
+
+    scheduleShieldFallbackResyncAfterSwap(hasRenderedFrame, posBeforeFallback, restartsBefore)
+}
+
+private fun MPVActivity.scheduleShieldFallbackResyncAfterSwap(
+    hasRenderedFrame: Boolean,
+    posBeforeFallback: Double?,
+    restartsBefore: Long,
+) {
+    if (!hasRenderedFrame) {
+        // If UPDATE_HWDEC reinitialized the decoder before frame 0 set video_pts,
+        // libmpv skips its internal queue_seek; seek explicitly so the recreated
+        // decoder does not wait until the next keyframe.
+        shieldFallbackSkipResyncSeek = true
+        pendingShieldFallbackResync.set(true)
+        val seekTarget = posBeforeFallback ?: 0.0
+        mpvCommand(arrayOf("seek", seekTarget.toString(), "absolute+exact"))
+    } else if (playbackRestartCount != restartsBefore) {
+        eventUiHandler.post(shieldFallbackResyncRunnable)
+    } else {
+        pendingShieldFallbackResync.set(true)
+        if (playbackRestartCount != restartsBefore &&
+            pendingShieldFallbackResync.compareAndSet(true, false)
+        ) {
+            eventUiHandler.post(shieldFallbackResyncRunnable)
+        }
     }
 }
 

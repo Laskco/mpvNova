@@ -26,6 +26,7 @@ internal fun MPVActivity.handleMpvEvent(eventId: Int) {
 }
 
 private fun MPVActivity.handleMpvPlaybackRestart() {
+    playbackRestartCount++
     // Ignore pre-load time-pos notifications until mpv has applied the requested start position.
     if (!skipSegmentPlaybackReady) {
         mpvGetPropertyDouble("time-pos/full")?.let { psc.update("time-pos/full", it) }
@@ -35,8 +36,7 @@ private fun MPVActivity.handleMpvPlaybackRestart() {
         firstPlaybackRestartMs = SystemClock.uptimeMillis()
     }
     // First frame from the rebuilt decoder — flush A/V/subs via tiny seek, then unpause.
-    if (pendingShieldFallbackResync) {
-        pendingShieldFallbackResync = false
+    if (pendingShieldFallbackResync.compareAndSet(true, false)) {
         eventUiHandler.post(shieldFallbackResyncRunnable)
     }
 }
@@ -73,9 +73,11 @@ private fun MPVActivity.handleMpvEndFile() {
 
 private fun MPVActivity.handleMpvStartFile() {
     player.invalidateHi10pH264Cache()
+    player.implicitHi10pDefaultSoftwareActive = false
     resetChapterCache()
     skipSegmentPlaybackReady = false
     psc.update("demuxer-cache-time")
+    clearPendingShieldFallbackResync()
     eventUiHandler.post {
         updatePlaybackBuffer()
         closeOpenSubtitlesSearch(restorePlayback = false)
@@ -98,8 +100,6 @@ private fun MPVActivity.handleMpvStartFile() {
     resetPlaybackResultState()
     audioNormUnderrunHintShown = false
     gpuNextFallbackState.reset()
-    pendingShieldFallbackResync = false
-    shieldFallbackResumeAfter = false
     audioFiltersAwaitingPostLoadReconcile = true
     controlsOverlayAutoPaused = false
     resetPlaybackSeekState()

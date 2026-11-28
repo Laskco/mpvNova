@@ -176,18 +176,12 @@ open class MPVActivity : AppCompatActivity() {
     }
 
     // Shield Hi10p decoder swap: pause, wait for playback-restart, exact-seek to realign.
-    internal var pendingShieldFallbackResync = false
-    internal var shieldFallbackResumeAfter = false
-    internal val shieldFallbackResyncRunnable = Runnable {
-        if (!activityIsForeground && !didResumeBackgroundPlayback) return@Runnable
-        val pos = mpvGetPropertyDouble("time-pos/full") ?: 0.0
-        Log.v(MPV_ACTIVITY_TAG, "shield fallback: realigning A/V at $pos")
-        mpvCommand(arrayOf("seek", pos.toString(), "absolute+exact"))
-        if (shieldFallbackResumeAfter) {
-            shieldFallbackResumeAfter = false
-            mpvSetPropertyBoolean("pause", false)
-        }
-    }
+    internal val pendingShieldFallbackResync = java.util.concurrent.atomic.AtomicBoolean(false)
+    @Volatile internal var shieldFallbackResumeAfter = false
+    @Volatile internal var shieldFallbackSkipResyncSeek = false
+    @Volatile internal var playbackRestartCount = 0L
+    internal val shieldFallbackResumeTimeoutRunnable = Runnable { handleShieldFallbackResumeTimeout() }
+    internal val shieldFallbackResyncRunnable = Runnable { handleShieldFallbackResync() }
 
     internal var audioManager: AudioManager? = null
     internal var audioFocusRequest: AudioFocusRequest? = null
@@ -624,6 +618,7 @@ open class MPVActivity : AppCompatActivity() {
         activityIsForeground = false
         cancelTrackListUiRefresh()
         cancelSkipButtonAutoHide()
+        clearPendingShieldFallbackResync(resumePlayback = shouldBackground && !isFinishing)
         eventUiHandler.removeCallbacksAndMessages(null)
         timePosUiPending = false
         bufferUiPending = false

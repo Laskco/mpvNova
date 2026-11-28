@@ -77,6 +77,7 @@ internal fun MPVActivity.restoreDecoderAfterAutomaticHi10pFallback() {
 }
 
 internal fun MPVView.applyDefaultDecoderForFileLoad() {
+    implicitHi10pDefaultSoftwareActive = false
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     val startupDecoderMode = startupPreferredDecoderMode(sharedPreferences)
     if (startupDecoderMode != null) {

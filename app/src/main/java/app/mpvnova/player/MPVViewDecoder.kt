@@ -59,17 +59,17 @@ internal fun MPVView.isHi10pH264Video(): Boolean {
 private fun resolveH264Hi10pState(): Boolean? {
     val profile = selectedVideoTrackString("codec-profile").trim().lowercase()
     if (profile.contains("10") || profile.contains("hi10")) return true
-    if (mpvGetPropertyBoolean("vo-configured") != true) return null
     val pixelFormat = (mpvGetPropertyString("video-params/pixelformat") ?: "")
         .trim()
         .lowercase()
-    if (profile.isEmpty() && pixelFormat.isEmpty()) return null
+    if (pixelFormat.isEmpty()) return null
     return pixelFormat.contains("p10") ||
         pixelFormat.contains("10le")
 }
 
 internal fun MPVView.applyDecoderMode(mode: String) {
     invalidateHi10pH264Cache()
+    implicitHi10pDefaultSoftwareActive = false
     val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
     if (mode == MPVView.DECODER_MODE_SW || mode == MPVView.DECODER_MODE_SHIELD_H10P)
         applyNativeDecoderFallbackPolicy(mode)
@@ -112,6 +112,7 @@ internal fun MPVView.fallbackGpuNextToGpu() {
     if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
     invalidateHi10pH264Cache()
+    implicitHi10pDefaultSoftwareActive = false
     setRuntimeVo(MPV_VIEW_VO_GPU)
 }
 
@@ -119,6 +120,7 @@ internal fun MPVView.fallbackGpuNextToCopyHwdec() {
     if (!requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT))
         return
     invalidateHi10pH264Cache()
+    implicitHi10pDefaultSoftwareActive = false
     setRuntimeOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY)
 }
 
@@ -154,6 +156,7 @@ internal fun setRuntimeOption(name: String, value: String) {
 
 internal fun MPVView.applyMpvConfDecoderOptions() {
     invalidateHi10pH264Cache()
+    implicitHi10pDefaultSoftwareActive = false
     applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_MPV_CONF)
     setVo(null)
     context.mpvConfOption("vo")?.let(::setRuntimeVo)

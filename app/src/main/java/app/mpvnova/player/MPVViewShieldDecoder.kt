@@ -22,6 +22,7 @@ internal fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferenc
 }
 
 private fun MPVView.applyShieldHi10pFallback(sharedPreferences: SharedPreferences, fallback: String) {
+    implicitHi10pDefaultSoftwareActive = false
     applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_SHIELD_H10P)
     when (fallback.toShieldDecoderFallback()) {
         MPVView.SHIELD_DECODER_FALLBACK_COPY -> applyShieldHi10pCopyFallback(sharedPreferences)
@@ -47,7 +48,7 @@ internal fun MPVView.isAlreadyRunningHi10pDefaultSoftwareFallback(fallback: Stri
     if (fallback.toShieldDecoderFallback() != MPVView.SHIELD_DECODER_FALLBACK_DEFAULT) {
         return false
     }
-    if (!isHi10pH264Video() || !matchesShieldOption("vo", MPV_VIEW_VO_GPU_NEXT)) {
+    if (!isHi10pH264Video() || !isUsingGpuNextVo()) {
         return false
     }
     return mpvGetPropertyString("hwdec-current")?.trim()?.lowercase() == MPV_VIEW_HWDEC_NONE
@@ -59,22 +60,27 @@ internal fun MPVView.isShieldH10pFallbackModeActive(): Boolean =
     isNvidiaShieldDevice() && isHi10pFallbackModeActive()
 
 internal fun MPVView.isHi10pFallbackModeActive(): Boolean {
-    if (!isHi10pH264Video() ||
-        !matchesShieldOption("vo", MPV_VIEW_VO_GPU_NEXT)
-    ) {
+    if (!isHi10pH264Video() || !isUsingGpuNextVo()) {
         return false
     }
     val directSoftware = matchesShieldOption("hwdec", MPV_VIEW_HWDEC_NONE)
     val legacyCopyTuning = matchesShieldOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY) &&
         matchesShieldOption("vd-lavc-skiploopfilter", "nonref") &&
         matchesShieldOption("audio-buffer", "1.0", "1.000000", "1")
-    if (directSoftware || legacyCopyTuning) {
-        return true
+    return directSoftware || legacyCopyTuning || implicitHi10pDefaultSoftwareActive
+}
+
+private fun MPVView.isUsingGpuNextVo(): Boolean {
+    val activeVo = mpvGetPropertyString("current-vo")?.trim()?.lowercase().orEmpty()
+    if (activeVo.isNotEmpty()) {
+        return activeVo == MPV_VIEW_VO_GPU_NEXT
     }
-    val fallback = PreferenceManager.getDefaultSharedPreferences(context)
-        .getString("shield_decoder_fallback", MPVView.SHIELD_DECODER_FALLBACK_DEFAULT)
-        .toShieldDecoderFallback()
-    return isAlreadyRunningHi10pDefaultSoftwareFallback(fallback)
+    val primaryRequestedVo = requestedVideoOutput
+        .trim()
+        .lowercase()
+        .substringBefore(",")
+        .trim()
+    return primaryRequestedVo == MPV_VIEW_VO_GPU_NEXT
 }
 
 private fun MPVView.matchesShieldOption(name: String, vararg expected: String): Boolean {

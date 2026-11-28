@@ -74,13 +74,17 @@ internal fun MPVActivity.pickShieldDecoderFallback() {
     SHIELD_FALLBACK_OPTIONS.forEach { option ->
         binding.fallbackOptions.addView(
             buildShieldFallbackRow(inflater, binding, option, option.value == selected) {
+                val wasShieldHi10pMode = currentDecoderUiMode() == MPVView.DECODER_MODE_SHIELD_H10P
                 shieldDecoderFallback = option.value
                 getDefaultSharedPreferences(applicationContext)
                     .edit()
                     .putString("shield_decoder_fallback", option.value)
                     .apply()
-                if (currentDecoderUiMode() == MPVView.DECODER_MODE_SHIELD_H10P) {
+                if (wasShieldHi10pMode) {
                     player.applyShieldHi10pFallback(option.value)
+                    if (sessionDecoderMode == null) {
+                        automaticHi10pFallbackPath = currentMpvPath() ?: ""
+                    }
                     updateDecoderButton()
                 }
                 refreshDrawerRowsIfVisible(DrawerTab.VIDEO)
