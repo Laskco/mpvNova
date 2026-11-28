@@ -85,6 +85,9 @@ private fun MPVActivity.handleMpvStartFile() {
     recordPlaybackDiagnostic("start-file")
     restoreLocalAutoNextLaunchTitle()
     val path = currentMpvPath()
+    if (!path.isNullOrBlank()) {
+        lastStartedMpvPath = path
+    }
     val restoreDecoderAfterFailure = gpuNextFallbackState.shouldRestoreForFile(
         path, sessionDecoderMode, automaticHi10pFallbackPath,
     )

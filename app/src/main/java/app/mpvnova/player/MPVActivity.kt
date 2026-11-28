@@ -462,6 +462,8 @@ open class MPVActivity : AppCompatActivity() {
     internal val gpuNextFallbackState = GpuNextFallbackState()
     @Volatile
     internal var automaticHi10pFallbackPath: String? = null
+    @Volatile
+    internal var lastStartedMpvPath: String? = null
 
 
     internal var playbackHasStarted = false

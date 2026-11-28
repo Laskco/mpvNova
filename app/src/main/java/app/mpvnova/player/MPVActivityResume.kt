@@ -119,8 +119,13 @@ internal fun MPVActivity.clearFinishedPositions() {
             .remove(legacyResumeKey(identity))
             .apply()
     }
-    // 2) mpv's native watch-later file
-    mpvCommand(arrayOf("delete-watch-later-config"))
+    // 2) mpv's native watch-later file (pass the path because END_FILE clears current path)
+    val targetPath = currentMpvPath()?.takeIf { it.isNotBlank() } ?: lastStartedMpvPath
+    if (!targetPath.isNullOrBlank()) {
+        mpvCommand(arrayOf("delete-watch-later-config", targetPath))
+    } else {
+        mpvCommand(arrayOf("delete-watch-later-config"))
+    }
 }
 
 private val resumeTablePrunedThisProcess = java.util.concurrent.atomic.AtomicBoolean(false)

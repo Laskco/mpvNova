@@ -63,6 +63,11 @@ internal fun MPVActivity.applyIntentStartPosition(launchExtras: Bundle) {
         durationMs = launchExtras.externalDurationMs(),
     )
     pendingStartPositionMs = effectivePositionMs
+    if (startRequest.isExplicit) {
+        // External launcher explicitly owns the start position (including 0);
+        // keep mpv's watch-later config from overriding or colliding with it.
+        addOnloadOption("resume-playback", "no")
+    }
     if (effectivePositionMs <= 0L) {
         if (startRequest.isExplicit) {
             addOnloadOption("start", "0")
