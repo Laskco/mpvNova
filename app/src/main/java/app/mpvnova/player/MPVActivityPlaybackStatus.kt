@@ -147,6 +147,13 @@ private fun MPVActivity.shouldApplyShieldHi10pFallback(currentMode: String): Boo
         )
 }
 
+private fun MPVActivity.shieldHi10pFallbackWillReinitVideo(): Boolean {
+    val activeHwdec = mpvGetPropertyString("hwdec-current")?.trim()?.lowercase()
+    return activeHwdec != MPV_VIEW_HWDEC_NONE ||
+        !player.requestedVideoOutput.trim().lowercase().startsWith(MPV_VIEW_VO_GPU_NEXT) ||
+        shieldDecoderFallback.toShieldDecoderFallback() == MPVView.SHIELD_DECODER_FALLBACK_COPY
+}
+
 internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
     if (!autoDecoderFallback ||
         gpuNextFallbackState.rendererFallbackApplied || !isHi10pFallbackDeviceEnabled()
@@ -154,28 +161,45 @@ internal fun MPVActivity.maybeApplyShieldHi10pFallback() {
         return
     }
     if (player.isHi10pFallbackModeActive()) {
+        sessionDecoderMode = null
         updateDecoderButton()
         return
     }
     val currentMode = player.currentDecoderMode
     if (!shouldApplyShieldHi10pFallback(currentMode)) return
 
-    val hwdecWillChange = player.hwdecActive.trim().lowercase() != MPV_VIEW_HWDEC_NONE
+    // If libmpv already fell back to software decode on gpu-next and default
+    // tuning is active, writing hwdec=no mid-playback only triggers UPDATE_HWDEC
+    // (VDCTRL_REINIT) mid-GOP without seeking when video_pts is still unset.
+    if (player.isAlreadyRunningHi10pDefaultSoftwareFallback(shieldDecoderFallback)) {
+        player.applyNativeDecoderFallbackPolicy(MPVView.DECODER_MODE_SHIELD_H10P)
+        sessionDecoderMode = null
+        updateDecoderButton()
+        return
+    }
+
+    val willReinitVideo = shieldHi10pFallbackWillReinitVideo()
 
     // Pause around the swap so audio can't drain → no underrun → no drift.
     val wasPlaying = player.paused == false
-    if (hwdecWillChange && wasPlaying) {
+    if (willReinitVideo && wasPlaying) {
         shieldFallbackResumeAfter = true
         mpvSetPropertyBoolean("pause", true)
     }
+    // Arm resync before applying options so an immediate playback-restart on
+    // the event thread cannot race past it.
+    if (willReinitVideo)
+        pendingShieldFallbackResync = true
     player.applyShieldHi10pFallback(shieldDecoderFallback)
     sessionDecoderMode = null
     automaticHi10pFallbackPath = currentMpvPath() ?: ""
     updateDecoderButton()
-    // Wait for playback-restart — fixed delay can't cover Shield's 3+s
-    // MediaCodec retry cascade.
-    if (hwdecWillChange)
-        pendingShieldFallbackResync = true
+    // If UPDATE_HWDEC reinitialized the decoder before frame 0 set video_pts,
+    // libmpv skips its internal queue_seek; rewind to 0 so the recreated decoder
+    // does not wait until the next keyframe.
+    if (willReinitVideo && mpvGetPropertyDouble("time-pos/full") == null) {
+        mpvCommand(arrayOf("seek", "0", "absolute+exact"))
+    }
 }
 
 internal fun MPVActivity.applySessionDecoderModeIfNeeded() {

@@ -180,7 +180,7 @@ open class MPVActivity : AppCompatActivity() {
     internal var shieldFallbackResumeAfter = false
     internal val shieldFallbackResyncRunnable = Runnable {
         if (!activityIsForeground && !didResumeBackgroundPlayback) return@Runnable
-        val pos = mpvGetPropertyDouble("time-pos/full") ?: return@Runnable
+        val pos = mpvGetPropertyDouble("time-pos/full") ?: 0.0
         Log.v(MPV_ACTIVITY_TAG, "shield fallback: realigning A/V at $pos")
         mpvCommand(arrayOf("seek", pos.toString(), "absolute+exact"))
         if (shieldFallbackResumeAfter) {

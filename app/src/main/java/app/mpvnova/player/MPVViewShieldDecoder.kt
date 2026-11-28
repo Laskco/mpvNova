@@ -43,6 +43,16 @@ private fun MPVView.applyShieldHi10pCopyFallback(sharedPreferences: SharedPrefer
     setRuntimeOption("scale", "ewa_lanczossharp")
 }
 
+internal fun MPVView.isAlreadyRunningHi10pDefaultSoftwareFallback(fallback: String): Boolean {
+    if (fallback.toShieldDecoderFallback() != MPVView.SHIELD_DECODER_FALLBACK_DEFAULT) {
+        return false
+    }
+    if (!isHi10pH264Video() || !matchesShieldOption("vo", MPV_VIEW_VO_GPU_NEXT)) {
+        return false
+    }
+    return mpvGetPropertyString("hwdec-current")?.trim()?.lowercase() == MPV_VIEW_HWDEC_NONE
+}
+
 // New builds request hwdec=no directly. Keep the legacy copy-tuning check so
 // an already-running session from the old path still highlights Shield Hi10P.
 internal fun MPVView.isShieldH10pFallbackModeActive(): Boolean =
@@ -58,7 +68,13 @@ internal fun MPVView.isHi10pFallbackModeActive(): Boolean {
     val legacyCopyTuning = matchesShieldOption("hwdec", MPV_VIEW_HWDEC_MEDIACODEC_COPY) &&
         matchesShieldOption("vd-lavc-skiploopfilter", "nonref") &&
         matchesShieldOption("audio-buffer", "1.0", "1.000000", "1")
-    return directSoftware || legacyCopyTuning
+    if (directSoftware || legacyCopyTuning) {
+        return true
+    }
+    val fallback = PreferenceManager.getDefaultSharedPreferences(context)
+        .getString("shield_decoder_fallback", MPVView.SHIELD_DECODER_FALLBACK_DEFAULT)
+        .toShieldDecoderFallback()
+    return isAlreadyRunningHi10pDefaultSoftwareFallback(fallback)
 }
 
 private fun MPVView.matchesShieldOption(name: String, vararg expected: String): Boolean {
